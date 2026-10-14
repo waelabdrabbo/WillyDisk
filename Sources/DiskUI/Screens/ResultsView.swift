@@ -1,0 +1,1041 @@
+import SwiftUI
+import AppKit
+import DiskCore
+
+/// Screen C — analysis results, and the live state while a scan runs.
+///
+/// One screen serves both roles, chart first. While a scan runs the top of the
+/// screen shows the honest progress — a determinate bar with a percentage only
+/// when the engine reports a reliable fraction, otherwise an indeterminate
+/// indicator, never a fabricated number — and the results fill in as the
+/// engine's progressive snapshots arrive. Once settled, the chart and explorer
+/// take the whole screen: a compact header line names the scanned location and
+/// its size, a directory explorer carries search/sort/filter and file details,
+/// and the footer holds a slim storage-by-category strip followed by the single
+/// access notice. An interactive sunburst (click to drill down, breadcrumb
+/// navigation), Reveal in Finder, rescan, and report export round it out.
+@MainActor
+public struct ResultsView: View {
+    @State private var viewModel: ScanViewModel
+
+    // Chart / explorer navigation
+    @State private var breadcrumb: [ScanNode] = []
+    @State private var selectedNode: ScanNode?
+
+    // Explorer controls
+    @State private var searchText = ""
+    @State private var sortOrder: SortOrder = .size
+    @State private var filterCategory: FileCategory?
+
+    /// Holds the visible rows between changes of the inputs that decide them.
+    ///
+    /// A view body can run many times a second — a hover, a click, a resize, a
+    /// scan still streaming progress — while the list itself only changes when
+    /// its inputs do. Memoising the derived rows keeps the filtering, ordering
+    /// and formatting off the redraw path.
+    @State private var rowsCache = ExplorerRowsCache()
+
+    /// Holds the chart colour index between changes of the inputs that decide it.
+    /// Every level of the breadcrumb is indexed at once and a drill-down rebuilds
+    /// it, so the explorer's icons and the chart's wedges are always read off the
+    /// same mapping.
+    @State private var nodeColorsCache = NodeColorsCache()
+
+    /// The one hovered node, shared by the explorer rows and the chart, so
+    /// hovering either side lights the other. Matched by URL, never by identity.
+    @State private var hoveredURL: URL?
+
+    // Access notice
+    @State private var accessNoticeExpanded = false
+    @State private var accessNoticeDismissed = AccessNoticeDismissal.isDismissed
+    /// Full Disk Access is assumed absent until the off-main probe says
+    /// otherwise, so a slow probe fails toward informing rather than hiding.
+    @State private var fullDiskAccessGranted = false
+
+    /// The chart pane's width, in the split's own coordinate space.
+    ///
+    /// The split's dividing line is painted over where the panes meet, so the
+    /// cover has to know where that is; `nil` until the first layout reports it.
+    @State private var chartPaneWidth: CGFloat?
+
+    public init(viewModel: ScanViewModel = ScanViewModel()) {
+        _viewModel = State(initialValue: viewModel)
+    }
+
+    // MARK: - Derived data
+
+    /// The results to render: the terminal summary once the scan has settled,
+    /// otherwise the newest in-flight snapshot so the screen fills in while the
+    /// scan runs.
+    private var summary: ScanSummary? { viewModel.liveSummary }
+
+    /// Whether a scan is still running and the visible results will keep growing.
+    private var isLiveScan: Bool { viewModel.isScanning }
+
+    /// The scanned root's own node, present once the traversal has finalized it.
+    private func rootNode(in summary: ScanSummary) -> ScanNode? {
+        summary.largestDirectories.first {
+            $0.url.standardizedFileURL == summary.root.standardizedFileURL
+        }
+    }
+
+    /// The scan root's top-level entries, as known right now.
+    ///
+    /// A settled summary always carries the root node with its complete child
+    /// list. A live snapshot does not: the traversal finalizes the root last, so
+    /// until then the children are rebuilt from the largest items surfaced so
+    /// far whose parent is the root. That is the truthful subset the engine has
+    /// already completed, and it converges on the final list as the scan ends.
+    private var rootNodes: [ScanNode] {
+        guard let s = summary else { return [] }
+        if let root = rootNode(in: s) { return root.children }
+
+        let rootPath = s.root.standardizedFileURL.path
+        func isDirectChildOfRoot(_ node: ScanNode) -> Bool {
+            node.url.standardizedFileURL != s.root.standardizedFileURL
+                && node.url.deletingLastPathComponent().standardizedFileURL.path == rootPath
+        }
+        var children = s.largestDirectories.filter(isDirectChildOfRoot)
+        children += s.largestFiles.filter(isDirectChildOfRoot)
+        return children.sorted { $0.logicalSize > $1.logicalSize }
+    }
+
+    /// The nodes currently shown by the chart / explorer (the drill-down target).
+    private var currentChildren: [ScanNode] {
+        breadcrumb.last?.children ?? rootNodes
+    }
+
+    /// Each node's colour in the chart, keyed by path, across every level the
+    /// breadcrumb has visited.
+    ///
+    /// The chart colours a node by where it sits in the tree, and the icons in
+    /// the explorer and the detail pane are the same node as a wedge, so they
+    /// resolve their tint from here rather than from a palette of their own. The
+    /// index covers the focused directory's children and every level above it, so
+    /// a drilled-into ancestor still resolves the colour its own wedge carries.
+    ///
+    /// Derived work — one sibling ranking per breadcrumb level — so it is
+    /// computed once per change of the inputs that decide it and reused while
+    /// they hold.
+    private var nodeColors: NodeColors {
+        nodeColorsCache.colors(
+            for: NodeColorsKey(
+                revision: viewModel.resultsRevision,
+                levels: breadcrumb.map(\.url.path)
+            ),
+            build: { buildNodeColors(roots: rootNodes) }
+        )
+    }
+
+    /// Charts every breadcrumb level's children, in one index.
+    ///
+    /// The focused directory's children are ring 1 of the chart and each level
+    /// above it is one ring further out, which is exactly the ring each child is
+    /// drawn on. The index stops at what the index itself covers rather than
+    /// walking the subtree: only the entries an explorer row or the detail pane
+    /// can show are ever asked for.
+    private func buildNodeColors(roots: [ScanNode]) -> NodeColors {
+        var colors: [String: ChartFill] = [:]
+        var children = roots
+        var parentFill: ChartFill?
+        var ring = 1
+        for ancestor in breadcrumb.reversed() {
+            let fills = ChartPalette.fills(for: children, ring: ring, parentFill: parentFill)
+            colors.merge(fills) { _, new in new }
+            // The next level out is this ancestor's own siblings, drawn in the
+            // colour family of the ring below it.
+            parentFill = fills[ancestor.url.path]
+            children = ancestor.children
+            ring += 1
+        }
+        colors.merge(ChartPalette.fills(for: children, ring: ring, parentFill: parentFill)) { _, new in new }
+        return NodeColors(colors: colors)
+    }
+
+    /// The explorer's visible rows: the focused folder's entries, filtered,
+    /// ordered and resolved for display.
+    ///
+    /// This is derived work — filtering, sorting and formatting every entry — so
+    /// it is computed once per change of the inputs that decide it and reused
+    /// while they hold. Hovering or selecting a row changes none of those inputs,
+    /// so it never re-derives the list.
+    private var visibleRows: [ExplorerRow] {
+        let key = ExplorerRowsKey(
+            revision: viewModel.resultsRevision,
+            breadcrumb: breadcrumb.map(\.id),
+            search: searchText,
+            category: filterCategory,
+            sort: sortOrder
+        )
+        return rowsCache.rows(for: key) {
+            let colors = nodeColors
+            return ExplorerQuery.entries(in: currentChildren, search: searchText,
+                                         category: filterCategory, sort: sortOrder)
+                .map { ExplorerRow(node: $0, colors: colors) }
+        }
+    }
+
+    private var isFiltering: Bool { !searchText.isEmpty || filterCategory != nil }
+
+    /// The inputs that decide which rows are on screen. When any of them changes
+    /// the list is reshuffled, so a hover is dropped rather than left pointing
+    /// at a row that is no longer rendered.
+    private var rowSetKey: ExplorerRowKey {
+        ExplorerRowKey(search: searchText, category: filterCategory, sort: sortOrder)
+    }
+
+    /// Honest copy for an empty chart — an empty result set means something
+    /// different while a scan is still filling in than after it has settled.
+    private var chartEmptyMessage: String {
+        isLiveScan ? "Waiting for the first folders…" : "Nothing to show here"
+    }
+
+    /// Honest copy for an empty explorer list, in the same two situations.
+    private var listEmptyMessage: String {
+        if isLiveScan && !isFiltering { return "Waiting for the first items…" }
+        if isFiltering { return "No matches" }
+        // The folder holds entries, but none of them has bytes to list.
+        if !currentChildren.isEmpty { return "Nothing here has a size" }
+        return "This folder is empty"
+    }
+
+    // MARK: - Access notice
+
+    private var accessPresentation: ScanIssuesPresentation { viewModel.issuesPresentation }
+
+    /// Whether the scan skipped anything worth accounting for: restricted
+    /// locations, or other unreadable items. The notice is never silent.
+    private var showsAccessNotice: Bool {
+        accessPresentation.restrictedLocationCount > 0 || accessPresentation.hasRows
+    }
+
+    private var showsAccessRow: Bool { showsAccessNotice && !accessNoticeDismissed }
+    private var showsAccessChip: Bool { showsAccessNotice && accessNoticeDismissed }
+
+    // MARK: - Body
+
+    public var body: some View {
+        Group {
+            if summary != nil || viewModel.isScanning {
+                content
+            } else {
+                ContentUnavailableView("No results", systemImage: "chart.pie", description: Text("Run a scan to see storage analysis."))
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .navigationTitle(windowTitle)
+        .navigationSubtitle(windowSubtitle)
+        .onChange(of: rowSetKey) { _, _ in
+            // The row under the pointer can leave the screen without an exit
+            // event when the visible set changes, so the shared hover is dropped
+            // rather than left pointing at a row that is no longer rendered.
+            hoveredURL = nil
+        }
+        .task(id: viewModel.scanRun) {
+            // Re-run for every scan and on Rescan: grant Full Disk Access in
+            // System Settings, hit Rescan, and the notice must disappear.
+            fullDiskAccessGranted = await FullDiskAccessProbe.isGranted()
+        }
+        .toolbar {
+            ToolbarItem(placement: .navigation) {
+                Button {
+                    goHome()
+                } label: {
+                    Label("Home", systemImage: "house")
+                }
+                .help("Show source selection; a scan that is running keeps running")
+                .accessibilityLabel("Home")
+                .accessibilityHint("Shows source selection without stopping the scan")
+            }
+
+            ToolbarItemGroup(placement: .primaryAction) {
+                Button {
+                    rescan()
+                } label: {
+                    Label("Rescan", systemImage: "arrow.counterclockwise")
+                }
+                .help(viewModel.isScanning
+                      ? "A scan is already running — cancel it first to start again"
+                      : "Scan the current location again")
+                .disabled(viewModel.isScanning)
+
+                Menu {
+                    Button("Export as JSON…") { if let s = summary { ReportExport.exportJSON(summary: s) } }
+                    Button("Export as CSV…") { if let s = summary { ReportExport.exportCSV(summary: s) } }
+                } label: {
+                    Label("Export", systemImage: "square.and.arrow.up")
+                }
+                .help("Export the analysis report")
+                .disabled(summary == nil)
+            }
+        }
+    }
+
+    /// Window title — the scanned location's name (falls back to the app name).
+    private var windowTitle: String {
+        let root = summary?.root ?? viewModel.currentRoot
+        guard let root else { return "WillyDisk" }
+        let name = root.lastPathComponent
+        return name.isEmpty ? root.path : name
+    }
+
+    /// Window titlebar subtitle — the full path of the scanned location.
+    private var windowSubtitle: String {
+        (summary?.root ?? viewModel.currentRoot)?.path ?? ""
+    }
+
+    /// The results layout: the split panes fill the screen, and the footer carries
+    /// the storage strip and then the access notice.
+    ///
+    /// Every band is present from the moment the screen appears — nothing is
+    /// inserted above or below the panes as a scan starts, streams results in, or
+    /// settles — so the panes hold one geometry throughout. The live scan's
+    /// progress rides in the chart pane's own strip. The bands are told apart by
+    /// their own spacing and fills, not by rules.
+    private var content: some View {
+        VStack(spacing: 0) {
+            splitPanes
+            storageStrip
+            if showsAccessRow {
+                accessNoticeRow
+            }
+        }
+    }
+
+    /// The chart and explorer panes, sized from the design system.
+    ///
+    /// The two panes read as one continuous surface: the split's own divider is
+    /// painted over with the window background where the panes meet, so the
+    /// boundary between chart and explorer is felt — the pointer still resizes
+    /// it — rather than drawn.
+    private var splitPanes: some View {
+        HSplitView {
+            chartPane
+                .frame(minWidth: DS.Size.chartPaneMinWidth,
+                       idealWidth: DS.Size.chartPaneIdealWidth,
+                       maxWidth: .infinity)
+                .background { chartPaneWidthReader }
+            explorerPane
+                .frame(minWidth: DS.Size.explorerPaneMinWidth,
+                       idealWidth: DS.Size.explorerPaneIdealWidth,
+                       maxWidth: .infinity)
+        }
+        .overlay(alignment: .topLeading) { splitDividerCover }
+        .onPreferenceChange(ChartPaneWidthKey.self) { width in
+            if chartPaneWidth != width { chartPaneWidth = width }
+        }
+    }
+
+    /// Reports the chart pane's own width up to `splitPanes`, which is what places
+    /// the cover over the divider.
+    private var chartPaneWidthReader: some View {
+        GeometryReader { geometry in
+            SwiftUI.Color.clear.preference(key: ChartPaneWidthKey.self, value: geometry.size.width)
+        }
+    }
+
+    /// The window-background strip that hides the split's dividing line.
+    ///
+    /// It is centred on the split, so it spans the divider's hairline and overlaps
+    /// each pane by half its width; and it takes no hits, so the divider underneath
+    /// keeps its full grab area and its resize cursor. The split runs to the top of
+    /// the window, behind the toolbar, and the divider is drawn along all of it, so
+    /// the strip reaches into that top inset as well.
+    @ViewBuilder
+    private var splitDividerCover: some View {
+        if let width = chartPaneWidth {
+            DS.Color.windowBackground
+                .frame(width: DS.Size.splitDividerCoverWidth)
+                .ignoresSafeArea(edges: .top)
+                .offset(x: width - DS.Size.splitDividerCoverWidth / 2)
+                .allowsHitTesting(false)
+        }
+    }
+
+    // MARK: - Footer
+
+    /// The slim storage-by-category strip, with the dismissed notice's count
+    /// chip riding at its trailing edge.
+    ///
+    /// The band is always on screen, so the panes above it never resize: before
+    /// the scan's first snapshot there is simply nothing plotted yet, and the
+    /// strip fills in as results stream. `storageStripMinHeight` holds one legend
+    /// line so the band's height does not depend on whether data has arrived.
+    private var storageStrip: some View {
+        let summary = viewModel.liveSummary
+        return HStack(alignment: .bottom, spacing: DS.Spacing.large) {
+            CategoryBar(
+                breakdown: summary?.categoryBreakdown ?? [:],
+                total: summary?.totalLogicalSize ?? 0
+            )
+            if showsAccessChip {
+                AccessNoticeChip(
+                    count: accessPresentation.noticeCount,
+                    symbolName: accessPresentation.noticeSymbolName,
+                    label: accessPresentation.noticeHeadline
+                ) {
+                    setAccessNotice(dismissed: false)
+                }
+            }
+        }
+        .padding(.horizontal, DS.Spacing.large)
+        .padding(.vertical, DS.Spacing.medium)
+        .frame(maxWidth: .infinity, minHeight: DS.Size.storageStripMinHeight, alignment: .bottom)
+    }
+
+    /// The single merged access notice — the last row on screen.
+    private var accessNoticeRow: some View {
+        AccessNoticeRow(
+            presentation: accessPresentation,
+            isFullDiskAccessGranted: fullDiskAccessGranted,
+            isExpanded: $accessNoticeExpanded
+        ) {
+            setAccessNotice(dismissed: true)
+        }
+    }
+
+    private func setAccessNotice(dismissed: Bool) {
+        accessNoticeDismissed = dismissed
+        AccessNoticeDismissal.isDismissed = dismissed
+        // Reopening always starts collapsed, so the notice gives back the most
+        // space until the user asks for the detail.
+        if !dismissed { accessNoticeExpanded = false }
+    }
+
+    // MARK: - Scan-status strip
+
+    /// The slim strip along the bottom of the chart pane that carries the scan's
+    /// honest progress.
+    ///
+    /// It holds its height whether or not a scan is running — only its contents
+    /// fade in and out — so starting or finishing a scan never resizes the chart
+    /// above it. Cancel Scan lives here, reachable for the whole scan.
+    private var scanStatusStrip: some View {
+        HStack(spacing: 0) {
+            if isLiveScan {
+                scanStatusBanner
+                    .transition(.opacity)
+            }
+        }
+        .padding(.horizontal, DS.Spacing.medium)
+        .padding(.vertical, DS.Spacing.small)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(height: DS.Size.scanStatusStripHeight)
+        .animation(.easeInOut(duration: 0.2), value: isLiveScan)
+    }
+
+    /// The in-progress readout: an honest status indicator, the work counted so
+    /// far, and the cancel action. Deliberately small — no running path, no
+    /// elapsed clock.
+    ///
+    /// The indicator and Cancel Scan keep their layout priority and the counters
+    /// take the squeeze, so a long count in a narrow pane shortens the numbers
+    /// rather than the only control that can stop the scan.
+    private var scanStatusBanner: some View {
+        HStack(spacing: DS.Spacing.medium) {
+            scanStatusIndicator
+                .layoutPriority(1)
+            Text("\(viewModel.filesScanned) files · \(ByteFormat.string(viewModel.displayedTotal))")
+                .font(DS.Typography.caption)
+                .monospacedDigit()
+                .foregroundStyle(DS.Color.secondaryText)
+                .lineLimit(1)
+                .truncationMode(.tail)
+            Spacer(minLength: DS.Spacing.small)
+            Button(role: .cancel) {
+                viewModel.cancel()
+            } label: {
+                Label("Cancel Scan", systemImage: "stop.fill")
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+            .layoutPriority(1)
+            .keyboardShortcut(.cancelAction)
+            .help("Stop the scan; the results gathered so far are kept")
+        }
+        .accessibilityElement(children: .contain)
+    }
+
+    /// Progress read straight from the engine.
+    ///
+    /// A percentage appears only when `fractionCompleted` is present; otherwise
+    /// the indicator is honestly indeterminate, because the engine reports no
+    /// reliable total and we do not fabricate one.
+    @ViewBuilder
+    private var scanStatusIndicator: some View {
+        if let fraction = viewModel.progress?.fractionCompleted {
+            HStack(spacing: DS.Spacing.small) {
+                ProgressView(value: fraction)
+                    .progressViewStyle(.linear)
+                    .frame(width: DS.Size.rowProgressWidth)
+                Text(percentText(fraction))
+                    .font(DS.Typography.caption)
+                    .monospacedDigit()
+                    .foregroundStyle(DS.Color.primaryText)
+            }
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("Scan \(percentText(fraction)) complete")
+        } else {
+            HStack(spacing: DS.Spacing.small) {
+                ProgressView()
+                    .controlSize(.small)
+                Text("Scanning…")
+                    .font(DS.Typography.caption)
+                    .foregroundStyle(DS.Color.secondaryText)
+            }
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("Scanning, progress not yet measurable")
+        }
+    }
+
+    private func percentText(_ fraction: Double) -> String {
+        "\(Int((min(max(fraction, 0), 1) * 100).rounded()))%"
+    }
+
+    // MARK: - Chart pane
+
+    private var chartPane: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: DS.Spacing.small) {
+                BreadcrumbBar(path: breadcrumb, rootName: summary?.root.lastPathComponent ?? "Root") { index in
+                    navigateBreadcrumb(index)
+                }
+                if viewModel.isShowingLiveResults { liveBadge }
+            }
+            if currentChildren.isEmpty {
+                emptyChart
+            } else {
+                SunburstView(
+                    nodes: currentChildren,
+                    centerLabel: breadcrumb.last?.name ?? summary?.root.lastPathComponent ?? "Root",
+                    selectedNodeURL: selectedNode?.url,
+                    hoveredURL: $hoveredURL
+                ) { node in
+                    select(node)
+                }
+                .padding(DS.Spacing.medium)
+            }
+            scanStatusStrip
+        }
+    }
+
+    /// A calm cue that the chart is a live, still-growing snapshot.
+    private var liveBadge: some View {
+        HStack(spacing: DS.Spacing.xSmall) {
+            Circle()
+                .fill(DS.Color.accent)
+                .frame(width: DS.Size.statusDot, height: DS.Size.statusDot)
+            Text("Live")
+                .font(DS.Typography.caption)
+                .foregroundStyle(DS.Color.secondaryText)
+        }
+        .padding(.horizontal, DS.Spacing.small)
+        .padding(.vertical, DS.Spacing.xxSmall)
+        .background(DS.Color.controlBackground, in: Capsule())
+        .padding(.trailing, DS.Spacing.small)
+        .help("These results update as the scan runs")
+        .accessibilityLabel("Results updating live")
+    }
+
+    private var emptyChart: some View {
+        VStack(spacing: DS.Spacing.small) {
+            Image(systemName: isLiveScan ? "hourglass" : "chart.pie")
+                .font(DS.Icon.medium)
+                .foregroundStyle(DS.Color.tertiaryText)
+            Text(chartEmptyMessage)
+                .font(DS.Typography.callout)
+                .foregroundStyle(DS.Color.secondaryText)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    // MARK: - Explorer pane
+
+    private var explorerPane: some View {
+        VStack(spacing: 0) {
+            compactHeader
+            explorerToolbar
+
+            ScrollView {
+                contentsList
+            }
+
+            if let node = selectedNode {
+                detailPane(node)
+            }
+        }
+    }
+
+    /// The one-line header above the explorer: the location and its total on the
+    /// first line, the honest counts on the second, with the stopped-early
+    /// warning folded in rather than given a block of its own.
+    ///
+    /// It is always present — before a scan's first snapshot the location and
+    /// totals come from the engine's live counters — so its values tick up in
+    /// place and nothing appears or disappears under the chart.
+    private var compactHeader: some View {
+        VStack(alignment: .leading, spacing: DS.Spacing.xSmall) {
+            HStack(alignment: .firstTextBaseline, spacing: DS.Spacing.medium) {
+                Text(windowTitle)
+                    .font(DS.Typography.title2)
+                    .foregroundStyle(DS.Color.primaryText)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                Spacer(minLength: DS.Spacing.small)
+                Text(ByteFormat.string(viewModel.displayedTotal))
+                    .font(DS.Typography.title2)
+                    .monospacedDigit()
+                    .foregroundStyle(DS.Color.primaryText)
+            }
+            HStack(spacing: DS.Spacing.small) {
+                Text("\(viewModel.filesScanned) files · \(currentChildren.count) items")
+                    .font(DS.Typography.caption)
+                    .foregroundStyle(DS.Color.secondaryText)
+                if viewModel.stoppedEarly { stoppedEarlyNote }
+            }
+        }
+        .padding(.horizontal, DS.Spacing.medium)
+        .padding(.vertical, DS.Spacing.small)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// The settled notice for a scan that stopped before it had covered the whole
+    /// root. The totals beside it are real, but only part of the picture, so the
+    /// notice names that before the numbers are read.
+    private var stoppedEarlyNote: some View {
+        HStack(spacing: DS.Spacing.xSmall) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(DS.Icon.detail)
+                .foregroundStyle(DS.Color.warning)
+                .accessibilityHidden(true)
+            Text("Stopped early — these results are partial")
+                .font(DS.Typography.caption)
+                .foregroundStyle(DS.Color.warning)
+            Button("Scan Again") { rescan() }
+                .buttonStyle(.link)
+                .controlSize(.small)
+        }
+        .accessibilityElement(children: .contain)
+    }
+
+    private var explorerToolbar: some View {
+        HStack(spacing: DS.Spacing.small) {
+            HStack(spacing: DS.Spacing.xSmall) {
+                Image(systemName: "magnifyingglass")
+                    .foregroundStyle(DS.Color.secondaryText)
+                TextField("Search", text: $searchText)
+                    .textFieldStyle(.plain)
+                if !searchText.isEmpty {
+                    Button {
+                        searchText = ""
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(DS.Color.tertiaryText)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, DS.Spacing.small)
+            .padding(.vertical, 5)
+            .background(DS.Color.controlBackground, in: RoundedRectangle(cornerRadius: DS.Radius.medium, style: .continuous))
+
+            Picker("Sort", selection: $sortOrder) {
+                ForEach(SortOrder.allCases) { order in
+                    Text(order.label).tag(order)
+                }
+            }
+            .pickerStyle(.menu)
+            .fixedSize()
+
+            Menu {
+                Button("All Categories") { filterCategory = nil }
+                Divider()
+                ForEach(FileCategory.allCases, id: \.self) { category in
+                    Button(category.displayName) { filterCategory = category }
+                }
+            } label: {
+                Image(systemName: "line.3.horizontal.decrease.circle")
+            }
+            .menuStyle(.borderlessButton)
+            .fixedSize()
+            .help("Filter by category")
+        }
+        .padding(DS.Spacing.small)
+    }
+
+    private var contentsList: some View {
+        let rows = visibleRows
+        return LazyVStack(spacing: 0) {
+            if rows.isEmpty {
+                VStack(spacing: DS.Spacing.small) {
+                    Text(listEmptyMessage)
+                        .font(DS.Typography.callout)
+                        .foregroundStyle(DS.Color.secondaryText)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, DS.Spacing.xxLarge)
+            } else {
+                ForEach(rows, id: \.url) { row in
+                    NodeRow(
+                        row: row,
+                        isSelected: selectedNode?.url == row.url,
+                        isHovered: hoveredURL == row.url,
+                        action: { select(row.node) },
+                        onHover: { hovering in setHover(row.url, hovering) }
+                    )
+                    // Opting the row into equatable rendering is what makes its
+                    // `Equatable` conformance do anything: without it SwiftUI
+                    // rebuilds every row on each pass, so a hover or a selection
+                    // would re-render the whole list.
+                    .equatable()
+                }
+            }
+        }
+    }
+
+    // MARK: - Detail pane
+
+    private func detailPane(_ node: ScanNode) -> some View {
+        VStack(alignment: .leading, spacing: DS.Spacing.small) {
+            HStack(spacing: DS.Spacing.small) {
+                Image(systemName: node.isDirectory ? "folder.fill" : "doc.fill")
+                    // Drawn at the wedge's own opacity so a node's icon and its
+                    // wedge land on the very same colour, background included.
+                    .foregroundStyle(nodeColors.color(for: node.url).color)
+                    .opacity(DS.Sunburst.fillOpacity)
+                Text(node.name)
+                    .font(DS.Typography.headline)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                Spacer()
+                Button {
+                    revealInFinder(node)
+                } label: {
+                    Label("Reveal in Finder", systemImage: "arrow.up.forward.square")
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+            }
+
+            detailRow("Path", node.url.path)
+            detailRow("Kind", node.category.displayName)
+            detailRow("Size", ByteFormat.exact(node.logicalSize))
+            detailRow("On disk", ByteFormat.exact(node.allocatedSize))
+            if node.isDirectory {
+                detailRow("Contents", "\(node.fileCount) files · \(node.directoryCount) folders")
+            }
+            if let modified = node.modifiedAt {
+                detailRow("Modified", DateFormat.short(modified))
+            }
+            if node.isSymlink {
+                detailRow("Type", "Symbolic link")
+            }
+            if !node.isAccessible {
+                detailRow("Access", node.errorMessage ?? "Inaccessible")
+                    .foregroundStyle(DS.Color.warning)
+            }
+        }
+        .padding(DS.Spacing.medium)
+        .background(DS.Color.controlBackground.opacity(0.5))
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    @ViewBuilder
+    private func detailRow(_ label: String, _ value: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: DS.Spacing.medium) {
+            Text(label)
+                .font(DS.Typography.caption)
+                .foregroundStyle(DS.Color.secondaryText)
+                .frame(width: DS.Size.detailLabelWidth, alignment: .leading)
+            Text(value)
+                .font(DS.Typography.callout)
+                .textSelection(.enabled)
+                .lineLimit(2)
+            Spacer()
+        }
+    }
+
+    // MARK: - Actions
+
+    private func select(_ node: ScanNode) {
+        if node.isDirectory {
+            hoveredURL = nil
+            breadcrumb.append(node)
+            selectedNode = nil
+        } else {
+            selectedNode = node
+        }
+    }
+
+    private func navigateBreadcrumb(_ index: Int) {
+        hoveredURL = nil
+        selectedNode = nil
+        if index < 0 {
+            breadcrumb.removeAll()
+        } else {
+            breadcrumb = Array(breadcrumb.prefix(index + 1))
+        }
+    }
+
+    /// Publishes the row under the pointer as the one hovered node. Only the row
+    /// that is still hovered clears it, so moving between rows never leaves the
+    /// highlight stuck on the wrong one.
+    private func setHover(_ url: URL, _ hovering: Bool) {
+        if hovering {
+            if hoveredURL != url { hoveredURL = url }
+        } else if hoveredURL == url {
+            hoveredURL = nil
+        }
+    }
+
+    private func revealInFinder(_ node: ScanNode) {
+        NSWorkspace.shared.activateFileViewerSelecting([node.url])
+    }
+
+    private func rescan() {
+        guard let root = summary?.root ?? viewModel.currentRoot else { return }
+        hoveredURL = nil
+        breadcrumb.removeAll()
+        selectedNode = nil
+        searchText = ""
+        filterCategory = nil
+        viewModel.start(root: root)
+    }
+
+    private func goHome() {
+        // Only the screen changes. A scan that is still running keeps running in
+        // the background and its results stay on the engine's slot, so Home can
+        // show it and View can open it again; the scan itself is untouched.
+        hoveredURL = nil
+        breadcrumb.removeAll()
+        selectedNode = nil
+        searchText = ""
+        filterCategory = nil
+        viewModel.showHome()
+    }
+}
+
+// MARK: - Supporting types
+
+/// The explorer inputs that decide which rows are on screen.
+private struct ExplorerRowKey: Equatable {
+    var search: String
+    var category: FileCategory?
+    var sort: SortOrder
+}
+
+/// The chart pane's width, reported up to the split so the cover over the
+/// divider is placed where the panes actually meet. The largest reported width
+/// wins: only the chart pane publishes a value, and the split's own children
+/// contribute the default.
+private struct ChartPaneWidthKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
+    }
+}
+
+/// The inputs the visible rows are derived from.
+///
+/// A change to any of them — new scan data, a different folder, a search, filter
+/// or ordering — is what makes the list stale. Nothing else is.
+private struct ExplorerRowsKey: Equatable {
+    var revision: Int
+    var breadcrumb: [UUID]
+    var search: String
+    var category: FileCategory?
+    var sort: SortOrder
+}
+
+/// Keeps the explorer's visible rows while their inputs stay the same.
+///
+/// Deriving the rows is the costly part of drawing the explorer — every entry is
+/// filtered, ordered and resolved for display — yet it is pure work on inputs a
+/// view body rarely changes. Holding the last result beside the key that produced
+/// it leaves the redraw path with nothing to do but draw the rows already in hand.
+@MainActor
+private final class ExplorerRowsCache {
+    private var key: ExplorerRowsKey?
+    private var rows: [ExplorerRow] = []
+
+    func rows(for key: ExplorerRowsKey, build: () -> [ExplorerRow]) -> [ExplorerRow] {
+        if key == self.key { return rows }
+        let fresh = build()
+        self.key = key
+        self.rows = fresh
+        return fresh
+    }
+}
+
+/// What makes the chart colour index stale: new scan data, or a different level
+/// of the tree in view. Nothing else.
+private struct NodeColorsKey: Equatable {
+    var revision: Int
+    var levels: [String]
+}
+
+/// Keeps the chart colour index while its inputs stay the same.
+///
+/// Ranking every sibling group of every breadcrumb level is pure work on inputs
+/// a view body rarely changes, so the result is held beside the key that produced
+/// it and reused for as long as they hold.
+@MainActor
+private final class NodeColorsCache {
+    private var key: NodeColorsKey?
+    private var colors = NodeColors(colors: [:])
+
+    func colors(for key: NodeColorsKey, build: () -> NodeColors) -> NodeColors {
+        if key == self.key { return colors }
+        let fresh = build()
+        self.key = key
+        self.colors = fresh
+        return fresh
+    }
+}
+
+/// Every node's colour in the chart, keyed by path.
+///
+/// A node the chart does not draw — an entry with no bytes, or one below the
+/// chart's density limits — has no entry here and is drawn neutral, so the icons
+/// never claim a colour the chart does not show.
+private struct NodeColors {
+    var colors: [String: ChartFill]
+
+    func color(for url: URL) -> ChartFill {
+        colors[url.path] ?? .neutral
+    }
+}
+
+/// One explorer row, resolved from a node once per list change.
+///
+/// The row body draws these values directly, so the comparatively costly work —
+/// resolving the node's chart colour, composing its subtitle, formatting its size
+/// — happens when the list is rebuilt rather than on every redraw.
+private struct ExplorerRow: Equatable {
+    /// The node, carried so the row's action can drill into a folder or open a
+    /// file's details. Only the fields the row draws take part in equality: the
+    /// subtree it carries is not drawn, and walking it here would put a whole
+    /// folder back on the redraw path.
+    let node: ScanNode
+    let url: URL
+    let name: String
+    let isDirectory: Bool
+    let isSymlink: Bool
+    let isAccessible: Bool
+    /// The colour of the node's wedge in the chart, so a row's icon and its wedge
+    /// always read as the same thing.
+    let iconColor: Color
+    let subtitle: String
+    let sizeText: String
+
+    init(node: ScanNode, colors: NodeColors) {
+        self.node = node
+        url = node.url
+        name = node.name
+        isDirectory = node.isDirectory
+        isSymlink = node.isSymlink
+        isAccessible = node.isAccessible
+        iconColor = colors.color(for: node.url).color
+        subtitle = node.isDirectory
+            ? "\(node.fileCount) files · \(node.directoryCount) folders"
+            : node.category.displayName
+        sizeText = ByteFormat.string(node.logicalSize)
+    }
+
+    static func == (lhs: ExplorerRow, rhs: ExplorerRow) -> Bool {
+        lhs.url == rhs.url
+            && lhs.name == rhs.name
+            && lhs.isDirectory == rhs.isDirectory
+            && lhs.isSymlink == rhs.isSymlink
+            && lhs.isAccessible == rhs.isAccessible
+            && lhs.iconColor == rhs.iconColor
+            && lhs.subtitle == rhs.subtitle
+            && lhs.sizeText == rhs.sizeText
+    }
+}
+
+/// One explorer row.
+///
+/// Hover is a light emphasis surface plus a hairline stroke, deliberately
+/// quieter than the selection fill, so "where the pointer is" and "what I
+/// clicked" never read the same. The row publishes its URL to the shared hover
+/// state while the pointer is over it, which is what lights the matching wedge.
+///
+/// The row compares equal to itself while the values it draws, its selection and
+/// its hover state are unchanged, so a change to one row — or to anything else on
+/// the screen — does not re-render the rest of the list. Its separator is drawn
+/// inside the row for the same reason: a divider of its own would double the
+/// number of children a lazy list has to place.
+private struct NodeRow: View, Equatable {
+    let row: ExplorerRow
+    let isSelected: Bool
+    let isHovered: Bool
+    let action: () -> Void
+    let onHover: (Bool) -> Void
+
+    nonisolated static func == (lhs: NodeRow, rhs: NodeRow) -> Bool {
+        lhs.row == rhs.row && lhs.isSelected == rhs.isSelected && lhs.isHovered == rhs.isHovered
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Button(action: action) {
+                HStack(spacing: DS.Spacing.small) {
+                    Image(systemName: row.isDirectory ? "folder.fill" : "doc.fill")
+                        .foregroundStyle(row.iconColor)
+                        .opacity(DS.Sunburst.fillOpacity)
+                    VStack(alignment: .leading, spacing: DS.Spacing.hairline) {
+                        Text(row.name)
+                            .font(DS.Typography.body)
+                            .foregroundStyle(DS.Color.primaryText)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                        Text(row.subtitle)
+                            .font(DS.Typography.caption)
+                            .foregroundStyle(DS.Color.secondaryText)
+                    }
+                    Spacer()
+                    Text(row.sizeText)
+                        .font(DS.Typography.body)
+                        .foregroundStyle(DS.Color.secondaryText)
+                    if row.isSymlink {
+                        Image(systemName: "arrow.turn.up.right")
+                            .font(DS.Icon.detail)
+                            .foregroundStyle(DS.Color.tertiaryText)
+                    }
+                    if !row.isAccessible {
+                        Image(systemName: "lock.fill")
+                            .font(DS.Icon.detail)
+                            .foregroundStyle(DS.Color.warning)
+                    }
+                }
+                .padding(.horizontal, DS.Spacing.small)
+                .padding(.vertical, DS.Spacing.xSmall)
+                .background(rowBackground)
+                .overlay(rowStroke)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .onHover(perform: onHover)
+            .accessibilityLabel("\(row.name), \(row.sizeText)")
+            Divider()
+        }
+    }
+
+    private var rowBackground: SwiftUI.Color {
+        if isSelected { return DS.Color.accent.opacity(DS.Opacity.rowSelection) }
+        if isHovered { return DS.Color.accent.opacity(DS.Opacity.rowHover) }
+        return .clear
+    }
+
+    /// A hairline stroke marks the hovered row. The selection keeps its fill
+    /// alone, so the two states stay distinct.
+    @ViewBuilder
+    private var rowStroke: some View {
+        if isHovered && !isSelected {
+            Rectangle().strokeBorder(DS.Color.separator, lineWidth: DS.Stroke.hairline)
+        } else {
+            SwiftUI.Color.clear
+        }
+    }
+}

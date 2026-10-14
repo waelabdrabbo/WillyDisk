@@ -1,0 +1,24 @@
+{
+    "configurations": [
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:_default}",
+            "name": "Debug WillyDisk",
+            "target": "WillyDisk",
+            "configuration": "debug",
+            "preLaunchTask": "swift: Build Debug WillyDisk"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:_default}",
+            "name": "Release WillyDisk",
+            "target": "WillyDisk",
+            "configuration": "release",
+            "preLaunchTask": "swift: Build Release WillyDisk"
+        }
+    ]
+}

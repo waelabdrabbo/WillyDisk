@@ -67,12 +67,6 @@ public struct SunburstView: View {
             .onChange(of: focusedID) { _, newID in
                 publish(url(for: hoveredID ?? newID, in: segments))
             }
-            .background(DS.Color.chartBackground)
-            .clipShape(RoundedRectangle(cornerRadius: DS.Radius.large, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: DS.Radius.large, style: .continuous)
-                    .strokeBorder(DS.Color.separator, lineWidth: DS.Stroke.hairline)
-            )
             .accessibilityElement(children: .contain)
             .accessibilityLabel("Storage sunburst")
     }
@@ -185,9 +179,9 @@ public struct SunburstView: View {
         )
 
         // The selected wedge carries the heaviest outline in the chart. Selection
-        // is a state the user set and keeps, so it reads through both the near
-        // background-coloured hairline that separates the other wedges and the
-        // softer emphasis that only marks where the pointer or keyboard is.
+        // is a state the user set and keeps, so it reads through both the gaps
+        // that already separate the wedges at rest and the softer emphasis that
+        // only marks where the pointer or keyboard is.
         let border = borderStyle(isSelected: isSelected, isHighlighted: isHighlighted)
 
         if let node = segment.node {
@@ -226,8 +220,9 @@ public struct SunburstView: View {
     }
 
     /// Outline for one wedge, heaviest first: the selection the user set, then
-    /// the hover/focus emphasis, then the near-background hairline that separates
-    /// the wedges at rest.
+    /// the hover/focus emphasis. A wedge at rest draws no outline at all — the
+    /// layout's angular and radial gaps already separate it, and the chart sits
+    /// directly on whatever surface hosts it rather than on a panel of its own.
     private func borderStyle(isSelected: Bool, isHighlighted: Bool) -> (color: Color, width: CGFloat) {
         if isSelected {
             return (DS.Color.primaryText.opacity(DS.Sunburst.selectedStrokeOpacity), DS.Stroke.selection)
@@ -235,7 +230,7 @@ public struct SunburstView: View {
         if isHighlighted {
             return (DS.Color.primaryText.opacity(0.55), DS.Stroke.emphasis)
         }
-        return (DS.Color.chartBackground, DS.Stroke.hairline)
+        return (.clear, 0)
     }
 
     private func centerDisc(radius: CGFloat, center: CGPoint, active: SunburstSegment?) -> some View {

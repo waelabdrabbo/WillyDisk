@@ -229,7 +229,6 @@ public enum DS {
         public static let success: SwiftUI.Color = SwiftUI.Color(nsColor: .systemGreen)
         public static let warning: SwiftUI.Color = SwiftUI.Color(nsColor: .systemOrange)
         public static let danger: SwiftUI.Color = SwiftUI.Color(nsColor: .systemRed)
-        public static let chartBackground: SwiftUI.Color = SwiftUI.Color(nsColor: .underPageBackgroundColor)
         /// Neutral fill for a chart wedge that groups several small items.
         public static let chartRemainder: SwiftUI.Color = SwiftUI.Color(nsColor: .systemGray)
     }

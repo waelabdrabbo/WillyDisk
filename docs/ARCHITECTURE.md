@@ -173,8 +173,14 @@ each reflecting only completed work, and the stream still ends with exactly one
   injects the view model: `AppState` creates one
   `ScanViewModel(engine: FileScanEngine())` and `ContentView` hosts
   `ScanFlowView`, which switches between source selection and results on the view
-  model's phase. There is no separate sidebar/toolbar navigation — a single
+  model's phase. There is no sidebar navigation — a single
   "Choose Folder…" menu command (⌘O) opens a panel and starts a real scan.
+- Appearance is a user preference rather than scan state: `DiskUI`'s
+  `AppAppearance` (system, light, dark) is persisted in `UserDefaults` under one
+  key, offered by the gear menu in `SourceSelectionView`'s toolbar, and applied by
+  `AppState` as `NSApplication.appearance` — one carrier that every window, the
+  app's chrome, the panels it presents, and the menu bar inherit, and whose
+  changes SwiftUI's color scheme follows.
 - Design tokens live in `DiskUI/DesignSystem/DesignSystem.swift` (spacing scale,
   corner radii, typography roles, semantic colors). UI never hard-codes magic numbers.
 - The disk chart is `SunburstView` — custom SwiftUI shapes with ring/angle

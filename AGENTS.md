@@ -48,7 +48,8 @@ onto `FileCategory`, `ScanErrorClassifier.swift` maps errno onto `ScanIssueKind`
 (and the live in-progress state). `Components/SunburstView.swift` is the disk chart;
 `CategoryBar`, `AccessNoticeRow`, `FlowLayout` are the other views.
 `DesignSystem/DesignSystem.swift` holds every token (`DS`), `ChartPalette.swift` the
-chart fills, `FileCategory+UI.swift` the category colors and labels.
+chart fills, `FileCategory+UI.swift` the category colors and labels, `AppAppearance.swift`
+the stored system/light/dark appearance preference behind the first screen's toolbar.
 `Support/` holds non-view helpers: `ExplorerQuery` (sorting/filtering), `Formatters`,
 `VolumeInfo` (mounted volumes), `RecentLocations`, `FullDiskAccess` +
 `FullDiskAccessProbe` (TCC), `ScanIssuesPresentation`, `ScanSlotPresentation`,
@@ -66,7 +67,7 @@ swift build                          # compile
 swift test                           # full suite
 swift test --filter FileScanEngineTests   # one test class
 bash Scripts/run.sh                  # build the bundle and launch it (the way to look at the UI)
-bash Scripts/render-screens.sh       # offscreen PNGs of the results screen, no window, no screen-recording permission
+bash Scripts/render-screens.sh       # offscreen PNGs of the app's screens (-S results|home|both), no window, no screen-recording permission
 bash Scripts/repo-map.sh             # one-screen structural inventory (--types adds declarations)
 ```
 

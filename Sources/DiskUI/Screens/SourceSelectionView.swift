@@ -16,6 +16,10 @@ import DiskCore
 /// row as that scan's status with a View action instead of a start action, and
 /// the other start actions are held back while a scan runs, so this screen can
 /// be used mid-scan without ever starting a second scan or hiding the first.
+///
+/// The toolbar holds the app's appearance choice, which is a preference rather
+/// than scan state: `AppAppearance` carries the value and the app shell applies
+/// it to the app.
 @MainActor
 public struct SourceSelectionView: View {
     @State private var viewModel: ScanViewModel
@@ -23,6 +27,10 @@ public struct SourceSelectionView: View {
     @State private var isDragOver = false
     @State private var recentLocations: [URL] = RecentLocations.load()
     @State private var volumes: [VolumeInfo] = []
+    /// The app's appearance preference. The toolbar menu writes it and the app
+    /// shell reads the same stored value, so the menu reports what the window
+    /// actually shows.
+    @AppStorage(AppAppearance.defaultsKey) private var appearance: AppAppearance = .system
 
     public init(viewModel: ScanViewModel = ScanViewModel()) {
         _viewModel = State(initialValue: viewModel)
@@ -57,6 +65,33 @@ public struct SourceSelectionView: View {
         .onDrop(of: [UTType.fileURL], isTargeted: $isDragOver) { providers in
             handleDrop(providers)
         }
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                appearanceMenu
+            }
+        }
+    }
+
+    /// The gear: the app's appearance, as one menu of the three choices.
+    ///
+    /// The menu reports and writes the stored preference the app shell applies to
+    /// the app, so picking an appearance here changes every window at once and the
+    /// choice survives the next launch.
+    private var appearanceMenu: some View {
+        Menu {
+            Picker("Appearance", selection: $appearance) {
+                ForEach(AppAppearance.allCases) { option in
+                    Label(option.label, systemImage: option.symbolName)
+                        .tag(option)
+                }
+            }
+            .pickerStyle(.inline)
+        } label: {
+            Label("Appearance", systemImage: "gearshape")
+        }
+        .help("Choose the app appearance: system, light, or dark")
+        .accessibilityLabel("Appearance")
+        .accessibilityValue(appearance.label)
     }
 
     // MARK: - Sections

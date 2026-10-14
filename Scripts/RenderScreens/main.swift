@@ -15,10 +15,18 @@ import DiskUI
 
 // MARK: - Arguments
 
+/// The screens this renderer can drive. Each is the real view over the same
+/// finished scan, so a render is the screen the app shows, not a mock of it.
+enum ScreenKind: String, CaseIterable {
+    case results
+    case home
+}
+
 struct Options {
     var out = URL(fileURLWithPath: ".build/renders")
     var size = CGSize(width: 1088, height: 816)
     var appearances: [ColorScheme] = [.light, .dark]
+    var screens: [ScreenKind] = [.results]
     var fixture: URL?
     var rendersWindow = true
 }
@@ -53,6 +61,13 @@ func parse(_ arguments: [String]) -> Options {
             case "both": options.appearances = [.light, .dark]
             case let other: fail("--appearance expects light, dark or both, not \(other)")
             }
+        case "--screen":
+            switch next("--screen") {
+            case "results": options.screens = [.results]
+            case "home": options.screens = [.home]
+            case "both": options.screens = ScreenKind.allCases
+            case let other: fail("--screen expects home, results or both, not \(other)")
+            }
         case "--fixture":
             options.fixture = URL(fileURLWithPath: next("--fixture"))
         case "--window":
@@ -61,11 +76,12 @@ func parse(_ arguments: [String]) -> Options {
             options.rendersWindow = false
         case "--help", "-h":
             print("""
-            usage: render-screens --out DIR [--size WxH] [--appearance light|dark|both] [--fixture DIR] [--window|--content]
+            usage: render-screens --out DIR [--size WxH] [--appearance light|dark|both] [--screen home|results|both] [--fixture DIR] [--window|--content]
 
               --out        directory the PNGs are written to
               --size       render size in points (default 1088x816)
               --appearance which appearances to render (default both)
+              --screen     which screens to render (default results)
               --fixture    scan this directory instead of the generated fixture
               --window     capture the whole window, toolbar included (default)
               --content    capture the screen alone, with no window around it
@@ -132,29 +148,34 @@ func render(_ options: Options) {
 
     for appearance in options.appearances {
         let name = appearance == .dark ? "dark" : "light"
-        // The window's own background sits behind the screen, exactly as it does
-        // in the app, so a render is not composited against whatever the reader
-        // opens it with.
-        let screen = ZStack {
-            DS.Color.windowBackground
-            ResultsView(viewModel: viewModel)
-        }
-        .environment(\.colorScheme, appearance)
+        for kind in options.screens {
+            // The window's own background sits behind the screen, exactly as it
+            // does in the app, so a render is not composited against whatever the
+            // reader opens it with.
+            let screen = ZStack {
+                DS.Color.windowBackground
+                switch kind {
+                case .results: ResultsView(viewModel: viewModel)
+                case .home: SourceSelectionView(viewModel: viewModel)
+                }
+            }
+            .environment(\.colorScheme, appearance)
 
-        let url = options.out.appendingPathComponent(
-            "results-\(options.rendersWindow ? "window" : "content")-\(name)-\(Int(options.size.width))x\(Int(options.size.height)).png")
-        let image = options.rendersWindow
-            ? renderWindow(screen, size: options.size, appearance: appearance)
-            : renderContent(screen, size: options.size)
-        guard let png = image?.representation(using: .png, properties: [:]) else {
-            fail("could not encode \(url.lastPathComponent)")
+            let url = options.out.appendingPathComponent(
+                "\(kind.rawValue)-\(options.rendersWindow ? "window" : "content")-\(name)-\(Int(options.size.width))x\(Int(options.size.height)).png")
+            let image = options.rendersWindow
+                ? renderWindow(screen, size: options.size, appearance: appearance)
+                : renderContent(screen, size: options.size)
+            guard let png = image?.representation(using: .png, properties: [:]) else {
+                fail("could not encode \(url.lastPathComponent)")
+            }
+            do {
+                try png.write(to: url)
+            } catch {
+                fail("could not write \(url.path): \(error.localizedDescription)")
+            }
+            print("wrote \(url.path)")
         }
-        do {
-            try png.write(to: url)
-        } catch {
-            fail("could not write \(url.path): \(error.localizedDescription)")
-        }
-        print("wrote \(url.path)")
     }
 }
 

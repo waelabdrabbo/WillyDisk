@@ -15,7 +15,9 @@ stream reports.
 - `Components/` — `SunburstView` (the disk chart), `CategoryBar`,
   `AccessNoticeRow`, `FlowLayout`.
 - `DesignSystem/` — `DesignSystem.swift` holds every token (`DS`), `ChartPalette.swift`
-  the chart fills, `FileCategory+UI.swift` the category colors and labels.
+  the chart fills, `FileCategory+UI.swift` the category colors and labels,
+  `AppAppearance.swift` the stored system/light/dark preference behind the first
+  screen's toolbar menu.
 - `Support/` — non-view helpers: `ExplorerQuery` (sorting/filtering), `Formatters`,
   `VolumeInfo`, `RecentLocations`, `FullDiskAccess` + `FullDiskAccessProbe`,
   `ScanIssuesPresentation`, `ScanSlotPresentation`, `ReportExport` (JSON/CSV through
@@ -41,7 +43,10 @@ Screen Recording permission:
 
 ```
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -o .build/renders/<change>
+WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S home -o .build/renders/<change>
 ```
+
+`-S` picks the screen: `results` (default), `home` (source selection), or `both`.
 
 The `-o` matters: renders are named after their size and appearance, so reusing a
 directory reuses the path, and a viewer that already loaded it keeps showing the cached

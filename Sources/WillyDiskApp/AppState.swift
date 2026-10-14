@@ -17,6 +17,11 @@ final class AppState: ObservableObject {
     init() {
         scanViewModel = ScanViewModel(engine: FileScanEngine())
 
+        // The stored appearance is in place before the first window exists, so a
+        // choice held over from the last launch is never painted over by the
+        // system's appearance first.
+        applyAppearance(.stored)
+
         // QA / automation hook: when `WILLYDISK_AUTOSCAN` names a path, begin a
         // scan immediately on launch so screenshots and smoke tests can reach
         // the results screen without driving the UI. No effect in normal use.
@@ -37,5 +42,14 @@ final class AppState: ObservableObject {
         if panel.runModal() == .OK, let url = panel.url {
             scanViewModel.start(root: url)
         }
+    }
+
+    /// Pins the app to the appearance the user chose.
+    ///
+    /// The app object carries the choice, so every window — the app's own, the
+    /// folder chooser and save panels it presents, and the menu bar — resolves
+    /// against it.
+    func applyAppearance(_ appearance: AppAppearance) {
+        NSApplication.shared.appearance = appearance.nsAppearance
     }
 }

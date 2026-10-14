@@ -55,6 +55,7 @@ reviewable artifact:
 ```
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a dark -c -o /tmp/renders
+WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S both -o /tmp/renders
 ```
 
 The renderer drives a real scan of a generated fixture tree, so the PNGs show real data.
@@ -65,6 +66,7 @@ It opens no window and needs no Screen Recording permission.
 | `-o DIR` | output directory | `.build/renders` |
 | `-s WxH` | render size in points | `1088x816` |
 | `-a light\|dark\|both` | appearances | `both` |
+| `-S results\|home\|both` | screens: results, source selection | `results` |
 | `-t DIR` | scan this directory instead of the fixture | generated fixture |
 | `-c` | capture the content alone, without the window | the window |
 

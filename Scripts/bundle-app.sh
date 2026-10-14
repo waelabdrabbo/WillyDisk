@@ -6,6 +6,9 @@
 #          CONFIGURATION=debug bash Scripts/bundle-app.sh
 # Output:  .build/WillyDisk.app  (launch with: open .build/WillyDisk.app)
 #
+# Inside an agent sandbox, where SwiftPM cannot nest its own sandbox:
+#          WILLYDISK_NO_SANDBOX=1 bash Scripts/bundle-app.sh
+#
 # The bundle contains Contents/MacOS/WillyDisk and an Info.plist carrying
 # LSMinimumSystemVersion 14.0, CFBundleIdentifier, and NSHighResolutionCapable.
 set -euo pipefail
@@ -51,7 +54,11 @@ if [ -n "$SDK_VERSION" ]; then
 fi
 
 echo "Building $APP_NAME ($CONFIGURATION)…"
-swift build -c "$CONFIGURATION" "${LINK_SDK_FLAGS[@]}"
+BUILD_FLAGS=()
+if [[ -n "${WILLYDISK_NO_SANDBOX:-}" ]]; then
+    BUILD_FLAGS=(--disable-sandbox)
+fi
+swift build -c "$CONFIGURATION" ${BUILD_FLAGS[@]+"${BUILD_FLAGS[@]}"} "${LINK_SDK_FLAGS[@]}"
 
 CONTENTS_DIR="$APP_BUNDLE/Contents"
 MACOS_DIR="$CONTENTS_DIR/MacOS"

@@ -12,7 +12,7 @@ stream reports.
 - `Screens/` — `ScanFlowView` routes phases; `SourceSelectionView` is screen A;
   `ResultsView` is screen C and also the live in-progress state. Scanning is not a
   separate screen.
-- `Components/` — `SunburstView` (the disk chart), `BreadcrumbBar`, `CategoryBar`,
+- `Components/` — `SunburstView` (the disk chart), `CategoryBar`,
   `AccessNoticeRow`, `FlowLayout`.
 - `DesignSystem/` — `DesignSystem.swift` holds every token (`DS`), `ChartPalette.swift`
   the chart fills, `FileCategory+UI.swift` the category colors and labels.

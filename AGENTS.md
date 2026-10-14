@@ -46,7 +46,7 @@ onto `FileCategory`, `ScanErrorClassifier.swift` maps errno onto `ScanIssueKind`
 `AsyncStream<ScanEvent>`. `Screens/ScanFlowView.swift` routes phases,
 `Screens/SourceSelectionView.swift` is screen A, `Screens/ResultsView.swift` is screen C
 (and the live in-progress state). `Components/SunburstView.swift` is the disk chart;
-`BreadcrumbBar`, `CategoryBar`, `AccessNoticeRow`, `FlowLayout` are the other views.
+`CategoryBar`, `AccessNoticeRow`, `FlowLayout` are the other views.
 `DesignSystem/DesignSystem.swift` holds every token (`DS`), `ChartPalette.swift` the
 chart fills, `FileCategory+UI.swift` the category colors and labels.
 `Support/` holds non-view helpers: `ExplorerQuery` (sorting/filtering), `Formatters`,

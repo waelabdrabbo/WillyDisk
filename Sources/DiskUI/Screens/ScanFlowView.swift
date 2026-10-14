@@ -5,9 +5,9 @@ import DiskCore
 ///
 /// The screen shown is the view model's `route`, not its scan `phase`, so the
 /// source-selection screen can be shown while a scan keeps running in the
-/// background: starting a scan opens the results screen, Home returns to source
-/// selection without touching the scan, and View opens the running (or settled)
-/// results again. There is no separate scanning screen.
+/// background: starting a scan opens the results screen, its Back action returns
+/// to source selection without touching the scan, and View opens the running (or
+/// settled) results again. There is no separate scanning screen.
 ///
 /// This is the recommended integration point for the app shell: create one
 /// `ScanViewModel` (with the real `ScanEngine`) and host this view.

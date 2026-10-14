@@ -45,7 +45,6 @@ public enum DS {
         public static let inline: SwiftUI.Font = .system(size: 11)
         public static let detail: SwiftUI.Font = .system(size: 10)
         public static let disclosure: SwiftUI.Font = .system(size: 10, weight: .semibold)
-        public static let crumb: SwiftUI.Font = .system(size: 9, weight: .semibold)
     }
 
     // MARK: - Element sizes

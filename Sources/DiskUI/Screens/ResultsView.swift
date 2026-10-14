@@ -12,8 +12,9 @@ import DiskCore
 /// take the whole screen: a compact header line names the scanned location and
 /// its size, a directory explorer carries search/sort/filter and file details,
 /// and the footer holds a slim storage-by-category strip followed by the single
-/// access notice. An interactive sunburst (click to drill down, breadcrumb
-/// navigation), Reveal in Finder, rescan, and report export round it out.
+/// access notice. An interactive sunburst (click a folder to drill down, with the
+/// toolbar's location — title, path and Back — following the depth), Reveal in
+/// Finder, rescan, and report export round it out.
 @MainActor
 public struct ResultsView: View {
     @State private var viewModel: ScanViewModel
@@ -231,15 +232,21 @@ public struct ResultsView: View {
             fullDiskAccessGranted = await FullDiskAccessProbe.isGranted()
         }
         .toolbar {
+            // One step back, wherever the screen is: out of the folder the chart
+            // is drawn from, and from the scanned location itself to source
+            // selection. There is no separate Home action because this is the
+            // whole of what leaving the screen means.
             ToolbarItem(placement: .navigation) {
                 Button {
-                    goHome()
+                    goBack()
                 } label: {
-                    Label("Home", systemImage: "house")
+                    Label("Back", systemImage: "chevron.backward")
                 }
-                .help("Show source selection; a scan that is running keeps running")
-                .accessibilityLabel("Home")
-                .accessibilityHint("Shows source selection without stopping the scan")
+                .help(isDrilledIn ? "Show the enclosing folder" : "Back to source selection")
+                .accessibilityLabel("Back")
+                .accessibilityHint(isDrilledIn
+                                   ? "Shows the folder that holds this one"
+                                   : "Shows source selection; a scan that is running keeps running")
             }
 
             ToolbarItemGroup(placement: .primaryAction) {
@@ -265,17 +272,28 @@ public struct ResultsView: View {
         }
     }
 
-    /// Window title — the scanned location's name (falls back to the app name).
-    private var windowTitle: String {
+    /// The scanned location's name — the root of the toolbar's trail. `nil` until
+    /// a scan has a root to name.
+    private var scannedRootName: String? {
         let root = summary?.root ?? viewModel.currentRoot
-        guard let root else { return "WillyDisk" }
-        let name = root.lastPathComponent
-        return name.isEmpty ? root.path : name
+        guard let root else { return nil }
+        return root.lastPathComponent.isEmpty ? root.path : root.lastPathComponent
     }
 
-    /// Window titlebar subtitle — the full path of the scanned location.
+    /// Whether the user has opened a folder below the scanned location, which is
+    /// what a step back up is for.
+    private var isDrilledIn: Bool { !breadcrumb.isEmpty }
+
+    /// Window title — the folder on screen: the crumb the user opened, otherwise
+    /// the scanned location, otherwise the app name.
+    private var windowTitle: String {
+        breadcrumb.last?.name ?? scannedRootName ?? "WillyDisk"
+    }
+
+    /// Window titlebar subtitle — the folder's full path, so the toolbar's trail
+    /// follows a drill-down rather than staying on the scanned root.
     private var windowSubtitle: String {
-        (summary?.root ?? viewModel.currentRoot)?.path ?? ""
+        breadcrumb.last?.url.path ?? (summary?.root ?? viewModel.currentRoot)?.path ?? ""
     }
 
     /// The results layout: the split panes fill the screen, and the footer carries
@@ -369,11 +387,17 @@ public struct ResultsView: View {
     ///
     /// It holds its height whether or not a scan is running — only its contents
     /// fade in and out — so starting or finishing a scan never resizes the chart
-    /// above it. Cancel Scan lives here, reachable for the whole scan.
+    /// above it. Cancel Scan lives here, reachable for the whole scan, and so does
+    /// the live badge that marks still-growing results.
     private var scanStatusStrip: some View {
-        HStack(spacing: 0) {
+        HStack(spacing: DS.Spacing.small) {
             if isLiveScan {
                 scanStatusBanner
+                    .transition(.opacity)
+            }
+            Spacer(minLength: 0)
+            if viewModel.isShowingLiveResults {
+                liveBadge
                     .transition(.opacity)
             }
         }
@@ -456,18 +480,12 @@ public struct ResultsView: View {
 
     private var chartPane: some View {
         VStack(spacing: 0) {
-            HStack(spacing: DS.Spacing.small) {
-                BreadcrumbBar(path: breadcrumb, rootName: summary?.root.lastPathComponent ?? "Root") { index in
-                    navigateBreadcrumb(index)
-                }
-                if viewModel.isShowingLiveResults { liveBadge }
-            }
             if currentChildren.isEmpty {
                 emptyChart
             } else {
                 SunburstView(
                     nodes: currentChildren,
-                    centerLabel: breadcrumb.last?.name ?? summary?.root.lastPathComponent ?? "Root",
+                    centerLabel: breadcrumb.last?.name ?? scannedRootName ?? "Root",
                     selectedNodeURL: selectedNode?.url,
                     hoveredURL: $hoveredURL
                 ) { node in
@@ -492,7 +510,6 @@ public struct ResultsView: View {
         .padding(.horizontal, DS.Spacing.small)
         .padding(.vertical, DS.Spacing.xxSmall)
         .background(DS.Color.controlBackground, in: Capsule())
-        .padding(.trailing, DS.Spacing.small)
         .help("These results update as the scan runs")
         .accessibilityLabel("Results updating live")
     }
@@ -727,14 +744,18 @@ public struct ResultsView: View {
         }
     }
 
-    private func navigateBreadcrumb(_ index: Int) {
+    /// Steps back one place: out of the folder the chart is drawn from, and from
+    /// the scanned location itself to source selection. The crumb that is dropped
+    /// is the one the chart is drawn from, so the chart, the explorer and the
+    /// toolbar trail move together.
+    private func goBack() {
+        guard isDrilledIn else {
+            goHome()
+            return
+        }
         hoveredURL = nil
         selectedNode = nil
-        if index < 0 {
-            breadcrumb.removeAll()
-        } else {
-            breadcrumb = Array(breadcrumb.prefix(index + 1))
-        }
+        breadcrumb.removeLast()
     }
 
     /// Publishes the row under the pointer as the one hovered node. Only the row
@@ -764,8 +785,8 @@ public struct ResultsView: View {
 
     private func goHome() {
         // Only the screen changes. A scan that is still running keeps running in
-        // the background and its results stay on the engine's slot, so Home can
-        // show it and View can open it again; the scan itself is untouched.
+        // the background and its results stay on the engine's slot, so the source
+        // screen can show it and View can open it again; the scan is untouched.
         hoveredURL = nil
         breadcrumb.removeAll()
         selectedNode = nil

@@ -51,9 +51,10 @@ onto `FileCategory`, `ScanErrorClassifier.swift` maps errno onto `ScanIssueKind`
 chart fills, `FileCategory+UI.swift` the category colors and labels, `AppAppearance.swift`
 the stored system/light/dark appearance preference behind the first screen's toolbar.
 `Support/` holds non-view helpers: `ExplorerQuery` (sorting/filtering), `Formatters`,
-`VolumeInfo` (mounted volumes), `RecentLocations`, `FullDiskAccess` +
-`FullDiskAccessProbe` (TCC), `ScanIssuesPresentation`, `ScanSlotPresentation`,
-`ReportExport` (JSON/CSV via `NSSavePanel`), `AccessNoticeDismissal`.
+`LocationName` (a location's display name), `VolumeInfo` (mounted volumes),
+`RecentLocations`, `FullDiskAccess` + `FullDiskAccessProbe` (TCC),
+`ScanIssuesPresentation`, `ScanSlotPresentation`, `ReportExport` (JSON/CSV via
+`NSSavePanel`), `AccessNoticeDismissal`.
 
 **`WillyDiskApp`.**
 `WillyDiskApp.swift` is `@main`, `AppState.swift` builds the single

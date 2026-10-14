@@ -277,7 +277,7 @@ public struct ResultsView: View {
     private var scannedRootName: String? {
         let root = summary?.root ?? viewModel.currentRoot
         guard let root else { return nil }
-        return root.lastPathComponent.isEmpty ? root.path : root.lastPathComponent
+        return LocationName.of(root)
     }
 
     /// Whether the user has opened a folder below the scanned location, which is

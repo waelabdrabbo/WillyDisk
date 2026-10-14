@@ -127,7 +127,7 @@ public struct SourceSelectionView: View {
     @ViewBuilder
     private func selectedSourceCard(_ url: URL) -> some View {
         let slot = viewModel.scanSlot(for: url)
-        let sourceName = url.lastPathComponent.isEmpty ? url.path : url.lastPathComponent
+        let sourceName = LocationName.of(url)
         VStack(alignment: .leading, spacing: DS.Spacing.medium) {
             HStack {
                 Image(systemName: "folder.fill")
@@ -383,7 +383,7 @@ public struct SourceSelectionView: View {
 
     private func recentRow(_ url: URL) -> some View {
         let slot = viewModel.scanSlot(for: url)
-        let name = locationName(url)
+        let name = LocationName.of(url)
         return HStack(spacing: DS.Spacing.medium) {
             Image(systemName: "clock")
                 .foregroundStyle(DS.Color.tertiaryText)
@@ -420,12 +420,6 @@ public struct SourceSelectionView: View {
     private func recentRowLabel(name: String, path: String, slot: ScanSlotPresentation?) -> String {
         guard let slot else { return "\(name), \(path)" }
         return "\(name), \(path), \(slot.accessibilityLabel)"
-    }
-
-    /// A location's display name: its last path component, or the whole path for
-    /// a volume root that has no name of its own.
-    private func locationName(_ url: URL) -> String {
-        url.lastPathComponent.isEmpty ? url.path : url.lastPathComponent
     }
 
     private var chooseFolderSection: some View {

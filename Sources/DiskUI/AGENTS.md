@@ -19,9 +19,10 @@ stream reports.
   `AppAppearance.swift` the stored system/light/dark preference behind the first
   screen's toolbar menu.
 - `Support/` — non-view helpers: `ExplorerQuery` (sorting/filtering), `Formatters`,
-  `VolumeInfo`, `RecentLocations`, `FullDiskAccess` + `FullDiskAccessProbe`,
-  `ScanIssuesPresentation`, `ScanSlotPresentation`, `ReportExport` (JSON/CSV through
-  `NSSavePanel`), `AccessNoticeDismissal`.
+  `LocationName` (a location's display name), `VolumeInfo`, `RecentLocations`,
+  `FullDiskAccess` + `FullDiskAccessProbe`, `ScanIssuesPresentation`,
+  `ScanSlotPresentation`, `ReportExport` (JSON/CSV through `NSSavePanel`),
+  `AccessNoticeDismissal`.
 
 ## Rules
 

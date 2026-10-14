@@ -1,6 +1,6 @@
 ---
 name: willydisk-verify
-description: "Verify a change to WillyDisk before calling it done: build, test, bundle, launch, and capture the UI offscreen. Use when a WillyDisk change needs end-to-end verification, when a UI change must be reviewed visually, when a build or test failure needs the right command, or when the app's window chrome looks wrong. Covers swift build, swift test --filter, Scripts/bundle-app.sh, Scripts/run.sh, Scripts/render-screens.sh, the SwiftPM SDK-stamp trap behind `swift run`, the xcrun vtool check, and the WILLYDISK_NO_SANDBOX flag an agent sandbox needs."
+description: "Verify a change to WillyDisk before calling it done: build, test, bundle, launch, and capture the UI offscreen. Use when a WillyDisk change needs end-to-end verification, when a UI change must be reviewed visually, when a build or test failure needs the right command, when the app's window chrome looks wrong, or when a screenshot looks stale against the source. Covers swift build, swift test --filter, Scripts/bundle-app.sh, Scripts/run.sh, Scripts/render-screens.sh, why a re-rendered PNG can still look old (viewers cache bitmaps by path), the SwiftPM SDK-stamp trap behind `swift run`, the xcrun vtool check, and the WILLYDISK_NO_SANDBOX flag an agent sandbox needs."
 ---
 
 # Verifying a WillyDisk change
@@ -71,6 +71,30 @@ It opens no window and needs no Screen Recording permission.
 `WILLYDISK_NO_SANDBOX=1` matters inside an agent sandbox: SwiftPM cannot nest its own
 sandbox there, and the shared module cache is unwritable, so the script adds
 `--disable-sandbox` and points swiftc at a module cache under `.build`.
+
+### Give every review a fresh output path
+
+The renderer names its files after the size and appearance, so rendering the same size
+twice reuses the same path — `results-window-light-1088x816.png`. A viewer that already
+loaded that path (the session GUI, a browser, a preview pane) keeps serving the bitmap it
+cached, and the screenshot then contradicts the source. Name the output directory for the
+change instead:
+
+```
+WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -o .build/renders/<change>
+```
+
+When a reader reports a screenshot that does not match the code, do not re-render and
+assume it fixed itself, and do not doubt the build: copy the current PNG to a path that
+has never been rendered and show that, which no cache can answer.
+
+```
+cp .build/renders/<change>/results-window-light-1088x816.png .build/renders/<change>/check.png
+```
+
+If the fresh path shows the change, the code was right and the reader's cache was stale.
+Confirming it from the file itself is cheap either way: `stat` the mtime against the time
+of the build, and `grep` the sources for the thing you expected to disappear.
 
 ### Reading colours out of a PNG
 

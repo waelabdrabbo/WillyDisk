@@ -40,5 +40,11 @@ real window chrome. `swift run WillyDisk` draws the legacy pre-Tahoe window
 Screen Recording permission:
 
 ```
-WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both
+WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -o .build/renders/<change>
 ```
+
+The `-o` matters: renders are named after their size and appearance, so reusing a
+directory reuses the path, and a viewer that already loaded it keeps showing the cached
+bitmap. Give each review its own directory, and if a screenshot looks stale against the
+source, read it from a path that has never been rendered before re-rendering anything.
+`.agents/skills/willydisk-verify/` has the rest of the capture procedure.

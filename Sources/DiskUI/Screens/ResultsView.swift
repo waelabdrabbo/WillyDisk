@@ -52,12 +52,6 @@ public struct ResultsView: View {
     /// otherwise, so a slow probe fails toward informing rather than hiding.
     @State private var fullDiskAccessGranted = false
 
-    /// The chart pane's width, in the split's own coordinate space.
-    ///
-    /// The split's dividing line is painted over where the panes meet, so the
-    /// cover has to know where that is; `nil` until the first layout reports it.
-    @State private var chartPaneWidth: CGFloat?
-
     public init(viewModel: ScanViewModel = ScanViewModel()) {
         _viewModel = State(initialValue: viewModel)
     }
@@ -302,53 +296,19 @@ public struct ResultsView: View {
         }
     }
 
-    /// The chart and explorer panes, sized from the design system.
+    /// The chart and explorer panes.
     ///
-    /// The two panes read as one continuous surface: the split's own divider is
-    /// painted over with the window background where the panes meet, so the
-    /// boundary between chart and explorer is felt — the pointer still resizes
-    /// it — rather than drawn.
+    /// The explorer holds a fixed share of the window and the chart takes the
+    /// rest, so the map and the list keep their proportion at every window size:
+    /// there is no divider between them to drag, and the panes meet with no seam
+    /// because they are laid out edge to edge on one surface.
     private var splitPanes: some View {
-        HSplitView {
-            chartPane
-                .frame(minWidth: DS.Size.chartPaneMinWidth,
-                       idealWidth: DS.Size.chartPaneIdealWidth,
-                       maxWidth: .infinity)
-                .background { chartPaneWidthReader }
-            explorerPane
-                .frame(minWidth: DS.Size.explorerPaneMinWidth,
-                       idealWidth: DS.Size.explorerPaneIdealWidth,
-                       maxWidth: .infinity)
-        }
-        .overlay(alignment: .topLeading) { splitDividerCover }
-        .onPreferenceChange(ChartPaneWidthKey.self) { width in
-            if chartPaneWidth != width { chartPaneWidth = width }
-        }
-    }
-
-    /// Reports the chart pane's own width up to `splitPanes`, which is what places
-    /// the cover over the divider.
-    private var chartPaneWidthReader: some View {
         GeometryReader { geometry in
-            SwiftUI.Color.clear.preference(key: ChartPaneWidthKey.self, value: geometry.size.width)
-        }
-    }
-
-    /// The window-background strip that hides the split's dividing line.
-    ///
-    /// It is centred on the split, so it spans the divider's hairline and overlaps
-    /// each pane by half its width; and it takes no hits, so the divider underneath
-    /// keeps its full grab area and its resize cursor. The split runs to the top of
-    /// the window, behind the toolbar, and the divider is drawn along all of it, so
-    /// the strip reaches into that top inset as well.
-    @ViewBuilder
-    private var splitDividerCover: some View {
-        if let width = chartPaneWidth {
-            DS.Color.windowBackground
-                .frame(width: DS.Size.splitDividerCoverWidth)
-                .ignoresSafeArea(edges: .top)
-                .offset(x: width - DS.Size.splitDividerCoverWidth / 2)
-                .allowsHitTesting(false)
+            HStack(spacing: 0) {
+                chartPane
+                explorerPane
+                    .frame(width: geometry.size.width * DS.Size.explorerPaneWidthFraction)
+            }
         }
     }
 
@@ -822,17 +782,6 @@ private struct ExplorerRowKey: Equatable {
     var search: String
     var category: FileCategory?
     var sort: SortOrder
-}
-
-/// The chart pane's width, reported up to the split so the cover over the
-/// divider is placed where the panes actually meet. The largest reported width
-/// wins: only the chart pane publishes a value, and the split's own children
-/// contribute the default.
-private struct ChartPaneWidthKey: PreferenceKey {
-    static let defaultValue: CGFloat = 0
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-        value = max(value, nextValue())
-    }
 }
 
 /// The inputs the visible rows are derived from.

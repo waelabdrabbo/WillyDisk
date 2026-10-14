@@ -57,16 +57,10 @@ public enum DS {
         public static let wideActionMinWidth: CGFloat = 180
         /// Fixed width of a volume's usage gauge.
         public static let gaugeWidth: CGFloat = 120
-        /// Pane bounds in the results screen's split view.
-        public static let chartPaneMinWidth: CGFloat = 320
-        public static let chartPaneIdealWidth: CGFloat = 460
-        public static let explorerPaneMinWidth: CGFloat = 300
-        public static let explorerPaneIdealWidth: CGFloat = 360
-        /// Width of the strip that covers the results split's dividing line. It is
-        /// centred on the split, so it spans the divider's hairline and overlaps
-        /// each pane by half its width, leaving chart and explorer reading as one
-        /// surface.
-        public static let splitDividerCoverWidth: CGFloat = 3
+        /// The explorer's share of the results window's width. The chart takes the
+        /// remaining two thirds; the ratio is fixed, so neither pane is dragged
+        /// against the other and the map keeps its proportion at every size.
+        public static let explorerPaneWidthFraction: CGFloat = 1.0 / 3.0
         /// Progress bar bounds in the in-progress header.
         public static let progressBarMinWidth: CGFloat = 160
         public static let progressBarMaxWidth: CGFloat = 320

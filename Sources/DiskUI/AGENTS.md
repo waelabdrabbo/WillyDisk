@@ -12,8 +12,9 @@ stream reports.
 - `Screens/` — `ScanFlowView` routes phases; `SourceSelectionView` is screen A;
   `ResultsView` is screen C and also the live in-progress state. Scanning is not a
   separate screen.
-- `Components/` — `SunburstView` (the disk chart), `CategoryBar`,
-  `AccessNoticeRow`, `FlowLayout`.
+- `Components/` — `SunburstView` (the disk chart: wedges drawn in one static layer,
+  with the hover emphasis painted over them), `CategoryBar`, `AccessNoticeRow`,
+  `FlowLayout`.
 - `DesignSystem/` — `DesignSystem.swift` holds every token (`DS`), `ChartPalette.swift`
   the chart fills, `FileCategory+UI.swift` the category colors and labels,
   `AppAppearance.swift` the stored system/light/dark preference behind the first
@@ -27,6 +28,10 @@ stream reports.
 ## Rules
 
 - Take spacing, corner radii, type, and colors from `DS`. No magic numbers in views.
+- A pointer hover must not re-derive what it did not change. The chart's wedges are
+  drawn once and the emphasis is a shade and an outline over them; the hover the list
+  and the chart share is `ChartHover` in `Screens/ResultsView.swift`, so a hover
+  re-renders the list and the chart and leaves the rest of the screen alone.
 - Light and dark must both be polished; controls stay keyboard-accessible.
 - Liquid Glass is an enhancement only: gate macOS 26 APIs behind
   `if #available(macOS 26.0, *)`. Never call a newer API unguarded.

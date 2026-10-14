@@ -44,7 +44,12 @@ public struct ResultsView: View {
 
     /// The one hovered node, shared by the explorer rows and the chart, so
     /// hovering either side lights the other. Matched by URL, never by identity.
-    @State private var hoveredURL: URL?
+    ///
+    /// It is held as an observed reference rather than as plain view state so that
+    /// a pointer crossing the explorer's rows re-renders only what reads it — the
+    /// list and the chart — and leaves the rest of the screen, from its toolbar to
+    /// its storage strip, with the views it already has.
+    @State private var hover = ChartHover()
 
     // Access notice
     @State private var accessNoticeExpanded = false
@@ -218,13 +223,14 @@ public struct ResultsView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .environment(hover)
         .navigationTitle(windowTitle)
         .navigationSubtitle(windowSubtitle)
         .onChange(of: rowSetKey) { _, _ in
             // The row under the pointer can leave the screen without an exit
             // event when the visible set changes, so the shared hover is dropped
             // rather than left pointing at a row that is no longer rendered.
-            hoveredURL = nil
+            hover.url = nil
         }
         .task(id: viewModel.scanRun) {
             // Re-run for every scan and on Rescan: grant Full Disk Access in
@@ -487,7 +493,7 @@ public struct ResultsView: View {
                     nodes: currentChildren,
                     centerLabel: breadcrumb.last?.name ?? scannedRootName ?? "Root",
                     selectedNodeURL: selectedNode?.url,
-                    hoveredURL: $hoveredURL
+                    hoveredURL: $hover.url
                 ) { node in
                     select(node)
                 }
@@ -641,32 +647,15 @@ public struct ResultsView: View {
     }
 
     private var contentsList: some View {
-        let rows = visibleRows
-        return LazyVStack(spacing: 0) {
-            if rows.isEmpty {
-                VStack(spacing: DS.Spacing.small) {
-                    Text(listEmptyMessage)
-                        .font(DS.Typography.callout)
-                        .foregroundStyle(DS.Color.secondaryText)
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, DS.Spacing.xxLarge)
-            } else {
-                ForEach(rows, id: \.url) { row in
-                    NodeRow(
-                        row: row,
-                        isSelected: selectedNode?.url == row.url,
-                        isHovered: hoveredURL == row.url,
-                        action: { select(row.node) },
-                        onHover: { hovering in setHover(row.url, hovering) }
-                    )
-                    // Opting the row into equatable rendering is what makes its
-                    // `Equatable` conformance do anything: without it SwiftUI
-                    // rebuilds every row on each pass, so a hover or a selection
-                    // would re-render the whole list.
-                    .equatable()
-                }
-            }
+        // The list reads the shared hover itself, so a pointer crossing its rows
+        // rebuilds the rows that changed and the chart, and leaves the rest of the
+        // screen where it is.
+        ContentsList(
+            rows: visibleRows,
+            emptyMessage: listEmptyMessage,
+            selectedURL: selectedNode?.url
+        ) { node in
+            select(node)
         }
     }
 
@@ -736,7 +725,7 @@ public struct ResultsView: View {
 
     private func select(_ node: ScanNode) {
         if node.isDirectory {
-            hoveredURL = nil
+            hover.url = nil
             breadcrumb.append(node)
             selectedNode = nil
         } else {
@@ -753,20 +742,9 @@ public struct ResultsView: View {
             goHome()
             return
         }
-        hoveredURL = nil
+        hover.url = nil
         selectedNode = nil
         breadcrumb.removeLast()
-    }
-
-    /// Publishes the row under the pointer as the one hovered node. Only the row
-    /// that is still hovered clears it, so moving between rows never leaves the
-    /// highlight stuck on the wrong one.
-    private func setHover(_ url: URL, _ hovering: Bool) {
-        if hovering {
-            if hoveredURL != url { hoveredURL = url }
-        } else if hoveredURL == url {
-            hoveredURL = nil
-        }
     }
 
     private func revealInFinder(_ node: ScanNode) {
@@ -775,7 +753,7 @@ public struct ResultsView: View {
 
     private func rescan() {
         guard let root = summary?.root ?? viewModel.currentRoot else { return }
-        hoveredURL = nil
+        hover.url = nil
         breadcrumb.removeAll()
         selectedNode = nil
         searchText = ""
@@ -787,7 +765,7 @@ public struct ResultsView: View {
         // Only the screen changes. A scan that is still running keeps running in
         // the background and its results stay on the engine's slot, so the source
         // screen can show it and View can open it again; the scan is untouched.
-        hoveredURL = nil
+        hover.url = nil
         breadcrumb.removeAll()
         selectedNode = nil
         searchText = ""
@@ -797,6 +775,72 @@ public struct ResultsView: View {
 }
 
 // MARK: - Supporting types
+
+/// The one hovered node, shared by the explorer rows and the chart.
+///
+/// It is a reference the two panes observe rather than a value the screen holds,
+/// so a pointer crossing the explorer's rows re-renders the list and the chart and
+/// leaves every other part of the screen as it was. Matched by URL, never by
+/// identity: the engine rebuilds every node value on each progressive snapshot.
+@MainActor
+@Observable
+final class ChartHover {
+    var url: URL?
+
+    /// Publishes the row under the pointer as the one hovered node. Only the row
+    /// that is still hovered clears it, so moving between rows never leaves the
+    /// highlight stuck on the wrong one.
+    func set(_ url: URL, _ hovering: Bool) {
+        if hovering {
+            if self.url != url { self.url = url }
+        } else if self.url == url {
+            self.url = nil
+        }
+    }
+}
+
+/// The explorer's rows.
+///
+/// The list is the one part of the screen that reads the shared hover, so it lives
+/// in a view of its own: a pointer crossing a row rebuilds this list — and the
+/// chart that shares the hover — and nothing else the screen shows.
+private struct ContentsList: View {
+    let rows: [ExplorerRow]
+    let emptyMessage: String
+    let selectedURL: URL?
+    let onSelect: (ScanNode) -> Void
+
+    @Environment(ChartHover.self) private var hover
+
+    var body: some View {
+        LazyVStack(spacing: 0) {
+            if rows.isEmpty {
+                VStack(spacing: DS.Spacing.small) {
+                    Text(emptyMessage)
+                        .font(DS.Typography.callout)
+                        .foregroundStyle(DS.Color.secondaryText)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, DS.Spacing.xxLarge)
+            } else {
+                ForEach(rows, id: \.url) { row in
+                    NodeRow(
+                        row: row,
+                        isSelected: selectedURL == row.url,
+                        isHovered: hover.url == row.url,
+                        action: { onSelect(row.node) },
+                        onHover: { hovering in hover.set(row.url, hovering) }
+                    )
+                    // Opting the row into equatable rendering is what makes its
+                    // `Equatable` conformance do anything: without it SwiftUI
+                    // rebuilds every row on each pass, so a hover or a selection
+                    // would re-render the whole list.
+                    .equatable()
+                }
+            }
+        }
+    }
+}
 
 /// The explorer inputs that decide which rows are on screen.
 private struct ExplorerRowKey: Equatable {

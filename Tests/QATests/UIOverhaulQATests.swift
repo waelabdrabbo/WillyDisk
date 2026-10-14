@@ -354,6 +354,31 @@ final class UIOverhaulQATests: XCTestCase {
         }
     }
 
+    /// The hover the explorer and the chart share is what lights one from the
+    /// other, so the rule that publishes it is verified on its own: entering a row
+    /// claims the hover, and only the row that still holds it clears it — a row
+    /// the pointer has already left must not drop the row it is on now.
+    func testHoverIsClaimedByARowAndClearedOnlyByThatRow() {
+        let hover = ChartHover()
+        let first = URL(fileURLWithPath: "/qa/first")
+        let second = URL(fileURLWithPath: "/qa/second")
+        XCTAssertNil(hover.url, "nothing is hovered before the pointer arrives")
+
+        hover.set(first, true)
+        XCTAssertEqual(hover.url, first)
+
+        hover.set(second, true)
+        hover.set(first, false)
+        XCTAssertEqual(hover.url, second, "leaving the old row does not clear the new one")
+
+        hover.set(second, false)
+        XCTAssertNil(hover.url)
+
+        hover.set(first, true)
+        hover.set(second, false)
+        XCTAssertEqual(hover.url, first, "leaving a row that was never hovered changes nothing")
+    }
+
     // MARK: - Live results: the model the results screen renders
 
     /// A scripted engine, so the view model's live/growing state can be asserted

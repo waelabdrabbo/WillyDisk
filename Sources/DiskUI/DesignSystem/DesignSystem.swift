@@ -151,6 +151,13 @@ public enum DS {
         /// on the same colour against the same background.
         public static let fillOpacity: Double = 0.92
         public static let dimmedOpacity: Double = 0.45
+        /// Opacity of the surface painted over the wedges a pointer or the keyboard
+        /// is not on.
+        ///
+        /// Derived, so that covering a wedge drawn at `fillOpacity` with the
+        /// surface it is drawn on leaves exactly `dimmedOpacity`:
+        /// `fillOpacity * (1 - shadeOpacity) == dimmedOpacity`.
+        public static let shadeOpacity: Double = 1 - dimmedOpacity / fillOpacity
         /// Fill opacity of the selected wedge: at full strength it reads as the
         /// brightest wedge in the chart, including while another is hovered.
         public static let selectedFillOpacity: Double = 1

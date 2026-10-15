@@ -371,9 +371,51 @@ final class UIOverhaulQATests: XCTestCase {
         let symbols = Set(FileCategory.allCases.map(\.symbolName))
         XCTAssertEqual(names.count, FileCategory.allCases.count)
         XCTAssertEqual(symbols.count, FileCategory.allCases.count)
-        for category in FileCategory.allCases {
-            XCTAssertNotNil(NSColor(category.tint).usingColorSpace(.sRGB), "\(category) has no resolvable tint")
-        }
+    }
+
+    /// A drive offered under Volumes must not also be offered under Recent.
+    ///
+    /// Scanning a volume records it as a recent location too, so the two sections
+    /// would otherwise list the same drive, the volume row saying strictly more
+    /// about it. A location *inside* a volume is not that volume and keeps its
+    /// recent row.
+    func testVolumeMountPointsAreNotAlsoRecentLocations() {
+        let startupDisk = VolumeInfo(
+            url: URL(fileURLWithPath: "/"), name: "Macintosh HD",
+            totalCapacity: 1_000, availableCapacity: 400,
+            isInternal: true, isReadOnly: false
+        )
+        let external = VolumeInfo(
+            url: URL(fileURLWithPath: "/Volumes/Backup"), name: "Backup",
+            totalCapacity: 2_000, availableCapacity: 500,
+            isInternal: false, isReadOnly: false
+        )
+        let volumes = [startupDisk, external]
+
+        XCTAssertTrue(
+            VolumeInfo.isMountPoint(URL(fileURLWithPath: "/"), ofVolumes: volumes),
+            "the startup disk is a mount point"
+        )
+        XCTAssertTrue(
+            VolumeInfo.isMountPoint(URL(fileURLWithPath: "/Volumes/Backup"), ofVolumes: volumes),
+            "a mounted external volume is a mount point"
+        )
+        XCTAssertTrue(
+            VolumeInfo.isMountPoint(URL(fileURLWithPath: "/Volumes/Backup/"), ofVolumes: volumes),
+            "a trailing separator still names the same mount point"
+        )
+        XCTAssertFalse(
+            VolumeInfo.isMountPoint(URL(fileURLWithPath: "/Volumes/Backup/Photos"), ofVolumes: volumes),
+            "a location inside a volume is not the volume"
+        )
+        XCTAssertFalse(
+            VolumeInfo.isMountPoint(URL(fileURLWithPath: "/Users/someone/Documents"), ofVolumes: volumes),
+            "an ordinary folder is not a mount point"
+        )
+        XCTAssertFalse(
+            VolumeInfo.isMountPoint(URL(fileURLWithPath: "/"), ofVolumes: []),
+            "with no volumes enumerated, nothing is claimed to be a mount point"
+        )
     }
 
     /// The hover the explorer and the chart share is what lights one from the
@@ -446,7 +488,6 @@ final class UIOverhaulQATests: XCTestCase {
         let live = await waitUntil { vm.liveSummary != nil }
         XCTAssertTrue(live, "the partial snapshot must reach the results screen")
         XCTAssertTrue(vm.isScanning, "the scan is still running while the snapshot is shown")
-        XCTAssertTrue(vm.isShowingLiveResults, "the snapshot must be marked as live, not final")
         XCTAssertEqual(vm.liveSummary?.totalLogicalSize, 1_000)
         XCTAssertEqual(vm.liveSummary?.largestDirectories.first?.name, "Videos")
         XCTAssertEqual(vm.filesScanned, 3)
@@ -464,7 +505,6 @@ final class UIOverhaulQATests: XCTestCase {
         let finished = await waitUntil { vm.phase == .finished }
         XCTAssertTrue(finished)
         XCTAssertEqual(vm.liveSummary?.totalLogicalSize, 5_000, "the terminal summary supersedes the snapshot")
-        XCTAssertFalse(vm.isShowingLiveResults, "settled results are no longer live")
         XCTAssertTrue(vm.hasResults)
         engine.end()
     }
@@ -485,7 +525,6 @@ final class UIOverhaulQATests: XCTestCase {
         XCTAssertTrue(stopped)
         XCTAssertTrue(vm.hasResults, "a cancelled scan with partial results keeps them on screen")
         XCTAssertEqual(vm.liveSummary?.totalLogicalSize, 2_000)
-        XCTAssertFalse(vm.isShowingLiveResults)
         engine.end()
     }
 

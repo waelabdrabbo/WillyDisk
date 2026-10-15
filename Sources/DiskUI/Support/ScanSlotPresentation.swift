@@ -25,8 +25,6 @@ public struct ScanSlotPresentation: Equatable, Sendable {
     /// The location on the slot — the same location as the row showing this.
     public let root: URL
     public let state: State
-    /// The directory the engine is reading, while it is reading one.
-    public let path: String?
     /// The engine's real completion fraction, present only when the engine
     /// reports one. A row must never infer or invent a fraction.
     public let fraction: Double?
@@ -83,14 +81,12 @@ public struct ScanSlotPresentation: Equatable, Sendable {
         state: State,
         filesScanned: Int,
         bytesScanned: Int64,
-        path: String?,
         fraction: Double?
     ) {
         self.root = root
         self.state = state
         self.filesScanned = max(0, filesScanned)
         self.bytesScanned = max(0, bytesScanned)
-        self.path = path
         self.fraction = fraction
     }
 }

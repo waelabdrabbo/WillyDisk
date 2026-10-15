@@ -11,10 +11,10 @@ import DiskCore
 /// engine's progressive snapshots arrive. Once settled, the chart and explorer
 /// take the whole screen: a compact header line names the scanned location and
 /// its size, a directory explorer carries search/sort/filter and file details,
-/// and the footer holds a slim storage-by-category strip followed by the single
-/// access notice. An interactive sunburst (click a folder to drill down, with the
-/// toolbar's location — title, path and Back — following the depth), Reveal in
-/// Finder, rescan, and report export round it out.
+/// and the footer holds the single access notice, with its count chip when the
+/// notice has been dismissed. An interactive sunburst (click a folder to drill
+/// down, with the toolbar's location — title, path and Back — following the
+/// depth), Reveal in Finder, rescan, and report export round it out.
 @MainActor
 public struct ResultsView: View {
     @State private var viewModel: ScanViewModel
@@ -48,7 +48,7 @@ public struct ResultsView: View {
     /// It is held as an observed reference rather than as plain view state so that
     /// a pointer crossing the explorer's rows re-renders only what reads it — the
     /// list and the chart — and leaves the rest of the screen, from its toolbar to
-    /// its storage strip, with the views it already has.
+    /// its footer, with the views it already has.
     @State private var hover = ChartHover()
 
     // Access notice
@@ -289,7 +289,7 @@ public struct ResultsView: View {
     }
 
     /// The results layout: the split panes fill the screen, and the footer carries
-    /// the storage strip and then the access notice.
+    /// the dismissed notice's chip and then the access notice.
     ///
     /// Every band is present from the moment the screen appears — nothing is
     /// inserted above or below the panes as a scan starts, streams results in, or
@@ -299,7 +299,7 @@ public struct ResultsView: View {
     private var content: some View {
         VStack(spacing: 0) {
             splitPanes
-            storageStrip
+            noticeChipStrip
             if showsAccessRow {
                 accessNoticeRow
             }
@@ -324,20 +324,14 @@ public struct ResultsView: View {
 
     // MARK: - Footer
 
-    /// The slim storage-by-category strip, with the dismissed notice's count
-    /// chip riding at its trailing edge.
+    /// The dismissed notice's count chip, at the trailing edge of the footer.
     ///
-    /// The band is always on screen, so the panes above it never resize: before
-    /// the scan's first snapshot there is simply nothing plotted yet, and the
-    /// strip fills in as results stream. `storageStripMinHeight` holds one legend
-    /// line so the band's height does not depend on whether data has arrived.
-    private var storageStrip: some View {
-        let summary = viewModel.liveSummary
-        return HStack(alignment: .bottom, spacing: DS.Spacing.large) {
-            CategoryBar(
-                breakdown: summary?.categoryBreakdown ?? [:],
-                total: summary?.totalLogicalSize ?? 0
-            )
+    /// The band is always on screen, so the panes above it never resize: it holds
+    /// its height whether or not the notice has been dismissed, and before a scan
+    /// reports anything there is simply no chip.
+    private var noticeChipStrip: some View {
+        HStack(alignment: .bottom, spacing: DS.Spacing.large) {
+            Spacer(minLength: 0)
             if showsAccessChip {
                 AccessNoticeChip(
                     count: accessPresentation.noticeCount,
@@ -377,59 +371,95 @@ public struct ResultsView: View {
     /// The slim strip along the bottom of the chart pane that carries the scan's
     /// honest progress.
     ///
-    /// It holds its height whether or not a scan is running — only its contents
-    /// fade in and out — so starting or finishing a scan never resizes the chart
-    /// above it. Cancel Scan lives here, reachable for the whole scan, and so does
-    /// the live badge that marks still-growing results.
+    /// The strip holds its height whether or not a scan is running — only its
+    /// contents fade in and out — so starting or finishing a scan never resizes
+    /// the chart above it. Cancel Scan lives here, reachable for the whole scan.
+    ///
+    /// The readout sits in a capsule centered under the chart, never stretched
+    /// across the pane: a status line reaching both of the wide chart's edges
+    /// reads as a band of its own instead of belonging to the chart above it. The
+    /// capsule hugs its contents, so it leaves nothing behind once the scan ends.
+    ///
+    /// The capsule is drawn only while there is a readout to hold. The strip
+    /// keeps its height either way, so the chart above never resizes; an empty
+    /// capsule would just be a grey pill with nothing in it.
+    ///
+    /// The capsule wears a grey of its own rather than `DS.Color.controlBackground`,
+    /// which resolves to within a few percent of the window background and all but
+    /// disappears behind the status it is meant to group.
     private var scanStatusStrip: some View {
-        HStack(spacing: DS.Spacing.small) {
+        HStack(spacing: 0) {
             if isLiveScan {
                 scanStatusBanner
-                    .transition(.opacity)
-            }
-            Spacer(minLength: 0)
-            if viewModel.isShowingLiveResults {
-                liveBadge
+                    .padding(.horizontal, DS.Spacing.large)
+                    .padding(.vertical, DS.Spacing.small)
+                    .fixedSize(horizontal: true, vertical: false)
+                    .background(Self.stripFill, in: Capsule())
+                    .overlay(Capsule().strokeBorder(DS.Color.separator, lineWidth: DS.Stroke.hairline))
                     .transition(.opacity)
             }
         }
-        .padding(.horizontal, DS.Spacing.medium)
-        .padding(.vertical, DS.Spacing.small)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity)
         .frame(height: DS.Size.scanStatusStripHeight)
         .animation(.easeInOut(duration: 0.2), value: isLiveScan)
     }
+
+    /// The scan-status capsule's own grey, resolved per appearance.
+    ///
+    /// Dark enough to read as a surface behind the status, and dark enough in the
+    /// dark appearance to sit above the window rather than sink into it. Both
+    /// values hold better than 1.3:1 against `windowBackground`, which is the
+    /// difference the eye needs to see a boundary with no edge of its own.
+    private static let stripFill = Color(nsColor: NSColor(name: nil) { appearance in
+        appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+            ? NSColor(srgbRed: 0.24, green: 0.24, blue: 0.26, alpha: 1)
+            : NSColor(srgbRed: 0.86, green: 0.86, blue: 0.87, alpha: 1)
+    })
 
     /// The in-progress readout: an honest status indicator, the work counted so
     /// far, and the cancel action. Deliberately small — no running path, no
     /// elapsed clock.
     ///
-    /// The indicator and Cancel Scan keep their layout priority and the counters
-    /// take the squeeze, so a long count in a narrow pane shortens the numbers
-    /// rather than the only control that can stop the scan.
+    /// The group is sized to its contents, so the strip's capsule frames the
+    /// readout and the cancel action together rather than leaving a run of empty
+    /// fill between them.
     private var scanStatusBanner: some View {
         HStack(spacing: DS.Spacing.medium) {
             scanStatusIndicator
-                .layoutPriority(1)
             Text("\(viewModel.filesScanned) files · \(ByteFormat.string(viewModel.displayedTotal))")
                 .font(DS.Typography.caption)
                 .monospacedDigit()
                 .foregroundStyle(DS.Color.secondaryText)
                 .lineLimit(1)
                 .truncationMode(.tail)
-            Spacer(minLength: DS.Spacing.small)
-            Button(role: .cancel) {
-                viewModel.cancel()
-            } label: {
-                Label("Cancel Scan", systemImage: "stop.fill")
-            }
-            .buttonStyle(.bordered)
-            .controlSize(.small)
-            .layoutPriority(1)
-            .keyboardShortcut(.cancelAction)
-            .help("Stop the scan; the results gathered so far are kept")
+            cancelScanButton
         }
         .accessibilityElement(children: .contain)
+    }
+
+    /// Cancel Scan, as an inset chip inside the strip's capsule.
+    ///
+    /// A `.bordered` button on the capsule takes the window's control fill, which
+    /// is the capsule's own fill at this size, leaving the label to read as bare
+    /// text on the strip. The chip fills with `windowBackground` instead, so it
+    /// separates from the capsule the way a bordered control separates from a
+    /// toolbar.
+    private var cancelScanButton: some View {
+        Button(role: .cancel) {
+            viewModel.cancel()
+        } label: {
+            Label("Cancel Scan", systemImage: "stop.fill")
+                .font(DS.Typography.caption)
+                .foregroundStyle(DS.Color.primaryText)
+                .padding(.horizontal, DS.Spacing.small)
+                .padding(.vertical, DS.Spacing.xxSmall)
+                .background(DS.Color.windowBackground, in: Capsule())
+                .overlay(Capsule().strokeBorder(DS.Color.separator, lineWidth: DS.Stroke.hairline))
+                .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .keyboardShortcut(.cancelAction)
+        .help("Stop the scan; the results gathered so far are kept")
     }
 
     /// Progress read straight from the engine.
@@ -489,23 +519,8 @@ public struct ResultsView: View {
         }
     }
 
-    /// A calm cue that the chart is a live, still-growing snapshot.
-    private var liveBadge: some View {
-        HStack(spacing: DS.Spacing.xSmall) {
-            Circle()
-                .fill(DS.Color.accent)
-                .frame(width: DS.Size.statusDot, height: DS.Size.statusDot)
-            Text("Live")
-                .font(DS.Typography.caption)
-                .foregroundStyle(DS.Color.secondaryText)
-        }
-        .padding(.horizontal, DS.Spacing.small)
-        .padding(.vertical, DS.Spacing.xxSmall)
-        .background(DS.Color.controlBackground, in: Capsule())
-        .help("These results update as the scan runs")
-        .accessibilityLabel("Results updating live")
-    }
-
+    /// What the chart pane shows before there is anything to draw, which is a
+    /// live scan's first moments or a scan that found nothing.
     private var emptyChart: some View {
         VStack(spacing: DS.Spacing.small) {
             Image(systemName: isLiveScan ? "hourglass" : "chart.pie")
@@ -535,9 +550,9 @@ public struct ResultsView: View {
         }
     }
 
-    /// The one-line header above the explorer: the location and its total on the
-    /// first line, the honest counts on the second, with the stopped-early
-    /// warning folded in rather than given a block of its own.
+    /// The location and its total on the first line, the honest counts on the
+    /// second, and — for a scan that stopped early — the warning on a third, so
+    /// it shares a row with nothing and can be read at a glance.
     ///
     /// It is always present — before a scan's first snapshot the location and
     /// totals come from the engine's live counters — so its values tick up in
@@ -556,12 +571,10 @@ public struct ResultsView: View {
                     .monospacedDigit()
                     .foregroundStyle(DS.Color.primaryText)
             }
-            HStack(spacing: DS.Spacing.small) {
-                Text("\(viewModel.filesScanned) files · \(currentChildren.count) items")
-                    .font(DS.Typography.caption)
-                    .foregroundStyle(DS.Color.secondaryText)
-                if viewModel.stoppedEarly { stoppedEarlyNote }
-            }
+            Text("\(viewModel.filesScanned) files · \(currentChildren.count) items")
+                .font(DS.Typography.caption)
+                .foregroundStyle(DS.Color.secondaryText)
+            if viewModel.stoppedEarly { stoppedEarlyNote }
         }
         .padding(.horizontal, DS.Spacing.medium)
         .padding(.vertical, DS.Spacing.small)
@@ -569,8 +582,11 @@ public struct ResultsView: View {
     }
 
     /// The settled notice for a scan that stopped before it had covered the whole
-    /// root. The totals beside it are real, but only part of the picture, so the
+    /// root. The totals above it are real, but only part of the picture, so the
     /// notice names that before the numbers are read.
+    ///
+    /// The toolbar already carries Rescan for every state, so the warning is a
+    /// statement rather than a control.
     private var stoppedEarlyNote: some View {
         HStack(spacing: DS.Spacing.xSmall) {
             Image(systemName: "exclamationmark.triangle.fill")
@@ -580,11 +596,9 @@ public struct ResultsView: View {
             Text("Stopped early — these results are partial")
                 .font(DS.Typography.caption)
                 .foregroundStyle(DS.Color.warning)
-            Button("Scan Again") { rescan() }
-                .buttonStyle(.link)
-                .controlSize(.small)
         }
-        .accessibilityElement(children: .contain)
+        .fixedSize(horizontal: false, vertical: true)
+        .accessibilityElement(children: .combine)
     }
 
     private var explorerToolbar: some View {

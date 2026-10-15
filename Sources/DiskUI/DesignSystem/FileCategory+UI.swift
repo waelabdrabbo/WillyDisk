@@ -4,7 +4,7 @@ import DiskCore
 /// UI presentation mapping for the frozen `FileCategory` model.
 ///
 /// Lives in DiskUI (not DiskCore) so the shared model stays presentation-free.
-/// Provides a stable color + SF Symbol + display name for every category.
+/// Provides a stable SF Symbol + display name for every category.
 extension FileCategory {
 
     /// Human-readable name for labels and accessibility.
@@ -34,24 +34,6 @@ extension FileCategory {
         case .code: "chevron.left.forwardslash.chevron.right"
         case .system: "gearshape.2"
         case .other: "square.grid.2x2"
-        }
-    }
-
-    /// A consistent, accessible tint for this category (light + dark adaptive).
-    ///
-    /// Each category keeps a hue of its own: the chart also draws a neutral wedge
-    /// for the small items it groups together, so no category may take that grey.
-    public var tint: SwiftUI.Color {
-        switch self {
-        case .applications: SwiftUI.Color(nsColor: .systemBlue)
-        case .documents: SwiftUI.Color(nsColor: .systemGreen)
-        case .images: SwiftUI.Color(nsColor: .systemPurple)
-        case .video: SwiftUI.Color(nsColor: .systemPink)
-        case .audio: SwiftUI.Color(nsColor: .systemOrange)
-        case .archives: SwiftUI.Color(nsColor: .systemTeal)
-        case .code: SwiftUI.Color(nsColor: .systemIndigo)
-        case .system: SwiftUI.Color(nsColor: .systemYellow)
-        case .other: SwiftUI.Color(nsColor: .systemBrown)
         }
     }
 }

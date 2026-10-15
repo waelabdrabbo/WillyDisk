@@ -23,6 +23,17 @@ public struct VolumeInfo: Identifiable, Equatable {
         return min(max(Double(used) / Double(total), 0), 1)
     }
 
+    /// Whether `url` is the directory this volume is mounted at.
+    ///
+    /// Compares paths rather than URLs: the two sides reach here from different
+    /// places — a `URL` recorded from a scan and one enumerated from
+    /// `mountedVolumeURLs` — and can differ in trailing separators while naming
+    /// the same mount point.
+    public static func isMountPoint(_ url: URL, ofVolumes volumes: [VolumeInfo]) -> Bool {
+        let path = url.standardizedFileURL.path
+        return volumes.contains { $0.url.standardizedFileURL.path == path }
+    }
+
     /// Enumerates mounted local volumes with their capacity values.
     public static func enumerate() -> [VolumeInfo] {
         let keys: Set<URLResourceKey> = [

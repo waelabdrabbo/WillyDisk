@@ -69,17 +69,13 @@ public enum DS {
         /// Height of the scan-status strip at the bottom of the chart pane.
         /// Fixed, so the chart keeps its size whether or not a scan is running.
         public static let scanStatusStripHeight: CGFloat = 40
-        /// Minimum height of the results footer's storage strip: the bar, one
-        /// legend line and the strip's padding. Held even before results arrive,
-        /// so the panes above never resize once the first snapshot lands.
+        /// Minimum height of the results footer's notice-chip band, so the panes
+        /// above never resize whether or not the chip is there.
         public static let storageStripMinHeight: CGFloat = 54
         /// Label column width in a detail row.
         public static let detailLabelWidth: CGFloat = 60
-        /// Diameter of a small status dot (the live-results badge).
-        public static let statusDot: CGFloat = 6
-        /// Height of the slim storage-by-category bar in the footer strip.
-        public static let storageBarHeight: CGFloat = 8
-        /// Diameter of a legend swatch.
+        /// Leading column an access row reserves for its icon, so the paths of a
+        /// restricted and a failed location line up under one another.
         public static let legendSwatch: CGFloat = 8
         /// Tallest the restricted-locations list grows before it scrolls.
         public static let accessListMaxHeight: CGFloat = 150

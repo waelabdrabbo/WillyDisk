@@ -126,12 +126,6 @@ public final class ScanViewModel {
     /// snapshot (and after a cancel that produced none).
     public var liveSummary: ScanSummary? { summary ?? partialSummary }
 
-    /// Whether the visible results are an in-flight snapshot that a terminal
-    /// summary will replace. `false` once the scan has settled.
-    public var isShowingLiveResults: Bool { summary == nil && partialSummary != nil && isScanning }
-
-    public var currentPath: String { progress?.currentPath ?? currentRoot?.path ?? "" }
-
     public var filesScanned: Int { progress?.filesScanned ?? summary?.fileCount ?? 0 }
     public var directoriesScanned: Int { progress?.directoriesScanned ?? summary?.directoryCount ?? 0 }
     public var bytesScanned: Int64 { progress?.bytesScanned ?? summary?.totalLogicalSize ?? 0 }
@@ -165,7 +159,6 @@ public final class ScanViewModel {
                 state: .scanning,
                 filesScanned: filesScanned,
                 bytesScanned: bytesScanned,
-                path: progress?.currentPath,
                 fraction: progress?.fractionCompleted
             )
         case .finished:
@@ -175,7 +168,6 @@ public final class ScanViewModel {
                 state: .finished,
                 filesScanned: summary.fileCount,
                 bytesScanned: summary.totalLogicalSize,
-                path: nil,
                 fraction: nil
             )
         case .cancelled:
@@ -185,7 +177,6 @@ public final class ScanViewModel {
                 state: .stopped,
                 filesScanned: summary.fileCount,
                 bytesScanned: summary.totalLogicalSize,
-                path: nil,
                 fraction: nil
             )
         case .idle, .failed:

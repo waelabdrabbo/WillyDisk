@@ -13,10 +13,9 @@ stream reports.
   `ResultsView` is screen C and also the live in-progress state. Scanning is not a
   separate screen.
 - `Components/` — `SunburstView` (the disk chart: wedges drawn in one static layer,
-  with the hover emphasis painted over them), `CategoryBar`, `AccessNoticeRow`,
-  `FlowLayout`.
+  with the hover emphasis painted over them), `AccessNoticeRow`, `FlowLayout`.
 - `DesignSystem/` — `DesignSystem.swift` holds every token (`DS`), `ChartPalette.swift`
-  the chart fills, `FileCategory+UI.swift` the category colors and labels,
+  the chart fills, `FileCategory+UI.swift` the category symbols and labels,
   `AppAppearance.swift` the stored system/light/dark preference behind the first
   screen's toolbar menu.
 - `Support/` — non-view helpers: `ExplorerQuery` (sorting/filtering), `Formatters`,

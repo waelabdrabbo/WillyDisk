@@ -9,7 +9,7 @@ import DiskCore
 /// Expanded in place it explains why the locations were skipped, offers the
 /// one system action that fixes it, and lists a bounded sample with the
 /// truthful total. Once dismissed the row leaves the footer entirely and the
-/// storage strip's count chip brings it back.
+/// footer's count chip brings it back.
 ///
 /// The notice is deliberately calm rather than an error: without Full Disk
 /// Access a whole-volume scan is *expected* to skip TCC-protected locations,
@@ -64,6 +64,13 @@ public struct AccessNoticeRow: View {
         .padding(.horizontal, DS.Spacing.large)
         .padding(.vertical, DS.Spacing.medium)
         .frame(maxWidth: .infinity, alignment: .leading)
+        // A hairline along the top edge marks the notice as a separate band from
+        // the panes above it, rather than one more row of the content.
+        .overlay(alignment: .top) {
+            Rectangle()
+                .fill(DS.Color.separator)
+                .frame(height: DS.Stroke.hairline)
+        }
     }
 
     private var header: some View {
@@ -96,9 +103,9 @@ public struct AccessNoticeRow: View {
             }
             .buttonStyle(.plain)
             .controlSize(.small)
-            .help("Hide this notice; the count stays on the storage strip")
+            .help("Hide this notice; the count stays in the footer")
             .accessibilityLabel("Dismiss the \(detailNoun) notice")
-            .accessibilityHint("Removes the notice; a count chip on the storage strip reopens it")
+            .accessibilityHint("Removes the notice; a count chip in the footer reopens it")
         }
         .accessibilityElement(children: .contain)
     }
@@ -146,7 +153,7 @@ public struct AccessNoticeRow: View {
     }
 }
 
-/// The tiny count chip the storage strip shows once the notice is dismissed.
+/// The tiny count chip the results footer shows once the notice is dismissed.
 ///
 /// It keeps the count on screen when the row is gone, and clicking it brings
 /// the row back in its collapsed state. Its glyph and label follow the notice's

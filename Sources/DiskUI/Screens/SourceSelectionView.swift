@@ -36,6 +36,18 @@ public struct SourceSelectionView: View {
         _viewModel = State(initialValue: viewModel)
     }
 
+    /// The recent locations this screen lists, which excludes any that a volume
+    /// row already covers.
+    ///
+    /// A volume is recorded as recent each time it is scanned, so without this a
+    /// drive would be offered twice: once under Volumes with its capacity, and
+    /// again under Recent. The drive keeps the volume row, which says more about
+    /// it, and drops out of Recent; a location inside a volume is not that
+    /// volume, so it stays.
+    private var recentLocationsShown: [URL] {
+        recentLocations.filter { !VolumeInfo.isMountPoint($0, ofVolumes: volumes) }
+    }
+
     public var body: some View {
         ZStack {
             ScrollView {
@@ -248,9 +260,13 @@ public struct SourceSelectionView: View {
 
     /// The status of the scan running on a location, as its source row reads it.
     ///
-    /// Live counters and the directory being read come straight from the engine;
-    /// nothing here is inferred, and a completion fraction appears only when the
-    /// engine reports a reliable one.
+    /// Live counters come straight from the engine; nothing here is inferred, and
+    /// a completion fraction appears only when the engine reports a reliable one.
+    ///
+    /// The status is the row's wording and its counts, never the directory the
+    /// engine happens to be reading: that path is a long monospaced run that
+    /// changes many times a second, and it pushed the row taller for a fact the
+    /// counters already cover.
     @ViewBuilder
     private func scanStatusBlock(_ slot: ScanSlotPresentation) -> some View {
         VStack(alignment: .leading, spacing: DS.Spacing.xxSmall) {
@@ -272,13 +288,6 @@ public struct SourceSelectionView: View {
                         .foregroundStyle(DS.Color.secondaryText)
                         .lineLimit(1)
                 }
-            }
-            if let path = slot.path, !path.isEmpty {
-                Text(path)
-                    .font(DS.Typography.monospaced)
-                    .foregroundStyle(DS.Color.tertiaryText)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
             }
         }
     }
@@ -364,13 +373,13 @@ public struct SourceSelectionView: View {
 
     @ViewBuilder
     private var recentSection: some View {
-        if !recentLocations.isEmpty {
+        if !recentLocationsShown.isEmpty {
             VStack(alignment: .leading, spacing: DS.Spacing.medium) {
                 sectionHeader("Recent")
                 VStack(spacing: 0) {
-                    ForEach(recentLocations, id: \.self) { url in
+                    ForEach(recentLocationsShown, id: \.self) { url in
                         recentRow(url)
-                        if url != recentLocations.last {
+                        if url != recentLocationsShown.last {
                             Divider()
                         }
                     }

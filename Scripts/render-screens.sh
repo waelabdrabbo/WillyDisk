@@ -8,13 +8,17 @@
 # locked session and inside an agent sandbox.
 #
 # Usage:
-#   Scripts/render-screens.sh [-o OUT_DIR] [-s WxH] [-a light|dark|both] [-S results|home|both] [-t FIXTURE_DIR]
+#   Scripts/render-screens.sh [-o OUT_DIR] [-s WxH] [-a light|dark|both] [-S results|home|both] [-t FIXTURE_DIR] [-T STATE]
 #
 #   -o  output directory                     (default .build/renders)
 #   -s  render size in points                (default 1088x816)
 #   -a  appearances to render                (default both)
 #   -S  screens to render                    (default results)
 #   -t  scan this directory instead of the generated fixture
+#   -T  finished (default), scanning, or stopped — the screen a cancelled scan
+#       leaves behind. scanning and stopped both need a directory large enough
+#       that the scan is still running, or has gathered something, when the frame
+#       is taken
 #   -c  capture the screen alone, with no window around it (default: the window)
 #
 # Inside an agent sandbox, where SwiftPM cannot nest its own sandbox, run it as:
@@ -27,18 +31,20 @@ OUT="$ROOT/.build/renders"
 SIZE="1088x816"
 APPEARANCE="both"
 SCREEN="results"
+STATE="finished"
 FIXTURE=()
 MODE=(--window)
 
-while getopts "o:s:a:S:t:ch" opt; do
+while getopts "o:s:a:S:t:T:ch" opt; do
   case "$opt" in
     o) OUT="$OPTARG" ;;
     s) SIZE="$OPTARG" ;;
     a) APPEARANCE="$OPTARG" ;;
     S) SCREEN="$OPTARG" ;;
     t) FIXTURE=(--fixture "$OPTARG") ;;
+    T) STATE="$OPTARG" ;;
     c) MODE=(--content) ;;
-    h) sed -n '2,21p' "$0"; exit 0 ;;
+    h) sed -n '2,22p' "$0"; exit 0 ;;
     *) exit 2 ;;
   esac
 done
@@ -62,4 +68,4 @@ xcrun swiftc ${SWIFTC_FLAGS[@]+"${SWIFTC_FLAGS[@]}"} \
   "$ROOT/Scripts/RenderScreens/main.swift"
 
 echo "==> Rendering"
-"$ROOT/.build/render-screens" --out "$OUT" --size "$SIZE" --appearance "$APPEARANCE" --screen "$SCREEN" "${MODE[@]}" ${FIXTURE[@]+"${FIXTURE[@]}"}
+"$ROOT/.build/render-screens" --out "$OUT" --size "$SIZE" --appearance "$APPEARANCE" --screen "$SCREEN" --state "$STATE" "${MODE[@]}" ${FIXTURE[@]+"${FIXTURE[@]}"}

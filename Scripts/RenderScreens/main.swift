@@ -17,6 +17,18 @@ import DiskUI
 
 /// The screens this renderer can drive. Each is the real view over the same
 /// finished scan, so a render is the screen the app shows, not a mock of it.
+/// The states a screen can be rendered in.
+///
+/// `finished` is the settled screen. `scanning` captures the one the app shows
+/// while a scan is still running, which no settled fixture reaches: point it at
+/// a directory large enough that the scan is still in flight when the frame is
+/// taken.
+enum RenderState: String {
+    case finished
+    case scanning
+    case stopped
+}
+
 enum ScreenKind: String, CaseIterable {
     case results
     case home
@@ -28,6 +40,7 @@ struct Options {
     var appearances: [ColorScheme] = [.light, .dark]
     var screens: [ScreenKind] = [.results]
     var fixture: URL?
+    var state: RenderState = .finished
     var rendersWindow = true
 }
 
@@ -70,19 +83,28 @@ func parse(_ arguments: [String]) -> Options {
             }
         case "--fixture":
             options.fixture = URL(fileURLWithPath: next("--fixture"))
+        case "--state":
+            switch next("--state") {
+            case "finished": options.state = .finished
+            case "scanning": options.state = .scanning
+            case "stopped": options.state = .stopped
+            case let other: fail("--state expects finished, scanning or stopped, not \(other)")
+            }
         case "--window":
             options.rendersWindow = true
         case "--content":
             options.rendersWindow = false
         case "--help", "-h":
             print("""
-            usage: render-screens --out DIR [--size WxH] [--appearance light|dark|both] [--screen home|results|both] [--fixture DIR] [--window|--content]
+            usage: render-screens --out DIR [--size WxH] [--appearance light|dark|both] [--screen home|results|both] [--fixture DIR] [--state finished|scanning] [--window|--content]
 
               --out        directory the PNGs are written to
               --size       render size in points (default 1088x816)
               --appearance which appearances to render (default both)
               --screen     which screens to render (default results)
               --fixture    scan this directory instead of the generated fixture
+              --state      finished (default) or scanning, which captures the
+                           screen while the scan is still running
               --window     capture the whole window, toolbar included (default)
               --content    capture the screen alone, with no window around it
             """)
@@ -136,13 +158,46 @@ func render(_ options: Options) {
 
     let viewModel = ScanViewModel(engine: FileScanEngine())
     viewModel.start(root: fixture)
-    var spins = 0
-    while viewModel.isScanning && spins < 2_400 {
-        RunLoop.current.run(until: Date().addingTimeInterval(0.05))
-        spins += 1
+
+    // A scanning render is a picture of work in flight. The frame is taken as
+    // soon as the engine has counted something, and it is taken with the scan
+    // still running: waiting a fixed span and hoping the work outlasts it renders
+    // an idle screen whenever the fixture is quick.
+    //
+    // A stopped render cancels that scan and waits for the engine to settle it,
+    // which is the only way to reach the screen a stopped scan leaves behind: a
+    // fixture that runs to completion never does.
+    if options.state == .finished {
+        var spins = 0
+        while viewModel.isScanning && spins < 1_200 {
+            RunLoop.current.run(until: Date().addingTimeInterval(0.05))
+            spins += 1
+        }
+        guard !viewModel.isScanning else { fail("the fixture scan did not finish") }
+    } else {
+        let deadline = Date().addingTimeInterval(30)
+        while viewModel.isScanning, viewModel.filesScanned == 0, Date() < deadline {
+            RunLoop.current.run(until: Date().addingTimeInterval(0.02))
+        }
+        guard viewModel.isScanning, viewModel.filesScanned > 0 else {
+            fail("the scan did not report progress while it was running")
+        }
+        if options.state == .stopped {
+            viewModel.cancel()
+            let settle = Date().addingTimeInterval(30)
+            while viewModel.isScanning, Date() < settle {
+                RunLoop.current.run(until: Date().addingTimeInterval(0.02))
+            }
+            guard !viewModel.isScanning else { fail("the stopped scan did not settle") }
+            // The point of this state is the screen a stopped scan leaves, so the
+            // capture is only valid if the engine really recorded one: stopped
+            // short of the whole root, with something gathered to show.
+            guard viewModel.stoppedEarly, viewModel.displayedTotal > 0 else {
+                fail("the cancel did not leave a stopped-early scan with results")
+            }
+        }
     }
-    guard !viewModel.isScanning else { fail("the fixture scan did not finish") }
-    print("scanned \(fixture.path): \(viewModel.filesScanned) files, \(viewModel.displayedTotal) bytes")
+    print("\(options.state.rawValue) \(fixture.path): \(viewModel.filesScanned) files, \(viewModel.displayedTotal) bytes")
 
     try? FileManager.default.createDirectory(at: options.out, withIntermediateDirectories: true)
 

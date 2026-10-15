@@ -37,9 +37,9 @@ public struct ResultsView: View {
     @State private var rowsCache = ExplorerRowsCache()
 
     /// Holds the chart colour index between changes of the inputs that decide it.
-    /// Every level of the breadcrumb is indexed at once and a drill-down rebuilds
-    /// it, so the explorer's icons and the chart's wedges are always read off the
-    /// same mapping.
+    /// It is the chart's own layout of the focused directory, so a drill-down
+    /// rebuilds it and the explorer's icons and the chart's wedges are always read
+    /// off the same rings.
     @State private var nodeColorsCache = NodeColorsCache()
 
     /// The one hovered node, shared by the explorer rows and the chart, so
@@ -105,51 +105,37 @@ public struct ResultsView: View {
         breadcrumb.last?.children ?? rootNodes
     }
 
-    /// Each node's colour in the chart, keyed by path, across every level the
-    /// breadcrumb has visited.
+    /// Each node's colour in the chart, keyed by path, across every ring the
+    /// chart draws from the focused directory outwards.
     ///
     /// The chart colours a node by where it sits in the tree, and the icons in
     /// the explorer and the detail pane are the same node as a wedge, so they
     /// resolve their tint from here rather than from a palette of their own. The
-    /// index covers the focused directory's children and every level above it, so
-    /// a drilled-into ancestor still resolves the colour its own wedge carries.
+    /// index is the chart's own layout of the focused directory, so it holds a
+    /// colour for every entry a row or the detail pane can show — including the
+    /// descendants the chart draws on its outer rings.
     ///
-    /// Derived work — one sibling ranking per breadcrumb level — so it is
-    /// computed once per change of the inputs that decide it and reused while
-    /// they hold.
+    /// Derived work — the chart's layout walk — so it is computed once per change
+    /// of the inputs that decide it and reused while they hold.
     private var nodeColors: NodeColors {
         nodeColorsCache.colors(
             for: NodeColorsKey(
                 revision: viewModel.resultsRevision,
-                levels: breadcrumb.map(\.url.path)
+                focused: breadcrumb.last?.url.path ?? ""
             ),
-            build: { buildNodeColors(roots: rootNodes) }
+            build: { buildNodeColors(of: currentChildren) }
         )
     }
 
-    /// Charts every breadcrumb level's children, in one index.
+    /// The icons' colours, read off the very ring layout the chart draws.
     ///
-    /// The focused directory's children are ring 1 of the chart and each level
-    /// above it is one ring further out, which is exactly the ring each child is
-    /// drawn on. The index stops at what the index itself covers rather than
-    /// walking the subtree: only the entries an explorer row or the detail pane
-    /// can show are ever asked for.
-    private func buildNodeColors(roots: [ScanNode]) -> NodeColors {
-        var colors: [String: ChartFill] = [:]
-        var children = roots
-        var parentFill: ChartFill?
-        var ring = 1
-        for ancestor in breadcrumb.reversed() {
-            let fills = ChartPalette.fills(for: children, ring: ring, parentFill: parentFill)
-            colors.merge(fills) { _, new in new }
-            // The next level out is this ancestor's own siblings, drawn in the
-            // colour family of the ring below it.
-            parentFill = fills[ancestor.url.path]
-            children = ancestor.children
-            ring += 1
-        }
-        colors.merge(ChartPalette.fills(for: children, ring: ring, parentFill: parentFill)) { _, new in new }
-        return NodeColors(colors: colors)
+    /// A node's colour follows its siblings and the ring it is drawn on, and the
+    /// chart decides both — so the chart draws the index instead of the two
+    /// deriving it separately. Drilling into a folder re-roots the chart, and the
+    /// index with it: the folder's children open colour families of their own on
+    /// ring 1 rather than keeping the family hue the folder wore one ring out.
+    private func buildNodeColors(of children: [ScanNode]) -> NodeColors {
+        NodeColors(colors: SunburstLayout.fillsByPath(roots: children))
     }
 
     /// The explorer's visible rows: the focused folder's entries, filtered,
@@ -881,18 +867,18 @@ private final class ExplorerRowsCache {
     }
 }
 
-/// What makes the chart colour index stale: new scan data, or a different level
-/// of the tree in view. Nothing else.
+/// What makes the chart colour index stale: new scan data, or a different
+/// directory focused in the chart. Nothing else.
 private struct NodeColorsKey: Equatable {
     var revision: Int
-    var levels: [String]
+    var focused: String
 }
 
 /// Keeps the chart colour index while its inputs stay the same.
 ///
-/// Ranking every sibling group of every breadcrumb level is pure work on inputs
-/// a view body rarely changes, so the result is held beside the key that produced
-/// it and reused for as long as they hold.
+/// Laying out the chart's rings is pure work on inputs a view body rarely
+/// changes, so the result is held beside the key that produced it and reused for
+/// as long as they hold.
 @MainActor
 private final class NodeColorsCache {
     private var key: NodeColorsKey?
@@ -907,7 +893,7 @@ private final class NodeColorsCache {
     }
 }
 
-/// Every node's colour in the chart, keyed by path.
+/// Every node the chart draws, keyed by path.
 ///
 /// A node the chart does not draw — an entry with no bytes, or one below the
 /// chart's density limits — has no entry here and is drawn neutral, so the icons

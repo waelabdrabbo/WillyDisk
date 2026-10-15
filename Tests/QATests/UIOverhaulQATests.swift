@@ -127,11 +127,10 @@ final class UIOverhaulQATests: XCTestCase {
 
     /// A node's wedge colour and the same node's icon colour are one mapping.
     ///
-    /// The explorer tints each row's icon from the chart's own colour index
-    /// (`ChartPalette.fills`), while the chart draws the wedge from
-    /// `SunburstLayout`. The two must agree for every entry — and agree on a
-    /// deeper entry as well, where an icon in the detail pane is showing a node
-    /// the chart draws on an outer ring.
+    /// The explorer tints each row's icon from the chart's own layout
+    /// (`SunburstLayout.fillsByPath`), so the two must agree for every entry the
+    /// chart draws — the focused directory's own entries, and the descendants it
+    /// draws on the rings outside them.
     func testIconColourMatchesTheWedgeColourForEveryEntry() {
         let deep = [
             makeNode("a.txt", size: 90, isDirectory: false, category: .documents, path: "/qa/Big/a.txt"),
@@ -143,26 +142,49 @@ final class UIOverhaulQATests: XCTestCase {
             makeNode("Small", size: 100, isDirectory: false, category: .images, path: "/qa/small.png"),
         ]
         let segments = SunburstLayout.segments(roots: roots, maxRings: 3, maxChildren: 12)
+        let fills = SunburstLayout.fillsByPath(roots: roots)
 
-        // Ring 1, as the explorer shows it when the scanned root is focused.
-        let ring1 = ChartPalette.fills(for: roots, ring: 1, parentFill: nil)
-        for root in roots {
-            let wedge = segments.first { $0.node?.url == root.url }
-            XCTAssertEqual(wedge?.fill, ring1[root.url.path],
-                           "\(root.name)'s row icon must wear the colour of its own wedge")
+        XCTAssertFalse(segments.isEmpty)
+        for segment in segments {
+            guard let node = segment.node else { continue }
+            XCTAssertEqual(fills[node.url.path], segment.fill,
+                           "\(node.name)'s row icon must wear the colour of its own wedge")
         }
 
-        // Ring 2, as the detail pane shows a file picked inside a folder, and as
-        // the chart draws it while that folder is focused.
-        let bigFill = ring1["/qa/Big"]
-        XCTAssertEqual(bigFill, segments.first { $0.node?.url.path == "/qa/Big" }?.fill)
+        // Ring 1, as the explorer lists it while the scanned root is focused, and
+        // ring 2, as the detail pane shows a file picked inside a ring-1 folder.
+        XCTAssertEqual(fills["/qa/Big"], segments.first { $0.node?.url.path == "/qa/Big" }?.fill)
+        XCTAssertNotNil(fills["/qa/Big/a.txt"],
+                        "the chart draws this file on an outer ring, so its icon has a colour")
+        XCTAssertEqual(fills["/qa/Big/a.txt"],
+                       segments.first { $0.node?.url.path == "/qa/Big/a.txt" }?.fill)
+    }
 
-        let focused = SunburstLayout.segments(roots: [roots[0]], maxRings: 3, maxChildren: 12)
-        let ring2 = ChartPalette.fills(for: deep, ring: 2, parentFill: bigFill)
+    /// Drilling into a folder re-roots the chart, and the explorer follows it.
+    ///
+    /// The focused folder's children open colour families of their own on ring 1;
+    /// they do not keep the family hue their folder wore one ring out. Colouring
+    /// the icons from the levels *above* the focused folder painted every child in
+    /// its parent's hue — the one colour the chart never draws them in.
+    func testDrilledInChildrenWearTheirWedgeColourRatherThanTheirFolderHue() {
+        let deep = [
+            makeNode("a.txt", size: 90, isDirectory: false, category: .documents, path: "/qa/Big/a.txt"),
+            makeNode("b.txt", size: 60, isDirectory: false, category: .code, path: "/qa/Big/b.txt"),
+        ]
+        let roots = [
+            makeNode("Big", size: 1000, path: "/qa/Big", children: deep),
+            makeNode("Mid", size: 500, path: "/qa/Mid"),
+        ]
+        let outerFills = SunburstLayout.fillsByPath(roots: roots)
+        let focused = SunburstLayout.segments(roots: deep, maxRings: 3, maxChildren: 12)
+        let focusedFills = SunburstLayout.fillsByPath(roots: deep)
+
         for child in deep {
             let wedge = focused.first { $0.node?.url == child.url }
-            XCTAssertEqual(wedge?.fill, ring2[child.url.path],
-                           "\(child.name) inside a focused folder must keep its chart colour")
+            XCTAssertEqual(focusedFills[child.url.path], wedge?.fill,
+                           "\(child.name)'s row icon must wear the colour of the wedge it is drawn as")
+            XCTAssertNotEqual(focusedFills[child.url.path], outerFills[child.url.path],
+                              "\(child.name) is coloured by the chart it is drawn in, not by the ring it left")
         }
     }
 

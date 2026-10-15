@@ -57,12 +57,7 @@ public struct SunburstView: View {
         // ranking every sibling group's colours — so they are derived once per
         // change of the data rather than once per redraw.
         let layout = segmentsCache.layout(for: nodes) {
-            SunburstLayout.segments(
-                roots: nodes,
-                maxRings: DS.Sunburst.maxRings,
-                maxChildren: DS.Sunburst.maxChildrenPerNode,
-                maxSegments: DS.Sunburst.maxSegments
-            )
+            SunburstLayout.segments(roots: nodes)
         }
         return chartSurface(segments: layout.segments, revision: layout.revision)
             // Keyboard focus joins the same shared state a pointer hover does, so
@@ -268,6 +263,35 @@ enum SunburstLayout {
         /// The fill this node's own wedge carries. Descendants keep its hue, so
         /// it is also what opens their colour family.
         let fill: ChartFill
+    }
+
+    /// The rings the chart draws, at the density it ships with.
+    ///
+    /// The chart itself, and everything else that needs to know which wedge a node
+    /// was drawn as, reads the layout from here: one call, one answer.
+    static func segments(roots: [ScanNode]) -> [SunburstSegment] {
+        segments(
+            roots: roots,
+            maxRings: DS.Sunburst.maxRings,
+            maxChildren: DS.Sunburst.maxChildrenPerNode,
+            maxSegments: DS.Sunburst.maxSegments
+        )
+    }
+
+    /// The fill of every node the chart draws, keyed by path.
+    ///
+    /// Read straight off the rings, so a node's fill is the one its own wedge is
+    /// painted with, on whichever ring it was drawn. A node the chart leaves out —
+    /// one with no bytes, or one past the chart's density limits — has no entry, so
+    /// a caller showing a node's chart colour draws it neutral rather than claim a
+    /// wedge the chart never painted.
+    static func fillsByPath(roots: [ScanNode]) -> [String: ChartFill] {
+        var fills: [String: ChartFill] = [:]
+        for segment in segments(roots: roots) {
+            guard let node = segment.node else { continue }
+            fills[node.url.path] = segment.fill
+        }
+        return fills
     }
 
     static func segments(

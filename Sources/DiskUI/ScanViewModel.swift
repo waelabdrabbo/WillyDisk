@@ -74,11 +74,12 @@ public final class ScanViewModel {
     public private(set) var progress: ScanProgress?
     public private(set) var issues: [ScanIssue] = []
 
-    /// Bumped whenever the results a screen renders change: a new progressive
-    /// snapshot, the terminal summary, or a scan starting over. Screens key
-    /// derived work — filtering and ordering a folder's entries — on it, so that
-    /// work is redone when the data changes and not on every pass through a body.
-    /// Progress and issue events carry no new tree data, so they do not bump it.
+    /// Bumped whenever the results a screen renders change: a progressive
+    /// snapshot the screen takes (see `partialApplicationInterval`), the terminal
+    /// summary, or a scan starting over. Screens key derived work — filtering and
+    /// ordering a folder's entries — on it, so that work is redone when the data
+    /// changes and not on every pass through a body. Progress and issue events
+    /// carry no new tree data, so they do not bump it.
     public private(set) var resultsRevision = 0
 
     private var engine: (any ScanEngine)?
@@ -87,6 +88,30 @@ public final class ScanViewModel {
     /// superseded scan — a late event, or a cancel that was requested before the
     /// next scan began — can never touch the scan that is running now.
     private var scanGeneration = 0
+
+    /// The newest progressive snapshot that has not reached the screen yet.
+    private var heldPartial: ScanSummary?
+    /// Applies `heldPartial` once the screen's cadence allows it.
+    private var heldPartialTask: Task<Void, Never>?
+    /// When the screen last took a progressive snapshot.
+    private var lastPartialAppliedAt: ContinuousClock.Instant?
+
+    /// The cadence at which the screen takes progressive snapshots.
+    ///
+    /// Each `.partial` snapshot is superseded by the next, and a full-disk scan
+    /// surfaces them far faster than any screen can usefully redraw — dozens a
+    /// second. The newest snapshot is therefore held and applied on this cadence,
+    /// so the screen's derived work — the chart's rings, the explorer's rows —
+    /// runs at a rate a person can see, while what is on screen is never more
+    /// than one step behind the engine.
+    ///
+    /// A second is deliberate rather than brisk: redrawing the live chart costs a
+    /// good part of a frame budget per wedge it draws, so taking snapshots faster
+    /// spends the main thread on redraws nobody can read. The first snapshot after
+    /// a scan starts still lands at once, and the counters in the strip keep
+    /// ticking with the engine's own progress events, so the screen stays alive
+    /// between updates.
+    private static let partialApplicationInterval: Duration = .seconds(1)
 
     /// A token that changes for every scan that starts. Views key per-scan work
     /// (the Full Disk Access probe) on it, so that work re-runs for each new
@@ -230,6 +255,8 @@ public final class ScanViewModel {
         scanTask?.cancel()
         scanGeneration &+= 1
         let generation = scanGeneration
+        discardHeldPartial()
+        lastPartialAppliedAt = nil
         summary = nil
         partialSummary = nil
         progress = nil
@@ -270,6 +297,8 @@ public final class ScanViewModel {
         scanTask?.cancel()
         scanTask = nil
         scanGeneration &+= 1
+        discardHeldPartial()
+        lastPartialAppliedAt = nil
         summary = nil
         partialSummary = nil
         progress = nil
@@ -294,15 +323,16 @@ public final class ScanViewModel {
             case .issue(let kind, let path, let message):
                 issues.append(ScanIssue(path: path, message: message, kind: kind))
             case .partial(let snapshot):
-                partialSummary = snapshot
-                resultsRevision &+= 1
+                hold(snapshot, generation: generation)
             case .finished(let s):
+                discardHeldPartial()
                 summary = s
                 partialSummary = nil
                 progress = nil
                 phase = .finished
                 resultsRevision &+= 1
             case .cancelled(let partial):
+                discardHeldPartial()
                 if let partial { summary = partial }
                 partialSummary = nil
                 progress = nil
@@ -319,11 +349,61 @@ public final class ScanViewModel {
         // without one the scan is over either way, so the screen settles on what
         // it has instead of reporting a scan that is no longer running.
         guard generation == scanGeneration, phase == .scanning else { return }
+        // A snapshot the cadence was still holding is the newest the engine
+        // produced, so it is what the screen settles on.
+        if let held = heldPartial { partialSummary = held }
+        discardHeldPartial()
         summary = partialSummary
         partialSummary = nil
         progress = nil
         phase = .cancelled
         resultsRevision &+= 1
         if summary == nil { route = .home }
+    }
+
+    // MARK: - Progressive rendering
+
+    /// Holds a progressive snapshot until the screen's cadence allows it.
+    ///
+    /// The first snapshot after a scan starts, or after the cadence has passed,
+    /// reaches the screen at once, so results fill in the moment there is
+    /// something to show. A snapshot arriving inside the cadence waits out the
+    /// remainder of it, and the newest snapshot is the one that counts: the ones
+    /// it replaces were only ever an earlier reading of the same scan.
+    private func hold(_ snapshot: ScanSummary, generation: Int) {
+        heldPartial = snapshot
+        guard heldPartialTask == nil else { return }
+
+        let clock = ContinuousClock()
+        let wait: Duration
+        if let last = lastPartialAppliedAt {
+            wait = max(.zero, clock.now.duration(to: last.advanced(by: Self.partialApplicationInterval)))
+        } else {
+            wait = .zero
+        }
+
+        heldPartialTask = Task { [weak self] in
+            if wait > .zero { try? await Task.sleep(for: wait) }
+            guard !Task.isCancelled, let self, self.scanGeneration == generation else { return }
+            self.applyHeldPartial()
+        }
+    }
+
+    /// Gives the newest held snapshot to the screens, and starts the next cadence.
+    private func applyHeldPartial() {
+        heldPartialTask = nil
+        guard let snapshot = heldPartial else { return }
+        heldPartial = nil
+        lastPartialAppliedAt = ContinuousClock().now
+        partialSummary = snapshot
+        resultsRevision &+= 1
+    }
+
+    /// Drops a held snapshot: the state it describes is superseded, or belongs to
+    /// a scan that is no longer the one on the engine's slot.
+    private func discardHeldPartial() {
+        heldPartialTask?.cancel()
+        heldPartialTask = nil
+        heldPartial = nil
     }
 }

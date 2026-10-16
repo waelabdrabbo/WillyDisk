@@ -115,6 +115,40 @@ Equally, do not infer a wedge's colour from a global colour histogram: the bigge
 counts belong to the widest wedges, and a small wedge may fall below any threshold.
 Sample the geometry directly, or resolve it from the source with a throwaway test.
 
+### Measuring a screen's cost under a live scan
+
+A PNG shows what a screen looks like, not what it costs. To measure that, host the real
+view offscreen against a real scan and time the frames. Compile a scratch host in
+gitignored `.build/` the way `Scripts/render-screens.sh` compiles its renderer:
+
+```
+xcrun swiftc -disable-sandbox -module-cache-path "$PWD/.build/render-module-cache" \
+  -I "$PWD/.build/release" -L "$PWD/.build/release" -lDiskUI -lDiskCore \
+  -o "$PWD/.build/probe" "$PWD/.build/probe.swift"
+```
+
+The host starts a `ScanViewModel(engine: FileScanEngine())`, puts `ResultsView` in an
+`NSHostingView` (inside a never-ordered `NSWindow`), and runs the loop with a repeating
+60 Hz `Timer`: on each fire, lay the window out, and record the interval since the last
+fire. Report percentiles of those intervals — a stretched interval is a dropped frame.
+Two runs make it answer something:
+
+- **Control:** host no view at all. What is left is the scan's own call on the machine;
+  a scan over a whole disk keeps ~30% of ticks a hair late and none past 33 ms. Only
+  lateness beyond that belongs to the screen.
+- **A/B:** build once, compile the host, run it, then `git stash push` the files under
+  test, build and run again, and `git stash pop`. `.build/release` holds whichever
+  sources were built last — a probe binary links its libraries statically, so compile
+  the host *after* each build.
+
+Attribute the cost by splitting ticks into those where `viewModel.resultsRevision`
+changed and those where it did not: the first bucket is what one screen update costs.
+`sample <pid> 5` on that process points at the frames inside it — in a live scan the
+derived work shows up as `ResultsView.visibleRows` → `SunburstLayout.fillsByPath`.
+
+Build the probe against `.build/release`: that is the configuration the shipped bundle
+is made of, and debug inflates view-body work severalfold.
+
 ## Before you say it is done
 
 - `swift build` and `swift test` pass.

@@ -48,6 +48,11 @@ public enum ScanEvent: Sendable {
     /// in-flight snapshot from the terminal result. Consumers may render the tree,
     /// largest items and category breakdown while the scan runs, then replace the
     /// snapshot with the terminal `.finished` summary.
+    ///
+    /// `ScanSummary.rootChildren` is what makes a live screen possible: a
+    /// directory's node exists only once its subtree has finished, so the engine
+    /// reports the scan root's own entries from the moment it discovers them, each
+    /// folder carrying the bytes counted under it so far.
     case partial(ScanSummary)
     case finished(ScanSummary)
     case cancelled(partial: ScanSummary?)        // cancellation is a first-class outcome

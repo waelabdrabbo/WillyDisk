@@ -89,19 +89,22 @@ enum ChartPalette {
     /// own, and everything below keeps the family hue as the paler tint of the
     /// ring it is drawn on.
     ///
-    /// Only the ring's *hue* decision is shared. Whether a child is drawn at all
-    /// — the chart's density limits — is the caller's to apply.
+    /// Every child takes part in the ranking, the ones with nothing counted yet
+    /// included: a folder that has not been walked still holds its place in the
+    /// order, so the colours of the entries already on screen do not move as the
+    /// rest of the folder arrives during a scan. Only the drawn children — the
+    /// ones with bytes to show — are given a fill, which is the chart's own rule
+    /// for what it draws.
     static func fills(
         for children: [ScanNode],
         ring: Int,
         parentFill: ChartFill?
     ) -> [String: ChartFill] {
-        let ordered = children.filter(\.isPresentable)
-        let ranks = rankByPath(ordered)
+        let ranks = rankByPath(children)
         let familyHue: Double? = if case .palette(let hue, _, _) = parentFill { hue } else { nil }
 
         var fills: [String: ChartFill] = [:]
-        for node in ordered {
+        for node in children where node.isPresentable {
             let rank = ranks[node.url.path] ?? 0
             let hue = familyHue.map {
                 descendantHue(familyHue: $0, rank: rank)

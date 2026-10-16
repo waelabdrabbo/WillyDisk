@@ -35,7 +35,10 @@ stream reports.
 - Liquid Glass is an enhancement only: gate macOS 26 APIs behind
   `if #available(macOS 26.0, *)`. Never call a newer API unguarded.
 - `.partial` snapshots are advisory — the engine may throttle or omit them — and are
-  never terminal. Update in place; the terminal `.finished` replaces them.
+  never terminal. Update in place; the terminal `.finished` replaces them. The scan
+  root's entries arrive ready-made in `ScanSummary.rootChildren`, folders included
+  while their subtrees are still being walked: never assemble them from the capped
+  lists by matching paths.
 - `Screens/ResultsView.swift` and `Components/SunburstView.swift` are large. Grep for
   the view or modifier you need instead of reading them whole.
 

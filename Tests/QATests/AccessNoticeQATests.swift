@@ -38,7 +38,8 @@ final class AccessNoticeQATests: XCTestCase {
             finishedAt: Date(timeIntervalSince1970: 1),
             categoryBreakdown: [.documents: 1_000],
             largestFiles: [],
-            largestDirectories: []
+            largestDirectories: [],
+            rootChildren: []
         )
     }
 

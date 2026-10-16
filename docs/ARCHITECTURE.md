@@ -91,6 +91,7 @@ public struct ScanSummary: Sendable {
     public let categoryBreakdown: [FileCategory: Int64]   // by logical size
     public let largestFiles: [ScanNode]                   // top N, default 100
     public let largestDirectories: [ScanNode]             // top N, default 100
+    public let rootChildren: [ScanNode]                   // the root's own entries, live ones included
 }
 ```
 
@@ -154,7 +155,14 @@ traversal must be prevented (track visited dev/inode). Progress
 `fractionCompleted` is `nil` unless a reliable total is known. Progressive
 `.partial` snapshots are non-terminal: the engine may emit any number of them,
 each reflecting only completed work, and the stream still ends with exactly one
-`.finished` or `.cancelled`.
+`.finished` or `.cancelled`. Completed work includes the scan root's own entries
+while their subtrees are still being walked: `rootChildren` reports the root's
+whole entry group at once — its folders included before they have been walked —
+each with the bytes counted under it so far, which is finished work that grows,
+never a projection. A screen colours an entry by its place among its siblings, so
+the group is reported complete and ordered by the paths it holds, and a colour
+once on screen does not move as the scan proceeds. It is empty once the summary
+carries the root node itself in `largestDirectories`.
 
 ## 5. UI contract (DiskUI)
 
@@ -165,7 +173,10 @@ each reflecting only completed work, and the stream still ends with exactly one
   runs: the same `ScanSummary` shape (tree, largest items, category breakdown)
   updates in place, then the terminal `.finished` summary replaces it. Snapshots
   are advisory — the engine may throttle or omit them — and `.partial` is never
-  terminal.
+  terminal. Because a scan may surface them far faster than a screen can usefully
+  redraw, the view model takes them at a bounded cadence, where the newest
+  snapshot wins: the chart's rings and the explorer's rows are re-derived at a
+  rate a person can see, never once per snapshot.
 - Screens: `SourceSelectionView` (A) and `ResultsView` (C). Scanning is not a
   separate screen: `ScanFlowView` routes the model's `.scanning` phase to
   `ResultsView`, which renders the honest in-progress state until the terminal

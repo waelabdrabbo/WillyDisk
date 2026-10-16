@@ -365,10 +365,12 @@ enum SunburstLayout {
         let slots = maxSegments - result.count
         guard slots > 0 else { return }
 
-        // Colour ranks the siblings by path, not by size. Sizes grow as a scan
-        // streams in, and a wedge's colour must not move while its neighbours
-        // arrive; the relative order of paths never changes.
-        let fills = ChartPalette.fills(for: ordered, ring: ring, parentFill: parentFill)
+        // Colour ranks the siblings by path, not by size, and ranks every child
+        // the parent holds — including one whose bytes have not been counted yet.
+        // A sibling arriving during a scan therefore takes a place of its own
+        // instead of moving the colours already on screen; the relative order of
+        // paths never changes.
+        let fills = ChartPalette.fills(for: children, ring: ring, parentFill: parentFill)
 
         // A parent whose children do not all fit needs a slot for the aggregate
         // wedge as well as for the children it draws; when only that slot is left

@@ -6,7 +6,9 @@ import Foundation
 ///
 /// A snapshot reports only work the scan has already completed: it grows
 /// monotonically, is consistent with the terminal `.finished` summary, is
-/// throttled rather than per-entry, and never terminates the stream.
+/// throttled rather than per-entry, and never terminates the stream. It also
+/// carries the scan root's own entries while the walk is under way — folders
+/// appear as they are discovered, with the bytes counted under them so far.
 final class ProgressiveSnapshotTests: XCTestCase {
 
     // MARK: - Helpers
@@ -190,6 +192,141 @@ final class ProgressiveSnapshotTests: XCTestCase {
                 }
             }
             previous = snapshot
+        }
+    }
+
+    // MARK: - The root's own entries while the walk is under way
+
+    /// Builds a root holding one large folder and one file, so the root's entries
+    /// are known long before the folder's subtree finishes.
+    private func makeLiveRootTree(
+        filesPerDirectory: Int
+    ) throws -> (root: URL, folderBytes: Int64, fileBytes: Int64) {
+        let root = try makeTempDir()
+        let folder = root.appendingPathComponent("big", isDirectory: true)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        var folderBytes: Int64 = 0
+        for d in 0..<40 {
+            let nested = folder.appendingPathComponent(String(format: "sub_%02d", d), isDirectory: true)
+            try FileManager.default.createDirectory(at: nested, withIntermediateDirectories: true)
+            for f in 0..<filesPerDirectory {
+                let size = 64 + d * filesPerDirectory + f
+                try Data(repeating: 0x41, count: size)
+                    .write(to: nested.appendingPathComponent(String(format: "f_%03d.txt", f)))
+                folderBytes += Int64(size)
+            }
+        }
+        let fileBytes: Int64 = 4_096
+        try Data(repeating: 0x42, count: Int(fileBytes))
+            .write(to: root.appendingPathComponent("notes.txt"))
+        return (root, folderBytes, fileBytes)
+    }
+
+    /// The folders the root holds are on screen from the moment they are
+    /// discovered, with the bytes counted under them so far — not only once their
+    /// whole subtree has finished, which for a large folder is the last thing the
+    /// scan does.
+    func testSnapshotsCarryTheRootsEntriesBeforeTheirSubtreesFinish() async throws {
+        let tree = try makeLiveRootTree(filesPerDirectory: 60)
+        defer { try? FileManager.default.removeItem(at: tree.root) }
+        let request = ScanRequest(root: tree.root)
+
+        let events = await scanEvents(request, cadence: .everyWorkUnit)
+        let partials = snapshots(in: events)
+        let final = try XCTUnwrap(finishedSummary(in: events))
+
+        // The root's entries are reported while the walk is under way.
+        let reported = partials.compactMap { snapshot in
+            snapshot.rootChildren.first { $0.name == "big" }
+        }
+        let live = try XCTUnwrap(reported.first, "the root's own folder must be reported before the scan ends")
+        XCTAssertTrue(live.isDirectory, "the root's folder is reported as a folder")
+        XCTAssertEqual(live.url, request.root.appendingPathComponent("big"))
+
+        XCTAssertTrue(
+            reported.contains { $0.logicalSize > 0 && $0.logicalSize < tree.folderBytes },
+            "the folder reaches the screen with the bytes counted so far, before its final size is known"
+        )
+        XCTAssertEqual(reported.map(\.logicalSize), reported.map(\.logicalSize).sorted(),
+                       "a folder's reported size only grows")
+
+        // The root's own file is reported too.
+        XCTAssertTrue(
+            partials.contains { snapshot in
+                snapshot.rootChildren.contains { $0.name == "notes.txt" && $0.logicalSize == tree.fileBytes }
+            },
+            "a file the root holds is reported with its final size"
+        )
+
+        // The terminal summary hands the complete list to the root node instead.
+        XCTAssertTrue(final.rootChildren.isEmpty,
+                      "the root node's children are the complete list once the walk is done")
+        let root = try XCTUnwrap(final.largestDirectories.first { $0.url == request.root })
+        XCTAssertEqual(Set(root.children.map(\.name)), ["big", "notes.txt"])
+        XCTAssertEqual(root.children.first { $0.name == "big" }?.logicalSize, tree.folderBytes)
+        XCTAssertEqual(root.children.first { $0.name == "notes.txt" }?.logicalSize, tree.fileBytes)
+    }
+
+    /// What a snapshot reports for the root's entries is the same work the
+    /// finished node reports: a running total, never a projection.
+    func testRootEntriesNeverExceedTheFinishedRootNode() async throws {
+        let tree = try makeLiveRootTree(filesPerDirectory: 20)
+        defer { try? FileManager.default.removeItem(at: tree.root) }
+        let request = ScanRequest(root: tree.root)
+
+        let events = await scanEvents(request, cadence: .everyWorkUnit)
+        let final = try XCTUnwrap(finishedSummary(in: events))
+        let root = try XCTUnwrap(final.largestDirectories.first { $0.url == request.root })
+        let finishedSizes = Dictionary(uniqueKeysWithValues: root.children.map { ($0.name, $0.logicalSize) })
+
+        for snapshot in snapshots(in: events) {
+            for entry in snapshot.rootChildren {
+                let finished = try XCTUnwrap(finishedSizes[entry.name],
+                                             "\(entry.name) is an entry the root holds")
+                XCTAssertLessThanOrEqual(entry.logicalSize, finished,
+                                         "a live entry never reports more than the finished one")
+                XCTAssertEqual(entry.url, request.root.appendingPathComponent(entry.name))
+            }
+            XCTAssertLessThanOrEqual(snapshot.rootChildren.count, root.children.count,
+                                     "a snapshot never reports more entries than the root holds")
+        }
+    }
+
+    /// A folder the root holds reports the entries it holds — the folders it
+    /// claims included, from the moment it has read them — so a screen colours
+    /// every entry by a place that is settled from the start.
+    func testARootFolderReportsItsEntriesBeforeTheyAreWalked() async throws {
+        let tree = try makeLiveRootTree(filesPerDirectory: 60)
+        defer { try? FileManager.default.removeItem(at: tree.root) }
+        let request = ScanRequest(root: tree.root)
+
+        let events = await scanEvents(request, cadence: .everyWorkUnit)
+        let final = try XCTUnwrap(finishedSummary(in: events))
+        let root = try XCTUnwrap(final.largestDirectories.first { $0.url == request.root })
+        let folder = try XCTUnwrap(root.children.first { $0.name == "big" })
+        let expected = Set(folder.children.map(\.name))
+        XCTAssertEqual(expected.count, 40, "the folder holds 40 subfolders")
+
+        let reported = snapshots(in: events).compactMap { snapshot in
+            snapshot.rootChildren.first { $0.name == "big" }
+        }
+        XCTAssertFalse(reported.isEmpty, "the folder the root holds is reported while the scan runs")
+
+        // The complete set holds once the folder has read its own entries, and the
+        // entries are there from then on: a colour taken from that order can never
+        // move, because the order never changes again.
+        let last = try XCTUnwrap(reported.last)
+        XCTAssertEqual(Set(last.children.map(\.name)), expected,
+                       "a live folder reports every entry it holds, not only the finished ones")
+        XCTAssertTrue(
+            reported.contains { entry in entry.children.contains { $0.logicalSize == 0 } },
+            "a folder that has not been walked yet is reported with nothing counted"
+        )
+        for entry in reported {
+            XCTAssertTrue(entry.children.allSatisfy { expected.contains($0.name) },
+                          "a live folder reports its own entries and nothing else")
+            XCTAssertTrue(entry.children.allSatisfy { $0.logicalSize <= tree.folderBytes },
+                          "no entry reports more than the scan has counted")
         }
     }
 

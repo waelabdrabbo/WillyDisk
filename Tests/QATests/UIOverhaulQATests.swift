@@ -59,7 +59,8 @@ final class UIOverhaulQATests: XCTestCase {
         permissionDeniedCount: Int = 0,
         surfacedIssueCount: Int = 0,
         inaccessibleCount: Int = 0,
-        largestDirectories: [ScanNode] = []
+        largestDirectories: [ScanNode] = [],
+        rootChildren: [ScanNode] = []
     ) -> ScanSummary {
         ScanSummary(
             root: root,
@@ -75,7 +76,8 @@ final class UIOverhaulQATests: XCTestCase {
             finishedAt: Date(timeIntervalSince1970: 1),
             categoryBreakdown: [.documents: logical],
             largestFiles: [],
-            largestDirectories: largestDirectories
+            largestDirectories: largestDirectories,
+            rootChildren: rootChildren
         )
     }
 
@@ -124,6 +126,57 @@ final class UIOverhaulQATests: XCTestCase {
     }
 
     // MARK: - Chart colour and the explorer icons
+
+    /// A folder that has been counted wears the colour it will finish with.
+    ///
+    /// A wedge's colour is its place among its siblings, and the engine reports a
+    /// whole group the moment it has read the folder, so the places — and with
+    /// them the colours — are settled while the scan is still walking it. This
+    /// runs a real scan and compares every live screen's colours with the finished
+    /// chart's.
+    func testColoursOnScreenWhileScanningAreTheFinishedColours() async throws {
+        // Large enough that the scan surfaces snapshots while it runs.
+        let tree = try makeLiveRootTree(directories: 40, filesPerDirectory: 200)
+        defer { try? FileManager.default.removeItem(at: tree.root) }
+        let request = ScanRequest(root: tree.root)
+
+        let engine = FileScanEngine()
+        var partials: [ScanSummary] = []
+        var final: ScanSummary?
+        for await event in engine.scan(request) {
+            switch event {
+            case .partial(let snapshot): partials.append(snapshot)
+            case .finished(let summary): final = summary
+            default: break
+            }
+        }
+        XCTAssertFalse(partials.isEmpty, "the scan must surface a snapshot to compare")
+
+        let summary = try XCTUnwrap(final)
+        let root = try XCTUnwrap(summary.largestDirectories.first {
+            $0.url.standardizedFileURL.path == summary.root.standardizedFileURL.path
+        })
+        let finishedFills = SunburstLayout.fillsByPath(roots: root.children)
+        XCTAssertGreaterThan(finishedFills.count, 1, "the finished chart has colours to compare")
+
+        let insideTheFolder = tree.root.appendingPathComponent("Library").path + "/"
+        var compared = 0
+        var comparedInsideTheFolder = 0
+        for snapshot in partials where !snapshot.rootChildren.isEmpty {
+            let liveFills = SunburstLayout.fillsByPath(roots: snapshot.rootChildren)
+            for (path, fill) in liveFills {
+                guard let finished = finishedFills[path] else { continue }
+                XCTAssertEqual(fill, finished, "\(path) changed colour while the scan ran")
+                compared += 1
+                if path.hasPrefix(insideTheFolder) { comparedInsideTheFolder += 1 }
+            }
+        }
+        XCTAssertGreaterThan(compared, 10, "live screens were compared against the finished chart")
+        XCTAssertGreaterThan(
+            comparedInsideTheFolder, 0,
+            "the colours of the entries inside a folder being walked are compared too"
+        )
+    }
 
     /// A node's wedge colour and the same node's icon colour are one mapping.
     ///
@@ -529,6 +582,83 @@ final class UIOverhaulQATests: XCTestCase {
     }
 
     // MARK: - Live results against the real engine
+
+    /// Builds a root holding one large folder and one file, so the folder's
+    /// subtree is still being walked long after the root's entries are known.
+    private func makeLiveRootTree(
+        directories: Int,
+        filesPerDirectory: Int
+    ) throws -> (root: URL, folderBytes: Int64, fileBytes: Int64) {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("WillyDiskLiveRoot-\(UUID().uuidString)", isDirectory: true)
+        let folder = root.appendingPathComponent("Library", isDirectory: true)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        var folderBytes: Int64 = 0
+        for d in 0..<directories {
+            let nested = folder.appendingPathComponent(String(format: "sub_%03d", d), isDirectory: true)
+            try FileManager.default.createDirectory(at: nested, withIntermediateDirectories: true)
+            for f in 0..<filesPerDirectory {
+                let size = 32 + f
+                try Data(repeating: 0x41, count: size)
+                    .write(to: nested.appendingPathComponent(String(format: "f_%04d.bin", f)))
+                folderBytes += Int64(size)
+            }
+        }
+        let fileBytes: Int64 = 1_024
+        try Data(repeating: 0x42, count: Int(fileBytes))
+            .write(to: root.appendingPathComponent("readme.txt"))
+        return (root, folderBytes, fileBytes)
+    }
+
+    /// A screen watching a live scan is not blank: the folders the scanned
+    /// location holds are reported as they are discovered, each with the bytes
+    /// counted under it so far, and those figures never overstate the folder.
+    func testTheRootsFoldersAreReportedBeforeTheirSubtreesFinish() async throws {
+        let tree = try makeLiveRootTree(directories: 40, filesPerDirectory: 150)
+        defer { try? FileManager.default.removeItem(at: tree.root) }
+        let request = ScanRequest(root: tree.root)
+
+        let engine = FileScanEngine()
+        var partials: [ScanSummary] = []
+        var final: ScanSummary?
+        for await event in engine.scan(request) {
+            switch event {
+            case .partial(let snapshot): partials.append(snapshot)
+            case .finished(let summary): final = summary
+            default: break
+            }
+        }
+
+        let reported = partials.compactMap { snapshot in
+            snapshot.rootChildren.first { $0.name == "Library" }
+        }
+        XCTAssertFalse(reported.isEmpty, "the scanned location's folder is reported while the scan runs")
+        XCTAssertTrue(
+            reported.contains { $0.logicalSize > 0 && $0.logicalSize < tree.folderBytes },
+            "the folder is on screen with the bytes counted so far, before its subtree finishes"
+        )
+        XCTAssertEqual(reported.map(\.logicalSize), reported.map(\.logicalSize).sorted(),
+                       "a live folder's size only grows")
+        XCTAssertTrue(reported.allSatisfy { $0.logicalSize <= tree.folderBytes },
+                      "a live folder never reports more than it holds")
+        XCTAssertTrue(reported.allSatisfy { $0.isDirectory && $0.url == tree.root.appendingPathComponent("Library") },
+                      "a live folder keeps its identity while it fills in")
+
+        // What the entries are is ground truth: the location holds exactly these.
+        let onDisk = try FileManager.default.contentsOfDirectory(atPath: tree.root.path).sorted()
+        let lastLive = try XCTUnwrap(partials.last { !$0.rootChildren.isEmpty })
+        XCTAssertEqual(lastLive.rootChildren.map(\.name).sorted(), onDisk,
+                       "the live list is the location's own entries, not a guess")
+
+        // The terminal summary hands the complete list to the root node instead.
+        let summary = try XCTUnwrap(final)
+        XCTAssertTrue(summary.rootChildren.isEmpty,
+                      "the root node's children are the complete list once the walk is done")
+        let rootNode = try XCTUnwrap(summary.largestDirectories.first { $0.url == request.root })
+        XCTAssertEqual(rootNode.children.map(\.name).sorted(), onDisk)
+        XCTAssertEqual(rootNode.children.first { $0.name == "Library" }?.logicalSize, tree.folderBytes)
+        XCTAssertEqual(rootNode.children.first { $0.name == "readme.txt" }?.logicalSize, tree.fileBytes)
+    }
 
     func testRealEngineStreamsGrowingResultsBeforeTheScanEnds() async throws {
         let root = try makeFlatTree(fileCount: 12_000)

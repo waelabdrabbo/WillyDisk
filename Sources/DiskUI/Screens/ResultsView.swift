@@ -73,36 +73,61 @@ public struct ResultsView: View {
     private var isLiveScan: Bool { viewModel.isScanning }
 
     /// The scanned root's own node, present once the traversal has finalized it.
+    ///
+    /// Matched by path rather than by URL equality: a node's URL records whether
+    /// it is a directory, and the scanned location the summary carries is the
+    /// request's own URL, which need not. Two URLs for the same folder would then
+    /// compare unequal, and the screen would show an empty tree.
     private func rootNode(in summary: ScanSummary) -> ScanNode? {
-        summary.largestDirectories.first {
-            $0.url.standardizedFileURL == summary.root.standardizedFileURL
-        }
+        let rootPath = summary.root.standardizedFileURL.path
+        return summary.largestDirectories.first { $0.url.standardizedFileURL.path == rootPath }
     }
 
-    /// The scan root's top-level entries, as known right now.
+    /// The scan root's own entries, as known right now.
     ///
-    /// A settled summary always carries the root node with its complete child
-    /// list. A live snapshot does not: the traversal finalizes the root last, so
-    /// until then the children are rebuilt from the largest items surfaced so
-    /// far whose parent is the root. That is the truthful subset the engine has
-    /// already completed, and it converges on the final list as the scan ends.
+    /// A settled summary carries the root node with its complete child list. A
+    /// live one does not: the root's node is minted only once its whole subtree
+    /// has finished, and the folders that take longest to walk are the ones the
+    /// screen needs first. The engine therefore reports the root's entries itself
+    /// from the moment they are discovered — each folder with the bytes counted
+    /// under it so far — so the chart and the list fill in from the first
+    /// snapshot instead of waiting for whole folders to complete.
     private var rootNodes: [ScanNode] {
         guard let s = summary else { return [] }
         if let root = rootNode(in: s) { return root.children }
-
-        let rootPath = s.root.standardizedFileURL.path
-        func isDirectChildOfRoot(_ node: ScanNode) -> Bool {
-            node.url.standardizedFileURL != s.root.standardizedFileURL
-                && node.url.deletingLastPathComponent().standardizedFileURL.path == rootPath
-        }
-        var children = s.largestDirectories.filter(isDirectChildOfRoot)
-        children += s.largestFiles.filter(isDirectChildOfRoot)
-        return children.sorted { $0.logicalSize > $1.logicalSize }
+        return s.rootChildren
     }
 
     /// The nodes currently shown by the chart / explorer (the drill-down target).
     private var currentChildren: [ScanNode] {
-        breadcrumb.last?.children ?? rootNodes
+        guard let opened = breadcrumb.last else { return rootNodes }
+        return resolvedFocus?.children ?? opened.children
+    }
+
+    /// The focused folder's entries that have something to show — the ones the
+    /// explorer lists and the chart draws.
+    private var presentableChildren: [ScanNode] {
+        currentChildren.filter(\.isPresentable)
+    }
+
+    /// The folder on screen, resolved against the results being rendered.
+    ///
+    /// The breadcrumb's own values are the snapshots the folders were opened
+    /// from, and a folder opened while the scan is still walking it keeps filling
+    /// in afterwards. Resolving it by URL from the scanned location down means
+    /// the list inside it is the newest entries the engine has rather than the
+    /// ones that were there at the click. A crumb that is no longer on screen
+    /// resolves to nothing, and the folder keeps the entries it was opened with.
+    private var resolvedFocus: ScanNode? {
+        guard !breadcrumb.isEmpty else { return nil }
+        var level = rootNodes
+        var resolved: ScanNode?
+        for crumb in breadcrumb {
+            guard let match = level.first(where: { $0.url == crumb.url }) else { return nil }
+            resolved = match
+            level = match.children
+        }
+        return resolved
     }
 
     /// Each node's colour in the chart, keyed by path, across every ring the
@@ -571,7 +596,9 @@ public struct ResultsView: View {
                     .monospacedDigit()
                     .foregroundStyle(DS.Color.primaryText)
             }
-            Text("\(viewModel.filesScanned) files · \(currentChildren.count) items")
+            // Counted the way the list counts: an entry with nothing in it is one
+            // the explorer does not list, so it does not read as an item here.
+            Text("\(viewModel.filesScanned) files · \(presentableChildren.count) items")
                 .font(DS.Typography.caption)
                 .foregroundStyle(DS.Color.secondaryText)
             if viewModel.stoppedEarly { stoppedEarlyNote }

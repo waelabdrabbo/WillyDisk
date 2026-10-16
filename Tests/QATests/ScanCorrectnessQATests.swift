@@ -91,6 +91,31 @@ final class ScanCorrectnessQATests: XCTestCase {
                        "a fully readable tree should produce no issues")
     }
 
+    /// The scanned location's own node is the one a results screen finds from
+    /// `ScanSummary.root`, and it is found by path: a node's URL carries whether
+    /// it is a directory, while the request's URL — which is what the summary
+    /// reports as `root` — need not.
+    func testTheRootNodeIsFoundFromTheSummaryRootByPath() async throws {
+        let root = try makeTempDir()
+        defer { try? FileManager.default.removeItem(at: root) }
+        try write(Data(repeating: 0x61, count: 32), to: root.appendingPathComponent("a.txt"))
+        try makeDir(root.appendingPathComponent("sub"))
+
+        // A request URL built without the directory hint is what a caller that
+        // received a path string hands the engine.
+        let request = ScanRequest(root: URL(fileURLWithPath: root.path))
+        let (summary, _) = await finishScan(request)
+        let s = try XCTUnwrap(summary)
+
+        let rootNode = s.largestDirectories.first {
+            $0.url.standardizedFileURL.path == s.root.standardizedFileURL.path
+        }
+        let node = try XCTUnwrap(rootNode, "the scanned location's node must be in the summary")
+        XCTAssertEqual(node.children.map(\.name).sorted(), ["a.txt", "sub"],
+                       "the node is the scanned location itself, with its own entries")
+        XCTAssertEqual(node.logicalSize, s.totalLogicalSize)
+    }
+
     // MARK: - Cross-check against find / du
 
     func testMatchesFindAndDuGroundTruth() async throws {

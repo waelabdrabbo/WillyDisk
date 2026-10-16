@@ -123,7 +123,7 @@ enum FileScanner {
                 inaccessibleCount: denied ? 1 : 0, errorCount: 1,
                 permissionDeniedCount: denied ? 1 : 0, surfacedIssueCount: 1,
                 startedAt: startDate, finishedAt: Date(),
-                categoryBreakdown: [:], largestFiles: [], largestDirectories: []
+                categoryBreakdown: [:], largestFiles: [], largestDirectories: [], rootChildren: []
             )))
             return
         }
@@ -153,7 +153,7 @@ enum FileScanner {
                     startedAt: startDate, finishedAt: Date(),
                     categoryBreakdown: [:],
                     largestFiles: [rootSymlinkNode(name: rootName, path: rootPath, stat: rootStat, broken: true)],
-                    largestDirectories: []
+                    largestDirectories: [], rootChildren: []
                 )))
                 return
             }
@@ -168,7 +168,7 @@ enum FileScanner {
                     startedAt: startDate, finishedAt: Date(),
                     categoryBreakdown: [:],
                     largestFiles: [rootSymlinkNode(name: rootName, path: rootPath, stat: rootStat, broken: false)],
-                    largestDirectories: []
+                    largestDirectories: [], rootChildren: []
                 )))
                 return
             }
@@ -193,7 +193,7 @@ enum FileScanner {
                     permissionDeniedCount: 0, surfacedIssueCount: 0,
                     startedAt: startDate, finishedAt: Date(),
                     categoryBreakdown: [category: scanStat.size],
-                    largestFiles: [node], largestDirectories: []
+                    largestFiles: [node], largestDirectories: [], rootChildren: []
                 )))
             } else {
                 // A special entry (device, FIFO, socket) is skipped safely.
@@ -203,7 +203,7 @@ enum FileScanner {
                     fileCount: 0, directoryCount: 0, inaccessibleCount: 0, errorCount: 0,
                     permissionDeniedCount: 0, surfacedIssueCount: 0,
                     startedAt: startDate, finishedAt: Date(),
-                    categoryBreakdown: [:], largestFiles: [], largestDirectories: []
+                    categoryBreakdown: [:], largestFiles: [], largestDirectories: [], rootChildren: []
                 )))
             }
             return
@@ -220,7 +220,13 @@ enum FileScanner {
             emit: emit
         )
 
-        _ = await context.scanDirectory(path: rootPath, name: rootName, isSymlink: rootIsSymlink, stat: scanStat)
+        _ = await context.scanDirectory(
+            path: rootPath,
+            name: rootName,
+            isSymlink: rootIsSymlink,
+            stat: scanStat,
+            relation: .root
+        )
 
         if context.isCancelled {
             emit(.cancelled(partial: context.summary(finishedAt: Date())))
@@ -315,6 +321,9 @@ enum FileScanner {
         func sortedDescending() -> [ScanNode] {
             items.sorted { $0.logicalSize > $1.logicalSize }
         }
+
+        /// The entries held, in no particular order.
+        var contents: [ScanNode] { items }
     }
 
     // MARK: - Shared accumulator
@@ -337,6 +346,10 @@ enum FileScanner {
         var categoryBreakdown: [FileCategory: Int64] = [:]
         var largestFiles = TopN(capacity: FileScanner.largestCapacity)
         var largestDirectories = TopN(capacity: FileScanner.largestCapacity)
+        /// The scan root's own entries, by path. Complete groups, never a capped
+        /// sample: see `ScanSummary.rootChildren`.
+        var rootChildren: [String: LiveDirectory] = [:]
+        var rootFiles: [String: ScanNode] = [:]
         var currentPath = ""
         var workSinceSnapshot = 0
         var cancelled = false
@@ -351,6 +364,83 @@ enum FileScanner {
         let name: String
         let isSymlink: Bool
         let stat: FileStat
+    }
+
+    /// Where a directory sits relative to the scan root, which is what decides
+    /// whether its entries are reported while it is still being walked.
+    private enum RootRelation {
+        /// The scanned location itself.
+        case root
+        /// One of the scanned location's own folders — the entries a live screen
+        /// shows first, and the only directories reported before they finish.
+        case rootChild
+        /// Anything below that.
+        case deeper
+
+        /// The relation of a directory a worker is about to walk, given the
+        /// relation of the directory holding it.
+        var childOf: RootRelation {
+            self == .root ? .rootChild : .deeper
+        }
+    }
+
+    /// A folder of the scan root whose subtree is still being walked, with the
+    /// work completed under it so far.
+    ///
+    /// A directory reaches the summary only as a finished node, so without a
+    /// record like this the screen shows nothing at all until whole folders
+    /// complete — and the folders that take longest are the ones it needs first.
+    private struct LiveDirectory {
+        let path: String
+        let name: String
+        let isSymlink: Bool
+        let modifiedAt: Date?
+        var isAccessible: Bool = true
+        var errorMessage: String?
+        var logical: Int64 = 0
+        var allocated: Int64 = 0
+        var fileCount: Int = 0
+        var directoryCount: Int = 0
+        /// What this folder holds, by path: the files it read, and one entry per
+        /// folder it claimed — the claimed folder's own node once it is walked,
+        /// and nothing but its name until then.
+        ///
+        /// The claimed folders are here from the moment this folder is read, even
+        /// though they hold no bytes yet, because a screen colours its entries by
+        /// their place among their siblings: a folder arriving mid-scan must take
+        /// a place of its own rather than move the colours already on screen.
+        var entries: [String: ScanNode] = [:]
+        /// The finished node, once the folder's subtree completes. It carries
+        /// the complete entry list, so it supersedes everything above.
+        var finished: ScanNode?
+
+        /// The bytes counted under this folder so far.
+        var countedSize: Int64 { finished?.logicalSize ?? logical }
+
+        /// The entries this folder holds, largest first and by path within a size,
+        /// so a snapshot reports the same order every time.
+        var orderedEntries: [ScanNode] {
+            entries.values.sorted {
+                $0.logicalSize == $1.logicalSize
+                    ? $0.url.path < $1.url.path
+                    : $0.logicalSize > $1.logicalSize
+            }
+        }
+
+        /// The node a snapshot reports for this folder.
+        func node() -> ScanNode {
+            if let finished { return finished }
+            return ScanNode(
+                id: UUID(), url: FileScanner.nodeURL(path, isDirectory: true),
+                name: name, isDirectory: true, isSymlink: isSymlink,
+                category: FileCategorizer.category(name: name, isDirectory: true),
+                logicalSize: logical, allocatedSize: allocated,
+                fileCount: fileCount, directoryCount: directoryCount,
+                modifiedAt: modifiedAt, isAccessible: isAccessible,
+                errorMessage: errorMessage,
+                children: orderedEntries
+            )
+        }
     }
 
     /// What a followed symlink turned into.
@@ -428,9 +518,112 @@ enum FileScanner {
         /// work counter and the entry's own accounting all share one acquisition:
         /// taking the lock again per concern turns short critical sections into
         /// measurable contention.
+        ///
         func noteEntry(path: String, file: ScanNode?, checkClock: Bool) {
             lock.withLock { state in
                 recordEntry(&state, path: path, file: file, checkClock: checkClock)
+            }
+        }
+
+        /// Registers the scan root's own entries — its files, and one record per
+        /// folder it holds — in a single step, once the root has read them.
+        ///
+        /// The whole group is published together: a screen colours the entries by
+        /// their place among their siblings, so half a group on screen would take
+        /// places that move when the other half arrives.
+        func openRootChildren(directories: [PendingDirectory], files: [ScanNode]) {
+            guard !directories.isEmpty || !files.isEmpty else { return }
+            lock.withLock { state in
+                for directory in directories where state.rootChildren[directory.path] == nil {
+                    state.rootChildren[directory.path] = LiveDirectory(
+                        path: directory.path,
+                        name: directory.name,
+                        isSymlink: directory.isSymlink,
+                        modifiedAt: directory.stat.modifiedAt
+                    )
+                }
+                for file in files { state.rootFiles[file.url.path] = file }
+            }
+        }
+
+        /// Credits the work one directory has completed on its own entries — the
+        /// files it holds — to the scan root's folder it belongs under.
+        ///
+        /// Every directory under that folder credits its own direct work, once,
+        /// as it reads its entries. The sum is therefore exactly the bytes counted
+        /// under the folder so far — never double-counted, never projected — and
+        /// it grows while work happens at any depth, rather than only when a
+        /// whole subdirectory finishes.
+        func creditRootChild(
+            _ rootChild: String,
+            logical: Int64,
+            allocated: Int64,
+            fileCount: Int,
+            entries: [ScanNode],
+            folders: [PendingDirectory] = []
+        ) {
+            lock.withLock { state in
+                guard var record = state.rootChildren[rootChild] else { return }
+                record.logical += logical
+                record.allocated += allocated
+                record.fileCount += fileCount
+                record.directoryCount += 1   // the directory counting itself
+                for entry in entries { record.entries[entry.url.path] = entry }
+                // A folder this one claims holds no bytes yet, but it is what the
+                // folder holds: it takes its place among its siblings now, and its
+                // own node replaces this entry once it has been walked.
+                for folder in folders where record.entries[folder.path] == nil {
+                    record.entries[folder.path] = ScanNode(
+                        id: UUID(), url: FileScanner.nodeURL(folder.path, isDirectory: true),
+                        name: folder.name, isDirectory: true, isSymlink: folder.isSymlink,
+                        category: FileCategorizer.category(name: folder.name, isDirectory: true),
+                        logicalSize: 0, allocatedSize: 0,
+                        fileCount: 0, directoryCount: 1,
+                        modifiedAt: folder.stat.modifiedAt, isAccessible: true,
+                        errorMessage: nil, children: []
+                    )
+                }
+                state.rootChildren[rootChild] = record
+            }
+        }
+
+        /// Notes that a scan-root folder could not be read, which its record
+        /// carries until the folder finishes.
+        func noteRootChildAccess(path: String, isAccessible: Bool, errorMessage: String?) {
+            lock.withLock { state in
+                guard var record = state.rootChildren[path] else { return }
+                record.isAccessible = isAccessible
+                record.errorMessage = errorMessage
+                state.rootChildren[path] = record
+            }
+        }
+
+        /// Gives a scan-root folder the finished node of one of its own entries, so
+        /// a screen can open a folder that has just been walked. The bytes it
+        /// accounts for were credited by the directory that read them.
+        func addRootChildEntry(of path: String, entry: ScanNode) {
+            lock.withLock { state in
+                guard var record = state.rootChildren[path] else { return }
+                record.entries[entry.url.path] = entry
+                state.rootChildren[path] = record
+            }
+        }
+
+        /// Replaces a scan-root folder's record with its finished node.
+        func finishRootChild(_ node: ScanNode, path: String) {
+            lock.withLock { state in
+                guard var record = state.rootChildren[path] else { return }
+                record.finished = node
+                state.rootChildren[path] = record
+            }
+        }
+
+        /// Drops the root's live records once its own node exists: its `children`
+        /// are the complete list, and the summary reports one or the other.
+        func closeRootChildren() {
+            lock.withLock { state in
+                state.rootChildren.removeAll(keepingCapacity: false)
+                state.rootFiles.removeAll(keepingCapacity: false)
             }
         }
 
@@ -506,6 +699,9 @@ enum FileScanner {
         ///
         /// The snapshot is the accumulators exactly as they stand, so it reports
         /// completed work only — never projected counts, sizes or breakdowns.
+        /// That includes the root's folders whose subtrees are still being walked:
+        /// `rootChildren` carries them with the bytes counted under them so far,
+        /// which is work already done rather than an estimate of what is coming.
         /// The clock is read only on the work units where `checkClock` is set,
         /// and always inside the lock: two workers can otherwise sample times in
         /// one order and emit in the other, presenting snapshots out of order.
@@ -541,7 +737,7 @@ enum FileScanner {
         }
 
         private func summary(from state: WalkState, finishedAt: Date) -> ScanSummary {
-            ScanSummary(
+            return ScanSummary(
                 root: request.root,
                 totalLogicalSize: state.totalLogical,
                 totalAllocatedSize: state.totalAllocated,
@@ -555,8 +751,30 @@ enum FileScanner {
                 finishedAt: finishedAt,
                 categoryBreakdown: state.categoryBreakdown,
                 largestFiles: state.largestFiles.sortedDescending(),
-                largestDirectories: state.largestDirectories.sortedDescending()
+                largestDirectories: state.largestDirectories.sortedDescending(),
+                rootChildren: rootChildren(from: state)
             )
+        }
+
+        /// The scan root's entries as the walk has discovered them, largest
+        /// first and bounded like the other lists.
+        /// The scan root's entries as the walk has discovered them, largest first.
+        ///
+        /// Every entry the root holds is reported, not a capped sample of them:
+        /// a screen colours the entries by their place among their siblings, so
+        /// the list has to be the whole group for those colours to hold still
+        /// while the scan runs.
+        private func rootChildren(from state: WalkState) -> [ScanNode] {
+            let directories = state.rootChildren.values
+            let files = Array(state.rootFiles.values)
+            guard !directories.isEmpty || !files.isEmpty else { return [] }
+
+            return (directories.map { $0.node() } + files)
+                .sorted {
+                    $0.logicalSize == $1.logicalSize
+                        ? $0.url.path < $1.url.path
+                        : $0.logicalSize > $1.logicalSize
+                }
         }
 
         private func progress(from state: WalkState, finishedAt: Date) -> ScanProgress {
@@ -590,7 +808,18 @@ enum FileScanner {
 
         /// Enumerates `path`, builds its `ScanNode` bottom-up, and returns it.
         /// Returns `nil` when the scan was cancelled before the subtree finished.
-        func scanDirectory(path: String, name: String, isSymlink: Bool, stat: FileStat) async -> ScanNode? {
+        ///
+        /// `relation` says where this directory sits relative to the scan root, so
+        /// the root's own folders can report what they have counted while they
+        /// are still being walked.
+        func scanDirectory(
+            path: String,
+            name: String,
+            isSymlink: Bool,
+            stat: FileStat,
+            relation: RootRelation = .deeper,
+            rootChild: String? = nil
+        ) async -> ScanNode? {
             if Task.isCancelled {
                 markCancelled()
                 return nil
@@ -703,6 +932,29 @@ enum FileScanner {
                 }
             }
 
+            // The work this directory has done on its own entries is credited
+            // now, before its subdirectories are walked: a folder on a live
+            // screen grows as work completes anywhere under it.
+            if let rootChild {
+                creditRootChild(
+                    rootChild,
+                    logical: logical,
+                    allocated: allocated,
+                    fileCount: fileCount,
+                    entries: relation == .rootChild ? children : [],
+                    folders: relation == .rootChild ? subdirectories : []
+                )
+                if relation == .rootChild {
+                    noteRootChildAccess(path: path, isAccessible: isAccessible, errorMessage: errorMessage)
+                }
+            }
+
+            // The root's own entries are on screen from here — its folders, and
+            // the files it holds — whether or not it has any folder to walk.
+            if relation == .root {
+                openRootChildren(directories: subdirectories, files: children)
+            }
+
             if !subdirectories.isEmpty {
                 // Release the enumeration buffer before waiting on children. This
                 // frame stays alive until the whole subtree finishes, so holding
@@ -737,8 +989,16 @@ enum FileScanner {
                                     path: pending.path,
                                     name: pending.name,
                                     isSymlink: pending.isSymlink,
-                                    stat: pending.stat
+                                    stat: pending.stat,
+                                    relation: relation.childOf,
+                                    rootChild: relation == .root ? pending.path : rootChild
                                 ) {
+                                    // A root child's own entries are listed the
+                                    // moment each finishes, so a screen can open
+                                    // them while the folder is still being walked.
+                                    if relation == .rootChild {
+                                        self.addRootChildEntry(of: path, entry: node)
+                                    }
                                     produced.append(node)
                                 }
                             }
@@ -776,6 +1036,11 @@ enum FileScanner {
                 children: children.sorted { $0.logicalSize > $1.logicalSize }
             )
             recordDirectory(node, path: path, checkClock: true)
+            switch relation {
+            case .rootChild: finishRootChild(node, path: path)
+            case .root: closeRootChildren()
+            case .deeper: break
+            }
             return node
         }
 

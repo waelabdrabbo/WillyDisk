@@ -89,15 +89,6 @@ struct ReclaimSheet: View {
                     .font(DS.Typography.caption)
                     .foregroundStyle(DS.Color.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)
-                if isChecking {
-                    HStack(spacing: DS.Spacing.xSmall) {
-                        ProgressView()
-                            .controlSize(.mini)
-                        Text("Checking this item…")
-                            .font(DS.Typography.caption)
-                            .foregroundStyle(DS.Color.secondaryText)
-                    }
-                }
                 if hasSymlink {
                     Text("Symbolic links are moved themselves; the items they point to stay where they are.")
                         .font(DS.Typography.caption)
@@ -119,30 +110,29 @@ struct ReclaimSheet: View {
             Divider()
 
             HStack(spacing: DS.Spacing.small) {
+                if isChecking || isWorking {
+                    // The status lives beside the buttons rather than above them:
+                    // it appears without changing the sheet's height, and its
+                    // normal text colour stays readable while the action is
+                    // disabled.
+                    HStack(spacing: DS.Spacing.xSmall) {
+                        ProgressView()
+                            .controlSize(.small)
+                        Text(isChecking ? "Checking this item…" : "Moving to the Trash…")
+                            .font(DS.Typography.caption)
+                            .foregroundStyle(DS.Color.secondaryText)
+                            .lineLimit(1)
+                    }
+                }
                 Spacer(minLength: DS.Spacing.small)
                 Button("Cancel", role: .cancel, action: onCancel)
                     .keyboardShortcut(.cancelAction)
                     .disabled(isWorking)
                     .frame(minWidth: 84)
-                Button(role: .destructive, action: onConfirm) {
-                    // The working label is drawn over the idle one rather than
-                    // replacing it, so the button keeps the width it had before
-                    // the trash request and the footer does not shift.
-                    ZStack {
-                        Text("Move to Trash")
-                            .opacity(isWorking ? 0 : 1)
-                        if isWorking {
-                            HStack(spacing: DS.Spacing.xSmall) {
-                                ProgressView()
-                                    .controlSize(.small)
-                                Text("Moving…")
-                            }
-                        }
-                    }
+                Button("Move to Trash", role: .destructive, action: onConfirm)
+                    .keyboardShortcut(.defaultAction)
+                    .disabled(refusal != nil || isWorking || isChecking)
                     .frame(minWidth: 116)
-                }
-                .keyboardShortcut(.defaultAction)
-                .disabled(refusal != nil || isWorking || isChecking)
             }
         }
         .padding(DS.Spacing.xLarge)

@@ -7,7 +7,7 @@ decisions. This is a handoff document, not a specification of frozen interfaces 
 ## Current state
 
 - `HEAD` is the Explorer trust pass (`f6c8ca5`) with the toolbar Home/trail
-  follow-up (`45d3dc0`) plus this handoff update; working tree clean.
+  follow-up (`45d3dc0`, `7a7bb90`) plus this handoff update; working tree clean.
 - Build: `swift build --disable-sandbox`.
 - Tests: 109 QATests + 48 DiskCoreTests, 0 failures, 1 skipped
   (`ScanBenchmarkTests` needs `WILLYDISK_BENCH_ROOT`).
@@ -23,7 +23,7 @@ decisions. This is a handoff document, not a specification of frozen interfaces 
 | Provenance line, This Folder / Top Files / Top Folders, scan options | `c0ca677` |
 | Guarded Move to Trash, confirmation sheet, stale results + Rescan | `0915068`, `8beef48` |
 | Coverage sheet, volume/snapshot facts, hard-link/dataless/skip accounting | `abce87a` |
-| Explorer selection, keyboard navigation, Quick Look, batch reclaim, breadcrumb, folder inspector | `f6c8ca5`, `45d3dc0` |
+| Explorer selection, keyboard navigation, Quick Look, batch reclaim, breadcrumb, folder inspector | `f6c8ca5`, `45d3dc0`, `7a7bb90` |
 
 Details worth remembering:
 
@@ -42,8 +42,9 @@ Details worth remembering:
 - Quick Look rechecks that every target still exists off the main thread before the
   panel is shown. Batch Quick Look, Reveal, and Move to Trash act on the whole
   selection; Move to Trash re-runs the per-item reclaim guard for every candidate.
-- The results toolbar carries no separate title or path. It holds a Home button and a
-  folder trail: the scanned location is always named, ancestors are clickable, and the
+- The results toolbar carries no separate title or path, and the system title item is
+  removed so the app name does not sit between the controls. It holds a Home button and
+  a folder trail: the scanned location is always named, ancestors are clickable, and the
   current folder is text. Home returns to source selection; the trail covers stepping
   up, so there is no Back action.
 

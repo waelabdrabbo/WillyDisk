@@ -6,8 +6,9 @@ decisions. This is a handoff document, not a specification of frozen interfaces 
 
 ## Current state
 
-- `HEAD` is the Explorer trust pass (`f6c8ca5`) with the toolbar Home/trail
-  follow-up (`45d3dc0`, `7a7bb90`) plus this handoff update; working tree clean.
+- The current code is the Explorer trust pass (`f6c8ca5`) plus the toolbar
+  Home/trail follow-ups through `99c8b64`; this docs handoff follows on top.
+  Working tree clean.
 - Build: `swift build --disable-sandbox`.
 - Tests: 109 QATests + 48 DiskCoreTests, 0 failures, 1 skipped
   (`ScanBenchmarkTests` needs `WILLYDISK_BENCH_ROOT`).
@@ -23,7 +24,7 @@ decisions. This is a handoff document, not a specification of frozen interfaces 
 | Provenance line, This Folder / Top Files / Top Folders, scan options | `c0ca677` |
 | Guarded Move to Trash, confirmation sheet, stale results + Rescan | `0915068`, `8beef48` |
 | Coverage sheet, volume/snapshot facts, hard-link/dataless/skip accounting | `abce87a` |
-| Explorer selection, keyboard navigation, Quick Look, batch reclaim, breadcrumb, folder inspector | `f6c8ca5`, `45d3dc0`, `7a7bb90` |
+| Explorer selection, keyboard navigation, Quick Look, batch reclaim, breadcrumb, folder inspector | `f6c8ca5`, `45d3dc0`, `7a7bb90`, `99c8b64` |
 
 Details worth remembering:
 

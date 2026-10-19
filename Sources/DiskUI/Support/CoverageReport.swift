@@ -125,6 +125,15 @@ public struct CoverageReport: Equatable, Sendable {
             ))
         }
 
+        if accounting.excludedItemCount > 0 {
+            limits.append(CoverageRow(
+                id: "exclusions",
+                label: "Skipped by your exclusions",
+                value: CountFormat.items(accounting.excludedItemCount),
+                detail: "The scan did not enter these items, so their contents are not in the totals. The size of what was left out is therefore unknown."
+            ))
+        }
+
         if accounting.hardlinkFileCount > 0 {
             let extra = accounting.hardlinkExtraLogicalSize
             limits.append(CoverageRow(
@@ -178,7 +187,7 @@ public struct CoverageReport: Equatable, Sendable {
                 id: "none",
                 label: "Overlaps and skips",
                 value: "None found",
-                detail: "The scan found no unreadable folders, hard-link overlaps, cloud-only files, skipped links, other volumes, or special files."
+                detail: "The scan found no unreadable folders, exclusions, hard-link overlaps, cloud-only files, skipped links, other volumes, or special files."
             )]
         }
         self.limits = limits

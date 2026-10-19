@@ -38,6 +38,10 @@ public struct ScanAccounting: Sendable, Equatable {
     public let skippedVolumeCount: Int
     /// Sockets, devices, and FIFOs the walk skipped.
     public let specialFileCount: Int
+    /// Entries the walk skipped because they match a path listed in the scan
+    /// request's exclusions. Their contents are not part of the totals; the
+    /// count is the disclosure, not a measured size.
+    public let excludedItemCount: Int
 
     public static let zero = ScanAccounting()
 
@@ -50,7 +54,8 @@ public struct ScanAccounting: Sendable, Equatable {
         datalessAllocatedSize: Int64 = 0,
         skippedSymlinkCount: Int = 0,
         skippedVolumeCount: Int = 0,
-        specialFileCount: Int = 0
+        specialFileCount: Int = 0,
+        excludedItemCount: Int = 0
     ) {
         self.hardlinkFileCount = hardlinkFileCount
         self.hardlinkExtraLogicalSize = hardlinkExtraLogicalSize
@@ -61,6 +66,7 @@ public struct ScanAccounting: Sendable, Equatable {
         self.skippedSymlinkCount = skippedSymlinkCount
         self.skippedVolumeCount = skippedVolumeCount
         self.specialFileCount = specialFileCount
+        self.excludedItemCount = excludedItemCount
     }
 
     /// Whether the scan found anything a coverage explanation should mention.
@@ -70,5 +76,6 @@ public struct ScanAccounting: Sendable, Equatable {
             || skippedSymlinkCount > 0
             || skippedVolumeCount > 0
             || specialFileCount > 0
+            || excludedItemCount > 0
     }
 }

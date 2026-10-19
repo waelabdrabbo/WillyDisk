@@ -382,7 +382,8 @@ public final class ScanViewModel {
             root: root,
             followSymlinks: options.followSymlinks,
             stayOnVolume: options.stayOnVolume,
-            includeHidden: options.includeHidden
+            includeHidden: options.includeHidden,
+            excludedPaths: options.excludedPaths
         )
         let stream = engine.scan(request)
         scanTask = Task { [weak self] in

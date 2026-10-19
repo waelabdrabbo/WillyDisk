@@ -93,9 +93,20 @@ final class ScanOptionsQATests: XCTestCase {
 
         XCTAssertEqual(ScanOptionsStore.load(defaults: defaults), .standard)
 
-        let options = ScanOptions(followSymlinks: true, stayOnVolume: false, includeHidden: false)
+        let exclusions = [
+            URL(fileURLWithPath: "/tmp/one"),
+            URL(fileURLWithPath: "/tmp/two")
+        ]
+        let options = ScanOptions(
+            followSymlinks: true,
+            stayOnVolume: false,
+            includeHidden: false,
+            excludedPaths: exclusions
+        )
         ScanOptionsStore.save(options, defaults: defaults)
         XCTAssertEqual(ScanOptionsStore.load(defaults: defaults), options)
+        XCTAssertEqual(ScanOptionsStore.load(defaults: defaults).excludedPaths.map(\.path),
+                       exclusions.map(\.path))
     }
 
     // MARK: - The view model carries the options
@@ -104,7 +115,13 @@ final class ScanOptionsQATests: XCTestCase {
         let engine = RecordingEngine()
         let vm = ScanViewModel(engine: engine)
         let root = URL(fileURLWithPath: "/qa/options")
-        let options = ScanOptions(followSymlinks: true, stayOnVolume: false, includeHidden: false)
+        let exclusions = [URL(fileURLWithPath: "/qa/options/Caches")]
+        let options = ScanOptions(
+            followSymlinks: true,
+            stayOnVolume: false,
+            includeHidden: false,
+            excludedPaths: exclusions
+        )
 
         vm.start(root: root, options: options)
 
@@ -112,6 +129,7 @@ final class ScanOptionsQATests: XCTestCase {
         XCTAssertEqual(engine.requests[0].followSymlinks, true)
         XCTAssertEqual(engine.requests[0].stayOnVolume, false)
         XCTAssertEqual(engine.requests[0].includeHidden, false)
+        XCTAssertEqual(engine.requests[0].excludedPaths, exclusions)
         XCTAssertEqual(vm.lastOptions, options)
         XCTAssertNotNil(vm.scanStartedAt)
 
@@ -126,6 +144,23 @@ final class ScanOptionsQATests: XCTestCase {
         XCTAssertEqual(engine.requests[1].followSymlinks, true)
         XCTAssertEqual(engine.requests[1].stayOnVolume, false)
         XCTAssertEqual(engine.requests[1].includeHidden, false)
+        XCTAssertEqual(engine.requests[1].excludedPaths, exclusions)
+    }
+
+    // MARK: - Presets
+
+    func testPresetCatalogNamesTheUsualLargeLocations() {
+        let presets = ScanPresetCatalog.candidates
+        XCTAssertEqual(presets.map(\.id),
+                       ["home", "downloads", "applications", "caches", "derived-data", "trash"])
+        XCTAssertEqual(presets.first?.url, FileManager.default.homeDirectoryForCurrentUser)
+        XCTAssertTrue(presets.allSatisfy { $0.url.isFileURL })
+    }
+
+    func testPresetResolutionChecksAvailability() async {
+        let resolved = await ScanPresetCatalog.resolved()
+        XCTAssertEqual(resolved.map(\.id), ScanPresetCatalog.candidates.map(\.id))
+        XCTAssertTrue(resolved.contains { $0.id == "home" && $0.isAvailable })
     }
 
     // MARK: - Provenance

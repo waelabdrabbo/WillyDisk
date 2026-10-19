@@ -85,6 +85,7 @@ public struct ScanAccounting: Sendable, Equatable {
     public let skippedSymlinkCount: Int            // links not followed + broken/outside/duplicate
     public let skippedVolumeCount: Int             // dirs left because stayOnVolume is set
     public let specialFileCount: Int               // sockets, devices, FIFOs skipped
+    public let excludedItemCount: Int              // entries the request's exclusions left out
     public var hasFindings: Bool { ... }
     public static let zero = ScanAccounting()
 }
@@ -120,7 +121,8 @@ deduplicated total would disagree with the tree and the ranking. Dataless files 
 counted at their full logical size, with their local bytes and cloud-only share
 reported separately. Skips are counted by kind. The engine reports these facts only
 when it observed them; a default `ScanAccounting.zero` means no finding, never an
-unchecked guess.
+unchecked guess. Exclusions are counted, not sized: the walk never enters an
+excluded item, so no byte total for it would be measured.
 
 ## 4. Frozen scanning contract (`DiskCore/Scanning/Contracts.swift`)
 
@@ -132,7 +134,14 @@ public struct ScanRequest: Sendable {
     public var followSymlinks: Bool = false   // default safe: do not follow
     public var stayOnVolume: Bool = true      // do not cross mount boundaries
     public var includeHidden: Bool = true
-    public init(root: URL, followSymlinks: Bool = false, stayOnVolume: Bool = true, includeHidden: Bool = true)
+    public var excludedPaths: [URL] = []      // paths the walk leaves out entirely
+    public init(
+        root: URL,
+        followSymlinks: Bool = false,
+        stayOnVolume: Bool = true,
+        includeHidden: Bool = true,
+        excludedPaths: [URL] = []
+    )
 }
 
 public struct ScanProgress: Sendable {
@@ -178,7 +187,14 @@ Issues never terminate the scan; each surfaced `.issue` carries a `ScanIssueKind
 The per-path issue stream is bounded by the engine while
 `ScanSummary.errorCount` stays the truthful, uncapped total; `surfacedIssueCount`
 reports how many were actually surfaced. Symlink loops and out-of-scope
-traversal must be prevented (track visited dev/inode). Progress
+traversal must be prevented (track visited dev/inode). Request exclusions are
+resolved once before traversal starts. An exclusion equal to the scan root, or
+above it, is ignored: the scanned location always wins. A nested exclusion is
+skipped without entering it, and its contents contribute nothing to the totals.
+Identity (device + inode) is matched first, then the canonical path, so an
+unrelated hard link elsewhere is not mistaken for the excluded path; a followed
+link that lands in an excluded folder is skipped as well. `ScanAccounting.excludedItemCount` reports how many entries were skipped, never an invented size.
+Progress
 `fractionCompleted` is `nil` unless a reliable total is known. Progressive
 `.partial` snapshots are non-terminal: the engine may emit any number of them,
 each reflecting only completed work, and the stream still ends with exactly one
@@ -204,6 +220,11 @@ carries the root node itself in `largestDirectories`.
   redraw, the view model takes them at a bounded cadence, where the newest
   snapshot wins: the chart's rings and the explorer's rows are re-derived at a
   rate a person can see, never once per snapshot.
+- `SourceSelectionView` offers quick-scan presets (Home, Downloads, Applications,
+  Caches, Derived Data, Trash) that start the same real scan as picking the folder
+  by hand, and lists the next scan's excluded paths in its Scan Options popover.
+  Exclusion choices persist with the other scan options; a missing preset is shown
+  disabled rather than silently dropped.
 - Screens: `SourceSelectionView` (A) and `ResultsView` (C). Scanning is not a
   separate screen: `ScanFlowView` routes the model's `.scanning` phase to
   `ResultsView`, which renders the honest in-progress state until the terminal
@@ -216,7 +237,10 @@ carries the root node itself in `largestDirectories`.
 - The coverage sheet explains the scan rather than reconciling it. It shows the
   scan's own totals and accounting next to the volume's own capacity facts
   (`VolumeFactsProbe`), lists local snapshots via `tmutil` (`SnapshotProbe`), and
-  says when a number is unavailable. It never subtracts the scanned total from
+  says when a number is unavailable. Request exclusions appear there as
+  "Skipped by your exclusions" with the count of skipped entries and the statement
+  that their contents are not in the totals — the sheet never estimates the size
+  of what it did not read. It never subtracts the scanned total from
   the volume's used space to name an "unaccounted" remainder: those figures
   measure different things, and the difference is not an explanation.
 - Reclaim is Trash-only and guarded. `ReclaimPolicy` refuses the scan root or an

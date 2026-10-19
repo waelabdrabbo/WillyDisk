@@ -27,6 +27,7 @@ public struct SourceSelectionView: View {
     @State private var isDragOver = false
     @State private var recentLocations: [URL] = RecentLocations.load()
     @State private var volumes: [VolumeInfo] = []
+    @State private var presets: [ScanPreset] = []
     /// What the next scan includes. The choices persist, so a scan started from
     /// the menu or a drop uses the same ones this screen shows.
     @State private var scanOptions = ScanOptionsStore.load()
@@ -63,6 +64,7 @@ public struct SourceSelectionView: View {
                     if let url = selectedURL {
                         selectedSourceCard(url)
                     }
+                    presetsSection
                     volumesSection
                     recentSection
                     chooseFolderSection
@@ -77,7 +79,10 @@ public struct SourceSelectionView: View {
                 dropOverlay
             }
         }
-        .task { volumes = VolumeInfo.enumerate() }
+        .task {
+            volumes = VolumeInfo.enumerate()
+            presets = await ScanPresetCatalog.resolved()
+        }
         .onDrop(of: [UTType.fileURL], isTargeted: $isDragOver) { providers in
             handleDrop(providers)
         }
@@ -213,6 +218,56 @@ public struct SourceSelectionView: View {
         }
         .padding(DS.Spacing.large)
         .dsSurface()
+    }
+
+    /// The usual large folders, so the common scans do not begin with a file
+    /// panel. A preset starts the same scan as picking the folder by hand, and
+    /// one that is missing stays visible but disabled instead of vanishing.
+    private var presetsSection: some View {
+        VStack(alignment: .leading, spacing: DS.Spacing.medium) {
+            sectionHeader("Quick Scans")
+            LazyVGrid(
+                columns: [GridItem(.adaptive(minimum: 180), spacing: DS.Spacing.small)],
+                alignment: .leading,
+                spacing: DS.Spacing.small
+            ) {
+                ForEach(presets) { preset in
+                    Button {
+                        startScan(preset.url)
+                    } label: {
+                        HStack(spacing: DS.Spacing.small) {
+                            Image(systemName: preset.symbolName)
+                                .font(DS.Icon.small)
+                                .foregroundStyle(DS.Color.accent)
+                                .frame(width: 20)
+                                .accessibilityHidden(true)
+                            VStack(alignment: .leading, spacing: DS.Spacing.hairline) {
+                                Text(preset.name)
+                                    .font(DS.Typography.body)
+                                Text(preset.isAvailable ? PathFormat.abbreviated(preset.url.path) : "Not on this Mac")
+                                    .font(DS.Typography.caption)
+                                    .foregroundStyle(DS.Color.secondaryText)
+                                    .lineLimit(1)
+                                    .truncationMode(.middle)
+                            }
+                            Spacer(minLength: 0)
+                        }
+                        .padding(DS.Spacing.small)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.bordered)
+                    .disabled(viewModel.isScanning || !preset.isAvailable)
+                    .help(preset.isAvailable
+                        ? "Scan \(preset.name) at \(preset.url.path)"
+                        : "\(preset.name) is not on this Mac")
+                    .accessibilityLabel("Scan \(preset.name)")
+                    .accessibilityHint(preset.isAvailable
+                        ? preset.url.path
+                        : "This location is not on this Mac")
+                }
+            }
+        }
     }
 
     @ViewBuilder
@@ -507,6 +562,10 @@ public struct SourceSelectionView: View {
 
             Divider()
 
+            exclusionsEditor
+
+            Divider()
+
             HStack {
                 Button("Reset to Defaults") {
                     scanOptions = .standard
@@ -520,6 +579,63 @@ public struct SourceSelectionView: View {
         }
         .padding(DS.Spacing.large)
         .frame(width: 380)
+    }
+
+    /// The paths the next scan leaves out. Listing them here is what makes the
+    /// narrowed totals honest: the choice is visible before the scan starts, and
+    /// Coverage repeats it afterward.
+    private var exclusionsEditor: some View {
+        VStack(alignment: .leading, spacing: DS.Spacing.small) {
+            HStack {
+                Text("Excluded Paths")
+                    .font(DS.Typography.body)
+                Spacer()
+                Button("Add Path…") {
+                    addExclusions()
+                }
+                .controlSize(.small)
+            }
+
+            if scanOptions.excludedPaths.isEmpty {
+                Text("Nothing excluded.")
+                    .font(DS.Typography.caption)
+                    .foregroundStyle(DS.Color.secondaryText)
+            } else {
+                ScrollView {
+                    VStack(spacing: 0) {
+                        ForEach(scanOptions.excludedPaths, id: \.self) { url in
+                            HStack(spacing: DS.Spacing.small) {
+                                Image(systemName: "nosign")
+                                    .font(DS.Icon.detail)
+                                    .foregroundStyle(DS.Color.secondaryText)
+                                    .accessibilityHidden(true)
+                                Text(PathFormat.abbreviated(url.path))
+                                    .font(DS.Typography.caption)
+                                    .lineLimit(1)
+                                    .truncationMode(.middle)
+                                Spacer(minLength: 0)
+                                Button {
+                                    removeExclusion(url)
+                                } label: {
+                                    Image(systemName: "xmark")
+                                        .font(DS.Icon.detail)
+                                }
+                                .buttonStyle(.plain)
+                                .help("Stop excluding \(url.path)")
+                                .accessibilityLabel("Remove exclusion \(url.path)")
+                            }
+                            .padding(.vertical, DS.Spacing.xxSmall)
+                        }
+                    }
+                }
+                .frame(maxHeight: 104)
+            }
+
+            Text("Excluded items are left out of the totals and reported in Coverage. The scanned location always stays included.")
+                .font(DS.Typography.caption)
+                .foregroundStyle(DS.Color.secondaryText)
+                .fixedSize(horizontal: false, vertical: true)
+        }
     }
 
     private func optionToggle(_ title: String, detail: String, isOn: Binding<Bool>) -> some View {
@@ -576,6 +692,28 @@ public struct SourceSelectionView: View {
         if panel.runModal() == .OK, let url = panel.url {
             selectedURL = url
         }
+    }
+
+    private func addExclusions() {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = true
+        panel.allowsMultipleSelection = true
+        panel.prompt = "Exclude"
+        panel.message = "Choose files or folders the next scan should leave out."
+        guard panel.runModal() == .OK else { return }
+
+        var seen = Set(scanOptions.excludedPaths.map { $0.standardizedFileURL.path })
+        for url in panel.urls {
+            let standardized = url.standardizedFileURL
+            guard seen.insert(standardized.path).inserted else { continue }
+            scanOptions.excludedPaths.append(standardized)
+        }
+    }
+
+    private func removeExclusion(_ url: URL) {
+        let path = url.standardizedFileURL.path
+        scanOptions.excludedPaths.removeAll { $0.standardizedFileURL.path == path }
     }
 
     private func startScan(_ url: URL) {

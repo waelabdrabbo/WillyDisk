@@ -17,14 +17,20 @@ public struct ScanOptions: Equatable, Sendable {
     /// Include names macOS hides, such as `~/Library`, dotfiles, and caches.
     public var includeHidden: Bool
 
+    /// Absolute paths the walk leaves out entirely. They are shown before the
+    /// scan so the totals are never narrowed invisibly.
+    public var excludedPaths: [URL]
+
     public init(
         followSymlinks: Bool = false,
         stayOnVolume: Bool = true,
-        includeHidden: Bool = true
+        includeHidden: Bool = true,
+        excludedPaths: [URL] = []
     ) {
         self.followSymlinks = followSymlinks
         self.stayOnVolume = stayOnVolume
         self.includeHidden = includeHidden
+        self.excludedPaths = excludedPaths
     }
 
     /// The defaults every scan starts from.
@@ -35,7 +41,8 @@ public struct ScanOptions: Equatable, Sendable {
         let hidden = includeHidden ? "hidden items included" : "hidden items skipped"
         let volumes = stayOnVolume ? "stays on this volume" : "may cross volumes"
         let links = followSymlinks ? "follows symbolic links" : "symbolic links not followed"
-        return "\(hidden) · \(volumes) · \(links)"
+        let exclusions = excludedPaths.isEmpty ? "" : " · \(excludedPaths.count) excluded"
+        return "\(hidden) · \(volumes) · \(links)\(exclusions)"
     }
 }
 
@@ -50,6 +57,7 @@ public enum ScanOptionsStore {
         static let followSymlinks = "scanOptions.followSymlinks"
         static let stayOnVolume = "scanOptions.stayOnVolume"
         static let includeHidden = "scanOptions.includeHidden"
+        static let excludedPaths = "scanOptions.excludedPaths"
     }
 
     public static func load(defaults: UserDefaults = .standard) -> ScanOptions {
@@ -63,6 +71,9 @@ public enum ScanOptionsStore {
         if let value = defaults.object(forKey: Key.includeHidden) as? Bool {
             options.includeHidden = value
         }
+        if let paths = defaults.stringArray(forKey: Key.excludedPaths) {
+            options.excludedPaths = paths.map { URL(fileURLWithPath: $0) }
+        }
         return options
     }
 
@@ -70,5 +81,6 @@ public enum ScanOptionsStore {
         defaults.set(options.followSymlinks, forKey: Key.followSymlinks)
         defaults.set(options.stayOnVolume, forKey: Key.stayOnVolume)
         defaults.set(options.includeHidden, forKey: Key.includeHidden)
+        defaults.set(options.excludedPaths.map { $0.standardizedFileURL.path }, forKey: Key.excludedPaths)
     }
 }

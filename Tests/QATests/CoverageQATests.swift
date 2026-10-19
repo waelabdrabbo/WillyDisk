@@ -60,7 +60,8 @@ final class CoverageQATests: XCTestCase {
                     datalessAllocatedSize: 1_000,
                     skippedSymlinkCount: 4,
                     skippedVolumeCount: 1,
-                    specialFileCount: 2
+                    specialFileCount: 2,
+                    excludedItemCount: 3
                 ),
                 inaccessibleCount: 1,
                 errorCount: 2
@@ -71,11 +72,26 @@ final class CoverageQATests: XCTestCase {
         )
 
         let ids = report.limits.map(\.id)
-        XCTAssertEqual(ids, ["inaccessible", "hardlinks", "dataless", "symlinks", "volumes", "special"])
-        XCTAssertTrue(report.limits[1].detail?.contains("counted more than once") == true)
-        XCTAssertTrue(report.limits[2].detail?.contains("not here") == true)
+        XCTAssertEqual(ids, ["inaccessible", "exclusions", "hardlinks", "dataless", "symlinks", "volumes", "special"])
+        XCTAssertTrue(report.limits[2].detail?.contains("counted more than once") == true)
+        XCTAssertTrue(report.limits[3].detail?.contains("not here") == true)
         XCTAssertEqual(report.volume.first?.value, "Unavailable")
         XCTAssertEqual(report.snapshots.value, "Checking…")
+    }
+
+    func testExclusionsAreDisclosedWithoutInventingASize() {
+        let report = CoverageReport(
+            summary: makeSummary(accounting: ScanAccounting(excludedItemCount: 2)),
+            volume: facts(),
+            snapshots: LocalSnapshots(volumeName: "Macintosh HD", names: []),
+            isLive: false
+        )
+
+        let row = report.limits.first { $0.id == "exclusions" }
+        XCTAssertEqual(row?.label, "Skipped by your exclusions")
+        XCTAssertEqual(row?.value, "2 items")
+        XCTAssertTrue(row?.detail?.contains("contents are not in the totals") == true)
+        XCTAssertFalse(row?.detail?.contains("bytes") == true)
     }
 
     func testEmptyFindingsAreSaidPlainly() {

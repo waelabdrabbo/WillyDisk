@@ -9,12 +9,22 @@ public struct ScanRequest: Sendable {
     public var followSymlinks: Bool = false   // default safe: do not follow
     public var stayOnVolume: Bool = true      // do not cross mount boundaries
     public var includeHidden: Bool = true
+    /// Absolute paths whose entries are left out of the walk. The scan root
+    /// itself and its ancestors are ignored; the scanned location always wins.
+    public var excludedPaths: [URL] = []
 
-    public init(root: URL, followSymlinks: Bool = false, stayOnVolume: Bool = true, includeHidden: Bool = true) {
+    public init(
+        root: URL,
+        followSymlinks: Bool = false,
+        stayOnVolume: Bool = true,
+        includeHidden: Bool = true,
+        excludedPaths: [URL] = []
+    ) {
         self.root = root
         self.followSymlinks = followSymlinks
         self.stayOnVolume = stayOnVolume
         self.includeHidden = includeHidden
+        self.excludedPaths = excludedPaths
     }
 }
 

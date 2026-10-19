@@ -218,13 +218,15 @@ enum FileScanner {
             return
         }
 
+        let rootResolvedPath = access.resolvedPath(rootPath)
         let context = ScanContext(
             request: request,
             access: access,
             cadence: cadence,
             concurrency: concurrency,
             rootStat: scanStat,
-            rootResolvedPath: access.resolvedPath(rootPath),
+            rootResolvedPath: rootResolvedPath,
+            exclusions: exclusionIndex(in: request, access: access, rootResolvedPath: rootResolvedPath),
             startDate: startDate,
             emit: emit
         )
@@ -299,6 +301,46 @@ enum FileScanner {
         let ino: ino_t
     }
 
+    /// The scan request's exclusions, resolved once before traversal starts.
+    /// Identities make the per-entry test cheap; canonical paths keep a hard
+    /// link elsewhere from being treated as the excluded path.
+    private struct ExclusionIndex {
+        let ids: Set<FileKey>
+        let canonicalPaths: [String]
+    }
+
+    private static func exclusionIndex(
+        in request: ScanRequest,
+        access: FileSystemAccess,
+        rootResolvedPath: String
+    ) -> ExclusionIndex {
+        var ids: Set<FileKey> = []
+        var canonicalPaths: [String] = []
+        for url in request.excludedPaths {
+            let resolved = access.resolvedPath(url.path)
+            // The scanned location always wins over its own exclusion and over
+            // an exclusion that contains it.
+            guard !isAtOrAbove(resolved, root: rootResolvedPath) else { continue }
+            let stat = access.lstat(resolved)
+            guard stat.error == 0 else { continue }
+            ids.insert(FileKey(dev: stat.dev, ino: stat.ino))
+            if stat.isSymlink {
+                let target = access.statFollowing(resolved)
+                if target.error == 0 {
+                    ids.insert(FileKey(dev: target.dev, ino: target.ino))
+                }
+            }
+            canonicalPaths.append(resolved)
+        }
+        return ExclusionIndex(ids: ids, canonicalPaths: canonicalPaths)
+    }
+
+    private static func isAtOrAbove(_ path: String, root: String) -> Bool {
+        if path == root { return true }
+        let prefix = path.hasSuffix("/") ? path : path + "/"
+        return root.hasPrefix(prefix)
+    }
+
     // MARK: - Bounded-size ranking
 
     private struct TopN {
@@ -370,6 +412,7 @@ enum FileScanner {
         var skippedSymlinkCount = 0
         var skippedVolumeCount = 0
         var specialFileCount = 0
+        var excludedItemCount = 0
         var largestFiles = TopN(capacity: FileScanner.largestCapacity)
         var largestDirectories = TopN(capacity: FileScanner.largestCapacity)
         /// The scan root's own entries, by path. Complete groups, never a capped
@@ -483,6 +526,7 @@ enum FileScanner {
         let cadence: SnapshotCadence
         let rootDev: dev_t
         let rootResolvedPath: String
+        let exclusions: ExclusionIndex
         let startDate: Date
         let emit: @Sendable (ScanEvent) -> Void
 
@@ -498,6 +542,7 @@ enum FileScanner {
             concurrency: Int,
             rootStat: FileStat,
             rootResolvedPath: String,
+            exclusions: ExclusionIndex,
             startDate: Date,
             emit: @escaping @Sendable (ScanEvent) -> Void
         ) {
@@ -506,6 +551,7 @@ enum FileScanner {
             self.cadence = cadence
             self.rootDev = rootStat.dev
             self.rootResolvedPath = rootResolvedPath
+            self.exclusions = exclusions
             self.startDate = startDate
             self.emit = emit
 
@@ -549,6 +595,43 @@ enum FileScanner {
             lock.withLock { state in
                 recordEntry(&state, path: path, file: file, stat: stat, checkClock: checkClock)
             }
+        }
+
+        /// An entry whose path is in the request's exclusions. The walk does not
+        /// enter it, so its bytes stay out of the totals; the count is what the
+        /// coverage explanation discloses.
+        func noteExcludedItem(path: String, checkClock: Bool) {
+            lock.withLock { state in
+                state.excludedItemCount += 1
+                recordEntry(&state, path: path, file: nil, stat: nil, checkClock: checkClock)
+            }
+        }
+
+        /// Whether an entry is one of the paths excluded by the request. Identity
+        /// is checked first because every entry already carries it; a canonical
+        /// path check keeps an unrelated hard link from matching.
+        func isExcluded(path: String, stat: FileStat) -> Bool {
+            guard exclusions.ids.contains(FileKey(dev: stat.dev, ino: stat.ino)) else {
+                return false
+            }
+            return matchesExcludedPath(path)
+        }
+
+        /// A link followed into an excluded directory would otherwise walk the
+        /// excluded contents through a different path.
+        func isExcludedSymlink(path: String) -> Bool {
+            let target = access.statFollowing(path)
+            guard target.error == 0 else { return false }
+            guard exclusions.ids.contains(FileKey(dev: target.dev, ino: target.ino)) else {
+                return false
+            }
+            return matchesExcludedPath(path)
+        }
+
+        private func matchesExcludedPath(_ path: String) -> Bool {
+            let resolved = access.resolvedPath(path)
+            if exclusions.canonicalPaths.contains(resolved) { return true }
+            return exclusions.canonicalPaths.contains { resolved.hasPrefix($0 + "/") }
         }
 
         /// Registers the scan root's own entries — its files, and one record per
@@ -824,7 +907,8 @@ enum FileScanner {
                     datalessAllocatedSize: state.datalessAllocated,
                     skippedSymlinkCount: state.skippedSymlinkCount,
                     skippedVolumeCount: state.skippedVolumeCount,
-                    specialFileCount: state.specialFileCount
+                    specialFileCount: state.specialFileCount,
+                    excludedItemCount: state.excludedItemCount
                 )
             )
         }
@@ -965,6 +1049,11 @@ enum FileScanner {
                     continue
                 }
 
+                if isExcluded(path: childPath, stat: childStat) {
+                    noteExcludedItem(path: childPath, checkClock: checkClock)
+                    continue
+                }
+
                 if childStat.isDirectory {
                     if let pending = claimChildDirectory(
                         path: childPath,
@@ -983,6 +1072,10 @@ enum FileScanner {
                     logical += node.logicalSize
                     allocated += node.allocatedSize
                 } else if childStat.isSymlink {
+                    if request.followSymlinks && isExcludedSymlink(path: childPath) {
+                        noteExcludedItem(path: childPath, checkClock: checkClock)
+                        continue
+                    }
                     switch resolveSymlink(name: entry.name, path: childPath, stat: childStat) {
                     case .child(let node, let targetStat):
                         noteEntry(path: childPath, file: node, stat: targetStat, checkClock: checkClock)

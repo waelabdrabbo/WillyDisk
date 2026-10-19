@@ -766,6 +766,9 @@ public struct ResultsView: View {
                 .layoutPriority(index == breadcrumb.count - 1 ? 2 : 0)
             }
         }
+        // The system insets the Home item but not a custom item that follows it;
+        // reserve the same breathing room before the capsule closes.
+        .padding(.trailing, DS.Spacing.small)
         .frame(maxWidth: DS.Size.toolbarBreadcrumbMaxWidth)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Folder path")

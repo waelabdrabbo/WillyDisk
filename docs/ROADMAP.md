@@ -6,13 +6,15 @@ decisions. This is a handoff document, not a specification of frozen interfaces 
 
 ## Current state
 
-- `HEAD` = `abce87a` (coverage sheet + engine accounting), working tree clean.
+- `HEAD` is the Explorer trust pass (`f6c8ca5`) plus this handoff update; working
+  tree clean.
 - Build: `swift build --disable-sandbox`.
-- Tests: 95 QATests + 48 DiskCoreTests, 0 failures, 1 skipped
+- Tests: 109 QATests + 48 DiskCoreTests, 0 failures, 1 skipped
   (`ScanBenchmarkTests` needs `WILLYDISK_BENCH_ROOT`).
 - The app is a working single-window analyzer: choose a volume or folder, watch a
-  progressive scan, read the sunburst and explorer, inspect coverage, and move items
-  to the Trash behind a guard and confirmation.
+  progressive scan, read the sunburst and explorer, inspect coverage, select rows
+  with the mouse or keyboard, preview them with Quick Look, and move items to the
+  Trash behind a guard and confirmation.
 
 ## Shipped — do not rebuild
 
@@ -21,6 +23,7 @@ decisions. This is a handoff document, not a specification of frozen interfaces 
 | Provenance line, This Folder / Top Files / Top Folders, scan options | `c0ca677` |
 | Guarded Move to Trash, confirmation sheet, stale results + Rescan | `0915068`, `8beef48` |
 | Coverage sheet, volume/snapshot facts, hard-link/dataless/skip accounting | `abce87a` |
+| Explorer selection, keyboard navigation, Quick Look, batch reclaim, breadcrumb, folder inspector | `f6c8ca5` |
 
 Details worth remembering:
 
@@ -32,6 +35,15 @@ Details worth remembering:
   roots, the home directory, protected system locations, read-only volumes, missing
   items, and any move while scanning. A successful move marks results stale; it does
   not edit the tree or auto-rescan.
+- Explorer selection is held as URLs, not node values, so a live snapshot can replace
+  the nodes underneath it. Entering a folder, changing mode, Back, a breadcrumb jump,
+  Rescan, and Home clear it; search and filtering do not. Each scan revision prunes
+  URLs that have left the list.
+- Quick Look rechecks that every target still exists off the main thread before the
+  panel is shown. Batch Quick Look, Reveal, and Move to Trash act on the whole
+  selection; Move to Trash re-runs the per-item reclaim guard for every candidate. The
+  breadcrumb is clickable and hidden at the scanned root, where the header already
+  names the folder.
 
 ## Ground rules
 
@@ -62,41 +74,7 @@ Do not ship a renderer hook for a one-off visual check.
 
 ## Remaining work, in recommended order
 
-### 1. Explorer trust pass — next
-
-The biggest usability gap. Today rows are single-select, clicking a folder always
-drills, there is no keyboard navigation, no Quick Look, no multi-item action, and the
-only way back is one Back button.
-
-Scope, split into two PRs if it grows:
-
-1. **Selection and actions**
-   - `Set<URL>` (or path-keyed) selection in the explorer; Cmd-click toggles,
-     Shift-click extends, plain click selects one.
-   - Click selects, double-click (or Return) drills into a folder.
-   - Arrow keys move the selection, Home/End jump, Space opens Quick Look,
-     Return drills or opens.
-   - Context menu applies to the whole selection; Move to Trash feeds the existing
-     `ReclaimSheet` with all selected candidates. The sheet and view model already
-     accept an array.
-   - Detail pane shows a multi-selection summary instead of one file.
-2. **Navigation**
-   - Clickable breadcrumb trail (the state already exists; only the Back button is
-     exposed).
-   - Folder inspector: select a folder to see its own details without entering it;
-     a Browse action drills.
-   - Reclaim remains available for a selected folder.
-
-Acceptance: selection survives live partial snapshots when the selected paths still
-exist; scope changes clear it; keyboard and VoiceOver focus are visible; every action
-that works on one row works on N rows; quick look and trash never act on stale paths;
-build, tests, and light/dark renders pass.
-
-Files: `Sources/DiskUI/Screens/ResultsView.swift`, new selection/Quick Look support
-under `Sources/DiskUI/Support/`, `Sources/DiskUI/Support/ExplorerQuery.swift`,
-`Sources/DiskUI/Components/ReclaimSheet.swift` (batch count wording).
-
-### 2. Scan presets and exclusions
+### 1. Scan presets and exclusions
 
 Presets are UI shortcuts and need no contract change: Home, Downloads, Applications,
 Library/Caches, Xcode DerivedData, Trash.
@@ -110,7 +88,7 @@ Acceptance: a preset starts a real scan of that location; exclusions are visible
 before the scan starts, persisted, applied, and reported; tests cover a nested
 excluded path, an excluded root, and a symlink edge.
 
-### 3. Install and distribution trust
+### 2. Install and distribution trust
 
 The app is ad-hoc signed, has no icon, no notarized DMG, no About/Settings window, and
 no CI.
@@ -124,7 +102,7 @@ no CI.
 This is cheap compared with history/compare and directly answers “is this safe to
 install?”.
 
-### 4. History and compare
+### 3. History and compare
 
 Persist finished scan summaries and compare two runs of the same root: what grew,
 what shrank, what appeared. `ScanSummary` is not `Codable`; introduce a versioned
@@ -135,7 +113,7 @@ Acceptance: schema version is checked on read; a corrupt store degrades to no hi
 comparison labels “new”, “grown”, “shrunk”, and “unchanged” with real numbers; no
 fabricated savings claim.
 
-### 5. Global search
+### 4. Global search
 
 Search the whole finished scan, not just the current folder or the stored top 100.
 The UI has the root’s tree in the summary, but a multi-million-file tree needs a
@@ -145,7 +123,7 @@ result drill to its folder.
 Acceptance: searching a deep path finds it; results are bounded and say so; typing
 does not block the main actor; clearing restores the previous scope.
 
-### 6. Category breakdown and cleanup suggestions
+### 5. Category breakdown and cleanup suggestions
 
 - A category breakdown screen already has the data: `summary.categoryBreakdown`.
   Add a chart/legend and a way to filter the explorer by category.
@@ -153,7 +131,7 @@ does not block the main actor; clearing restores the previous scope.
   (hash only on explicit user action), stale downloads. Never auto-delete; route
   every action through the reclaim sheet.
 
-### 7. Diagnostics, performance, and polish
+### 6. Diagnostics, performance, and polish
 
 - Export a diagnostics bundle (scan settings, timing, issue counts, version) with no
   user file contents.
@@ -179,7 +157,8 @@ does not block the main actor; clearing restores the previous scope.
 
 ## Suggested opening prompt
 
-> Read `docs/ROADMAP.md`. Verify `HEAD` and run the build and tests. Implement the
-> Explorer trust pass — selection, keyboard, Quick Look, batch reclaim, clickable
-> breadcrumb, folder inspector — as one PR (split it if it grows), without changing
-> frozen contracts. Verify with tests and light/dark renders, then commit.
+> Read `docs/ROADMAP.md`. Verify `HEAD` and run the build and tests. Implement scan
+> presets and path exclusions — presets as UI shortcuts, exclusions through the
+> `ScanRequest` contract change and coverage disclosure described in the roadmap — as
+> one PR if it stays coherent. Update `docs/ARCHITECTURE.md` §4 for the contract
+> change and verify with tests and light/dark renders, then commit.

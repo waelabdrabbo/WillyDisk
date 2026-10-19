@@ -96,6 +96,10 @@ Inside an agent sandbox SwiftPM cannot nest its own sandbox, so prefix
 
 ## Deeper context, loaded only when you ask
 
+`docs/ROADMAP.md` records what is shipped, the remaining work in recommended order,
+the decisions that must not be re-litigated, and a suggested opening prompt for a
+fresh session.
+
 `.agents/skills/willydisk-verify/` holds the end-to-end verification procedure (build,
 test, bundle, launch, offscreen capture, and the SDK-stamp trap). It is offered as a
 skill and its body loads only when you invoke it, so it costs nothing until then. Put

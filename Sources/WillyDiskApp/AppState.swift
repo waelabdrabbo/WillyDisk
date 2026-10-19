@@ -1,5 +1,4 @@
 import SwiftUI
-import AppKit
 import DiskCore
 import DiskUI
 
@@ -50,6 +49,6 @@ final class AppState: ObservableObject {
     /// folder chooser and save panels it presents, and the menu bar — resolves
     /// against it.
     func applyAppearance(_ appearance: AppAppearance) {
-        NSApplication.shared.appearance = appearance.nsAppearance
+        AppAppearance.apply(appearance)
     }
 }

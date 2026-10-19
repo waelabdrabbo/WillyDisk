@@ -4,12 +4,11 @@ import DiskCore
 /// The one access notice: the Full Disk Access explanation and the restricted
 /// locations it accounts for, merged into a single row.
 ///
-/// Three weights, lightest last. Collapsed it is one line — a lock, the count
-/// and a `Details` affordance — with no prose, button, or bordered well.
-/// Expanded in place it explains why the locations were skipped, offers the
-/// one system action that fixes it, and lists a bounded sample with the
-/// truthful total. Once dismissed the row leaves the footer entirely and the
-/// footer's count chip brings it back.
+/// The row is always one line — a lock, the count, a `Details` affordance, and
+/// a dismiss control. `Details` opens a popover that explains why the locations
+/// were skipped, offers the one system action that fixes it, and lists a bounded
+/// sample with the truthful total. The row is always present while the scan
+/// reports anything; there is no dismiss control.
 ///
 /// The notice is deliberately calm rather than an error: without Full Disk
 /// Access a whole-volume scan is *expected* to skip TCC-protected locations,
@@ -20,18 +19,15 @@ public struct AccessNoticeRow: View {
     /// were skipped for some other reason, so no grant or CTA is offered.
     public let isFullDiskAccessGranted: Bool
     @Binding public var isExpanded: Bool
-    public let onDismiss: () -> Void
 
     public init(
         presentation: ScanIssuesPresentation,
         isFullDiskAccessGranted: Bool,
-        isExpanded: Binding<Bool>,
-        onDismiss: @escaping () -> Void
+        isExpanded: Binding<Bool>
     ) {
         self.presentation = presentation
         self.isFullDiskAccessGranted = isFullDiskAccessGranted
         self._isExpanded = isExpanded
-        self.onDismiss = onDismiss
     }
 
     /// Whether the notice accounts for access restrictions (the actionable
@@ -57,20 +53,17 @@ public struct AccessNoticeRow: View {
     }
 
     public var body: some View {
-        VStack(alignment: .leading, spacing: DS.Spacing.small) {
-            header
-            if isExpanded { expanded }
-        }
-        .padding(.horizontal, DS.Spacing.large)
-        .padding(.vertical, DS.Spacing.medium)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        // A hairline along the top edge marks the notice as a separate band from
-        // the panes above it, rather than one more row of the content.
-        .overlay(alignment: .top) {
-            Rectangle()
-                .fill(DS.Color.separator)
-                .frame(height: DS.Stroke.hairline)
-        }
+        header
+            .padding(.horizontal, DS.Spacing.medium)
+            .padding(.vertical, DS.Spacing.medium)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            // A hairline along the top edge marks the notice as a separate band
+            // from the panes above it, rather than one more row of the content.
+            .overlay(alignment: .top) {
+                Rectangle()
+                    .fill(DS.Color.separator)
+                    .frame(height: DS.Stroke.hairline)
+            }
     }
 
     private var header: some View {
@@ -81,38 +74,36 @@ public struct AccessNoticeRow: View {
                 .accessibilityHidden(true)
 
             Text(presentation.noticeHeadline)
-                .font(DS.Typography.headline)
+                .font(DS.Typography.body)
+                .fontWeight(.light)
                 .foregroundStyle(DS.Color.primaryText)
                 .lineLimit(1)
 
             Spacer(minLength: DS.Spacing.medium)
 
-            Button(isExpanded ? "Hide" : "Details") {
-                isExpanded.toggle()
+            Button("Details") {
+                isExpanded = true
             }
             .buttonStyle(.link)
             .controlSize(.small)
-            .accessibilityLabel(isExpanded ? "Hide \(detailNoun)" : "Show \(detailNoun)")
-            .accessibilityValue(isExpanded ? "Expanded" : "Collapsed")
-            .accessibilityHint("Toggles the explanation and the list of \(detailNoun)")
-
-            Button {
-                onDismiss()
-            } label: {
-                Image(systemName: "xmark")
+            .frame(minHeight: DS.Size.iconButton)
+            .contentShape(Rectangle())
+            .popover(isPresented: $isExpanded, arrowEdge: .top) {
+                detailsPopover
             }
-            .buttonStyle(.plain)
-            .controlSize(.small)
-            .help("Hide this notice; the count stays in the footer")
-            .accessibilityLabel("Dismiss the \(detailNoun) notice")
-            .accessibilityHint("Removes the notice; a count chip in the footer reopens it")
+            .accessibilityLabel("Show \(detailNoun)")
+            .accessibilityHint("Opens the explanation and the list of \(detailNoun)")
         }
         .accessibilityElement(children: .contain)
     }
 
-    @ViewBuilder
-    private var expanded: some View {
+    private var detailsPopover: some View {
         VStack(alignment: .leading, spacing: DS.Spacing.small) {
+            Text(presentation.noticeHeadline)
+                .font(DS.Typography.body)
+                .fontWeight(.bold)
+                .foregroundStyle(DS.Color.primaryText)
+
             Text(explanation)
                 .font(DS.Typography.callout)
                 .foregroundStyle(DS.Color.secondaryText)
@@ -140,7 +131,7 @@ public struct AccessNoticeRow: View {
                     .padding(.vertical, DS.Spacing.xSmall)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .frame(maxHeight: DS.Size.accessListMaxHeight)
+                .frame(maxHeight: DS.Size.accessListMaxHeight + DS.Spacing.xxLarge)
 
                 // The truthful accounting, read from `ScanSummary` totals — the
                 // list itself never claims to be complete.
@@ -149,48 +140,8 @@ public struct AccessNoticeRow: View {
                     .foregroundStyle(DS.Color.secondaryText)
             }
         }
-        .padding(.leading, DS.Spacing.large)
-    }
-}
-
-/// The tiny count chip the results footer shows once the notice is dismissed.
-///
-/// It keeps the count on screen when the row is gone, and clicking it brings
-/// the row back in its collapsed state. Its glyph and label follow the notice's
-/// own kind, so a fault-only scan never reads as restricted locations.
-public struct AccessNoticeChip: View {
-    public let count: Int
-    public let symbolName: String
-    public let label: String
-    public let action: () -> Void
-
-    public init(count: Int, symbolName: String, label: String, action: @escaping () -> Void) {
-        self.count = count
-        self.symbolName = symbolName
-        self.label = label
-        self.action = action
-    }
-
-    public var body: some View {
-        Button(action: action) {
-            HStack(spacing: DS.Spacing.xSmall) {
-                Image(systemName: symbolName)
-                    .font(DS.Icon.detail)
-                Text("\(count)")
-                    .font(DS.Typography.caption)
-                    .monospacedDigit()
-            }
-            .foregroundStyle(DS.Color.secondaryText)
-            .padding(.horizontal, DS.Spacing.small)
-            .padding(.vertical, DS.Spacing.xxSmall)
-            .background(DS.Color.controlBackground, in: Capsule())
-            .overlay(Capsule().strokeBorder(DS.Color.separator, lineWidth: DS.Stroke.hairline))
-            .contentShape(Capsule())
-        }
-        .buttonStyle(.plain)
-        .help(label)
-        .accessibilityLabel(label)
-        .accessibilityHint("Shows the access notice")
+        .padding(DS.Spacing.large)
+        .frame(width: 460)
     }
 }
 
@@ -205,7 +156,7 @@ private struct AccessIssueRow: View {
         HStack(alignment: .firstTextBaseline, spacing: DS.Spacing.small) {
             Image(systemName: isAccessRestriction ? "lock.fill" : "exclamationmark.triangle")
                 .font(DS.Icon.detail)
-                .foregroundStyle(isAccessRestriction ? DS.Color.tertiaryText : DS.Color.warning)
+                .foregroundStyle(isAccessRestriction ? DS.Color.secondaryText : DS.Color.warning)
                 .frame(width: DS.Size.legendSwatch + DS.Spacing.xSmall)
                 .accessibilityHidden(true)
 

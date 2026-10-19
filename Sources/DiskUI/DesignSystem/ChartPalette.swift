@@ -35,6 +35,7 @@ enum ChartFill: Equatable {
         case .aggregate:
             return DS.Color.chartRemainder
         case .neutral:
+            // A fill fallback, never text. The token is otherwise unused.
             return DS.Color.tertiaryText
         }
     }

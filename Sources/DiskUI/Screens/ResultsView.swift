@@ -11,12 +11,13 @@ import DiskCore
 /// engine's progressive snapshots arrive. Once settled, the chart and explorer
 /// take the whole screen: a compact header line names the scanned location and
 /// its size, a directory explorer carries search/sort/filter and file details,
-/// and the footer holds the single access notice, with its count chip when the
-/// notice has been dismissed. An interactive sunburst (click a folder to drill
+/// and the inspector's foot holds the single access notice. An interactive
+/// sunburst (click a folder to drill
 /// down, with the toolbar's location — title, path and Back — following the
 /// depth), Reveal in Finder, rescan, and report export round it out.
 @MainActor
 public struct ResultsView: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var viewModel: ScanViewModel
 
     // Chart / explorer navigation
@@ -27,11 +28,16 @@ public struct ResultsView: View {
 
     // Explorer controls
     @State private var searchText = ""
+    @State private var searchFocusRequest = 0
     @State private var sortOrder: SortOrder = .size
     @State private var filterCategory: FileCategory?
     /// Which list the explorer shows: the folder in the chart, or the engine's
     /// largest files and folders across the whole scan.
     @State private var explorerMode: ExplorerMode = .folder
+    /// Only this many rows are built at first; the list offers Show More at its
+    /// foot. This is a rendering budget, not a filter, so selection, search and
+    /// the chart still see the whole list.
+    @State private var visibleItemLimit = DS.Size.explorerPageSize
 
     /// Holds the visible rows between changes of the inputs that decide them.
     ///
@@ -53,12 +59,11 @@ public struct ResultsView: View {
     /// It is held as an observed reference rather than as plain view state so that
     /// a pointer crossing the explorer's rows re-renders only what reads it — the
     /// list and the chart — and leaves the rest of the screen, from its toolbar to
-    /// its footer, with the views it already has.
+    /// its inspector, with the views it already has.
     @State private var hover = ChartHover()
 
     // Access notice
     @State private var accessNoticeExpanded = false
-    @State private var accessNoticeDismissed = AccessNoticeDismissal.isDismissed
     /// Full Disk Access is assumed absent until the off-main probe says
     /// otherwise, so a slow probe fails toward informing rather than hiding.
     @State private var fullDiskAccessGranted = false
@@ -177,7 +182,8 @@ public struct ResultsView: View {
         nodeColorsCache.colors(
             for: NodeColorsKey(
                 revision: viewModel.resultsRevision,
-                focused: breadcrumb.last?.url.path ?? ""
+                focused: breadcrumb.last?.url.path ?? "",
+                maxChildren: chartChildLimit
             ),
             build: { buildNodeColors(of: currentChildren) }
         )
@@ -191,7 +197,8 @@ public struct ResultsView: View {
     /// index with it: the folder's children open colour families of their own on
     /// ring 1 rather than keeping the family hue the folder wore one ring out.
     private func buildNodeColors(of children: [ScanNode]) -> NodeColors {
-        NodeColors(colors: SunburstLayout.fillsByPath(roots: children))
+        NodeColors(colors: SunburstLayout.fillsByPath(roots: children,
+                                                      maxChildren: chartChildLimit))
     }
 
     /// The explorer's visible rows: the focused folder's entries, filtered,
@@ -208,7 +215,8 @@ public struct ResultsView: View {
             search: searchText,
             category: filterCategory,
             sort: sortOrder,
-            mode: explorerMode
+            mode: explorerMode,
+            maxChildren: chartChildLimit
         )
         return rowsCache.rows(for: key) {
             let colors = nodeColors
@@ -251,8 +259,25 @@ public struct ResultsView: View {
         return visible + hidden
     }
 
-    /// The order clicks, Shift ranges and the arrow keys count through.
+    /// The order clicks, Shift ranges and the arrow keys count through. The
+    /// list's keyboard cursor only visits rendered rows.
     private var rowOrder: [URL] { visibleRows.map(\.url) }
+
+    private var displayedRows: [ExplorerRow] {
+        Array(visibleRows.prefix(visibleItemLimit))
+    }
+
+    private var displayedRowOrder: [URL] { displayedRows.map(\.url) }
+    private var hasMoreRows: Bool { visibleRows.count > visibleItemLimit }
+
+    /// The explorer paints part of the chart's density. A page of 15 items
+    /// should show those 15 children in the chart rather than 12 plus a remainder;
+    /// Show More therefore spends more chart slots, within the chart's ceiling.
+    private var chartChildLimit: Int {
+        guard explorerMode == .folder else { return DS.Sunburst.maxChildrenPerNode }
+        return min(max(visibleItemLimit, DS.Sunburst.maxChildrenPerNode), DS.Sunburst.maxSegments)
+    }
+    private var remainingRowCount: Int { max(visibleRows.count - visibleItemLimit, 0) }
 
     private var isFiltering: Bool {
         explorerMode == .folder ? (!searchText.isEmpty || filterCategory != nil) : !searchText.isEmpty
@@ -295,9 +320,6 @@ public struct ResultsView: View {
         accessPresentation.restrictedLocationCount > 0 || accessPresentation.hasRows
     }
 
-    private var showsAccessRow: Bool { showsAccessNotice && !accessNoticeDismissed }
-    private var showsAccessChip: Bool { showsAccessNotice && accessNoticeDismissed }
-
     // MARK: - Body
 
     public var body: some View {
@@ -315,6 +337,7 @@ public struct ResultsView: View {
             // event when the visible set changes, so the shared hover is dropped
             // rather than left pointing at a row that is no longer rendered.
             hover.url = nil
+            visibleItemLimit = DS.Size.explorerPageSize
         }
         .onChange(of: explorerMode) { _, newMode in
             // The list's scope changed, so a selection, a hover, and a search
@@ -330,6 +353,10 @@ public struct ResultsView: View {
             if newMode != .folder {
                 breadcrumb.removeAll()
             }
+            visibleItemLimit = DS.Size.explorerPageSize
+        }
+        .onChange(of: breadcrumb.map(\.id)) { _, _ in
+            visibleItemLimit = DS.Size.explorerPageSize
         }
         .onChange(of: viewModel.resultsRevision) { _, _ in
             // Starting, settling or cancelling a scan can replace the rows under
@@ -367,7 +394,7 @@ public struct ResultsView: View {
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
-        .animation(.easeInOut(duration: 0.2), value: viewModel.reclaimNotice)
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.2), value: viewModel.reclaimNotice)
         .sheet(item: $activeSheet) { sheet in
             switch sheet {
             case .reclaim:
@@ -387,6 +414,10 @@ public struct ResultsView: View {
         }
         .interactiveDismissDisabled(isTrashing)
         .resultsToolbarTitleHidden()
+        // The chart intentionally runs under the titlebar; the toolbar has no
+        // backing of its own on this screen.
+        .toolbarBackground(.hidden, for: .windowToolbar)
+        .focusedSceneValue(\.resultsCommands, resultsCommands)
         .toolbar {
             // Home leaves the results for source selection. Moving up one folder is
             // what the trail's ancestor crumbs are for, so there is no Back action.
@@ -417,7 +448,7 @@ public struct ResultsView: View {
 
             ToolbarItemGroup(placement: .primaryAction) {
                 Button {
-                    activeSheet = .coverage
+                    showCoverage()
                 } label: {
                     Label("Coverage", systemImage: "info.circle")
                 }
@@ -435,8 +466,8 @@ public struct ResultsView: View {
                 .disabled(viewModel.isScanning)
 
                 Menu {
-                    Button("Export as JSON…") { if let s = summary { ReportExport.exportJSON(summary: s) } }
-                    Button("Export as CSV…") { if let s = summary { ReportExport.exportCSV(summary: s) } }
+                    Button("Export as JSON…") { exportJSON() }
+                    Button("Export as CSV…") { exportCSV() }
                 } label: {
                     Label("Export", systemImage: "square.and.arrow.up")
                 }
@@ -461,82 +492,34 @@ public struct ResultsView: View {
         breadcrumb.last?.name ?? scannedRootName ?? "WillyDisk"
     }
 
-    /// The results layout: the split panes fill the screen, and the footer carries
-    /// the dismissed notice's chip and then the access notice.
+    /// The results layout: the chart owns the canvas and the inspector holds the
+    /// item list with the access notice at its foot.
     ///
-    /// Every band is present from the moment the screen appears — nothing is
-    /// inserted above or below the panes as a scan starts, streams results in, or
-    /// settles — so the panes hold one geometry throughout. The live scan's
-    /// progress rides in the chart pane's own strip. The bands are told apart by
-    /// their own spacing and fills, not by rules.
+    /// The inspector is attached to the chart band, never to the whole screen, so
+    /// the notice can never reclaim the window's full height.
+    /// The bands are told apart by their own spacing and fills, not by rules.
     private var content: some View {
-        VStack(spacing: 0) {
-            splitPanes
-            noticeChipStrip
-            if showsAccessRow {
-                accessNoticeRow
-            }
-        }
-    }
-
-    /// The chart and explorer panes.
-    ///
-    /// The explorer holds a fixed share of the window and the chart takes the
-    /// rest, so the map and the list keep their proportion at every window size:
-    /// there is no divider between them to drag, and the panes meet with no seam
-    /// because they are laid out edge to edge on one surface.
-    private var splitPanes: some View {
-        GeometryReader { geometry in
-            HStack(spacing: 0) {
-                chartPane
+        chartPane
+            // The item list is a primary surface, not an optional accessory:
+            // keep it present for every result state and let the user size it
+            // with the inspector divider. Do not add a collapse control.
+            .inspector(isPresented: .constant(true)) {
                 explorerPane
-                    .frame(width: geometry.size.width * DS.Size.explorerPaneWidthFraction)
+                    .dsGlassControl(cornerRadius: DS.Radius.panel)
+                    .padding(DS.Spacing.medium)
+                    .inspectorColumnWidth(min: 300, ideal: 362, max: 560)
             }
-        }
     }
 
-    // MARK: - Footer
+    // MARK: - Access notice
 
-    /// The dismissed notice's count chip, at the trailing edge of the footer.
-    ///
-    /// The band is always on screen, so the panes above it never resize: it holds
-    /// its height whether or not the notice has been dismissed, and before a scan
-    /// reports anything there is simply no chip.
-    private var noticeChipStrip: some View {
-        HStack(alignment: .bottom, spacing: DS.Spacing.large) {
-            Spacer(minLength: 0)
-            if showsAccessChip {
-                AccessNoticeChip(
-                    count: accessPresentation.noticeCount,
-                    symbolName: accessPresentation.noticeSymbolName,
-                    label: accessPresentation.noticeHeadline
-                ) {
-                    setAccessNotice(dismissed: false)
-                }
-            }
-        }
-        .padding(.horizontal, DS.Spacing.large)
-        .padding(.vertical, DS.Spacing.medium)
-        .frame(maxWidth: .infinity, minHeight: DS.Size.storageStripMinHeight, alignment: .bottom)
-    }
-
-    /// The single merged access notice — the last row on screen.
+    /// The single merged access notice, at the foot of the inspector.
     private var accessNoticeRow: some View {
         AccessNoticeRow(
             presentation: accessPresentation,
             isFullDiskAccessGranted: fullDiskAccessGranted,
             isExpanded: $accessNoticeExpanded
-        ) {
-            setAccessNotice(dismissed: true)
-        }
-    }
-
-    private func setAccessNotice(dismissed: Bool) {
-        accessNoticeDismissed = dismissed
-        AccessNoticeDismissal.isDismissed = dismissed
-        // Reopening always starts collapsed, so the notice gives back the most
-        // space until the user asks for the detail.
-        if !dismissed { accessNoticeExpanded = false }
+        )
     }
 
     // MARK: - Scan-status strip
@@ -557,37 +540,23 @@ public struct ResultsView: View {
     /// keeps its height either way, so the chart above never resizes; an empty
     /// capsule would just be a grey pill with nothing in it.
     ///
-    /// The capsule wears a grey of its own rather than `DS.Color.controlBackground`,
-    /// which resolves to within a few percent of the window background and all but
-    /// disappears behind the status it is meant to group.
+    /// The capsule is a functional floating control, so it uses the shared glass
+    /// surface rather than a hand-picked grey that drifts between appearances.
     private var scanStatusStrip: some View {
         HStack(spacing: 0) {
             if isLiveScan {
                 scanStatusBanner
                     .padding(.horizontal, DS.Spacing.large)
                     .padding(.vertical, DS.Spacing.small)
-                    .fixedSize(horizontal: true, vertical: false)
-                    .background(Self.stripFill, in: Capsule())
-                    .overlay(Capsule().strokeBorder(DS.Color.separator, lineWidth: DS.Stroke.hairline))
+                    .frame(width: DS.Size.scanStatusWidth)
+                    .dsGlassControl(cornerRadius: DS.Size.scanStatusStripHeight / 2)
                     .transition(.opacity)
             }
         }
         .frame(maxWidth: .infinity)
         .frame(height: DS.Size.scanStatusStripHeight)
-        .animation(.easeInOut(duration: 0.2), value: isLiveScan)
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.2), value: isLiveScan)
     }
-
-    /// The scan-status capsule's own grey, resolved per appearance.
-    ///
-    /// Dark enough to read as a surface behind the status, and dark enough in the
-    /// dark appearance to sit above the window rather than sink into it. Both
-    /// values hold better than 1.3:1 against `windowBackground`, which is the
-    /// difference the eye needs to see a boundary with no edge of its own.
-    private static let stripFill = Color(nsColor: NSColor(name: nil) { appearance in
-        appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
-            ? NSColor(srgbRed: 0.24, green: 0.24, blue: 0.26, alpha: 1)
-            : NSColor(srgbRed: 0.86, green: 0.86, blue: 0.87, alpha: 1)
-    })
 
     /// The in-progress readout: an honest status indicator, the work counted so
     /// far, and the cancel action. Deliberately small — no running path, no
@@ -605,6 +574,7 @@ public struct ResultsView: View {
                 .foregroundStyle(DS.Color.secondaryText)
                 .lineLimit(1)
                 .truncationMode(.tail)
+            Spacer(minLength: DS.Spacing.large)
             cancelScanButton
         }
         .accessibilityElement(children: .contain)
@@ -628,10 +598,10 @@ public struct ResultsView: View {
                 .padding(.vertical, DS.Spacing.xxSmall)
                 .background(DS.Color.windowBackground, in: Capsule())
                 .overlay(Capsule().strokeBorder(DS.Color.separator, lineWidth: DS.Stroke.hairline))
+                .frame(minHeight: DS.Size.iconButton)
                 .contentShape(Capsule())
         }
         .buttonStyle(.plain)
-        .keyboardShortcut(.cancelAction)
         .help("Stop the scan; the results gathered so far are kept")
     }
 
@@ -682,6 +652,7 @@ public struct ResultsView: View {
                     nodes: currentChildren,
                     centerLabel: breadcrumb.last?.name ?? scannedRootName ?? "Root",
                     selectedNodeURL: selectedNodes.count == 1 ? selectedNodes[0].url : nil,
+                    maxChildren: chartChildLimit,
                     hoveredURL: $hover.url
                 ) { node in
                     chartSelect(node)
@@ -689,6 +660,7 @@ public struct ResultsView: View {
                 .padding(DS.Spacing.medium)
             }
             scanStatusStrip
+                .padding(.bottom, DS.Spacing.medium)
         }
     }
 
@@ -698,7 +670,7 @@ public struct ResultsView: View {
         VStack(spacing: DS.Spacing.small) {
             Image(systemName: isLiveScan ? "hourglass" : "chart.pie")
                 .font(DS.Icon.medium)
-                .foregroundStyle(DS.Color.tertiaryText)
+                .foregroundStyle(DS.Color.secondaryText)
             Text(chartEmptyMessage)
                 .font(DS.Typography.callout)
                 .foregroundStyle(DS.Color.secondaryText)
@@ -712,30 +684,54 @@ public struct ResultsView: View {
         VStack(spacing: 0) {
             compactHeader
             explorerModeBar
-            topListCaption
             explorerToolbar
 
             contentsList
+                // The list is the flexible band: it gives up height to the
+                // detail pane and the access notice at the inspector's foot.
+                .frame(maxHeight: .infinity)
 
             if !selectedNodes.isEmpty {
+                Divider()
                 detailPane
             }
+
+            if showsAccessNotice {
+                accessNoticeRow
+            }
         }
+        // The inspector is a fixed-height column, not a stack that grows to its
+        // content: its list is the part that scrolls. Without this frame an
+        // expanded notice can make the pane report its ideal content height and
+        // push the whole window's content out of view.
+        .frame(maxHeight: .infinity, alignment: .top)
+        // Match the notice's vertical inset so the pane does not read tight at
+        // the top while the notice at its foot has breathing room.
+        .padding(.top, DS.Spacing.small)
     }
 
     /// The switch between the folder in the chart and the two largest lists.
     private var explorerModeBar: some View {
-        Picker("Explorer view", selection: $explorerMode) {
-            ForEach(ExplorerMode.allCases) { mode in
-                Text(mode.label).tag(mode)
+        // A native segmented control sizes itself to its labels; stretching it
+        // full width would need a custom control and would read heavier than
+        // the rest of the inspector. Keep it native, give it the gap above, and
+        // align it with the header and search field instead.
+        HStack(spacing: 0) {
+            Picker("Explorer view", selection: $explorerMode) {
+                ForEach(ExplorerMode.allCases) { mode in
+                    Text(mode.label).tag(mode)
+                }
             }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .controlSize(.small)
+            .fixedSize()
+            .accessibilityLabel("Explorer view")
+            Spacer(minLength: 0)
         }
-        .pickerStyle(.segmented)
-        .labelsHidden()
-        .controlSize(.small)
         .padding(.horizontal, DS.Spacing.medium)
+        .padding(.top, DS.Spacing.small)
         .padding(.bottom, DS.Spacing.xSmall)
-        .accessibilityLabel("Explorer view")
     }
 
     /// The path to the folder the chart is drawn from, with every ancestor
@@ -757,7 +753,7 @@ public struct ResultsView: View {
             ForEach(Array(breadcrumb.enumerated()), id: \.element.url) { index, node in
                 Image(systemName: "chevron.right")
                     .font(DS.Icon.inline)
-                    .foregroundStyle(DS.Color.tertiaryText)
+                    .foregroundStyle(DS.Color.secondaryText)
                 crumb(
                     node.name,
                     isCurrent: index == breadcrumb.count - 1,
@@ -794,46 +790,9 @@ public struct ResultsView: View {
         }
     }
 
-    /// Says what the list is ranked by, and — while a search is on — that the
-    /// search covers the top items rather than every file on the disk.
-    @ViewBuilder
-    private var topListCaption: some View {
-        if let text = topListCaptionText {
-            Text(text)
-                .font(DS.Typography.caption)
-                .foregroundStyle(DS.Color.secondaryText)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, DS.Spacing.small)
-                .padding(.bottom, DS.Spacing.xSmall)
-        }
-    }
-
-    private var topListCaptionText: String? {
-        guard explorerMode != .folder else { return nil }
-        guard let s = summary else { return nil }
-        let n = topNodes.count
-        if n == 0 {
-            return isLiveScan ? "Ranking items by size…" : nil
-        }
-        let searching = !searchText.isEmpty
-        switch explorerMode {
-        case .folder:
-            return nil
-        case .topFiles:
-            if searching { return "Matches in the \(n) largest files by size" }
-            if n == s.fileCount { return "All \(n) files, largest first" }
-            return "The largest \(n) files by size · \(s.fileCount) files scanned"
-        case .topFolders:
-            let folders = max(0, s.directoryCount - 1)
-            if searching { return "Matches in the \(n) largest folders by size" }
-            if n == folders { return "All \(n) folders, largest first" }
-            return "The largest \(n) folders by size · \(folders) folders scanned"
-        }
-    }
-
-    /// The location and its total on the first line, the honest counts on the
-    /// second, and — for a scan that stopped early — the warning on a third, so
-    /// it shares a row with nothing and can be read at a glance.
+    /// The location and its total on the first line, the honest counts and
+    /// compact provenance together on the second, and — for a scan that stopped
+    /// early — the warning below them, so it shares a row with nothing.
     ///
     /// It is always present — before a scan's first snapshot the location and
     /// totals come from the engine's live counters — so its values tick up in
@@ -852,19 +811,27 @@ public struct ResultsView: View {
                     .monospacedDigit()
                     .foregroundStyle(DS.Color.primaryText)
             }
-            // Counted the way the list counts: an entry with nothing in it is one
-            // the explorer does not list, so it does not read as an item here.
-            Text(countsText)
-                .font(DS.Typography.caption)
-                .foregroundStyle(DS.Color.secondaryText)
-            provenanceLine
+            // The full timestamp would push the line past the inspector's
+            // width; the compact form keeps the counts and recency together and
+            // the full provenance stays in the tooltip and accessibility label.
+            HStack(spacing: DS.Spacing.xSmall) {
+                Text(countsText)
+                    .font(DS.Typography.caption)
+                    .foregroundStyle(DS.Color.secondaryText)
+                    .lineLimit(1)
+                Text("·")
+                    .font(DS.Typography.caption)
+                    .foregroundStyle(DS.Color.secondaryText)
+                provenanceMetadata
+            }
+            .lineLimit(1)
             if viewModel.resultsAreStale {
                 StaleResultsBadge(onRescan: rescan)
             }
             if viewModel.stoppedEarly { stoppedEarlyNote }
         }
         .padding(.horizontal, DS.Spacing.medium)
-        .padding(.vertical, DS.Spacing.small)
+        .padding(.vertical, DS.Spacing.xSmall)
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
@@ -885,23 +852,27 @@ public struct ResultsView: View {
     /// are never read as current. A live scan states its start and keeps the
     /// elapsed time moving; a settled one states both and stops.
     @ViewBuilder
-    private var provenanceLine: some View {
+    private var provenanceMetadata: some View {
         if isLiveScan, let started = viewModel.scanStartedAt ?? summary?.startedAt {
             TimelineView(.periodic(from: .now, by: 1)) { context in
-                provenanceText(ScanProvenance.live(startedAt: started, now: context.date))
+                let full = ScanProvenance.live(startedAt: started, now: context.date)
+                provenanceText(ScanProvenance.compactLive(startedAt: started, now: context.date), full: full)
             }
         } else if let s = summary {
-            provenanceText(ScanProvenance.settled(startedAt: s.startedAt, finishedAt: s.finishedAt))
+            let full = ScanProvenance.settled(startedAt: s.startedAt, finishedAt: s.finishedAt)
+            provenanceText(ScanProvenance.compactSettled(startedAt: s.startedAt, finishedAt: s.finishedAt), full: full)
         }
     }
 
-    private func provenanceText(_ text: String) -> some View {
-        Text(text)
+    private func provenanceText(_ compact: String, full: String) -> some View {
+        Text(compact)
             .font(DS.Typography.caption)
             .monospacedDigit()
             .foregroundStyle(DS.Color.secondaryText)
             .lineLimit(1)
             .truncationMode(.tail)
+            .help(full)
+            .accessibilityLabel(full)
     }
 
     /// The settled notice for a scan that stopped before it had covered the whole
@@ -926,33 +897,42 @@ public struct ResultsView: View {
 
     private var explorerToolbar: some View {
         HStack(spacing: DS.Spacing.small) {
-            HStack(spacing: DS.Spacing.xSmall) {
-                Image(systemName: "magnifyingglass")
-                    .foregroundStyle(DS.Color.secondaryText)
-                TextField(searchPrompt, text: $searchText)
-                    .textFieldStyle(.plain)
-                if !searchText.isEmpty {
-                    Button {
-                        searchText = ""
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(DS.Color.tertiaryText)
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            .padding(.horizontal, DS.Spacing.small)
-            .padding(.vertical, 5)
-            .background(DS.Color.controlBackground, in: RoundedRectangle(cornerRadius: DS.Radius.medium, style: .continuous))
+            SearchField(
+                text: $searchText,
+                prompt: searchPrompt,
+                focusRequest: searchFocusRequest
+            )
+            .frame(maxWidth: .infinity)
 
             if explorerMode == .folder {
-                Picker("Sort", selection: $sortOrder) {
+                // One control, one value: the old separate "Sort" label cost
+                // width without adding information.
+                Menu {
                     ForEach(SortOrder.allCases) { order in
-                        Text(order.label).tag(order)
+                        Button {
+                            sortOrder = order
+                        } label: {
+                            if sortOrder == order {
+                                Label(order.label, systemImage: "checkmark")
+                            } else {
+                                Text(order.label)
+                            }
+                        }
                     }
+                } label: {
+                    HStack(spacing: DS.Spacing.xSmall) {
+                        Image(systemName: "arrow.up.arrow.down")
+                        Text(sortOrder.label)
+                    }
+                    .font(DS.Typography.caption)
+                    .foregroundStyle(DS.Color.secondaryText)
                 }
-                .pickerStyle(.menu)
+                .menuStyle(.borderlessButton)
                 .fixedSize()
+                .frame(minHeight: DS.Size.iconButton)
+                .help("Sort by \(sortOrder.label)")
+                .accessibilityLabel("Sort")
+                .accessibilityValue(sortOrder.label)
 
                 Menu {
                     Button("All Categories") { filterCategory = nil }
@@ -966,6 +946,8 @@ public struct ResultsView: View {
                 .menuStyle(.borderlessButton)
                 .fixedSize()
                 .help("Filter by category")
+                .accessibilityLabel("Filter by category")
+                .accessibilityValue(filterCategory?.displayName ?? "All categories")
             }
         }
         .padding(DS.Spacing.small)
@@ -984,7 +966,9 @@ public struct ResultsView: View {
         // rebuilds the rows that changed and the chart, and leaves the rest of the
         // screen where it is.
         ContentsList(
-            rows: visibleRows,
+            rows: displayedRows,
+            hasMoreRows: hasMoreRows,
+            remainingCount: remainingRowCount,
             emptyMessage: listEmptyMessage,
             selection: selection,
             selectedCount: selectedNodes.count,
@@ -992,10 +976,13 @@ public struct ResultsView: View {
             onClick: handleClick,
             onOpen: activate,
             onMove: { offset, extending in
-                selection.move(by: offset, in: rowOrder, extending: extending)
+                selection.move(by: offset, in: displayedRowOrder, extending: extending)
             },
             onJump: { index, extending in
-                selection.jump(to: index, in: rowOrder, extending: extending)
+                selection.jump(to: index, in: displayedRowOrder, extending: extending)
+            },
+            onShowMore: {
+                visibleItemLimit += DS.Size.explorerPageSize
             },
             onQuickLook: { node in
                 if let node {
@@ -1029,7 +1016,6 @@ public struct ResultsView: View {
             }
         }
         .padding(DS.Spacing.medium)
-        .background(DS.Color.controlBackground.opacity(0.5))
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
@@ -1054,6 +1040,7 @@ public struct ResultsView: View {
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
+                .frame(width: DS.Size.iconButton, height: DS.Size.iconButton)
                 .help("Quick Look")
                 .accessibilityLabel("Quick Look")
                 Button {
@@ -1064,6 +1051,7 @@ public struct ResultsView: View {
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
+                .frame(width: DS.Size.iconButton, height: DS.Size.iconButton)
                 .help("Reveal in Finder")
                 .accessibilityLabel("Reveal in Finder")
             }
@@ -1072,6 +1060,9 @@ public struct ResultsView: View {
             detailRow("Kind", node.isDirectory ? "Folder" : node.category.displayName)
             detailRow("Size", ByteFormat.exact(node.logicalSize))
             detailRow("On disk", ByteFormat.exact(node.allocatedSize))
+            if node.name.hasPrefix(".") {
+                detailRow("Visibility", "Hidden")
+            }
             if node.isDirectory {
                 detailRow("Contents", "\(CountFormat.files(node.fileCount)) · \(CountFormat.folders(node.directoryCount))")
             }
@@ -1139,6 +1130,7 @@ public struct ResultsView: View {
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
+                .frame(width: DS.Size.iconButton, height: DS.Size.iconButton)
                 .help("Quick Look")
                 .accessibilityLabel("Quick Look")
                 Button {
@@ -1149,6 +1141,7 @@ public struct ResultsView: View {
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
+                .frame(width: DS.Size.iconButton, height: DS.Size.iconButton)
                 .help("Reveal in Finder")
                 .accessibilityLabel("Reveal in Finder")
             }
@@ -1168,7 +1161,7 @@ public struct ResultsView: View {
             Button(role: .destructive) {
                 requestReclaim(nodes)
             } label: {
-                Label("Move \(nodes.count) Items to the Trash…", systemImage: "trash")
+                Label("Move \(nodes.count) Items to Trash…", systemImage: "trash")
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.bordered)
@@ -1209,6 +1202,13 @@ public struct ResultsView: View {
             enter(node)
         } else {
             selection.selectOnly(node.url)
+            // The chart draws every entry, but the list may still be on its
+            // first page. Reveal the chart-picked row rather than selecting
+            // something the list cannot show.
+            if let index = visibleRows.firstIndex(where: { $0.url == node.url }),
+               index >= visibleItemLimit {
+                visibleItemLimit = index + 1
+            }
             listFocused = true
         }
     }
@@ -1323,6 +1323,33 @@ public struct ResultsView: View {
         NSWorkspace.shared.open(trash)
     }
 
+    private var resultsCommands: ResultsCommands {
+        ResultsCommands(
+            canRescan: !viewModel.isScanning,
+            rescan: { rescan() },
+            canExport: summary != nil,
+            exportJSON: { exportJSON() },
+            exportCSV: { exportCSV() },
+            canShowCoverage: summary != nil,
+            showCoverage: { showCoverage() },
+            focusSearch: { searchFocusRequest += 1 }
+        )
+    }
+
+    private func showCoverage() {
+        activeSheet = .coverage
+    }
+
+    private func exportJSON() {
+        guard let summary else { return }
+        ReportExport.exportJSON(summary: summary)
+    }
+
+    private func exportCSV() {
+        guard let summary else { return }
+        ReportExport.exportCSV(summary: summary)
+    }
+
     private func rescan() {
         hover.url = nil
         breadcrumb.removeAll()
@@ -1392,6 +1419,8 @@ private enum ExplorerClick {
 /// chart that shares the hover — and nothing else the screen shows.
 private struct ContentsList: View {
     let rows: [ExplorerRow]
+    let hasMoreRows: Bool
+    let remainingCount: Int
     let emptyMessage: String
     let selection: ExplorerSelection
     let selectedCount: Int
@@ -1400,12 +1429,14 @@ private struct ContentsList: View {
     let onOpen: (ScanNode) -> Void
     let onMove: (Int, Bool) -> Void
     let onJump: (Int, Bool) -> Void
+    let onShowMore: () -> Void
     let onQuickLook: (ScanNode?) -> Void
     let onReveal: (ScanNode) -> Void
     let onReclaim: (ScanNode) -> Void
     let onEscape: () -> Void
 
     @Environment(ChartHover.self) private var hover
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         // The scroll view is the keyboard focus holder: the rows decline focus
@@ -1429,7 +1460,6 @@ private struct ContentsList: View {
                                 row: row,
                                 isSelected: selection.contains(row.url),
                                 isHovered: hover.url == row.url,
-                                isFocused: isFocused && selection.focused == row.url,
                                 action: { onClick(row.url) },
                                 onHover: { hovering in hover.set(row.url, hovering) }
                             )
@@ -1458,6 +1488,21 @@ private struct ContentsList: View {
                                 }
                             }
                         }
+
+                        if hasMoreRows {
+                            Button(action: onShowMore) {
+                                Label("Show More", systemImage: "chevron.down")
+                                    .font(DS.Typography.callout)
+                                    .foregroundStyle(DS.Color.accent)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, DS.Spacing.medium)
+                                    .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.borderless)
+                            .help("Show the next \(min(DS.Size.explorerPageSize, remainingCount)) items")
+                            .accessibilityLabel("Show more items")
+                            .accessibilityHint("Shows the next \(min(DS.Size.explorerPageSize, remainingCount)) items")
+                        }
                     }
                 }
             }
@@ -1474,7 +1519,7 @@ private struct ContentsList: View {
             }
             .onChange(of: selection.focused) { _, focused in
                 guard let focused else { return }
-                withAnimation(.easeOut(duration: 0.12)) {
+                withAnimation(reduceMotion ? nil : .easeOut(duration: 0.12)) {
                     proxy.scrollTo(focused)
                 }
             }
@@ -1575,6 +1620,7 @@ private struct ExplorerRowsKey: Equatable {
     var category: FileCategory?
     var sort: SortOrder
     var mode: ExplorerMode
+    var maxChildren: Int
 }
 
 /// Keeps the explorer's visible rows while their inputs stay the same.
@@ -1602,6 +1648,7 @@ private final class ExplorerRowsCache {
 private struct NodeColorsKey: Equatable {
     var revision: Int
     var focused: String
+    var maxChildren: Int
 }
 
 /// Keeps the chart colour index while its inputs stay the same.
@@ -1652,6 +1699,10 @@ private struct ExplorerRow: Equatable {
     let isDirectory: Bool
     let isSymlink: Bool
     let isAccessible: Bool
+    /// A dot-leading name is the bundle-visible convention for a hidden item.
+    /// The scan can include these, so the row and detail pane name them rather
+    /// than presenting them as ordinary entries.
+    let isHiddenName: Bool
     /// The colour of the node's wedge in the chart, so a row's icon and its wedge
     /// always read as the same thing.
     let iconColor: Color
@@ -1665,6 +1716,7 @@ private struct ExplorerRow: Equatable {
         isDirectory = node.isDirectory
         isSymlink = node.isSymlink
         isAccessible = node.isAccessible
+        isHiddenName = node.name.hasPrefix(".")
         iconColor = colors.color(for: node.url).color
         if showsLocation {
             subtitle = PathFormat.abbreviated(node.url.path)
@@ -1682,6 +1734,7 @@ private struct ExplorerRow: Equatable {
             && lhs.isDirectory == rhs.isDirectory
             && lhs.isSymlink == rhs.isSymlink
             && lhs.isAccessible == rhs.isAccessible
+            && lhs.isHiddenName == rhs.isHiddenName
             && lhs.iconColor == rhs.iconColor
             && lhs.subtitle == rhs.subtitle
             && lhs.sizeText == rhs.sizeText
@@ -1701,10 +1754,11 @@ private struct ExplorerRow: Equatable {
 /// inside the row for the same reason: a divider of its own would double the
 /// number of children a lazy list has to place.
 private struct NodeRow: View, Equatable {
+    @Environment(\.controlActiveState) private var controlActiveState
+
     let row: ExplorerRow
     let isSelected: Bool
     let isHovered: Bool
-    let isFocused: Bool
     let action: () -> Void
     let onHover: (Bool) -> Void
 
@@ -1712,7 +1766,6 @@ private struct NodeRow: View, Equatable {
         lhs.row == rhs.row
             && lhs.isSelected == rhs.isSelected
             && lhs.isHovered == rhs.isHovered
-            && lhs.isFocused == rhs.isFocused
     }
 
     var body: some View {
@@ -1725,7 +1778,7 @@ private struct NodeRow: View, Equatable {
                     VStack(alignment: .leading, spacing: DS.Spacing.hairline) {
                         Text(row.name)
                             .font(DS.Typography.body)
-                            .foregroundStyle(DS.Color.primaryText)
+                            .foregroundStyle(row.isHiddenName ? DS.Color.mutedText : DS.Color.primaryText)
                             .lineLimit(1)
                             .truncationMode(.middle)
                         Text(row.subtitle)
@@ -1741,7 +1794,7 @@ private struct NodeRow: View, Equatable {
                     if row.isSymlink {
                         Image(systemName: "arrow.turn.up.right")
                             .font(DS.Icon.detail)
-                            .foregroundStyle(DS.Color.tertiaryText)
+                            .foregroundStyle(DS.Color.secondaryText)
                     }
                     if !row.isAccessible {
                         Image(systemName: "lock.fill")
@@ -1758,26 +1811,27 @@ private struct NodeRow: View, Equatable {
             .buttonStyle(.plain)
             .focusable(false)
             .onHover(perform: onHover)
-            .accessibilityLabel("\(row.name), \(row.subtitle), \(row.sizeText)")
+            .accessibilityLabel("\(row.name)\(row.isHiddenName ? ", hidden item" : ""), \(row.subtitle), \(row.sizeText)")
             .accessibilityAddTraits(isSelected ? [.isSelected] : [])
             Divider()
         }
     }
 
     private var rowBackground: SwiftUI.Color {
-        if isSelected { return DS.Color.accent.opacity(DS.Opacity.rowSelection) }
+        if isSelected {
+            return controlActiveState == .key
+                ? DS.Color.accent.opacity(DS.Opacity.rowSelection)
+                : DS.Color.primaryText.opacity(DS.Opacity.rowHover)
+        }
         if isHovered { return DS.Color.accent.opacity(DS.Opacity.rowHover) }
         return .clear
     }
 
-    /// A hairline stroke marks the hovered row. The selection keeps its fill
-    /// alone, so the two states stay distinct. The keyboard cursor gets a
-    /// stronger stroke, which is the only visible focus the list has.
+    /// Selection is the row fill; the keyboard cursor does not add a second
+    /// outline around the content. A hairline marks hover only.
     @ViewBuilder
     private var rowStroke: some View {
-        if isFocused {
-            Rectangle().strokeBorder(DS.Color.accent, lineWidth: DS.Stroke.emphasis)
-        } else if isHovered && !isSelected {
+        if isHovered && !isSelected {
             Rectangle().strokeBorder(DS.Color.separator, lineWidth: DS.Stroke.hairline)
         } else {
             SwiftUI.Color.clear

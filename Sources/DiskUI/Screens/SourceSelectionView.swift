@@ -7,9 +7,9 @@ import DiskCore
 /// background.
 ///
 /// Distinctive identity, headline + supporting text, mounted volumes and recent
-/// locations each with an inline Scan/View action, and "Choose a Folder…"
+/// locations each with an inline Scan/View Results action, and "Choose a Folder"
 /// (native `NSOpenPanel`). A folder picked or dropped stages into a card with a
-/// real "Start Scan" action. Every control performs a real action on real scan
+/// real "Scan" action. Every control performs a real action on real scan
 /// data.
 ///
 /// The location that occupies the engine's single scan slot is shown in its own
@@ -17,14 +17,15 @@ import DiskCore
 /// the other start actions are held back while a scan runs, so this screen can
 /// be used mid-scan without ever starting a second scan or hiding the first.
 ///
-/// The toolbar holds the app's appearance choice, which is a preference rather
-/// than scan state: `AppAppearance` carries the value and the app shell applies
-/// it to the app.
+/// The toolbar holds the window-level commands: scan options and the folder
+/// picker. The app's appearance is a Settings preference, applied by the app
+/// shell rather than by this screen.
 @MainActor
 public struct SourceSelectionView: View {
     @State private var viewModel: ScanViewModel
-    @State private var selectedURL: URL?
     @State private var isDragOver = false
+    @State private var hoveredSource: URL?
+    @State private var hoveredPreset: ScanPreset.ID?
     @State private var recentLocations: [URL] = RecentLocations.load()
     @State private var volumes: [VolumeInfo] = []
     @State private var presets: [ScanPreset] = []
@@ -32,11 +33,6 @@ public struct SourceSelectionView: View {
     /// the menu or a drop uses the same ones this screen shows.
     @State private var scanOptions = ScanOptionsStore.load()
     @State private var showingScanOptions = false
-    /// The app's appearance preference. The toolbar menu writes it and the app
-    /// shell reads the same stored value, so the menu reports what the window
-    /// actually shows.
-    @AppStorage(AppAppearance.defaultsKey) private var appearance: AppAppearance = .system
-
     public init(viewModel: ScanViewModel = ScanViewModel()) {
         _viewModel = State(initialValue: viewModel)
     }
@@ -61,24 +57,20 @@ public struct SourceSelectionView: View {
                     if case .failed(let message) = viewModel.phase {
                         failureBanner(message)
                     }
-                    if let url = selectedURL {
-                        selectedSourceCard(url)
-                    }
                     presetsSection
                     volumesSection
                     recentSection
-                    chooseFolderSection
                 }
                 .padding(DS.Spacing.xxLarge)
                 .frame(maxWidth: 720)
                 .frame(maxWidth: .infinity)
-                .animation(.snappy, value: selectedURL)
             }
 
             if isDragOver {
                 dropOverlay
             }
         }
+        .background(WindowFocusReset().frame(width: 0, height: 0))
         .task {
             volumes = VolumeInfo.enumerate()
             presets = await ScanPresetCatalog.resolved()
@@ -88,34 +80,15 @@ public struct SourceSelectionView: View {
         }
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
-                appearanceMenu
+                scanOptionsToolbarButton
+            }
+            ToolbarItem(placement: .primaryAction) {
+                chooseFolderToolbarButton
             }
         }
         .onChange(of: scanOptions) { _, newValue in
             ScanOptionsStore.save(newValue)
         }
-    }
-
-    /// The gear: the app's appearance, as one menu of the three choices.
-    ///
-    /// The menu reports and writes the stored preference the app shell applies to
-    /// the app, so picking an appearance here changes every window at once and the
-    /// choice survives the next launch.
-    private var appearanceMenu: some View {
-        Menu {
-            Picker("Appearance", selection: $appearance) {
-                ForEach(AppAppearance.allCases) { option in
-                    Label(option.label, systemImage: option.symbolName)
-                        .tag(option)
-                }
-            }
-            .pickerStyle(.inline)
-        } label: {
-            Label("Appearance", systemImage: "gearshape")
-        }
-        .help("Choose the app appearance: system, light, or dark")
-        .accessibilityLabel("Appearance")
-        .accessibilityValue(appearance.label)
     }
 
     // MARK: - Sections
@@ -148,84 +121,12 @@ public struct SourceSelectionView: View {
         .accessibilityElement(children: .combine)
     }
 
-    @ViewBuilder
-    private func selectedSourceCard(_ url: URL) -> some View {
-        let slot = viewModel.scanSlot(for: url)
-        let sourceName = LocationName.of(url)
-        VStack(alignment: .leading, spacing: DS.Spacing.medium) {
-            HStack {
-                Image(systemName: "folder.fill")
-                    .foregroundStyle(DS.Color.accent)
-                    .accessibilityHidden(true)
-                Text(sourceName)
-                    .font(DS.Typography.title2)
-                Spacer()
-                Button {
-                    selectedURL = nil
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(DS.Color.tertiaryText)
-                }
-                .buttonStyle(.plain)
-                .help("Clear selection")
-                .accessibilityLabel("Clear selection")
-            }
-            Text(url.path)
-                .font(DS.Typography.monospaced)
-                .foregroundStyle(DS.Color.secondaryText)
-                .lineLimit(1)
-                .truncationMode(.middle)
-
-            if let slot {
-                scanStatusBlock(slot)
-                Button {
-                    viewModel.showResults()
-                } label: {
-                    Label("View Results", systemImage: "chart.pie")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
-                .help("Open the results of the scan of this location")
-                .accessibilityLabel("View scan results for \(sourceName)")
-            } else {
-                HStack(spacing: DS.Spacing.xSmall) {
-                    Image(systemName: "slider.horizontal.3")
-                        .font(DS.Icon.detail)
-                        .foregroundStyle(DS.Color.tertiaryText)
-                        .accessibilityHidden(true)
-                    Text(scanOptions.summary)
-                        .font(DS.Typography.caption)
-                        .foregroundStyle(DS.Color.secondaryText)
-                        .lineLimit(2)
-                    Spacer(minLength: 0)
-                }
-                .accessibilityElement(children: .combine)
-                .accessibilityLabel("This scan: \(scanOptions.summary)")
-
-                Button {
-                    startScan(url)
-                } label: {
-                    Label("Start Scan", systemImage: "play.fill")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
-                .disabled(viewModel.isScanning)
-                .help(startHelp(sourceName))
-                .accessibilityHint(startHint(sourceName))
-            }
-        }
-        .padding(DS.Spacing.large)
-        .dsSurface()
-    }
-
     /// The usual large folders, so the common scans do not begin with a file
     /// panel. A preset starts the same scan as picking the folder by hand, and
     /// one that is missing stays visible but disabled instead of vanishing.
     private var presetsSection: some View {
         VStack(alignment: .leading, spacing: DS.Spacing.medium) {
-            sectionHeader("Quick Scans")
+            sectionHeader("Quick scans")
             LazyVGrid(
                 columns: [GridItem(.adaptive(minimum: 180), spacing: DS.Spacing.small)],
                 alignment: .leading,
@@ -257,7 +158,25 @@ public struct SourceSelectionView: View {
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(.bordered)
+                    .overlay {
+                        RoundedRectangle(cornerRadius: DS.Radius.large, style: .continuous)
+                            .fill(DS.Color.primaryText.opacity(
+                                hoveredPreset == preset.id ? DS.Opacity.rowHover : 0
+                            ))
+                            .allowsHitTesting(false)
+                    }
                     .disabled(viewModel.isScanning || !preset.isAvailable)
+                    .onHover { inside in
+                        guard !viewModel.isScanning, preset.isAvailable else {
+                            hoveredPreset = nil
+                            return
+                        }
+                        if inside {
+                            hoveredPreset = preset.id
+                        } else if hoveredPreset == preset.id {
+                            hoveredPreset = nil
+                        }
+                    }
                     .help(preset.isAvailable
                         ? "Scan \(preset.name) at \(preset.url.path)"
                         : "\(preset.name) is not on this Mac")
@@ -281,50 +200,72 @@ public struct SourceSelectionView: View {
                     }
                 }
                 .padding(DS.Spacing.large)
-                .dsSurface()
+                .dsContentPanel()
             }
         }
     }
 
     private func volumeRow(_ volume: VolumeInfo) -> some View {
         let slot = viewModel.scanSlot(for: volume.url)
-        return HStack(spacing: DS.Spacing.medium) {
-            Image(systemName: volume.isInternal ? "internaldrive" : "externaldrive")
-                .font(DS.Icon.small)
-                .foregroundStyle(DS.Color.accent)
-                .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: DS.Spacing.xxSmall) {
-                Text(volume.name)
-                    .font(DS.Typography.headline)
-                    .foregroundStyle(DS.Color.primaryText)
-                if let total = volume.totalCapacity {
-                    let used = volume.usedCapacity ?? 0
-                    Text("\(ByteFormat.string(used)) of \(ByteFormat.string(total)) used")
-                        .font(DS.Typography.caption)
-                        .foregroundStyle(DS.Color.secondaryText)
-                }
-                // The location on the engine's scan slot reports that scan's
-                // status in place of a start-scan action.
-                if let slot {
-                    scanStatusBlock(slot)
-                }
+        let isPrimary = slot != nil && rowResultsArePrimary
+        let isEnabled = slot != nil || !viewModel.isScanning
+        let isHovered = isEnabled && hoveredSource == volume.url
+        return Button {
+            if slot != nil {
+                viewModel.showResults()
+            } else {
+                startScan(volume.url)
             }
-            // One composed label for the row's facts — including the status of a
-            // scan this location is running. The gauge below repeats the capacity
-            // visually, so it stays out of the accessibility tree.
-            .accessibilityElement(children: .combine)
-            .accessibilityLabel(volumeRowLabel(volume, slot: slot))
-            Spacer()
-            if let fraction = volume.usedFraction {
-                Gauge(value: fraction) {}
-                    .gaugeStyle(.accessoryLinearCapacity)
-                    .frame(width: DS.Size.gaugeWidth)
+        } label: {
+            HStack(spacing: DS.Spacing.medium) {
+                Image(systemName: volume.isInternal ? "internaldrive" : "externaldrive")
+                    .font(DS.Icon.small)
+                    .foregroundStyle(DS.Color.accent)
                     .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: DS.Spacing.xxSmall) {
+                    Text(volume.name)
+                        .font(DS.Typography.headline)
+                        .foregroundStyle(DS.Color.primaryText)
+                    if let total = volume.totalCapacity {
+                        let used = volume.usedCapacity ?? 0
+                        Text("\(ByteFormat.string(used)) of \(ByteFormat.string(total)) used")
+                            .font(DS.Typography.caption)
+                            .foregroundStyle(DS.Color.secondaryText)
+                    }
+                    // The location on the engine's scan slot reports that scan's
+                    // status in place of a start-scan action.
+                    if let slot {
+                        scanStatusBlock(slot)
+                    }
+                }
+                Spacer()
+                if let fraction = volume.usedFraction {
+                    Gauge(value: fraction) {}
+                        .gaugeStyle(.accessoryLinearCapacity)
+                        .frame(width: DS.Size.gaugeWidth)
+                        .accessibilityHidden(true)
+                }
+                sourceRowAffordance(isView: slot != nil, isPrimary: isPrimary)
             }
-            sourceRowAction(for: volume.url, name: volume.name, slot: slot)
+            .padding(.vertical, DS.Spacing.xSmall)
+            .padding(.horizontal, DS.Spacing.small)
+            .background(rowFill(isPrimary: isPrimary, isHovered: isHovered), in: rowShape)
+            .contentShape(rowShape)
         }
-        .padding(.vertical, DS.Spacing.xSmall)
-        .accessibilityElement(children: .contain)
+        .buttonStyle(.plain)
+        .disabled(!isEnabled)
+        .opacity(isEnabled ? 1 : DS.Opacity.disabled)
+        .onHover { inside in
+            if inside && isEnabled {
+                hoveredSource = volume.url
+            } else if hoveredSource == volume.url {
+                hoveredSource = nil
+            }
+        }
+        .keyboardShortcut(isPrimary ? .defaultAction : nil)
+        .help(slot != nil ? "Open the scan results for \(volume.name)" : startHelp(volume.name))
+        .accessibilityLabel(volumeRowLabel(volume, slot: slot))
+        .accessibilityHint(slot != nil ? "Opens the scan results" : startHint(volume.name))
     }
 
     /// The row's spoken facts: the location, its capacity, and — when it is the
@@ -382,43 +323,35 @@ public struct SourceSelectionView: View {
         }
     }
 
-    /// The trailing action a source row offers for a location.
-    ///
-    /// When the location occupies the engine's scan slot the row already reports
-    /// that scan inline, so this is a View that opens its results; otherwise it
-    /// is an inline start that is held back while another scan runs. Volumes and
-    /// Recent rows share this one helper so the two never drift apart.
-    @ViewBuilder
-    private func sourceRowAction(for url: URL, name: String, slot: ScanSlotPresentation?) -> some View {
-        if slot != nil {
-            Button {
-                viewModel.showResults()
-            } label: {
-                Label("View", systemImage: "chart.pie")
-            }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.small)
-            .help("Open the scan results for \(name)")
-            .accessibilityLabel("View scan results for \(name)")
-        } else {
-            Button {
-                startScan(url)
-            } label: {
-                Label("Scan", systemImage: "play.fill")
-            }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.small)
-            .disabled(viewModel.isScanning)
-            .help(startHelp(name))
-            .accessibilityLabel("Scan \(name)")
-            .accessibilityHint(startHint(name))
+    /// The row's trailing affordance. The row itself is the control, so this is
+    /// a label rather than a second button.
+    private func sourceRowAffordance(isView: Bool, isPrimary: Bool) -> some View {
+        Label(isView ? "View Results" : "Scan", systemImage: isView ? "chart.pie" : "play.fill")
+            .font(DS.Typography.caption)
+            .fontWeight(.medium)
+            .foregroundStyle(isPrimary ? DS.Color.accent : DS.Color.secondaryText)
+            .labelStyle(.titleAndIcon)
+            .accessibilityHidden(true)
+    }
+
+    private var rowShape: RoundedRectangle {
+        RoundedRectangle(cornerRadius: DS.Radius.medium, style: .continuous)
+    }
+
+    private func rowFill(isPrimary: Bool, isHovered: Bool) -> Color {
+        if isPrimary {
+            return DS.Color.accent.opacity(isHovered ? DS.Opacity.rowSelection : DS.Opacity.rowPrimary)
         }
+        if isHovered {
+            return DS.Color.primaryText.opacity(DS.Opacity.rowHover)
+        }
+        return .clear
     }
 
     /// Why a start action is unavailable, or what it starts.
     private func startHelp(_ name: String) -> String {
         viewModel.isScanning
-            ? "A scan is already running — open it with View, or stop it to start another"
+            ? "A scan is already running — open its results, or stop it to start another"
             : "Scan \(name)"
     }
 
@@ -452,16 +385,13 @@ public struct SourceSelectionView: View {
         if !recentLocationsShown.isEmpty {
             VStack(alignment: .leading, spacing: DS.Spacing.medium) {
                 sectionHeader("Recent")
-                VStack(spacing: 0) {
+                VStack(spacing: DS.Spacing.small) {
                     ForEach(recentLocationsShown, id: \.self) { url in
                         recentRow(url)
-                        if url != recentLocationsShown.last {
-                            Divider()
-                        }
                     }
                 }
                 .padding(DS.Spacing.large)
-                .dsSurface()
+                .dsContentPanel()
             }
         }
     }
@@ -469,35 +399,57 @@ public struct SourceSelectionView: View {
     private func recentRow(_ url: URL) -> some View {
         let slot = viewModel.scanSlot(for: url)
         let name = LocationName.of(url)
-        return HStack(spacing: DS.Spacing.medium) {
-            Image(systemName: "clock")
-                .foregroundStyle(DS.Color.tertiaryText)
-                .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 1) {
-                Text(name)
-                    .font(DS.Typography.body)
-                    .foregroundStyle(DS.Color.primaryText)
-                Text(url.path)
-                    .font(DS.Typography.caption)
-                    .foregroundStyle(DS.Color.tertiaryText)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-                // The location on the engine's scan slot reports that scan's
-                // status in place of a start-scan action.
-                if let slot {
-                    scanStatusBlock(slot)
-                }
+        let isPrimary = slot != nil && rowResultsArePrimary
+        let isEnabled = slot != nil || !viewModel.isScanning
+        let isHovered = isEnabled && hoveredSource == url
+        return Button {
+            if slot != nil {
+                viewModel.showResults()
+            } else {
+                startScan(url)
             }
-            // One composed label for the row's facts — including the status of a
-            // scan this location is running — so the path and status read as one
-            // phrase rather than disconnected fragments.
-            .accessibilityElement(children: .combine)
-            .accessibilityLabel(recentRowLabel(name: name, path: url.path, slot: slot))
-            Spacer()
-            sourceRowAction(for: url, name: name, slot: slot)
+        } label: {
+            HStack(spacing: DS.Spacing.medium) {
+                Image(systemName: "clock")
+                    .foregroundStyle(DS.Color.secondaryText)
+                    .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(name)
+                        .font(DS.Typography.body)
+                        .foregroundStyle(DS.Color.primaryText)
+                    Text(url.path)
+                        .font(DS.Typography.caption)
+                        .foregroundStyle(DS.Color.mutedText)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                    // The location on the engine's scan slot reports that scan's
+                    // status in place of a start-scan action.
+                    if let slot {
+                        scanStatusBlock(slot)
+                    }
+                }
+                Spacer()
+                sourceRowAffordance(isView: slot != nil, isPrimary: isPrimary)
+            }
+            .padding(.vertical, DS.Spacing.small)
+            .padding(.horizontal, DS.Spacing.small)
+            .background(rowFill(isPrimary: isPrimary, isHovered: isHovered), in: rowShape)
+            .contentShape(rowShape)
         }
-        .padding(.vertical, DS.Spacing.small)
-        .accessibilityElement(children: .contain)
+        .buttonStyle(.plain)
+        .disabled(!isEnabled)
+        .opacity(isEnabled ? 1 : DS.Opacity.disabled)
+        .onHover { inside in
+            if inside && isEnabled {
+                hoveredSource = url
+            } else if hoveredSource == url {
+                hoveredSource = nil
+            }
+        }
+        .keyboardShortcut(isPrimary ? .defaultAction : nil)
+        .help(slot != nil ? "Open the scan results for \(name)" : startHelp(name))
+        .accessibilityLabel(recentRowLabel(name: name, path: url.path, slot: slot))
+        .accessibilityHint(slot != nil ? "Opens the scan results" : startHint(name))
     }
 
     /// The recent row's spoken facts: the location, its path, and — when it is
@@ -507,33 +459,48 @@ public struct SourceSelectionView: View {
         return "\(name), \(path), \(slot.accessibilityLabel)"
     }
 
-    private var chooseFolderSection: some View {
-        HStack(spacing: DS.Spacing.medium) {
-            Button {
-                chooseFolder()
-            } label: {
-                Label("Choose a Folder…", systemImage: "folder")
-                    .frame(minWidth: DS.Size.wideActionMinWidth)
-            }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.large)
-            .keyboardShortcut(.defaultAction)
-            .help("Pick any folder or volume to scan")
+    /// Whether the scan on the slot has a result a Home row can open. The row
+    /// for that root is always among Volumes or Recent because every start
+    /// records the root, so the primary can move to that row.
+    private var scannedSourceHasResults: Bool {
+        guard let root = viewModel.currentRoot else { return false }
+        return viewModel.scanSlot(for: root) != nil
+    }
 
-            Button {
-                showingScanOptions.toggle()
-            } label: {
-                Label("Scan Options", systemImage: "slider.horizontal.3")
-            }
-            .buttonStyle(.bordered)
-            .controlSize(.large)
-            .popover(isPresented: $showingScanOptions, arrowEdge: .bottom) {
-                scanOptionsPopover
-            }
-            .help("Choose what the next scan includes")
-            .accessibilityLabel("Scan options")
-            .accessibilityValue(scanOptions.summary)
+    /// A result row owns the primary action whenever one exists.
+    private var rowResultsArePrimary: Bool {
+        scannedSourceHasResults
+    }
+
+    private var scanOptionsToolbarButton: some View {
+        Button {
+            showingScanOptions.toggle()
+        } label: {
+            Label("Scan Options", systemImage: "slider.horizontal.3")
+                .labelStyle(.titleAndIcon)
         }
+        .popover(isPresented: $showingScanOptions, arrowEdge: .bottom) {
+            scanOptionsPopover
+        }
+        .help("Choose what the next scan includes")
+        .accessibilityLabel("Scan options")
+        .accessibilityValue(scanOptions.summary)
+    }
+
+    /// The folder picker is a stable toolbar command: always present, always the
+    /// same weight, and never the default action. With no content primary, the
+    /// menu shortcut is the keyboard route so the toolbar cannot steal Return
+    /// from an open popover.
+    private var chooseFolderToolbarButton: some View {
+        Button {
+            chooseFolder()
+        } label: {
+            Label("Choose a Folder", systemImage: "folder")
+                .labelStyle(.titleAndIcon)
+        }
+        .disabled(viewModel.isScanning)
+        .help("Pick any folder or volume to scan")
+        .accessibilityLabel("Choose a folder to scan")
     }
 
     /// What a scan includes, as switches with the consequence of each spelled
@@ -570,6 +537,7 @@ public struct SourceSelectionView: View {
                 Button("Reset to Defaults") {
                     scanOptions = .standard
                 }
+                .controlSize(.small)
                 .disabled(scanOptions == .standard)
                 Spacer()
                 Text("Applies to the next scan you start.")
@@ -587,7 +555,7 @@ public struct SourceSelectionView: View {
     private var exclusionsEditor: some View {
         VStack(alignment: .leading, spacing: DS.Spacing.small) {
             HStack {
-                Text("Excluded Paths")
+                Text("Excluded paths")
                     .font(DS.Typography.body)
                 Spacer()
                 Button("Add Path…") {
@@ -620,7 +588,9 @@ public struct SourceSelectionView: View {
                                     Image(systemName: "xmark")
                                         .font(DS.Icon.detail)
                                 }
-                                .buttonStyle(.plain)
+                                .buttonStyle(.borderless)
+                                .frame(width: DS.Size.iconButton, height: DS.Size.iconButton)
+                                .contentShape(Rectangle())
                                 .help("Stop excluding \(url.path)")
                                 .accessibilityLabel("Remove exclusion \(url.path)")
                             }
@@ -657,7 +627,7 @@ public struct SourceSelectionView: View {
     private func sectionHeader(_ title: String) -> some View {
         Text(title)
             .font(DS.Typography.caption)
-            .textCase(.uppercase)
+            .fontWeight(.semibold)
             .foregroundStyle(DS.Color.secondaryText)
     }
 
@@ -673,7 +643,7 @@ public struct SourceSelectionView: View {
                     Image(systemName: "folder.badge.plus")
                         .font(DS.Icon.dropTarget)
                         .foregroundStyle(DS.Color.accent)
-                    Text("Drop a folder to select it")
+                    Text("Drop a folder to scan it")
                         .font(DS.Typography.headline)
                 }
             )
@@ -690,7 +660,7 @@ public struct SourceSelectionView: View {
         panel.prompt = "Choose"
         panel.message = "Choose a folder or volume to scan."
         if panel.runModal() == .OK, let url = panel.url {
-            selectedURL = url
+            startScan(url)
         }
     }
 
@@ -734,7 +704,7 @@ public struct SourceSelectionView: View {
             var isDir: ObjCBool = false
             guard FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir), isDir.boolValue else { return }
             Task { @MainActor in
-                self.selectedURL = url
+                self.startScan(url)
             }
         }
         return true

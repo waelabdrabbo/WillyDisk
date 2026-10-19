@@ -42,27 +42,28 @@ public enum DS {
         public static let dropTarget: SwiftUI.Font = .system(size: 34)
         public static let medium: SwiftUI.Font = .system(size: 28)
         public static let small: SwiftUI.Font = .system(size: 20)
-        public static let inline: SwiftUI.Font = .system(size: 11)
-        public static let detail: SwiftUI.Font = .system(size: 10)
-        public static let disclosure: SwiftUI.Font = .system(size: 10, weight: .semibold)
+        // Glyphs beside text follow the text ramp so they grow together.
+        public static let inline: SwiftUI.Font = .subheadline
+        public static let detail: SwiftUI.Font = .caption
+        public static let disclosure: SwiftUI.Font = .caption.weight(.semibold)
     }
 
     // MARK: - Element sizes
 
     public enum Size {
+        /// Square hit target for an icon-only control. A bare glyph is too small
+        /// to click reliably, so icon buttons reserve this even when the symbol
+        /// itself is drawn smaller.
+        public static let iconButton: CGFloat = 28
         /// Minimum width for an action button, so labels align across screens.
         public static let actionMinWidth: CGFloat = 120
-        /// Minimum width for the widest primary action (source pickers).
-        public static let wideActionMinWidth: CGFloat = 180
         /// Fixed width of a volume's usage gauge.
         public static let gaugeWidth: CGFloat = 120
         /// Widest the toolbar's folder trail grows before its names compress, so a
         /// deep path cannot push the title or the trailing actions out of reach.
         public static let toolbarBreadcrumbMaxWidth: CGFloat = 420
-        /// The explorer's share of the results window's width. The chart takes the
-        /// remaining two thirds; the ratio is fixed, so neither pane is dragged
-        /// against the other and the map keeps its proportion at every size.
-        public static let explorerPaneWidthFraction: CGFloat = 1.0 / 3.0
+        /// How many explorer rows the list builds before offering "Show More".
+        public static let explorerPageSize = 15
         /// Progress bar bounds in the in-progress header.
         public static let progressBarMinWidth: CGFloat = 160
         public static let progressBarMaxWidth: CGFloat = 320
@@ -72,9 +73,9 @@ public enum DS {
         /// Height of the scan-status strip at the bottom of the chart pane.
         /// Fixed, so the chart keeps its size whether or not a scan is running.
         public static let scanStatusStripHeight: CGFloat = 40
-        /// Minimum height of the results footer's notice-chip band, so the panes
-        /// above never resize whether or not the chip is there.
-        public static let storageStripMinHeight: CGFloat = 54
+        /// Fixed width of the floating scan readout, so growing counts never
+        /// make the capsule resize as the scan progresses.
+        public static let scanStatusWidth: CGFloat = 440
         /// Label column width in a detail row.
         public static let detailLabelWidth: CGFloat = 60
         /// Leading column an access row reserves for its icon, so the paths of a
@@ -91,6 +92,17 @@ public enum DS {
     public enum Opacity {
         public static let rowHover: Double = 0.08
         public static let rowSelection: Double = 0.15
+        /// Tint behind the row that holds the only result, above hover.
+        public static let rowPrimary: Double = 0.10
+        /// Dimming applied to rows that cannot act during a scan.
+        public static let disabled: Double = 0.5
+        /// Tint painted behind a content panel so it separates from the window
+        /// without becoming a floating control.
+        public static let contentPanel: Double = 0.04
+        /// Opaque stand-in when Reduce Transparency is on, and the macOS 14
+        /// fallback. `controlBackground` alone is the window color and would
+        /// leave the control invisible.
+        public static let controlSurface: Double = 0.08
     }
 
     // MARK: - Strokes
@@ -145,18 +157,13 @@ public enum DS {
         public static let radialGap: CGFloat = 1
         /// Width of the centre disc's label block, as a fraction of its radius.
         public static let centerLabelWidthFraction: CGFloat = 1.7
-        /// Wedge opacity, and the opacity other wedges drop to while one is hovered.
-        /// A chart-coloured icon wears it too, so a node's icon and its wedge land
-        /// on the same colour against the same background.
+        /// Wedge opacity. A chart-coloured icon wears it too, so a node's icon and
+        /// its wedge land on the same colour against the same background.
         public static let fillOpacity: Double = 0.92
-        public static let dimmedOpacity: Double = 0.45
-        /// Opacity of the surface painted over the wedges a pointer or the keyboard
-        /// is not on.
-        ///
-        /// Derived, so that covering a wedge drawn at `fillOpacity` with the
-        /// surface it is drawn on leaves exactly `dimmedOpacity`:
-        /// `fillOpacity * (1 - shadeOpacity) == dimmedOpacity`.
-        public static let shadeOpacity: Double = 1 - dimmedOpacity / fillOpacity
+        /// A wash of the chart's own surface painted over the active wedge only.
+        /// The rest of the chart keeps `fillOpacity`; the hovered wedge recedes a
+        /// little instead of the other wedges dimming.
+        public static let hoverShadeOpacity: Double = 0.10
         /// Fill opacity of the selected wedge: at full strength it reads as the
         /// brightest wedge in the chart, including while another is hovered.
         public static let selectedFillOpacity: Double = 1
@@ -202,16 +209,21 @@ public enum DS {
 
     // MARK: - Typography (SF Pro roles)
 
+    /// Semantic text styles, so the whole app follows the system text size.
+    ///
+    /// `caption` uses `.subheadline` (11 pt) rather than `.caption` (10 pt):
+    /// metadata and paths are already the smallest text in the app and 10 pt is
+    /// below the legibility floor on an inspector surface.
     public enum Typography {
-        public static let largeTitle: SwiftUI.Font = .system(size: 26, weight: .bold)
-        public static let title: SwiftUI.Font = .system(size: 22, weight: .bold)
-        public static let title2: SwiftUI.Font = .system(size: 17, weight: .semibold)
-        public static let headline: SwiftUI.Font = .system(size: 15, weight: .semibold)
-        public static let body: SwiftUI.Font = .system(size: 13, weight: .regular)
-        public static let callout: SwiftUI.Font = .system(size: 12, weight: .regular)
-        public static let caption: SwiftUI.Font = .system(size: 11, weight: .regular)
-        public static let metric: SwiftUI.Font = .system(size: 28, weight: .semibold, design: .rounded)
-        public static let monospaced: SwiftUI.Font = .system(size: 12, weight: .regular, design: .monospaced)
+        public static let largeTitle: SwiftUI.Font = .system(.largeTitle, weight: .bold)
+        public static let title: SwiftUI.Font = .system(.title, weight: .bold)
+        public static let title2: SwiftUI.Font = .system(.title2, weight: .semibold)
+        public static let headline: SwiftUI.Font = .headline
+        public static let body: SwiftUI.Font = .body
+        public static let callout: SwiftUI.Font = .callout
+        public static let caption: SwiftUI.Font = .subheadline
+        public static let metric: SwiftUI.Font = .system(.largeTitle, design: .rounded).weight(.semibold)
+        public static let monospaced: SwiftUI.Font = .system(.callout, design: .monospaced)
     }
 
     // MARK: - Semantic colors (light + dark adaptive)
@@ -220,6 +232,12 @@ public enum DS {
         public static let accent: SwiftUI.Color = .accentColor
         public static let primaryText: SwiftUI.Color = .primary
         public static let secondaryText: SwiftUI.Color = .secondary
+        /// De-emphasized text that still meets the text contrast floor over the
+        /// window: primary at 66%, roughly 4.9:1 in light and higher in dark. Use this for
+        /// paths and captions; `secondaryText` is for chrome that only needs the
+        /// 3:1 UI floor.
+        public static let mutedText: SwiftUI.Color = .primary.opacity(0.66)
+        /// A chart fill fallback only. Never use this for text or a control.
         public static let tertiaryText: SwiftUI.Color = SwiftUI.Color(nsColor: .tertiaryLabelColor)
         public static let quaternaryText: SwiftUI.Color = SwiftUI.Color(nsColor: .quaternaryLabelColor)
         public static let separator: SwiftUI.Color = SwiftUI.Color(nsColor: .separatorColor)
@@ -235,34 +253,83 @@ public enum DS {
 
 extension View {
 
-    /// Premium surface treatment.
-    ///
-    /// - macOS 26+ : Liquid Glass.
-    /// - macOS 15  : native vibrancy material.
-    /// - macOS 14  : solid native control surface.
-    ///
-    /// The `#available` guard keeps the newer API out of the macOS 14/15 code
-    /// path entirely, per the compatibility rules in the architecture contract.
-    @ViewBuilder
-    public func dsSurface(cornerRadius: CGFloat = DS.Radius.panel) -> some View {
-        if #available(macOS 26.0, *) {
-            self.glassEffect(.regular, in: .rect(cornerRadius: cornerRadius))
-        } else if #available(macOS 15.0, *) {
-            self.background(.regularMaterial, in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-        } else {
-            self.background(DS.Color.controlBackground, in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-        }
+    /// A content surface: a quiet tint and hairline that separate a card from
+    /// the window without putting it on the functional Glass layer. Content
+    /// stays legible in both appearances and never competes with a control.
+    public func dsContentPanel(cornerRadius: CGFloat = DS.Radius.panel) -> some View {
+        modifier(DSContentPanelModifier(cornerRadius: cornerRadius))
     }
 
-    /// Secondary/inset surface (slightly quieter than `dsSurface`).
+    /// A functional-layer surface: toolbar-like controls, floating actions, and
+    /// popovers. Liquid Glass on macOS 26, a native material on macOS 15, and a
+    /// solid control surface on macOS 14.
+    ///
+    /// Glass is deliberately not a general-purpose content card treatment; the
+    /// compatibility guard keeps the newer API out of the 14/15 code path.
+    public func dsGlassControl(
+        cornerRadius: CGFloat = DS.Radius.panel,
+        interactive: Bool = false
+    ) -> some View {
+        modifier(DSGlassControlModifier(cornerRadius: cornerRadius, interactive: interactive))
+    }
+}
+
+private struct DSContentPanelModifier: ViewModifier {
+    @Environment(\.colorSchemeContrast) private var contrast
+
+    let cornerRadius: CGFloat
+
+    func body(content: Content) -> some View {
+        let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+        content
+            .background(DS.Color.primaryText.opacity(DS.Opacity.contentPanel), in: shape)
+            .overlay(shape.strokeBorder(
+                DS.Color.separator,
+                lineWidth: contrast == .increased ? DS.Stroke.emphasis : DS.Stroke.hairline
+            ))
+    }
+}
+
+private struct DSGlassControlModifier: ViewModifier {
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.colorSchemeContrast) private var contrast
+
+    let cornerRadius: CGFloat
+    let interactive: Bool
+
     @ViewBuilder
-    public func dsInsetSurface(cornerRadius: CGFloat = DS.Radius.large) -> some View {
-        if #available(macOS 26.0, *) {
-            self.glassEffect(.regular, in: .rect(cornerRadius: cornerRadius))
+    func body(content: Content) -> some View {
+        let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+        let strokeWidth = contrast == .increased ? DS.Stroke.emphasis : DS.Stroke.hairline
+        if reduceTransparency {
+            content
+                .background(DS.Color.primaryText.opacity(DS.Opacity.controlSurface), in: shape)
+                .overlay(shape.strokeBorder(DS.Color.separator, lineWidth: strokeWidth))
+        } else if #available(macOS 26.0, *) {
+            Group {
+                if interactive {
+                    content.glassEffect(.regular.interactive(), in: shape)
+                } else {
+                    content.glassEffect(.regular, in: shape)
+                }
+            }
+            .overlay {
+                if contrast == .increased {
+                    shape.strokeBorder(DS.Color.separator, lineWidth: DS.Stroke.emphasis)
+                }
+            }
         } else if #available(macOS 15.0, *) {
-            self.background(.thinMaterial, in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+            content
+                .background(.regularMaterial, in: shape)
+                .overlay {
+                    if contrast == .increased {
+                        shape.strokeBorder(DS.Color.separator, lineWidth: DS.Stroke.emphasis)
+                    }
+                }
         } else {
-            self.background(DS.Color.controlBackground, in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+            content
+                .background(DS.Color.primaryText.opacity(DS.Opacity.controlSurface), in: shape)
+                .overlay(shape.strokeBorder(DS.Color.separator, lineWidth: strokeWidth))
         }
     }
 }

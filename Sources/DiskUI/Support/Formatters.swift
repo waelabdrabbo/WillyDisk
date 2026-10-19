@@ -98,6 +98,11 @@ public enum DateFormat {
         date.formatted(date: .abbreviated, time: .shortened)
     }
 
+    /// Date without the time, e.g. "Oct 13, 2026".
+    public static func dateOnly(_ date: Date) -> String {
+        date.formatted(date: .abbreviated, time: .omitted)
+    }
+
     /// Duration string for elapsed time, e.g. "1m 23s". A scan that settles
     /// before the first whole second reads as under a second rather than as
     /// zero, which would look like the scan did no work.

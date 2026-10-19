@@ -23,9 +23,11 @@ import DiskCore
 /// URL, never by `id` — an `id` is a ring/position path that changes as the tree
 /// changes shape.
 public struct SunburstView: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     private let nodes: [ScanNode]
     private let centerLabel: String
     private let selectedNodeURL: URL?
+    private let maxChildren: Int
     @Binding private var hoveredURL: URL?
     private let onSelect: (ScanNode) -> Void
 
@@ -41,12 +43,14 @@ public struct SunburstView: View {
         nodes: [ScanNode],
         centerLabel: String,
         selectedNodeURL: URL? = nil,
+        maxChildren: Int = DS.Sunburst.maxChildrenPerNode,
         hoveredURL: Binding<URL?> = .constant(nil),
         onSelect: @escaping (ScanNode) -> Void
     ) {
         self.nodes = nodes
         self.centerLabel = centerLabel
         self.selectedNodeURL = selectedNodeURL
+        self.maxChildren = maxChildren
         self._hoveredURL = hoveredURL
         self.onSelect = onSelect
     }
@@ -56,8 +60,8 @@ public struct SunburstView: View {
         // part of drawing the chart — walking and ordering the node tree and
         // ranking every sibling group's colours — so they are derived once per
         // change of the data rather than once per redraw.
-        let layout = segmentsCache.layout(for: nodes) {
-            SunburstLayout.segments(roots: nodes)
+        let layout = segmentsCache.layout(for: nodes, maxChildren: maxChildren) {
+            SunburstLayout.segments(roots: nodes, maxChildren: maxChildren)
         }
         return chartSurface(segments: layout.segments, revision: layout.revision)
             // Keyboard focus joins the same shared state a pointer hover does, so
@@ -196,7 +200,7 @@ public struct SunburstView: View {
         // into the first ring.
         .clipShape(Circle())
         .position(center)
-        .animation(.snappy, value: active?.id)
+        .animation(reduceMotion ? nil : .snappy, value: active?.id)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(title), \(detail)")
     }
@@ -205,7 +209,7 @@ public struct SunburstView: View {
         VStack(spacing: DS.Spacing.small) {
             Image(systemName: icon)
                 .font(DS.Icon.medium)
-                .foregroundStyle(DS.Color.tertiaryText)
+                .foregroundStyle(DS.Color.secondaryText)
             Text(message)
                 .font(DS.Typography.callout)
                 .foregroundStyle(DS.Color.secondaryText)
@@ -270,10 +274,17 @@ enum SunburstLayout {
     /// The chart itself, and everything else that needs to know which wedge a node
     /// was drawn as, reads the layout from here: one call, one answer.
     static func segments(roots: [ScanNode]) -> [SunburstSegment] {
+        segments(roots: roots, maxChildren: DS.Sunburst.maxChildrenPerNode)
+    }
+
+    /// The rings when the explorer has revealed more children than the chart's
+    /// default density. The ceiling still applies, so a very long list turns
+    /// its tail into the truthful aggregate instead of unbounded controls.
+    static func segments(roots: [ScanNode], maxChildren: Int) -> [SunburstSegment] {
         segments(
             roots: roots,
             maxRings: DS.Sunburst.maxRings,
-            maxChildren: DS.Sunburst.maxChildrenPerNode,
+            maxChildren: maxChildren,
             maxSegments: DS.Sunburst.maxSegments
         )
     }
@@ -286,8 +297,15 @@ enum SunburstLayout {
     /// a caller showing a node's chart colour draws it neutral rather than claim a
     /// wedge the chart never painted.
     static func fillsByPath(roots: [ScanNode]) -> [String: ChartFill] {
+        fillsByPath(roots: roots, maxChildren: DS.Sunburst.maxChildrenPerNode)
+    }
+
+    /// The fill of every node drawn at the same density the chart is using.
+    /// The explorer must call this with the chart's current page, not the
+    /// default, or a row that is on the chart would keep a neutral icon.
+    static func fillsByPath(roots: [ScanNode], maxChildren: Int) -> [String: ChartFill] {
         var fills: [String: ChartFill] = [:]
-        for segment in segments(roots: roots) {
+        for segment in segments(roots: roots, maxChildren: maxChildren) {
             guard let node = segment.node else { continue }
             fills[node.url.path] = segment.fill
         }
@@ -604,16 +622,16 @@ private struct SunburstWedgeLayer: View, Equatable {
 
 /// What the pointer or the keyboard emphasises on the chart.
 ///
-/// The wedge that is active keeps the fill the layer already gave it; every other
-/// wedge fades back by being covered with the surface it is drawn on. The fade is
-/// one filled path — the chart's square with the active and the selected wedges
-/// cut out of it — so a hover costs a path rather than the chart.
+/// Every wedge keeps the fill the layer gave it. The active wedge alone is washed
+/// with the surface it is drawn on, so it recedes slightly; the rest of the chart
+/// holds its opacity. That keeps the pointer from flashing the whole chart while
+/// still making the wedge under it legible.
 ///
 /// Nothing is outlined for a hover: a wedge at rest draws no outline, and adding
-/// one as the pointer arrives would read as the wedge growing under it. The fade
+/// one as the pointer arrives would read as the wedge growing under it. The wash
 /// alone is what moves the emphasis.
 ///
-/// The selection's outline is drawn here, over the fade, because the fade covers
+/// The selection's outline is drawn here, over the wash, because the wash covers
 /// the fill a wedge draws its outline around: an outline under it would lose its
 /// outer half.
 private struct SunburstEmphasis: View {
@@ -623,19 +641,11 @@ private struct SunburstEmphasis: View {
     let geometry: SunburstGeometry
     let side: CGFloat
 
-    /// The wedges the fade leaves alone: the active one, and the selection, which
-    /// keeps the fill it was given.
-    private func faded(around active: SunburstSegment) -> [SunburstWedge] {
-        guard let selected, selected.id != active.id else { return [wedge(active)] }
-        return [wedge(active), wedge(selected)]
-    }
-
     var body: some View {
         ZStack {
             if let active {
-                SunburstShade(wedges: faded(around: active))
-                    .fill(DS.Color.windowBackground.opacity(DS.Sunburst.shadeOpacity),
-                          style: FillStyle(eoFill: true))
+                SunburstShade(wedges: [wedge(active)])
+                    .fill(DS.Color.windowBackground.opacity(DS.Sunburst.hoverShadeOpacity))
             }
             if let selected {
                 // The selected wedge carries the heaviest outline in the chart.
@@ -645,8 +655,8 @@ private struct SunburstEmphasis: View {
             }
         }
         .frame(width: side, height: side)
-        // The fade covers the whole chart, and the wedges underneath it are the
-        // controls: the emphasis is a picture of the pointer, never a target.
+        // The emphasis is a picture of the pointer, never a target. It covers
+        // only the active wedge; the wedges underneath remain the controls.
         .allowsHitTesting(false)
     }
 
@@ -663,19 +673,17 @@ private struct SunburstEmphasis: View {
     }
 }
 
-/// The chart's square with a set of wedges cut out of it.
+/// The active wedge, filled as a shape of its own.
 ///
-/// Filled even-odd, so the wedges it is given become holes and everything else is
-/// covered. The chart is drawn directly on the window's background
-/// (`DS.Color.windowBackground`), which is what makes covering it a fade rather
-/// than a repaint: the covered wedges end up at `DS.Sunburst.shadeOpacity` of the
-/// fill they already carry, and the gaps between them and the space around the
-/// chart are painted their own colour back.
+/// The chart is drawn directly on the window's background
+/// (`DS.Color.windowBackground`), so washing one wedge with that surface lowers
+/// its opacity toward the page without touching its neighbours or the gaps
+/// between wedges.
 private struct SunburstShade: Shape {
     var wedges: [SunburstWedge]
 
     func path(in rect: CGRect) -> Path {
-        var path = Path(rect)
+        var path = Path()
         for wedge in wedges {
             path.addPath(wedge.path(in: rect))
         }
@@ -775,15 +783,19 @@ private struct SunburstWedgeView: View, Equatable {
 /// without comparing the segments themselves.
 private final class SunburstSegmentsCache {
     private var ids: [UUID] = []
+    private var maxChildren = -1
     private var held: [SunburstSegment] = []
     private var revision = 0
 
-    func layout(for nodes: [ScanNode], build: () -> [SunburstSegment])
+    func layout(for nodes: [ScanNode], maxChildren: Int, build: () -> [SunburstSegment])
         -> (segments: [SunburstSegment], revision: Int) {
         let ids = nodes.map(\.id)
-        guard ids != self.ids else { return (held, revision) }
+        guard ids != self.ids || maxChildren != self.maxChildren else {
+            return (held, revision)
+        }
         held = build()
         self.ids = ids
+        self.maxChildren = maxChildren
         revision += 1
         return (held, revision)
     }

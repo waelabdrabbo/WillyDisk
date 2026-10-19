@@ -100,7 +100,7 @@ struct CoverageSheet: View {
     private var header: some View {
         HStack(alignment: .top, spacing: DS.Spacing.medium) {
             Image(systemName: "info.circle")
-                .font(.system(size: 24, weight: .regular))
+                .font(DS.Icon.medium)
                 .foregroundStyle(DS.Color.accent)
                 .frame(width: 32)
             VStack(alignment: .leading, spacing: DS.Spacing.xSmall) {
@@ -121,7 +121,7 @@ struct CoverageSheet: View {
 
     private func section(_ title: String, rows: [CoverageRow]) -> some View {
         VStack(alignment: .leading, spacing: DS.Spacing.small) {
-            Text(title.uppercased())
+            Text(title)
                 .font(DS.Typography.caption)
                 .fontWeight(.semibold)
                 .foregroundStyle(DS.Color.secondaryText)
@@ -156,7 +156,7 @@ struct CoverageSheet: View {
 
     private var snapshotSection: some View {
         VStack(alignment: .leading, spacing: DS.Spacing.small) {
-            Text("SNAPSHOTS")
+            Text("Snapshots")
                 .font(DS.Typography.caption)
                 .fontWeight(.semibold)
                 .foregroundStyle(DS.Color.secondaryText)

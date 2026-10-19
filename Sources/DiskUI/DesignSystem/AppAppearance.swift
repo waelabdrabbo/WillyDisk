@@ -44,6 +44,13 @@ public enum AppAppearance: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
+    /// Applies the preference to the app object, which every window, panel and
+    /// menu inherits. `nil` hands the choice back to the system.
+    @MainActor
+    public static func apply(_ appearance: AppAppearance) {
+        NSApplication.shared.appearance = appearance.nsAppearance
+    }
+
     /// The appearance the app is pinned to, as the app object takes it. `nil`
     /// follows the system.
     public var nsAppearance: NSAppearance? {

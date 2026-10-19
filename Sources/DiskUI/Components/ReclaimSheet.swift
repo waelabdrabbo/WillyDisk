@@ -73,7 +73,7 @@ struct ReclaimSheet: View {
         VStack(alignment: .leading, spacing: DS.Spacing.large) {
             HStack(alignment: .top, spacing: DS.Spacing.medium) {
                 Image(systemName: "trash")
-                    .font(.system(size: 24, weight: .regular))
+                    .font(DS.Icon.medium)
                     .foregroundStyle(DS.Color.secondaryText)
                     .frame(width: 32)
                 VStack(alignment: .leading, spacing: DS.Spacing.xSmall) {
@@ -155,9 +155,9 @@ struct ReclaimSheet: View {
                     .frame(height: 220)
             }
         }
-        .background(DS.Color.controlBackground, in: RoundedRectangle(cornerRadius: DS.Radius.medium))
+        .background(DS.Color.controlBackground, in: RoundedRectangle(cornerRadius: DS.Radius.medium, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: DS.Radius.medium)
+            RoundedRectangle(cornerRadius: DS.Radius.medium, style: .continuous)
                 .strokeBorder(DS.Color.separator, lineWidth: DS.Spacing.hairline)
         )
     }
@@ -176,7 +176,7 @@ struct ReclaimSheet: View {
                             .lineLimit(1)
                         Text(PathFormat.abbreviated(candidate.url.path))
                             .font(DS.Typography.caption)
-                            .foregroundStyle(DS.Color.tertiaryText)
+                            .foregroundStyle(DS.Color.mutedText)
                             .lineLimit(1)
                             .truncationMode(.middle)
                         if candidate.isDirectory {
@@ -227,7 +227,7 @@ struct ReclaimSheet: View {
         }
         .padding(DS.Spacing.medium)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(DS.Color.warning.opacity(0.12), in: RoundedRectangle(cornerRadius: DS.Radius.medium))
+        .background(DS.Color.warning.opacity(0.12), in: RoundedRectangle(cornerRadius: DS.Radius.medium, style: .continuous))
     }
 }
 

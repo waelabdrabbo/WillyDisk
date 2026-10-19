@@ -13,6 +13,7 @@ import DiskCore
 /// `ScanViewModel` (with the real `ScanEngine`) and host this view.
 @MainActor
 public struct ScanFlowView: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var viewModel: ScanViewModel
 
     public init(viewModel: ScanViewModel = ScanViewModel()) {
@@ -30,8 +31,12 @@ public struct ScanFlowView: View {
             }
             screen
         }
-        .animation(.snappy, value: viewModel.route)
-        .animation(.snappy, value: viewModel.blockedStartNotice)
+        .animation(reduceMotion ? nil : .snappy, value: viewModel.route)
+        .animation(reduceMotion ? nil : .snappy, value: viewModel.blockedStartNotice)
+        .focusedSceneValue(\.scanCommands, ScanCommands(
+            canCancel: viewModel.isScanning,
+            cancel: { viewModel.cancel() }
+        ))
     }
 
     @ViewBuilder

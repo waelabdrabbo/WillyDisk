@@ -17,4 +17,15 @@ public enum ScanProvenance {
     public static func live(startedAt: Date, now: Date) -> String {
         "Scanning since \(DateFormat.short(startedAt)) · \(DateFormat.duration(now.timeIntervalSince(startedAt))) elapsed"
     }
+
+    /// The compact form that fits beside the list's counts. The full text stays
+    /// available as the tooltip and the accessibility label.
+    public static func compactSettled(startedAt: Date, finishedAt: Date) -> String {
+        "Scanned \(DateFormat.dateOnly(startedAt)) · \(DateFormat.duration(finishedAt.timeIntervalSince(startedAt)))"
+    }
+
+    /// The compact form for a live scan; the elapsed time still moves.
+    public static func compactLive(startedAt: Date, now: Date) -> String {
+        "Scanning · \(DateFormat.duration(now.timeIntervalSince(startedAt)))"
+    }
 }

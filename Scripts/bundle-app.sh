@@ -9,8 +9,9 @@
 # Inside an agent sandbox, where SwiftPM cannot nest its own sandbox:
 #          WILLYDISK_NO_SANDBOX=1 bash Scripts/bundle-app.sh
 #
-# The bundle contains Contents/MacOS/WillyDisk and an Info.plist carrying
-# LSMinimumSystemVersion 14.0, CFBundleIdentifier, and NSHighResolutionCapable.
+# The bundle contains Contents/MacOS/WillyDisk, the original app icon, and an
+# Info.plist carrying LSMinimumSystemVersion 14.0, CFBundleIdentifier, and
+# NSHighResolutionCapable.
 set -euo pipefail
 
 # Resolve the repository root (the directory containing Package.swift).
@@ -22,6 +23,7 @@ CONFIGURATION="${CONFIGURATION:-release}"
 APP_NAME="WillyDisk"
 BIN_PATH="$ROOT_DIR/.build/$CONFIGURATION/$APP_NAME"
 APP_BUNDLE="$ROOT_DIR/.build/$APP_NAME.app"
+ICON_SRC="$ROOT_DIR/Resources/AppIcon.icns"
 
 # Minimum supported OS — must match `platforms: [.macOS(.v14)]` in Package.swift.
 DEPLOYMENT_TARGET="14.0"
@@ -69,7 +71,13 @@ echo "Assembling $APP_BUNDLE …"
 rm -rf "$APP_BUNDLE"
 mkdir -p "$MACOS_DIR" "$RESOURCES_DIR"
 
+if [ ! -f "$ICON_SRC" ]; then
+    echo "error: missing app icon at $ICON_SRC" >&2
+    exit 1
+fi
+
 cp "$BIN_PATH" "$STAGED_BIN"
+cp "$ICON_SRC" "$RESOURCES_DIR/AppIcon.icns"
 
 # Guard 2: restamp after staging and before signing. vtool warns that rewriting
 # the Mach-O invalidates the (ad-hoc) signature; that is expected — we re-sign
@@ -111,6 +119,12 @@ cat > "$CONTENTS_DIR/Info.plist" <<PLIST
     <string>WillyDisk</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
+    <key>LSApplicationCategoryType</key>
+    <string>public.app-category.utilities</string>
+    <key>NSHumanReadableCopyright</key>
+    <string>Copyright © 2026 WillyDisk.</string>
     <key>LSMinimumSystemVersion</key>
     <string>14.0</string>
     <key>NSHighResolutionCapable</key>

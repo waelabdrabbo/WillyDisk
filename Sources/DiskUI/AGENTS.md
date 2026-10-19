@@ -21,8 +21,7 @@ stream reports.
 - `Support/` — non-view helpers: `ExplorerQuery` (sorting/filtering), `Formatters`,
   `LocationName` (a location's display name), `VolumeInfo`, `RecentLocations`,
   `FullDiskAccess` + `FullDiskAccessProbe`, `ScanIssuesPresentation`,
-  `ScanSlotPresentation`, `ReportExport` (JSON/CSV through `NSSavePanel`),
-  `AccessNoticeDismissal`.
+  `ScanSlotPresentation`, `ReportExport` (JSON/CSV through `NSSavePanel`).
 
 ## Rules
 

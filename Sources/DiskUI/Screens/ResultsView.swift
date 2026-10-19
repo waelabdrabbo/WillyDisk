@@ -21,7 +21,9 @@ public struct ResultsView: View {
 
     // Chart / explorer navigation
     @State private var breadcrumb: [ScanNode] = []
-    @State private var selectedNode: ScanNode?
+    @State private var selection = ExplorerSelection()
+    @FocusState private var listFocused: Bool
+    @State private var quickLook = QuickLookPreview()
 
     // Explorer controls
     @State private var searchText = ""
@@ -224,6 +226,34 @@ public struct ResultsView: View {
         }
     }
 
+    /// The rows the current scope can select: every entry in the folder, or the
+    /// engine's ranked lists. Filtering narrows what the list draws, not what a
+    /// selection may hold, so typing in the search field does not throw away a
+    /// choice made before the typing started.
+    private var scopeNodes: [ScanNode] {
+        explorerMode == .folder ? currentChildren : topNodes
+    }
+
+    /// The selected nodes, resolved against the live results rather than the
+    /// values captured at click time. They follow the order the rows are shown,
+    /// so Quick Look pages and batch details read in the order the user clicked
+    /// through. A node's size and error state keep changing while a scan is
+    /// still walking it; the URL is what was chosen.
+    ///
+    /// Rows a search or filter hides are still selected and still acted on; they
+    /// follow the visible rows in scope order.
+    private var selectedNodes: [ScanNode] {
+        let visible = visibleRows.compactMap { row in
+            selection.contains(row.url) ? row.node : nil
+        }
+        let shown = Set(visible.map(\.url))
+        let hidden = scopeNodes.filter { selection.contains($0.url) && !shown.contains($0.url) }
+        return visible + hidden
+    }
+
+    /// The order clicks, Shift ranges and the arrow keys count through.
+    private var rowOrder: [URL] { visibleRows.map(\.url) }
+
     private var isFiltering: Bool {
         explorerMode == .folder ? (!searchText.isEmpty || filterCategory != nil) : !searchText.isEmpty
     }
@@ -281,7 +311,10 @@ public struct ResultsView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .environment(hover)
         .navigationTitle(windowTitle)
-        .navigationSubtitle(windowSubtitle)
+        // The toolbar trail already shows the path once the user has stepped into
+        // a folder; the subtitle is only needed at the scanned root, where there
+        // is no trail.
+        .navigationSubtitle(isDrilledIn ? "" : windowSubtitle)
         .onChange(of: rowSetKey) { _, _ in
             // The row under the pointer can leave the screen without an exit
             // event when the visible set changes, so the shared hover is dropped
@@ -293,7 +326,7 @@ public struct ResultsView: View {
             // that were about the old list would otherwise point at rows that are
             // no longer on screen.
             hover.url = nil
-            selectedNode = nil
+            clearSelection()
             searchText = ""
             filterCategory = nil
             // The chart shows a folder; the largest lists are about the whole
@@ -302,6 +335,22 @@ public struct ResultsView: View {
             if newMode != .folder {
                 breadcrumb.removeAll()
             }
+        }
+        .onChange(of: viewModel.resultsRevision) { _, _ in
+            // Starting, settling or cancelling a scan can replace the rows under
+            // a selection. The URLs still in the list keep their selection; the
+            // ones that have gone do not, so no action is ever aimed at a row the
+            // screen no longer has.
+            pruneSelection()
+        }
+        .onChange(of: selection) { _, _ in
+            // An open panel follows the selection; a closed one stays closed.
+            quickLook.updateIfVisible(selectedNodes.map(\.url))
+        }
+        .onDisappear {
+            // The panel belongs to the window, not to this view; leaving the
+            // results must not leave a preview of them on screen.
+            quickLook.close()
         }
         .task(id: viewModel.scanRun) {
             // Re-run for every scan and on Rescan: grant Full Disk Access in
@@ -343,6 +392,11 @@ public struct ResultsView: View {
         }
         .interactiveDismissDisabled(isTrashing)
         .toolbar {
+            if explorerMode == .folder && !breadcrumb.isEmpty {
+                ToolbarItem(placement: .principal) {
+                    breadcrumbTrail
+                }
+            }
             // One step back, wherever the screen is: out of the folder the chart
             // is drawn from, and from the scanned location itself to source
             // selection. There is no separate Home action because this is the
@@ -635,10 +689,10 @@ public struct ResultsView: View {
                 SunburstView(
                     nodes: currentChildren,
                     centerLabel: breadcrumb.last?.name ?? scannedRootName ?? "Root",
-                    selectedNodeURL: selectedNode?.url,
+                    selectedNodeURL: selectedNodes.count == 1 ? selectedNodes[0].url : nil,
                     hoveredURL: $hover.url
                 ) { node in
-                    select(node)
+                    chartSelect(node)
                 }
                 .padding(DS.Spacing.medium)
             }
@@ -669,12 +723,10 @@ public struct ResultsView: View {
             topListCaption
             explorerToolbar
 
-            ScrollView {
-                contentsList
-            }
+            contentsList
 
-            if let node = selectedNode {
-                detailPane(node)
+            if !selectedNodes.isEmpty {
+                detailPane
             }
         }
     }
@@ -692,6 +744,59 @@ public struct ResultsView: View {
         .padding(.horizontal, DS.Spacing.medium)
         .padding(.bottom, DS.Spacing.xSmall)
         .accessibilityLabel("Explorer view")
+    }
+
+    /// The path to the folder the chart is drawn from, with every ancestor
+    /// clickable. The current folder is text, not a button that would do nothing.
+    ///
+    /// The trail lives in the toolbar's centre so the navigation state stays in
+    /// the window chrome instead of taking a row from the list. It mirrors the
+    /// chart: choosing a crumb re-roots the chart at that folder, and the crumbs
+    /// after it are dropped. It is only meaningful while the list is showing a
+    /// folder; the largest lists are about the whole scan.
+    private var breadcrumbTrail: some View {
+        HStack(spacing: DS.Spacing.xSmall) {
+            crumb(
+                scannedRootName ?? "Scanned Folder",
+                action: { goToBreadcrumb(depth: 0) }
+            )
+            .layoutPriority(1)
+
+            ForEach(Array(breadcrumb.enumerated()), id: \.element.url) { index, node in
+                Image(systemName: "chevron.right")
+                    .font(DS.Icon.disclosure)
+                    .foregroundStyle(DS.Color.tertiaryText)
+                crumb(
+                    node.name,
+                    isCurrent: index == breadcrumb.count - 1,
+                    action: { goToBreadcrumb(depth: index + 1) }
+                )
+                .layoutPriority(index == breadcrumb.count - 1 ? 2 : 0)
+            }
+        }
+        .frame(maxWidth: DS.Size.toolbarBreadcrumbMaxWidth)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Folder path")
+    }
+
+    @ViewBuilder
+    private func crumb(_ name: String, isCurrent: Bool = false, action: @escaping () -> Void) -> some View {
+        if isCurrent {
+            Text(name)
+                .font(DS.Typography.caption)
+                .foregroundStyle(DS.Color.primaryText)
+                .lineLimit(1)
+                .accessibilityAddTraits(.isHeader)
+        } else {
+            Button(action: action) {
+                Text(name)
+                    .font(DS.Typography.caption)
+                    .foregroundStyle(DS.Color.secondaryText)
+                    .lineLimit(1)
+            }
+            .buttonStyle(.plain)
+            .help("Show “\(name)”")
+        }
     }
 
     /// Says what the list is ranked by, and — while a search is on — that the
@@ -886,16 +991,54 @@ public struct ResultsView: View {
         ContentsList(
             rows: visibleRows,
             emptyMessage: listEmptyMessage,
-            selectedURL: selectedNode?.url,
-            onSelect: { node in select(node) },
-            onReclaim: { node in requestReclaim([node]) },
-            onReveal: revealInFinder
+            selection: selection,
+            selectedCount: selectedNodes.count,
+            isFocused: $listFocused,
+            onClick: handleClick,
+            onOpen: activate,
+            onMove: { offset, extending in
+                selection.move(by: offset, in: rowOrder, extending: extending)
+            },
+            onJump: { index, extending in
+                selection.jump(to: index, in: rowOrder, extending: extending)
+            },
+            onQuickLook: { node in
+                if let node {
+                    quickLook.toggle(contextTargets(for: node).map(\.url))
+                } else {
+                    quickLook.toggle(selectedNodes.map(\.url))
+                }
+            },
+            onReveal: { node in
+                revealInFinder(contextTargets(for: node))
+            },
+            onReclaim: { node in
+                requestReclaim(contextTargets(for: node))
+            },
+            onEscape: clearSelection
         )
     }
 
     // MARK: - Detail pane
 
-    private func detailPane(_ node: ScanNode) -> some View {
+    /// What the explorer says about what is selected: one item's own details, or
+    /// the whole selection's shared facts. A folder shows its own size and
+    /// contents here without being entered; browsing is a separate action.
+    @ViewBuilder
+    private var detailPane: some View {
+        Group {
+            if selectedNodes.count == 1, let node = selectedNodes.first {
+                singleDetailPane(node)
+            } else {
+                multiDetailPane
+            }
+        }
+        .padding(DS.Spacing.medium)
+        .background(DS.Color.controlBackground.opacity(0.5))
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func singleDetailPane(_ node: ScanNode) -> some View {
         VStack(alignment: .leading, spacing: DS.Spacing.small) {
             HStack(spacing: DS.Spacing.small) {
                 Image(systemName: node.isDirectory ? "folder.fill" : "doc.fill")
@@ -909,16 +1052,29 @@ public struct ResultsView: View {
                     .truncationMode(.middle)
                 Spacer()
                 Button {
-                    revealInFinder(node)
+                    quickLook.toggle([node.url])
                 } label: {
-                    Label("Reveal in Finder", systemImage: "arrow.up.forward.square")
+                    Image(systemName: "eye")
+                        .foregroundStyle(DS.Color.primaryText)
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
+                .help("Quick Look")
+                .accessibilityLabel("Quick Look")
+                Button {
+                    revealInFinder([node])
+                } label: {
+                    Image(systemName: "arrow.up.forward.square")
+                        .foregroundStyle(DS.Color.primaryText)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .help("Reveal in Finder")
+                .accessibilityLabel("Reveal in Finder")
             }
 
             detailRow("Path", node.url.path)
-            detailRow("Kind", node.category.displayName)
+            detailRow("Kind", node.isDirectory ? "Folder" : node.category.displayName)
             detailRow("Size", ByteFormat.exact(node.logicalSize))
             detailRow("On disk", ByteFormat.exact(node.allocatedSize))
             if node.isDirectory {
@@ -935,6 +1091,17 @@ public struct ResultsView: View {
                     .foregroundStyle(DS.Color.warning)
             }
 
+            if node.isDirectory {
+                Button {
+                    activate(node)
+                } label: {
+                    Label("Browse This Folder", systemImage: "folder")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+            }
+
             Button(role: .destructive) {
                 requestReclaim([node])
             } label: {
@@ -945,9 +1112,73 @@ public struct ResultsView: View {
             .controlSize(.small)
             .padding(.top, DS.Spacing.xSmall)
         }
-        .padding(DS.Spacing.medium)
-        .background(DS.Color.controlBackground.opacity(0.5))
-        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var multiDetailPane: some View {
+        let nodes = selectedNodes
+        let logical = nodes.reduce(Int64(0)) { $0 + $1.logicalSize }
+        let allocated = nodes.reduce(Int64(0)) { $0 + $1.allocatedSize }
+        let kind: String
+        if nodes.allSatisfy({ $0.isDirectory }) {
+            kind = "Folders"
+        } else if nodes.allSatisfy({ !$0.isDirectory }) {
+            kind = "Files"
+        } else {
+            kind = "Files and folders"
+        }
+        let parents = Set(nodes.map { $0.url.deletingLastPathComponent() })
+        let commonParent = parents.count == 1 ? parents.first : nil
+
+        return VStack(alignment: .leading, spacing: DS.Spacing.small) {
+            HStack(spacing: DS.Spacing.small) {
+                Image(systemName: "square.stack.fill")
+                    .foregroundStyle(DS.Color.accent)
+                Text("\(nodes.count) Items Selected")
+                    .font(DS.Typography.headline)
+                Spacer()
+                Button {
+                    quickLook.toggle(nodes.map(\.url))
+                } label: {
+                    Image(systemName: "eye")
+                        .foregroundStyle(DS.Color.primaryText)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .help("Quick Look")
+                .accessibilityLabel("Quick Look")
+                Button {
+                    revealInFinder(nodes)
+                } label: {
+                    Image(systemName: "arrow.up.forward.square")
+                        .foregroundStyle(DS.Color.primaryText)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .help("Reveal in Finder")
+                .accessibilityLabel("Reveal in Finder")
+            }
+
+            detailRow("Kind", kind)
+            detailRow("Size", ByteFormat.exact(logical))
+            detailRow("On disk", ByteFormat.exact(allocated))
+            if let commonParent {
+                detailRow("Location", PathFormat.abbreviated(commonParent.path))
+            }
+
+            Text("Actions apply to the whole selection.")
+                .font(DS.Typography.caption)
+                .foregroundStyle(DS.Color.secondaryText)
+                .padding(.top, DS.Spacing.xSmall)
+
+            Button(role: .destructive) {
+                requestReclaim(nodes)
+            } label: {
+                Label("Move \(nodes.count) Items to the Trash…", systemImage: "trash")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+        }
     }
 
     @ViewBuilder
@@ -967,15 +1198,41 @@ public struct ResultsView: View {
 
     // MARK: - Actions
 
-    private func select(_ node: ScanNode) {
+    /// A click selects the row. The modifiers are read at click time because a
+    /// SwiftUI button's action does not carry them.
+    private func handleClick(_ url: URL) {
+        let click = ExplorerClick.current
+        selection.click(url, in: rowOrder, toggling: click.toggling, extending: click.extending)
+        listFocused = true
+    }
+
+    /// A chart click that lands on a folder enters it — the chart is the map of
+    /// the current folder, so a wedge is a way in. A file click selects the file
+    /// so its row and details can be shown without leaving the chart.
+    private func chartSelect(_ node: ScanNode) {
         if node.isDirectory {
-            hover.url = nil
-            breadcrumb.append(node)
-            selectedNode = nil
-            explorerMode = .folder
+            enter(node)
         } else {
-            selectedNode = node
+            selection.selectOnly(node.url)
+            listFocused = true
         }
+    }
+
+    /// Double-click, Return and the detail pane's Browse button: folders are
+    /// entered, files open in their default application.
+    private func activate(_ node: ScanNode) {
+        if node.isDirectory {
+            enter(node)
+        } else {
+            NSWorkspace.shared.open(node.url)
+        }
+    }
+
+    private func enter(_ node: ScanNode) {
+        hover.url = nil
+        breadcrumb.append(node)
+        clearSelection()
+        explorerMode = .folder
     }
 
     /// Steps back one place: out of the folder the chart is drawn from, and from
@@ -988,12 +1245,50 @@ public struct ResultsView: View {
             return
         }
         hover.url = nil
-        selectedNode = nil
+        clearSelection()
         breadcrumb.removeLast()
     }
 
-    private func revealInFinder(_ node: ScanNode) {
-        NSWorkspace.shared.activateFileViewerSelecting([node.url])
+    /// Re-roots the chart at an ancestor. `depth` is how many crumbs are kept,
+    /// so zero returns to the scanned location.
+    private func goToBreadcrumb(depth: Int) {
+        guard depth < breadcrumb.count else { return }
+        hover.url = nil
+        clearSelection()
+        breadcrumb = Array(breadcrumb.prefix(depth))
+    }
+
+    private func revealInFinder(_ nodes: [ScanNode]) {
+        let urls = nodes.map(\.url)
+        guard !urls.isEmpty else { return }
+        NSWorkspace.shared.activateFileViewerSelecting(urls)
+    }
+
+    /// The rows an action on `node` applies to: the whole selection when the
+    /// action was invoked from one of its rows, and only that row otherwise.
+    private func contextTargets(for node: ScanNode) -> [ScanNode] {
+        if selection.contains(node.url) {
+            let targets = selectedNodes
+            if !targets.isEmpty { return targets }
+        }
+        selection.selectOnly(node.url)
+        return [node]
+    }
+
+    private func clearSelection() {
+        selection.clear()
+    }
+
+    /// Keeps the selection to the URLs still in the list's scope, so a row that a
+    /// new snapshot retires cannot stay selected and cannot be acted on.
+    private func pruneSelection() {
+        // Visible rows first so a cursor that must move lands on something the
+        // user can see; filtered-out rows stay available so their selection is
+        // not lost while a search is active.
+        let visible = rowOrder
+        let shown = Set(visible)
+        let hidden = scopeNodes.map(\.url).filter { !shown.contains($0) }
+        selection.prune(to: visible + hidden)
     }
 
     /// Opens the confirmation sheet for the items just chosen.
@@ -1034,6 +1329,11 @@ public struct ResultsView: View {
             await viewModel.reclaim(candidates)
             isTrashing = false
             activeSheet = nil
+            // A moved row is still in the settled results until the next scan, so
+            // the selection must not keep pointing at it.
+            if viewModel.resultsAreStale {
+                clearSelection()
+            }
         }
     }
 
@@ -1045,7 +1345,7 @@ public struct ResultsView: View {
     private func rescan() {
         hover.url = nil
         breadcrumb.removeAll()
-        selectedNode = nil
+        clearSelection()
         searchText = ""
         filterCategory = nil
         explorerMode = .folder
@@ -1058,7 +1358,7 @@ public struct ResultsView: View {
         // screen can show it and View can open it again; the scan is untouched.
         hover.url = nil
         breadcrumb.removeAll()
-        selectedNode = nil
+        clearSelection()
         searchText = ""
         filterCategory = nil
         explorerMode = .folder
@@ -1091,6 +1391,19 @@ final class ChartHover {
     }
 }
 
+/// The selection modifiers of the click being handled.
+///
+/// A SwiftUI button's action does not carry the event that triggered it, so the
+/// current AppKit modifier flags are read when the action runs. Shift wins over
+/// Command, matching the extended range a Command-Shift click draws.
+private enum ExplorerClick {
+    static var current: (toggling: Bool, extending: Bool) {
+        let flags = NSEvent.modifierFlags
+        let extending = flags.contains(.shift)
+        return (toggling: !extending && flags.contains(.command), extending: extending)
+    }
+}
+
 /// The explorer's rows.
 ///
 /// The list is the one part of the screen that reads the shared hover, so it lives
@@ -1099,48 +1412,139 @@ final class ChartHover {
 private struct ContentsList: View {
     let rows: [ExplorerRow]
     let emptyMessage: String
-    let selectedURL: URL?
-    let onSelect: (ScanNode) -> Void
-    let onReclaim: (ScanNode) -> Void
+    let selection: ExplorerSelection
+    let selectedCount: Int
+    @FocusState.Binding var isFocused: Bool
+    let onClick: (URL) -> Void
+    let onOpen: (ScanNode) -> Void
+    let onMove: (Int, Bool) -> Void
+    let onJump: (Int, Bool) -> Void
+    let onQuickLook: (ScanNode?) -> Void
     let onReveal: (ScanNode) -> Void
+    let onReclaim: (ScanNode) -> Void
+    let onEscape: () -> Void
 
     @Environment(ChartHover.self) private var hover
 
     var body: some View {
-        LazyVStack(spacing: 0) {
-            if rows.isEmpty {
-                VStack(spacing: DS.Spacing.small) {
-                    Text(emptyMessage)
-                        .font(DS.Typography.callout)
-                        .foregroundStyle(DS.Color.secondaryText)
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, DS.Spacing.xxLarge)
-            } else {
-                ForEach(rows, id: \.url) { row in
-                    NodeRow(
-                        row: row,
-                        isSelected: selectedURL == row.url,
-                        isHovered: hover.url == row.url,
-                        action: { onSelect(row.node) },
-                        onHover: { hovering in hover.set(row.url, hovering) }
-                    )
-                    // Opting the row into equatable rendering is what makes its
-                    // `Equatable` conformance do anything: without it SwiftUI
-                    // rebuilds every row on each pass, so a hover or a selection
-                    // would re-render the whole list.
-                    .equatable()
-                    .contextMenu {
-                        Button("Move to Trash…", role: .destructive) {
-                            onReclaim(row.node)
+        // The scroll view is the keyboard focus holder: the rows decline focus
+        // themselves so the arrow keys, Home/End and Space reach this one handler
+        // instead of moving between the rows' buttons.
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(spacing: 0) {
+                    if rows.isEmpty {
+                        VStack(spacing: DS.Spacing.small) {
+                            Text(emptyMessage)
+                                .font(DS.Typography.callout)
+                                .foregroundStyle(DS.Color.secondaryText)
                         }
-                        Button("Reveal in Finder") {
-                            onReveal(row.node)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, DS.Spacing.xxLarge)
+                    } else {
+                        ForEach(rows, id: \.url) { row in
+                            let targets = selection.contains(row.url) ? max(selectedCount, 1) : 1
+                            NodeRow(
+                                row: row,
+                                isSelected: selection.contains(row.url),
+                                isHovered: hover.url == row.url,
+                                isFocused: isFocused && selection.focused == row.url,
+                                action: { onClick(row.url) },
+                                onHover: { hovering in hover.set(row.url, hovering) }
+                            )
+                            // Opting the row into equatable rendering is what makes
+                            // its `Equatable` conformance do anything: without it
+                            // SwiftUI rebuilds every row on each pass, so a hover or
+                            // a selection would re-render the whole list.
+                            .equatable()
+                            .simultaneousGesture(
+                                TapGesture(count: 2).onEnded { onOpen(row.node) }
+                            )
+                            .id(row.url)
+                            .contextMenu {
+                                Button(targets == 1 ? "Quick Look" : "Quick Look \(targets) Items") {
+                                    onQuickLook(row.node)
+                                }
+                                Button(targets == 1 ? "Reveal in Finder" : "Reveal \(targets) Items in Finder") {
+                                    onReveal(row.node)
+                                }
+                                Divider()
+                                Button(
+                                    targets == 1 ? "Move to Trash…" : "Move \(targets) Items to Trash…",
+                                    role: .destructive
+                                ) {
+                                    onReclaim(row.node)
+                                }
+                            }
                         }
                     }
                 }
             }
+            .focusable()
+            .focused($isFocused)
+            .focusEffectDisabled()
+            .onKeyPress(phases: .down) { press in key(press) }
+            .onChange(of: isFocused) { _, focused in
+                // Tabbing into the list puts the cursor on the first row, so the
+                // list has a visible focus rather than being focused invisibly.
+                if focused && selection.focused == nil && !rows.isEmpty {
+                    onJump(0, false)
+                }
+            }
+            .onChange(of: selection.focused) { _, focused in
+                guard let focused else { return }
+                withAnimation(.easeOut(duration: 0.12)) {
+                    proxy.scrollTo(focused)
+                }
+            }
+            .accessibilityElement(children: .contain)
+            .accessibilityLabel("Files and folders")
+            .accessibilityHint("Use the arrow keys to move through the list, Space to preview, and Return to open.")
         }
+    }
+
+    private func key(_ press: KeyPress) -> KeyPress.Result {
+        // Command, Option and Control belong to the system or the app's menus.
+        // Only plain keys and Shift are the list's own.
+        if press.modifiers.contains(.command)
+            || press.modifiers.contains(.option)
+            || press.modifiers.contains(.control) {
+            return .ignored
+        }
+        let extending = press.modifiers.contains(.shift)
+        if press.key == .upArrow {
+            onMove(-1, extending)
+            return .handled
+        }
+        if press.key == .downArrow {
+            onMove(1, extending)
+            return .handled
+        }
+        if press.key == .home {
+            onJump(0, extending)
+            return .handled
+        }
+        if press.key == .end {
+            onJump(rows.count - 1, extending)
+            return .handled
+        }
+        if press.key == .space {
+            guard !selection.isEmpty else { return .ignored }
+            onQuickLook(nil)
+            return .handled
+        }
+        if press.key == .return {
+            guard let focused = selection.focused,
+                  let node = rows.first(where: { $0.url == focused })?.node else { return .ignored }
+            onOpen(node)
+            return .handled
+        }
+        if press.key == .escape {
+            guard !selection.isEmpty else { return .ignored }
+            onEscape()
+            return .handled
+        }
+        return .ignored
     }
 }
 
@@ -1319,11 +1723,15 @@ private struct NodeRow: View, Equatable {
     let row: ExplorerRow
     let isSelected: Bool
     let isHovered: Bool
+    let isFocused: Bool
     let action: () -> Void
     let onHover: (Bool) -> Void
 
     nonisolated static func == (lhs: NodeRow, rhs: NodeRow) -> Bool {
-        lhs.row == rhs.row && lhs.isSelected == rhs.isSelected && lhs.isHovered == rhs.isHovered
+        lhs.row == rhs.row
+            && lhs.isSelected == rhs.isSelected
+            && lhs.isHovered == rhs.isHovered
+            && lhs.isFocused == rhs.isFocused
     }
 
     var body: some View {
@@ -1367,8 +1775,10 @@ private struct NodeRow: View, Equatable {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .focusable(false)
             .onHover(perform: onHover)
-            .accessibilityLabel("\(row.name), \(row.sizeText)")
+            .accessibilityLabel("\(row.name), \(row.subtitle), \(row.sizeText)")
+            .accessibilityAddTraits(isSelected ? [.isSelected] : [])
             Divider()
         }
     }
@@ -1380,10 +1790,13 @@ private struct NodeRow: View, Equatable {
     }
 
     /// A hairline stroke marks the hovered row. The selection keeps its fill
-    /// alone, so the two states stay distinct.
+    /// alone, so the two states stay distinct. The keyboard cursor gets a
+    /// stronger stroke, which is the only visible focus the list has.
     @ViewBuilder
     private var rowStroke: some View {
-        if isHovered && !isSelected {
+        if isFocused {
+            Rectangle().strokeBorder(DS.Color.accent, lineWidth: DS.Stroke.emphasis)
+        } else if isHovered && !isSelected {
             Rectangle().strokeBorder(DS.Color.separator, lineWidth: DS.Stroke.hairline)
         } else {
             SwiftUI.Color.clear

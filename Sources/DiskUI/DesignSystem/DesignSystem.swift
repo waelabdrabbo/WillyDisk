@@ -56,6 +56,9 @@ public enum DS {
         public static let wideActionMinWidth: CGFloat = 180
         /// Fixed width of a volume's usage gauge.
         public static let gaugeWidth: CGFloat = 120
+        /// Widest the toolbar's folder trail grows before its names compress, so a
+        /// deep path cannot push the title or the trailing actions out of reach.
+        public static let toolbarBreadcrumbMaxWidth: CGFloat = 420
         /// The explorer's share of the results window's width. The chart takes the
         /// remaining two thirds; the ratio is fixed, so neither pane is dragged
         /// against the other and the map keeps its proportion at every size.

@@ -54,6 +54,13 @@ struct ReclaimSheet: View {
 
     private var hasSymlink: Bool { candidates.contains { $0.isSymlink } }
 
+    private var statusText: String {
+        if candidates.count == 1 {
+            return isChecking ? "Checking this item…" : "Moving to the Trash…"
+        }
+        return isChecking ? "Checking these items…" : "Moving these items to the Trash…"
+    }
+
     /// True when the tree measures more bytes than the items currently occupy.
     /// A dataless iCloud file, a sparse file, and a compressed file all look like
     /// this, so the sheet promises less available space rather than guessing which
@@ -118,7 +125,7 @@ struct ReclaimSheet: View {
                     HStack(spacing: DS.Spacing.xSmall) {
                         ProgressView()
                             .controlSize(.small)
-                        Text(isChecking ? "Checking this item…" : "Moving to the Trash…")
+                        Text(statusText)
                             .font(DS.Typography.caption)
                             .foregroundStyle(DS.Color.secondaryText)
                             .lineLimit(1)

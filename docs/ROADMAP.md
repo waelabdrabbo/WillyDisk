@@ -6,16 +6,16 @@ decisions. This is a handoff document, not a specification of frozen interfaces 
 
 ## Current state
 
-- The current code is the Explorer trust pass (`f6c8ca5`) plus the toolbar
-  Home/trail follow-ups through `99c8b64`; this docs handoff follows on top.
-  Working tree clean.
+- The current code is the Explorer trust pass (`f6c8ca5`) with its toolbar
+  follow-ups through `99c8b64`, plus quick-scan presets and request exclusions at
+  `c53d8b5`; this docs handoff follows on top. Working tree clean.
 - Build: `swift build --disable-sandbox`.
-- Tests: 109 QATests + 48 DiskCoreTests, 0 failures, 1 skipped
+- Tests: 112 QATests + 51 DiskCoreTests, 0 failures, 1 skipped
   (`ScanBenchmarkTests` needs `WILLYDISK_BENCH_ROOT`).
-- The app is a working single-window analyzer: choose a volume or folder, watch a
-  progressive scan, read the sunburst and explorer, inspect coverage, select rows
-  with the mouse or keyboard, preview them with Quick Look, and move items to the
-  Trash behind a guard and confirmation.
+- The app is a working single-window analyzer: choose a volume, folder, or quick
+  preset, watch a progressive scan, read the sunburst and explorer, inspect
+  coverage, select rows with the mouse or keyboard, preview them with Quick Look,
+  and move items to the Trash behind a guard and confirmation.
 
 ## Shipped — do not rebuild
 
@@ -25,17 +25,28 @@ decisions. This is a handoff document, not a specification of frozen interfaces 
 | Guarded Move to Trash, confirmation sheet, stale results + Rescan | `0915068`, `8beef48` |
 | Coverage sheet, volume/snapshot facts, hard-link/dataless/skip accounting | `abce87a` |
 | Explorer selection, keyboard navigation, Quick Look, batch reclaim, breadcrumb, folder inspector | `f6c8ca5`, `45d3dc0`, `7a7bb90`, `99c8b64` |
+| Quick-scan presets, request exclusions, coverage disclosure | `c53d8b5` |
 
 Details worth remembering:
 
 - Coverage is opened by the **ⓘ button** in the results toolbar. It is icon-only and
   easy to miss; making it more discoverable is still open.
-- `ScanAccounting` records hard-link overlaps, dataless files, and skipped links,
-  volumes, and special files. Totals are not deduplicated; the overlap is disclosed.
+- `ScanAccounting` records hard-link overlaps, dataless files, skipped links,
+  volumes, and special files, plus excluded-item counts. Totals are not
+  deduplicated; the overlap is disclosed, and an excluded size is never invented.
 - Reclaim is Trash-only. `ReclaimPolicy` refuses the scan root or an ancestor, volume
   roots, the home directory, protected system locations, read-only volumes, missing
   items, and any move while scanning. A successful move marks results stale; it does
   not edit the tree or auto-rescan.
+- Scan presets are shortcuts, not a second scan path: each starts the same scan,
+  options, cancellation, and permission handling as choosing the folder by hand.
+  A missing preset stays visible and disabled.
+- Exclusions are resolved once before traversal. An exclusion equal to or above the
+  scan root is ignored; a nested exclusion is skipped without being entered, and its
+  contents stay out of every total and ranking. Identity is matched before canonical
+  path, so an unrelated hard link is not mistaken for the excluded path. Coverage
+  reports the count as "Skipped by your exclusions" and never estimates the size of
+  what was not read.
 - Explorer selection is held as URLs, not node values, so a live snapshot can replace
   the nodes underneath it. Entering a folder, changing mode, a breadcrumb jump,
   Rescan, and Home clear it; search and filtering do not. Each scan revision prunes
@@ -78,21 +89,7 @@ Do not ship a renderer hook for a one-off visual check.
 
 ## Remaining work, in recommended order
 
-### 1. Scan presets and exclusions
-
-Presets are UI shortcuts and need no contract change: Home, Downloads, Applications,
-Library/Caches, Xcode DerivedData, Trash.
-
-Exclusions do need a frozen `ScanRequest` change: a set of canonical excluded paths,
-pruned by the scanner, counted separately, and disclosed in the coverage sheet as
-“Skipped by your exclusions”. Update `docs/ARCHITECTURE.md` §4 and the coverage
-accounting model. Do not silently hide excluded bytes.
-
-Acceptance: a preset starts a real scan of that location; exclusions are visible
-before the scan starts, persisted, applied, and reported; tests cover a nested
-excluded path, an excluded root, and a symlink edge.
-
-### 2. Install and distribution trust
+### 1. Install and distribution trust
 
 The app is ad-hoc signed, has no icon, no notarized DMG, no About/Settings window, and
 no CI.
@@ -106,7 +103,7 @@ no CI.
 This is cheap compared with history/compare and directly answers “is this safe to
 install?”.
 
-### 3. History and compare
+### 2. History and compare
 
 Persist finished scan summaries and compare two runs of the same root: what grew,
 what shrank, what appeared. `ScanSummary` is not `Codable`; introduce a versioned
@@ -117,7 +114,7 @@ Acceptance: schema version is checked on read; a corrupt store degrades to no hi
 comparison labels “new”, “grown”, “shrunk”, and “unchanged” with real numbers; no
 fabricated savings claim.
 
-### 4. Global search
+### 3. Global search
 
 Search the whole finished scan, not just the current folder or the stored top 100.
 The UI has the root’s tree in the summary, but a multi-million-file tree needs a
@@ -127,7 +124,7 @@ result drill to its folder.
 Acceptance: searching a deep path finds it; results are bounded and say so; typing
 does not block the main actor; clearing restores the previous scope.
 
-### 5. Category breakdown and cleanup suggestions
+### 4. Category breakdown and cleanup suggestions
 
 - A category breakdown screen already has the data: `summary.categoryBreakdown`.
   Add a chart/legend and a way to filter the explorer by category.
@@ -135,7 +132,7 @@ does not block the main actor; clearing restores the previous scope.
   (hash only on explicit user action), stale downloads. Never auto-delete; route
   every action through the reclaim sheet.
 
-### 6. Diagnostics, performance, and polish
+### 5. Diagnostics, performance, and polish
 
 - Export a diagnostics bundle (scan settings, timing, issue counts, version) with no
   user file contents.
@@ -161,8 +158,9 @@ does not block the main actor; clearing restores the previous scope.
 
 ## Suggested opening prompt
 
-> Read `docs/ROADMAP.md`. Verify `HEAD` and run the build and tests. Implement scan
-> presets and path exclusions — presets as UI shortcuts, exclusions through the
-> `ScanRequest` contract change and coverage disclosure described in the roadmap — as
-> one PR if it stays coherent. Update `docs/ARCHITECTURE.md` §4 for the contract
-> change and verify with tests and light/dark renders, then commit.
+> Read `docs/ROADMAP.md`. Verify `HEAD` and run the build and tests. Implement the
+> install and distribution trust work: app icon and bundle metadata, one version
+> source, Developer ID signing and notarization with a DMG script, an About window,
+> Help, a Settings scene for appearance/defaults/exclusions, and CI that builds,
+> tests, and runs the offscreen renderer. Keep frozen contracts untouched, verify
+> light/dark, then commit.

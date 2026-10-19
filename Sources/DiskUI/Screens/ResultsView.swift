@@ -310,11 +310,6 @@ public struct ResultsView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .environment(hover)
-        .navigationTitle(windowTitle)
-        // The toolbar trail already shows the path once the user has stepped into
-        // a folder; the subtitle is only needed at the scanned root, where there
-        // is no trail.
-        .navigationSubtitle(isDrilledIn ? "" : windowSubtitle)
         .onChange(of: rowSetKey) { _, _ in
             // The row under the pointer can leave the screen without an exit
             // event when the visible set changes, so the shared hover is dropped
@@ -392,26 +387,23 @@ public struct ResultsView: View {
         }
         .interactiveDismissDisabled(isTrashing)
         .toolbar {
-            if explorerMode == .folder && !breadcrumb.isEmpty {
-                ToolbarItem(placement: .principal) {
-                    breadcrumbTrail
-                }
+            // With no title in the window chrome, the trail is the only place that
+            // names the folder on screen. It stays present at the scanned root as
+            // plain text, and every ancestor before the current folder is a button.
+            ToolbarItem(placement: .principal) {
+                breadcrumbTrail
             }
-            // One step back, wherever the screen is: out of the folder the chart
-            // is drawn from, and from the scanned location itself to source
-            // selection. There is no separate Home action because this is the
-            // whole of what leaving the screen means.
+            // Home leaves the results for source selection. Moving up one folder is
+            // what the trail's ancestor crumbs are for, so there is no Back action.
             ToolbarItem(placement: .navigation) {
                 Button {
-                    goBack()
+                    goHome()
                 } label: {
-                    Label("Back", systemImage: "chevron.backward")
+                    Label("Home", systemImage: "house")
                 }
-                .help(isDrilledIn ? "Show the enclosing folder" : "Back to source selection")
-                .accessibilityLabel("Back")
-                .accessibilityHint(isDrilledIn
-                                   ? "Shows the folder that holds this one"
-                                   : "Shows source selection; a scan that is running keeps running")
+                .help("Return to source selection")
+                .accessibilityLabel("Home")
+                .accessibilityHint("Shows source selection; a scan that is running keeps running")
             }
 
             ToolbarItemGroup(placement: .primaryAction) {
@@ -453,20 +445,11 @@ public struct ResultsView: View {
         return LocationName.of(root)
     }
 
-    /// Whether the user has opened a folder below the scanned location, which is
-    /// what a step back up is for.
-    private var isDrilledIn: Bool { !breadcrumb.isEmpty }
-
-    /// Window title — the folder on screen: the crumb the user opened, otherwise
-    /// the scanned location, otherwise the app name.
-    private var windowTitle: String {
+    /// The folder on screen: the crumb the user opened, otherwise the scanned
+    /// location, otherwise the app name. The explorer header names it; the toolbar
+    /// trail is the navigation path.
+    private var folderTitle: String {
         breadcrumb.last?.name ?? scannedRootName ?? "WillyDisk"
-    }
-
-    /// Window titlebar subtitle — the folder's full path, so the toolbar's trail
-    /// follows a drill-down rather than staying on the scanned root.
-    private var windowSubtitle: String {
-        breadcrumb.last?.url.path ?? (summary?.root ?? viewModel.currentRoot)?.path ?? ""
     }
 
     /// The results layout: the split panes fill the screen, and the footer carries
@@ -750,14 +733,15 @@ public struct ResultsView: View {
     /// clickable. The current folder is text, not a button that would do nothing.
     ///
     /// The trail lives in the toolbar's centre so the navigation state stays in
-    /// the window chrome instead of taking a row from the list. It mirrors the
-    /// chart: choosing a crumb re-roots the chart at that folder, and the crumbs
-    /// after it are dropped. It is only meaningful while the list is showing a
-    /// folder; the largest lists are about the whole scan.
+    /// the window chrome instead of taking a row from the list. It always names
+    /// the scanned location; at that root it is plain text, while drilling adds
+    /// clickable ancestors before the current folder. Choosing a crumb re-roots
+    /// the chart at that folder, and the crumbs after it are dropped.
     private var breadcrumbTrail: some View {
         HStack(spacing: DS.Spacing.xSmall) {
             crumb(
                 scannedRootName ?? "Scanned Folder",
+                isCurrent: breadcrumb.isEmpty,
                 action: { goToBreadcrumb(depth: 0) }
             )
             .layoutPriority(1)
@@ -846,7 +830,7 @@ public struct ResultsView: View {
     private var compactHeader: some View {
         VStack(alignment: .leading, spacing: DS.Spacing.xSmall) {
             HStack(alignment: .firstTextBaseline, spacing: DS.Spacing.medium) {
-                Text(windowTitle)
+                Text(folderTitle)
                     .font(DS.Typography.title2)
                     .foregroundStyle(DS.Color.primaryText)
                     .lineLimit(1)
@@ -1233,20 +1217,6 @@ public struct ResultsView: View {
         breadcrumb.append(node)
         clearSelection()
         explorerMode = .folder
-    }
-
-    /// Steps back one place: out of the folder the chart is drawn from, and from
-    /// the scanned location itself to source selection. The crumb that is dropped
-    /// is the one the chart is drawn from, so the chart, the explorer and the
-    /// toolbar trail move together.
-    private func goBack() {
-        guard isDrilledIn else {
-            goHome()
-            return
-        }
-        hover.url = nil
-        clearSelection()
-        breadcrumb.removeLast()
     }
 
     /// Re-roots the chart at an ancestor. `depth` is how many crumbs are kept,

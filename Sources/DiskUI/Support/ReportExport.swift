@@ -23,6 +23,32 @@ public enum ReportExport {
         let modifiedAt: String?
     }
 
+    /// The same disclosures the coverage sheet shows, so an exported report
+    /// does not present its totals as if every byte were distinct and local.
+    private struct ExportAccounting: Codable {
+        let hardlinkFileCount: Int
+        let hardlinkExtraLogicalSize: Int64
+        let hardlinkExtraAllocatedSize: Int64
+        let datalessFileCount: Int
+        let datalessLogicalSize: Int64
+        let datalessAllocatedSize: Int64
+        let skippedSymlinkCount: Int
+        let skippedVolumeCount: Int
+        let specialFileCount: Int
+
+        init(_ accounting: ScanAccounting) {
+            hardlinkFileCount = accounting.hardlinkFileCount
+            hardlinkExtraLogicalSize = accounting.hardlinkExtraLogicalSize
+            hardlinkExtraAllocatedSize = accounting.hardlinkExtraAllocatedSize
+            datalessFileCount = accounting.datalessFileCount
+            datalessLogicalSize = accounting.datalessLogicalSize
+            datalessAllocatedSize = accounting.datalessAllocatedSize
+            skippedSymlinkCount = accounting.skippedSymlinkCount
+            skippedVolumeCount = accounting.skippedVolumeCount
+            specialFileCount = accounting.specialFileCount
+        }
+    }
+
     private struct ExportReport: Codable {
         let root: String
         let generatedAt: String
@@ -42,6 +68,7 @@ public enum ReportExport {
         let categoryBreakdown: [String: Int64]
         let largestFiles: [ExportNode]
         let largestDirectories: [ExportNode]
+        let accounting: ExportAccounting
     }
 
     // MARK: - Public entry points
@@ -78,7 +105,8 @@ public enum ReportExport {
             finishedAt: iso(summary.finishedAt),
             categoryBreakdown: breakdown,
             largestFiles: summary.largestFiles.map(makeNode),
-            largestDirectories: summary.largestDirectories.map(makeNode)
+            largestDirectories: summary.largestDirectories.map(makeNode),
+            accounting: ExportAccounting(summary.accounting)
         )
     }
 

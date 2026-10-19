@@ -63,15 +63,17 @@ final class DirectoryReader: DirectoryReading, @unchecked Sendable {
         static let modificationTime: attrgroup_t = 0x0000_0400
         static let fileID: attrgroup_t = 0x0200_0000
         static let mountStatus: attrgroup_t = 0x0000_0004
+        static let commonFlags: attrgroup_t = 0x0004_0000
+        static let linkCount: attrgroup_t = 0x0000_0001
         static let allocatedSize: attrgroup_t = 0x0000_0004
         static let dataLength: attrgroup_t = 0x0000_0200
         static let mountPointFlag: attrgroup_t = 0x0000_0001
     }
 
     private static let commonAttributes = Attribute.returnedAttrs | Attribute.name | Attribute.deviceID
-        | Attribute.objectType | Attribute.modificationTime | Attribute.fileID
+        | Attribute.objectType | Attribute.modificationTime | Attribute.commonFlags | Attribute.fileID
     private static let directoryAttributes = Attribute.mountStatus
-    private static let fileAttributes = Attribute.dataLength | Attribute.allocatedSize
+    private static let fileAttributes = Attribute.linkCount | Attribute.dataLength | Attribute.allocatedSize
 
     // MARK: - Object types (`enum vtype`)
 
@@ -180,6 +182,12 @@ final class DirectoryReader: DirectoryReading, @unchecked Sendable {
                 cursor += 16
             }
 
+            if returned.commonattr & Attribute.commonFlags != 0 {
+                guard cursor + 4 <= groupEnd else { return }
+                stat.flags = raw.loadUnaligned(fromByteOffset: cursor, as: UInt32.self)
+                cursor += 4
+            }
+
             if returned.commonattr & Attribute.fileID != 0 {
                 guard cursor + 8 <= groupEnd else { return }
                 stat.ino = ino_t(raw.loadUnaligned(fromByteOffset: cursor, as: UInt64.self))
@@ -190,6 +198,12 @@ final class DirectoryReader: DirectoryReading, @unchecked Sendable {
                 guard cursor + 4 <= groupEnd else { return }
                 let status = raw.loadUnaligned(fromByteOffset: cursor, as: UInt32.self)
                 stat.isMountPoint = status & Attribute.mountPointFlag != 0
+                cursor += 4
+            }
+
+            if returned.fileattr & Attribute.linkCount != 0 {
+                guard cursor + 4 <= groupEnd else { return }
+                stat.nlink = raw.loadUnaligned(fromByteOffset: cursor, as: UInt32.self)
                 cursor += 4
             }
 
@@ -275,7 +289,14 @@ final class DirectoryReader: DirectoryReading, @unchecked Sendable {
 
         let carriesData = Int(objectType) == vreg || Int(objectType) == vlnk
         guard carriesData else { return true }
-        return fileattr & Attribute.dataLength != 0 && fileattr & Attribute.allocatedSize != 0
+        guard fileattr & Attribute.dataLength != 0 && fileattr & Attribute.allocatedSize != 0 else {
+            return false
+        }
+        guard Int(objectType) == vreg else { return true }
+        // Hard-link accounting needs the link count, and dataless detection
+        // needs the file flags. Without them the entry is re-read directly so
+        // the summary never silently reports that there are no hard links.
+        return fileattr & Attribute.linkCount != 0 && commonattr & Attribute.commonFlags != 0
     }
 
     private static func joinedPath(directory: String, name: String) -> String {

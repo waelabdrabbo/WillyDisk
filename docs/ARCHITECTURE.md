@@ -74,6 +74,21 @@ public struct ScanNode: Identifiable, Sendable, Hashable {
     public var isLeaf: Bool { !isDirectory }
 }
 
+/// What the totals include twice, leave off this disk, or did not enter.
+public struct ScanAccounting: Sendable, Equatable {
+    public let hardlinkFileCount: Int              // distinct regular files with st_nlink > 1
+    public let hardlinkExtraLogicalSize: Int64     // bytes counted again for later links
+    public let hardlinkExtraAllocatedSize: Int64
+    public let datalessFileCount: Int              // SF_DATALESS: data lives in the cloud
+    public let datalessLogicalSize: Int64
+    public let datalessAllocatedSize: Int64        // what such files occupy locally
+    public let skippedSymlinkCount: Int            // links not followed + broken/outside/duplicate
+    public let skippedVolumeCount: Int             // dirs left because stayOnVolume is set
+    public let specialFileCount: Int               // sockets, devices, FIFOs skipped
+    public var hasFindings: Bool { ... }
+    public static let zero = ScanAccounting()
+}
+
 /// Terminal result (`.finished`) and in-flight snapshot (`.partial`); for a
 /// partial snapshot `finishedAt` is the snapshot timestamp.
 public struct ScanSummary: Sendable {
@@ -92,8 +107,20 @@ public struct ScanSummary: Sendable {
     public let largestFiles: [ScanNode]                   // top N, default 100
     public let largestDirectories: [ScanNode]             // top N, default 100
     public let rootChildren: [ScanNode]                   // the root's own entries, live ones included
+    public let accounting: ScanAccounting                 // what the totals double-count or omit
 }
 ```
+
+The totals count every entry the walk reached. They deliberately do not deduplicate:
+the first link of a hard-linked inode contributes its bytes to the total, and each
+later link contributes again — the overlap is disclosed in
+`ScanAccounting.hardlinkExtraLogicalSize`/`hardlinkExtraAllocatedSize`, not silently
+subtracted, because concurrent traversal makes which link is "first" arbitrary and a
+deduplicated total would disagree with the tree and the ranking. Dataless files are
+counted at their full logical size, with their local bytes and cloud-only share
+reported separately. Skips are counted by kind. The engine reports these facts only
+when it observed them; a default `ScanAccounting.zero` means no finding, never an
+unchecked guess.
 
 ## 4. Frozen scanning contract (`DiskCore/Scanning/Contracts.swift`)
 
@@ -186,6 +213,18 @@ carries the root node itself in `largestDirectories`.
   `ScanFlowView`, which switches between source selection and results on the view
   model's phase. There is no sidebar navigation — a single
   "Choose Folder…" menu command (⌘O) opens a panel and starts a real scan.
+- The coverage sheet explains the scan rather than reconciling it. It shows the
+  scan's own totals and accounting next to the volume's own capacity facts
+  (`VolumeFactsProbe`), lists local snapshots via `tmutil` (`SnapshotProbe`), and
+  says when a number is unavailable. It never subtracts the scanned total from
+  the volume's used space to name an "unaccounted" remainder: those figures
+  measure different things, and the difference is not an explanation.
+- Reclaim is Trash-only and guarded. `ReclaimPolicy` refuses the scan root or an
+  ancestor, volume roots, the home directory, protected system locations, missing
+  items, read-only volumes, and any move while scanning; `ReclaimSheet` explains
+  a refusal instead of only disabling its button. After a move the results are
+  marked stale and Rescan is offered; the totals are not edited locally, because
+  a locally adjusted tree would no longer be a scan.
 - Appearance is a user preference rather than scan state: `DiskUI`'s
   `AppAppearance` (system, light, dark) is persisted in `UserDefaults` under one
   key, offered by the gear menu in `SourceSelectionView`'s toolbar, and applied by
@@ -234,7 +273,8 @@ carries the root node itself in `largestDirectories`.
 
 Off-main-thread scanning; working cancellation; graceful permission failures; no
 automatic deletion (confirmation + clear identification only); no fabricated
-progress/statistics; no dead controls; no placeholder/mock data in the shipped app.
+progress/statistics; no invented reconciliation between a folder scan and a
+volume's used space; no dead controls; no placeholder/mock data in the shipped app.
 
 **Comments are evergreen.** A code comment must never cite a task, issue, or bug
 number, and must never narrate the bug a change fixed. Comments explain only current

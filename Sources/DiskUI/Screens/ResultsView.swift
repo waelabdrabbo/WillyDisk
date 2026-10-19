@@ -64,7 +64,7 @@ public struct ResultsView: View {
     // Reclaim
     @State private var reclaimCandidates: [ReclaimCandidate] = []
     @State private var reclaimRefusal: ReclaimRefusal?
-    @State private var showingReclaim = false
+    @State private var activeSheet: ResultsSheet?
     @State private var isCheckingReclaim = false
     @State private var isTrashing = false
     /// A token that makes a slow guard probe land only on the request that asked
@@ -324,17 +324,24 @@ public struct ResultsView: View {
             }
         }
         .animation(.easeInOut(duration: 0.2), value: viewModel.reclaimNotice)
-        .sheet(isPresented: $showingReclaim) {
-            ReclaimSheet(
-                candidates: reclaimCandidates,
-                refusal: reclaimRefusal,
-                isChecking: isCheckingReclaim,
-                isWorking: isTrashing,
-                onCancel: { showingReclaim = false },
-                onConfirm: confirmReclaim
-            )
-            .interactiveDismissDisabled(isTrashing)
+        .sheet(item: $activeSheet) { sheet in
+            switch sheet {
+            case .reclaim:
+                ReclaimSheet(
+                    candidates: reclaimCandidates,
+                    refusal: reclaimRefusal,
+                    isChecking: isCheckingReclaim,
+                    isWorking: isTrashing,
+                    onCancel: { activeSheet = nil },
+                    onConfirm: confirmReclaim
+                )
+            case .coverage:
+                if let summary {
+                    CoverageSheet(summary: summary, isLive: viewModel.isScanning)
+                }
+            }
         }
+        .interactiveDismissDisabled(isTrashing)
         .toolbar {
             // One step back, wherever the screen is: out of the folder the chart
             // is drawn from, and from the scanned location itself to source
@@ -354,6 +361,14 @@ public struct ResultsView: View {
             }
 
             ToolbarItemGroup(placement: .primaryAction) {
+                Button {
+                    activeSheet = .coverage
+                } label: {
+                    Label("Coverage", systemImage: "info.circle")
+                }
+                .help("What this scan counted, and what it did not")
+                .disabled(summary == nil)
+
                 Button {
                     rescan()
                 } label: {
@@ -995,7 +1010,7 @@ public struct ResultsView: View {
         reclaimCandidates = candidates
         reclaimRefusal = nil
         isCheckingReclaim = true
-        showingReclaim = true
+        activeSheet = .reclaim
 
         Task {
             var refusal: ReclaimRefusal?
@@ -1018,7 +1033,7 @@ public struct ResultsView: View {
         Task {
             await viewModel.reclaim(candidates)
             isTrashing = false
-            showingReclaim = false
+            activeSheet = nil
         }
     }
 
@@ -1127,6 +1142,15 @@ private struct ContentsList: View {
             }
         }
     }
+}
+
+/// The one sheet this screen can present. Keeping it single avoids stacking
+/// two presentations on the same view, where only the last one is reliable.
+private enum ResultsSheet: String, Identifiable {
+    case reclaim
+    case coverage
+
+    var id: String { rawValue }
 }
 
 /// Which list the explorer is showing.

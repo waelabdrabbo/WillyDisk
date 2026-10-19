@@ -13,6 +13,13 @@ struct FileStat {
     var blocks: Int64 = 0         // st_blocks (512-byte units)
     var dev: dev_t = 0
     var ino: ino_t = 0
+    /// Link count for regular files; `1` when the source does not report one.
+    /// Directories always carry a link count above one and are not accounted
+    /// as hard-linked files.
+    var nlink: UInt32 = 1
+    /// BSD file flags (`st_flags`). APFS marks dataless (cloud-only) files with
+    /// `SF_DATALESS`.
+    var flags: UInt32 = 0
     var mtimeSec: Int64 = 0
     var mtimeNsec: Int64 = 0
     /// Allocated bytes when the source reports them directly (bulk directory
@@ -29,6 +36,12 @@ struct FileStat {
     var isDirectory: Bool    { (mode & Self.typeMask) == 0o040000 }
     var isSymlink: Bool      { (mode & Self.typeMask) == 0o120000 }
     var isRegularFile: Bool  { (mode & Self.typeMask) == 0o100000 }
+
+    /// `SF_DATALESS` from `sys/stat.h`: the file's data is not on this disk.
+    /// The value is written out because the SDK imports the `SF_*` macros as
+    /// signed integers while `st_flags` is unsigned.
+    private static let datalessFlag: UInt32 = 0x4000_0000
+    var isDataless: Bool { flags & Self.datalessFlag != 0 }
 
     /// Block/character devices, FIFOs, and sockets — skipped safely.
     var isSpecial: Bool {
@@ -69,6 +82,8 @@ struct FileStat {
         blocks = Int64(st.st_blocks)
         dev = st.st_dev
         ino = st.st_ino
+        nlink = UInt32(st.st_nlink)
+        flags = st.st_flags
         mtimeSec = Int64(st.st_mtimespec.tv_sec)
         mtimeNsec = Int64(st.st_mtimespec.tv_nsec)
     }
@@ -83,6 +98,8 @@ struct FileStat {
         blocks: Int64 = 0,
         dev: dev_t = 0,
         ino: ino_t = 0,
+        nlink: UInt32 = 1,
+        flags: UInt32 = 0,
         mtimeSec: Int64 = 0,
         mtimeNsec: Int64 = 0,
         allocatedOverride: Int64? = nil,
@@ -94,6 +111,8 @@ struct FileStat {
         self.blocks = blocks
         self.dev = dev
         self.ino = ino
+        self.nlink = nlink
+        self.flags = flags
         self.mtimeSec = mtimeSec
         self.mtimeNsec = mtimeNsec
         self.allocatedOverride = allocatedOverride

@@ -153,7 +153,8 @@ enum FileScanner {
                     startedAt: startDate, finishedAt: Date(),
                     categoryBreakdown: [:],
                     largestFiles: [rootSymlinkNode(name: rootName, path: rootPath, stat: rootStat, broken: true)],
-                    largestDirectories: [], rootChildren: []
+                    largestDirectories: [], rootChildren: [],
+                    accounting: ScanAccounting(skippedSymlinkCount: 1)
                 )))
                 return
             }
@@ -168,7 +169,8 @@ enum FileScanner {
                     startedAt: startDate, finishedAt: Date(),
                     categoryBreakdown: [:],
                     largestFiles: [rootSymlinkNode(name: rootName, path: rootPath, stat: rootStat, broken: false)],
-                    largestDirectories: [], rootChildren: []
+                    largestDirectories: [], rootChildren: [],
+                    accounting: ScanAccounting(skippedSymlinkCount: 1)
                 )))
                 return
             }
@@ -193,7 +195,13 @@ enum FileScanner {
                     permissionDeniedCount: 0, surfacedIssueCount: 0,
                     startedAt: startDate, finishedAt: Date(),
                     categoryBreakdown: [category: scanStat.size],
-                    largestFiles: [node], largestDirectories: [], rootChildren: []
+                    largestFiles: [node], largestDirectories: [], rootChildren: [],
+                    accounting: ScanAccounting(
+                        hardlinkFileCount: scanStat.nlink > 1 ? 1 : 0,
+                        datalessFileCount: scanStat.isDataless ? 1 : 0,
+                        datalessLogicalSize: scanStat.isDataless ? scanStat.size : 0,
+                        datalessAllocatedSize: scanStat.isDataless ? scanStat.allocatedSize : 0
+                    )
                 )))
             } else {
                 // A special entry (device, FIFO, socket) is skipped safely.
@@ -203,7 +211,8 @@ enum FileScanner {
                     fileCount: 0, directoryCount: 0, inaccessibleCount: 0, errorCount: 0,
                     permissionDeniedCount: 0, surfacedIssueCount: 0,
                     startedAt: startDate, finishedAt: Date(),
-                    categoryBreakdown: [:], largestFiles: [], largestDirectories: [], rootChildren: []
+                    categoryBreakdown: [:], largestFiles: [], largestDirectories: [], rootChildren: [],
+                    accounting: ScanAccounting(specialFileCount: 1)
                 )))
             }
             return
@@ -283,6 +292,13 @@ enum FileScanner {
         let ino: ino_t
     }
 
+    /// Identity of a regular file for hard-link accounting. Device and inode
+    /// together are unique, including across volumes.
+    private struct FileKey: Hashable {
+        let dev: dev_t
+        let ino: ino_t
+    }
+
     // MARK: - Bounded-size ranking
 
     private struct TopN {
@@ -344,6 +360,16 @@ enum FileScanner {
         var permissionDeniedCount = 0
         var surfacedIssueCount = 0
         var categoryBreakdown: [FileCategory: Int64] = [:]
+        var hardlinkFileCount = 0
+        var hardlinkExtraLogical: Int64 = 0
+        var hardlinkExtraAllocated: Int64 = 0
+        var hardlinkSeen: Set<FileKey> = []
+        var datalessFileCount = 0
+        var datalessLogical: Int64 = 0
+        var datalessAllocated: Int64 = 0
+        var skippedSymlinkCount = 0
+        var skippedVolumeCount = 0
+        var specialFileCount = 0
         var largestFiles = TopN(capacity: FileScanner.largestCapacity)
         var largestDirectories = TopN(capacity: FileScanner.largestCapacity)
         /// The scan root's own entries, by path. Complete groups, never a capped
@@ -445,7 +471,7 @@ enum FileScanner {
 
     /// What a followed symlink turned into.
     private enum SymlinkOutcome {
-        case child(ScanNode)
+        case child(ScanNode, FileStat)
         case directory(PendingDirectory)
     }
 
@@ -519,9 +545,9 @@ enum FileScanner {
         /// taking the lock again per concern turns short critical sections into
         /// measurable contention.
         ///
-        func noteEntry(path: String, file: ScanNode?, checkClock: Bool) {
+        func noteEntry(path: String, file: ScanNode?, stat: FileStat? = nil, checkClock: Bool) {
             lock.withLock { state in
-                recordEntry(&state, path: path, file: file, checkClock: checkClock)
+                recordEntry(&state, path: path, file: file, stat: stat, checkClock: checkClock)
             }
         }
 
@@ -632,7 +658,7 @@ enum FileScanner {
             lock.withLock { state in
                 state.totalDirs += 1
                 state.largestDirectories.add(node)
-                recordEntry(&state, path: path, file: nil, checkClock: checkClock)
+                recordEntry(&state, path: path, file: nil, stat: nil, checkClock: checkClock)
             }
         }
 
@@ -640,6 +666,7 @@ enum FileScanner {
             _ state: inout WalkState,
             path: String,
             file: ScanNode?,
+            stat: FileStat?,
             checkClock: Bool
         ) {
             state.currentPath = path
@@ -653,9 +680,44 @@ enum FileScanner {
                 state.totalAllocated += file.allocatedSize
                 state.categoryBreakdown[file.category, default: 0] += file.logicalSize
                 state.largestFiles.add(file)
+                if let stat, stat.isRegularFile {
+                    account(stat: stat, logical: file.logicalSize, allocated: file.allocatedSize, in: &state)
+                }
             }
 
             emitCadence(&state, checkClock: checkClock)
+        }
+
+        /// Records the parts of a file that the scan total alone cannot explain:
+        /// a link reached after the first one is bytes counted twice, and a
+        /// dataless file is logical bytes that do not occupy this disk.
+        private func account(stat: FileStat, logical: Int64, allocated: Int64, in state: inout WalkState) {
+            if stat.isDataless {
+                state.datalessFileCount += 1
+                state.datalessLogical += logical
+                state.datalessAllocated += allocated
+            }
+
+            guard stat.nlink > 1 else { return }
+            let key = FileKey(dev: stat.dev, ino: stat.ino)
+            if state.hardlinkSeen.insert(key).inserted {
+                state.hardlinkFileCount += 1
+            } else {
+                state.hardlinkExtraLogical += logical
+                state.hardlinkExtraAllocated += allocated
+            }
+        }
+
+        func recordSkippedSymbolicLink() {
+            lock.withLock { $0.skippedSymlinkCount += 1 }
+        }
+
+        func recordSkippedVolume() {
+            lock.withLock { $0.skippedVolumeCount += 1 }
+        }
+
+        func recordSpecialFile() {
+            lock.withLock { $0.specialFileCount += 1 }
         }
 
         /// Count a non-fatal issue and surface its detail while under the cap.
@@ -752,12 +814,21 @@ enum FileScanner {
                 categoryBreakdown: state.categoryBreakdown,
                 largestFiles: state.largestFiles.sortedDescending(),
                 largestDirectories: state.largestDirectories.sortedDescending(),
-                rootChildren: rootChildren(from: state)
+                rootChildren: rootChildren(from: state),
+                accounting: ScanAccounting(
+                    hardlinkFileCount: state.hardlinkFileCount,
+                    hardlinkExtraLogicalSize: state.hardlinkExtraLogical,
+                    hardlinkExtraAllocatedSize: state.hardlinkExtraAllocated,
+                    datalessFileCount: state.datalessFileCount,
+                    datalessLogicalSize: state.datalessLogical,
+                    datalessAllocatedSize: state.datalessAllocated,
+                    skippedSymlinkCount: state.skippedSymlinkCount,
+                    skippedVolumeCount: state.skippedVolumeCount,
+                    specialFileCount: state.specialFileCount
+                )
             )
         }
 
-        /// The scan root's entries as the walk has discovered them, largest
-        /// first and bounded like the other lists.
         /// The scan root's entries as the walk has discovered them, largest first.
         ///
         /// Every entry the root holds is reported, not a capped sample of them:
@@ -906,15 +977,15 @@ enum FileScanner {
                     }
                 } else if childStat.isRegularFile {
                     let node = makeFileNode(name: entry.name, path: childPath, stat: childStat)
-                    noteEntry(path: childPath, file: node, checkClock: checkClock)
+                    noteEntry(path: childPath, file: node, stat: childStat, checkClock: checkClock)
                     children.append(node)
                     fileCount += 1
                     logical += node.logicalSize
                     allocated += node.allocatedSize
                 } else if childStat.isSymlink {
                     switch resolveSymlink(name: entry.name, path: childPath, stat: childStat) {
-                    case .child(let node):
-                        noteEntry(path: childPath, file: node, checkClock: checkClock)
+                    case .child(let node, let targetStat):
+                        noteEntry(path: childPath, file: node, stat: targetStat, checkClock: checkClock)
                         children.append(node)
                         fileCount += node.fileCount
                         directoryCount += node.directoryCount
@@ -928,6 +999,7 @@ enum FileScanner {
                     }
                 } else {
                     // Special entry (block/char/fifo/socket) — skipped safely.
+                    recordSpecialFile()
                     noteEntry(path: childPath, file: nil, checkClock: checkClock)
                 }
             }
@@ -1059,13 +1131,14 @@ enum FileScanner {
             // there are only a handful of them.
             let mounted = stat.isMountPoint ? access.lstat(path) : stat
             if request.stayOnVolume && mounted.dev != rootDev {
+                recordSkippedVolume()
                 noteEntry(path: path, file: nil, checkClock: checkClock)
                 return nil
             }
 
             let key = DirKey(dev: mounted.dev, ino: mounted.ino)
             let claimed = lock.withLock { state -> Bool in
-                recordEntry(&state, path: path, file: nil, checkClock: checkClock)
+                recordEntry(&state, path: path, file: nil, stat: nil, checkClock: checkClock)
                 if state.visitedDirs.contains(key) { return false }
                 state.visitedDirs.insert(key)
                 return true
@@ -1087,24 +1160,35 @@ enum FileScanner {
         private func resolveSymlink(name: String, path: String, stat: FileStat) -> SymlinkOutcome? {
             guard request.followSymlinks else {
                 // Default safe behavior: represent the link as a zero-sized leaf, never follow.
-                return .child(makeSymlinkLeaf(name: name, path: path, stat: stat))
+                recordSkippedSymbolicLink()
+                return .child(makeSymlinkLeaf(name: name, path: path, stat: stat), stat)
             }
 
             let target = access.statFollowing(path)
             guard target.error == 0 else {
                 // Broken symlink: non-fatal, still represented.
+                recordSkippedSymbolicLink()
                 recordIssue(
                     kind: .brokenSymlink,
                     path: path,
                     message: "Broken symlink: \(FileScanner.errnoText(target.error))"
                 )
-                return .child(brokenSymlinkNode(name: name, path: path, stat: stat))
+                return .child(brokenSymlinkNode(name: name, path: path, stat: stat), stat)
             }
 
             if target.isDirectory {
-                if request.stayOnVolume && target.dev != rootDev { return nil }
-                if !isWithinRoot(path) { return nil }            // never escape the root
-                guard claimDirectory(dev: target.dev, ino: target.ino) else { return nil }
+                if request.stayOnVolume && target.dev != rootDev {
+                    recordSkippedVolume()
+                    return nil
+                }
+                guard isWithinRoot(path) else {
+                    recordSkippedSymbolicLink()
+                    return nil
+                }            // never escape the root
+                guard claimDirectory(dev: target.dev, ino: target.ino) else {
+                    recordSkippedSymbolicLink()
+                    return nil
+                }
                 return .directory(PendingDirectory(path: path, name: name, isSymlink: true, stat: target))
             }
 
@@ -1118,10 +1202,11 @@ enum FileScanner {
                     fileCount: 1, directoryCount: 0,
                     modifiedAt: target.modifiedAt, isAccessible: true, errorMessage: nil, children: []
                 )
-                return .child(node)
+                return .child(node, target)
             }
 
             // Symlink to a special entry — skipped safely.
+            recordSkippedSymbolicLink()
             return nil
         }
 

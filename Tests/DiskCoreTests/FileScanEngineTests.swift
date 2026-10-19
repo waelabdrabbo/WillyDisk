@@ -698,6 +698,94 @@ final class FileScanEngineTests: XCTestCase {
         XCTAssertFalse(sawFinished, "a cancelled scan does not also finish")
     }
 
+    // MARK: - Accounting disclosures
+
+    func testHardLinkBytesAreCountedAndDisclosedSeparately() async throws {
+        let root = "/virtual-hardlinks-\(UUID().uuidString)"
+        var fs = VirtualFS()
+        fs.directories[root] = ["first.bin", "second.bin", "unique.bin"]
+        fs.fileSizes[root + "/first.bin"] = 100
+        fs.fileSizes[root + "/second.bin"] = 100
+        fs.fileSizes[root + "/unique.bin"] = 50
+        fs.linkCounts[root + "/first.bin"] = 2
+        fs.linkCounts[root + "/second.bin"] = 2
+        fs.inodeAliases[root + "/second.bin"] = root + "/first.bin"
+
+        let collector = await runScanner(ScanRequest(root: URL(fileURLWithPath: root)), access: fs.access())
+        let s = try XCTUnwrap(collector.finished)
+
+        XCTAssertEqual(s.totalLogicalSize, 250, "the scan total still counts every link it reached")
+        XCTAssertEqual(s.fileCount, 3)
+        XCTAssertEqual(s.accounting.hardlinkFileCount, 1, "one distinct inode with a link count above one")
+        XCTAssertEqual(s.accounting.hardlinkExtraLogicalSize, 100, "the second link is an overlap")
+        XCTAssertEqual(s.accounting.hardlinkExtraAllocatedSize, 512)
+    }
+
+    func testDatalessFilesAreCountedAndDisclosedSeparately() async throws {
+        let root = "/virtual-dataless-\(UUID().uuidString)"
+        var fs = VirtualFS()
+        fs.directories[root] = ["cloud.bin", "local.bin"]
+        fs.fileSizes[root + "/cloud.bin"] = 500
+        fs.fileSizes[root + "/local.bin"] = 10
+        fs.datalessPaths = [root + "/cloud.bin"]
+
+        let collector = await runScanner(ScanRequest(root: URL(fileURLWithPath: root)), access: fs.access())
+        let s = try XCTUnwrap(collector.finished)
+
+        XCTAssertEqual(s.totalLogicalSize, 510)
+        XCTAssertEqual(s.accounting.datalessFileCount, 1)
+        XCTAssertEqual(s.accounting.datalessLogicalSize, 500)
+        XCTAssertEqual(s.accounting.datalessAllocatedSize, 512)
+    }
+
+    func testSpecialEntriesAreSkippedAndCounted() async throws {
+        let root = "/virtual-special-\(UUID().uuidString)"
+        var fs = VirtualFS()
+        fs.directories[root] = ["fifo", "real.bin"]
+        fs.specialPaths = [root + "/fifo"]
+        fs.fileSizes[root + "/real.bin"] = 7
+
+        let collector = await runScanner(ScanRequest(root: URL(fileURLWithPath: root)), access: fs.access())
+        let s = try XCTUnwrap(collector.finished)
+
+        XCTAssertEqual(s.fileCount, 1)
+        XCTAssertEqual(s.totalLogicalSize, 7)
+        XCTAssertEqual(s.accounting.specialFileCount, 1)
+    }
+
+    func testUnfollowedSymlinksAreCounted() async throws {
+        let root = "/virtual-symlinks-\(UUID().uuidString)"
+        var fs = VirtualFS()
+        fs.directories[root] = ["link"]
+        fs.symlinkPaths = [root + "/link"]
+        fs.fileSizes[root + "/target.bin"] = 999
+
+        let collector = await runScanner(ScanRequest(root: URL(fileURLWithPath: root)), access: fs.access())
+        let s = try XCTUnwrap(collector.finished)
+
+        XCTAssertEqual(s.fileCount, 0, "an unfollowed link carries no data")
+        XCTAssertEqual(s.totalLogicalSize, 0)
+        XCTAssertEqual(s.accounting.skippedSymlinkCount, 1)
+    }
+
+    func testCrossVolumeDirectoryIsSkippedAndCounted() async throws {
+        let root = "/virtual-mounts-\(UUID().uuidString)"
+        var fs = VirtualFS()
+        fs.directories[root] = ["local", "mounted"]
+        fs.directories[root + "/local"] = ["kept.bin"]
+        fs.fileSizes[root + "/local/kept.bin"] = 5
+        fs.directories[root + "/mounted"] = ["other.bin"]
+        fs.fileSizes[root + "/mounted/other.bin"] = 99
+        fs.mountPoints = [root + "/mounted"]
+
+        let collector = await runScanner(ScanRequest(root: URL(fileURLWithPath: root)), access: fs.access())
+        let s = try XCTUnwrap(collector.finished)
+
+        XCTAssertEqual(s.fileCount, 1)
+        XCTAssertEqual(s.totalLogicalSize, 5)
+        XCTAssertEqual(s.accounting.skippedVolumeCount, 1)
+    }
+
     // MARK: - Off-main-thread / non-blocking
 
     func testScanReturnsWithoutBlocking() async throws {
@@ -732,6 +820,16 @@ private struct VirtualFS {
     /// that is reachable under two names with one device and inode (a firmlink or
     /// a directory hard link).
     var inodeAliases: [String: String] = [:]
+    /// Link count to report for a file path, looked up by path then by identity.
+    var linkCounts: [String: UInt32] = [:]
+    /// Paths that carry `SF_DATALESS`.
+    var datalessPaths: Set<String> = []
+    /// Paths that are not files, directories or symlinks (FIFOs, devices).
+    var specialPaths: Set<String> = []
+    /// Paths that are symbolic links; `stat` without following reports the link.
+    var symlinkPaths: Set<String> = []
+    /// Directories that are mount points for a different volume.
+    var mountPoints: Set<String> = []
 
     private let device: dev_t = 7
 
@@ -755,14 +853,33 @@ private struct VirtualFS {
 
     fileprivate func stat(for path: String) -> FileStat {
         let identityPath = inodeAliases[path] ?? path
+        if specialPaths.contains(path) {
+            return FileStat(
+                error: 0, mode: 0o010644, size: 0, dev: device, ino: Self.inode(for: identityPath)
+            )
+        }
+        if symlinkPaths.contains(path) {
+            return FileStat(
+                error: 0, mode: 0o120777, size: 0, dev: device, ino: Self.inode(for: identityPath)
+            )
+        }
         if let size = fileSizes[path] {
             return FileStat(
                 error: 0, mode: 0o100644, size: size,
-                blocks: (size + 511) / 512, dev: device, ino: Self.inode(for: identityPath)
+                blocks: (size + 511) / 512, dev: device, ino: Self.inode(for: identityPath),
+                nlink: linkCounts[path] ?? linkCounts[identityPath] ?? 1,
+                flags: datalessPaths.contains(path) || datalessPaths.contains(identityPath)
+                    ? 0x4000_0000 : 0
             )
         }
         if directories[path] != nil {
-            return FileStat(error: 0, mode: 0o040755, dev: device, ino: Self.inode(for: identityPath))
+            let isMount = mountPoints.contains(path)
+            return FileStat(
+                error: 0, mode: 0o040755,
+                dev: isMount ? device + 1 : device,
+                ino: Self.inode(for: identityPath),
+                isMountPoint: isMount
+            )
         }
         return FileStat(error: ENOENT)
     }

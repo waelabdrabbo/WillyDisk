@@ -60,6 +60,11 @@ final class DirectoryReaderTests: XCTestCase {
             XCTAssertEqual(entry.stat.error, 0, "\(name): metadata must be read without error")
             XCTAssertEqual(entry.stat.dev, reference.dev, "\(name): device")
             XCTAssertEqual(entry.stat.ino, reference.ino, "\(name): inode")
+            if reference.isRegularFile {
+                XCTAssertEqual(entry.stat.nlink, reference.nlink, "\(name): link count")
+            }
+            XCTAssertEqual(entry.stat.flags, reference.flags, "\(name): file flags")
+            XCTAssertEqual(entry.stat.isDataless, reference.isDataless, "\(name): dataless flag")
             XCTAssertEqual(entry.stat.mtimeSec, reference.mtimeSec, "\(name): modification time")
             XCTAssertEqual(entry.stat.mtimeNsec, reference.mtimeNsec, "\(name): modification time (nanoseconds)")
 
@@ -146,8 +151,8 @@ final class DirectoryReaderTests: XCTestCase {
     /// absent object type or size would misclassify the entry or report a
     /// fabricated zero. Such an entry is re-read directly instead.
     func testAttributesAreCompleteRequiresEveryFieldTheScanReads() {
-        let allCommon = UInt32(0x8000_0000 | 0x1 | 0x2 | 0x8 | 0x400 | 0x0200_0000)
-        let fileSizes = UInt32(0x4 | 0x200)
+        let allCommon = UInt32(0x8000_0000 | 0x1 | 0x2 | 0x8 | 0x400 | 0x0004_0000 | 0x0200_0000)
+        let fileSizes = UInt32(0x1 | 0x4 | 0x200)
         let vreg = UInt32(1), vdir = UInt32(2), vlnk = UInt32(5)
 
         XCTAssertTrue(DirectoryReader.attributesAreComplete(commonattr: allCommon, fileattr: fileSizes, objectType: vreg))
@@ -164,6 +169,16 @@ final class DirectoryReaderTests: XCTestCase {
         XCTAssertFalse(DirectoryReader.attributesAreComplete(commonattr: allCommon, fileattr: 0, objectType: vreg))
         XCTAssertFalse(DirectoryReader.attributesAreComplete(commonattr: allCommon, fileattr: 0x200, objectType: vreg))
         XCTAssertFalse(DirectoryReader.attributesAreComplete(commonattr: allCommon, fileattr: 0x4, objectType: vreg))
+        // Hard-link and dataless accounting need the link count and file flags;
+        // without them the reader falls back to lstat instead of reporting zero.
+        XCTAssertFalse(DirectoryReader.attributesAreComplete(commonattr: allCommon, fileattr: 0x4 | 0x200, objectType: vreg))
+        XCTAssertFalse(DirectoryReader.attributesAreComplete(commonattr: allCommon & ~0x0004_0000, fileattr: fileSizes, objectType: vreg))
+        // A symlink has no link count of its own to require.
+        XCTAssertTrue(DirectoryReader.attributesAreComplete(
+            commonattr: allCommon & ~0x0004_0000,
+            fileattr: 0x4 | 0x200,
+            objectType: vlnk
+        ))
     }
 
     // MARK: - Mount points

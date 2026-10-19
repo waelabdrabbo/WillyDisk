@@ -51,4 +51,43 @@ public struct ScanSummary: Sendable {
     /// the rest arrives. Empty once the summary carries the root itself in
     /// `largestDirectories`, whose `children` are then the complete list.
     public let rootChildren: [ScanNode]
+    /// What the totals above include twice, leave off this disk, or did not
+    /// enter. See `ScanAccounting`.
+    public let accounting: ScanAccounting
+
+    public init(
+        root: URL,
+        totalLogicalSize: Int64,
+        totalAllocatedSize: Int64,
+        fileCount: Int,
+        directoryCount: Int,
+        inaccessibleCount: Int,
+        errorCount: Int,
+        permissionDeniedCount: Int,
+        surfacedIssueCount: Int,
+        startedAt: Date,
+        finishedAt: Date,
+        categoryBreakdown: [FileCategory: Int64],
+        largestFiles: [ScanNode],
+        largestDirectories: [ScanNode],
+        rootChildren: [ScanNode],
+        accounting: ScanAccounting = .zero
+    ) {
+        self.root = root
+        self.totalLogicalSize = totalLogicalSize
+        self.totalAllocatedSize = totalAllocatedSize
+        self.fileCount = fileCount
+        self.directoryCount = directoryCount
+        self.inaccessibleCount = inaccessibleCount
+        self.errorCount = errorCount
+        self.permissionDeniedCount = permissionDeniedCount
+        self.surfacedIssueCount = surfacedIssueCount
+        self.startedAt = startedAt
+        self.finishedAt = finishedAt
+        self.categoryBreakdown = categoryBreakdown
+        self.largestFiles = largestFiles
+        self.largestDirectories = largestDirectories
+        self.rootChildren = rootChildren
+        self.accounting = accounting
+    }
 }

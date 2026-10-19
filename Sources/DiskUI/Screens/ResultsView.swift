@@ -386,13 +386,8 @@ public struct ResultsView: View {
             }
         }
         .interactiveDismissDisabled(isTrashing)
+        .resultsToolbarTitleHidden()
         .toolbar {
-            // With no title in the window chrome, the trail is the only place that
-            // names the folder on screen. It stays present at the scanned root as
-            // plain text, and every ancestor before the current folder is a button.
-            ToolbarItem(placement: .principal) {
-                breadcrumbTrail
-            }
             // Home leaves the results for source selection. Moving up one folder is
             // what the trail's ancestor crumbs are for, so there is no Back action.
             ToolbarItem(placement: .navigation) {
@@ -404,6 +399,20 @@ public struct ResultsView: View {
                 .help("Return to source selection")
                 .accessibilityLabel("Home")
                 .accessibilityHint("Shows source selection; a scan that is running keeps running")
+            }
+            // The trail sits immediately after Home. With no title in the window
+            // chrome it is the only place that names the folder on screen; it stays
+            // present at the scanned root as plain text, and every ancestor before
+            // the current folder is a button.
+            ToolbarItem(placement: .navigation) {
+                breadcrumbTrail
+            }
+            // A flexible spacer keeps Coverage, Rescan, and Export trailing while
+            // Home and the trail stay grouped at the leading edge.
+            if #available(macOS 26.0, *) {
+                ToolbarSpacer(.flexible)
+            } else if #available(macOS 15.0, *) {
+                ToolbarItem(placement: .principal) { Spacer() }
             }
 
             ToolbarItemGroup(placement: .primaryAction) {
@@ -732,13 +741,12 @@ public struct ResultsView: View {
     /// The path to the folder the chart is drawn from, with every ancestor
     /// clickable. The current folder is text, not a button that would do nothing.
     ///
-    /// The trail lives in the toolbar's centre so the navigation state stays in
-    /// the window chrome instead of taking a row from the list. It always names
-    /// the scanned location; at that root it is plain text, while drilling adds
-    /// clickable ancestors before the current folder. Choosing a crumb re-roots
-    /// the chart at that folder, and the crumbs after it are dropped.
+    /// The trail sits at the toolbar's leading edge, immediately after Home. It
+    /// always names the scanned location; at that root it is plain text, while
+    /// drilling adds clickable ancestors before the current folder. Choosing a
+    /// crumb re-roots the chart at that folder, and the crumbs after it are dropped.
     private var breadcrumbTrail: some View {
-        HStack(spacing: DS.Spacing.xSmall) {
+        HStack(spacing: DS.Spacing.small) {
             crumb(
                 scannedRootName ?? "Scanned Folder",
                 isCurrent: breadcrumb.isEmpty,
@@ -748,7 +756,7 @@ public struct ResultsView: View {
 
             ForEach(Array(breadcrumb.enumerated()), id: \.element.url) { index, node in
                 Image(systemName: "chevron.right")
-                    .font(DS.Icon.disclosure)
+                    .font(DS.Icon.inline)
                     .foregroundStyle(DS.Color.tertiaryText)
                 crumb(
                     node.name,
@@ -767,14 +775,14 @@ public struct ResultsView: View {
     private func crumb(_ name: String, isCurrent: Bool = false, action: @escaping () -> Void) -> some View {
         if isCurrent {
             Text(name)
-                .font(DS.Typography.caption)
+                .font(DS.Typography.body)
                 .foregroundStyle(DS.Color.primaryText)
                 .lineLimit(1)
                 .accessibilityAddTraits(.isHeader)
         } else {
             Button(action: action) {
                 Text(name)
-                    .font(DS.Typography.caption)
+                    .font(DS.Typography.body)
                     .foregroundStyle(DS.Color.secondaryText)
                     .lineLimit(1)
             }
@@ -1770,6 +1778,19 @@ private struct NodeRow: View, Equatable {
             Rectangle().strokeBorder(DS.Color.separator, lineWidth: DS.Stroke.hairline)
         } else {
             SwiftUI.Color.clear
+        }
+    }
+}
+
+private extension View {
+    /// Removes the system title item where available, so the results toolbar shows
+    /// only Home and the folder trail.
+    @ViewBuilder
+    func resultsToolbarTitleHidden() -> some View {
+        if #available(macOS 15.0, *) {
+            toolbar(removing: .title)
+        } else {
+            self
         }
     }
 }

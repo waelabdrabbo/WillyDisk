@@ -26,7 +26,7 @@ final class AppState: ObservableObject {
         // scan immediately on launch so screenshots and smoke tests can reach
         // the results screen without driving the UI. No effect in normal use.
         if let path = ProcessInfo.processInfo.environment["WILLYDISK_AUTOSCAN"], !path.isEmpty {
-            scanViewModel.start(root: URL(fileURLWithPath: path))
+            scanViewModel.start(root: URL(fileURLWithPath: path), options: ScanOptionsStore.load())
         }
     }
 
@@ -40,7 +40,7 @@ final class AppState: ObservableObject {
         panel.message = "Choose a folder or volume to scan."
 
         if panel.runModal() == .OK, let url = panel.url {
-            scanViewModel.start(root: url)
+            scanViewModel.start(root: url, options: ScanOptionsStore.load())
         }
     }
 

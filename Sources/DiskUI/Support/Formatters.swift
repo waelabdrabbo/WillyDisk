@@ -62,14 +62,36 @@ private final class ByteCountFormatterCache: @unchecked Sendable {
     }
 }
 
+/// Abbreviates a path for a dense row, where the full path does not fit.
+public enum PathFormat {
+
+    /// The home directory becomes `~`, and a path longer than `maxLength` keeps
+    /// its beginning and its end, which are the parts that identify it.
+    public static func abbreviated(_ path: String, maxLength: Int = 56) -> String {
+        let home = NSHomeDirectory()
+        var text = path
+        if text == home {
+            text = "~"
+        } else if text.hasPrefix(home + "/") {
+            text = "~" + text.dropFirst(home.count)
+        }
+        guard text.count > maxLength, maxLength > 1 else { return text }
+        let keep = (maxLength - 1) / 2
+        return String(text.prefix(keep)) + "…" + String(text.suffix(keep))
+    }
+}
+
 public enum DateFormat {
     /// Short date + time, e.g. "Oct 13, 2026 at 2:41 PM".
     public static func short(_ date: Date) -> String {
         date.formatted(date: .abbreviated, time: .shortened)
     }
 
-    /// Duration string for elapsed time, e.g. "1m 23s".
+    /// Duration string for elapsed time, e.g. "1m 23s". A scan that settles
+    /// before the first whole second reads as under a second rather than as
+    /// zero, which would look like the scan did no work.
     public static func duration(_ interval: TimeInterval) -> String {
+        if interval < 1 { return "<1s" }
         let total = Int(max(0, interval))
         let hours = total / 3600
         let minutes = (total % 3600) / 60

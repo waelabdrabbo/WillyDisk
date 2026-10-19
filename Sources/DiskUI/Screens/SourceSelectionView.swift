@@ -27,6 +27,10 @@ public struct SourceSelectionView: View {
     @State private var isDragOver = false
     @State private var recentLocations: [URL] = RecentLocations.load()
     @State private var volumes: [VolumeInfo] = []
+    /// What the next scan includes. The choices persist, so a scan started from
+    /// the menu or a drop uses the same ones this screen shows.
+    @State private var scanOptions = ScanOptionsStore.load()
+    @State private var showingScanOptions = false
     /// The app's appearance preference. The toolbar menu writes it and the app
     /// shell reads the same stored value, so the menu reports what the window
     /// actually shows.
@@ -81,6 +85,9 @@ public struct SourceSelectionView: View {
             ToolbarItem(placement: .primaryAction) {
                 appearanceMenu
             }
+        }
+        .onChange(of: scanOptions) { _, newValue in
+            ScanOptionsStore.save(newValue)
         }
     }
 
@@ -177,6 +184,20 @@ public struct SourceSelectionView: View {
                 .help("Open the results of the scan of this location")
                 .accessibilityLabel("View scan results for \(sourceName)")
             } else {
+                HStack(spacing: DS.Spacing.xSmall) {
+                    Image(systemName: "slider.horizontal.3")
+                        .font(DS.Icon.detail)
+                        .foregroundStyle(DS.Color.tertiaryText)
+                        .accessibilityHidden(true)
+                    Text(scanOptions.summary)
+                        .font(DS.Typography.caption)
+                        .foregroundStyle(DS.Color.secondaryText)
+                        .lineLimit(2)
+                    Spacer(minLength: 0)
+                }
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("This scan: \(scanOptions.summary)")
+
                 Button {
                     startScan(url)
                 } label: {
@@ -432,16 +453,89 @@ public struct SourceSelectionView: View {
     }
 
     private var chooseFolderSection: some View {
-        Button {
-            chooseFolder()
-        } label: {
-            Label("Choose a Folder…", systemImage: "folder")
-                .frame(minWidth: DS.Size.wideActionMinWidth)
+        HStack(spacing: DS.Spacing.medium) {
+            Button {
+                chooseFolder()
+            } label: {
+                Label("Choose a Folder…", systemImage: "folder")
+                    .frame(minWidth: DS.Size.wideActionMinWidth)
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+            .keyboardShortcut(.defaultAction)
+            .help("Pick any folder or volume to scan")
+
+            Button {
+                showingScanOptions.toggle()
+            } label: {
+                Label("Scan Options", systemImage: "slider.horizontal.3")
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.large)
+            .popover(isPresented: $showingScanOptions, arrowEdge: .bottom) {
+                scanOptionsPopover
+            }
+            .help("Choose what the next scan includes")
+            .accessibilityLabel("Scan options")
+            .accessibilityValue(scanOptions.summary)
         }
-        .buttonStyle(.borderedProminent)
-        .controlSize(.large)
-        .keyboardShortcut(.defaultAction)
-        .help("Pick any folder or volume to scan")
+    }
+
+    /// What a scan includes, as switches with the consequence of each spelled
+    /// out. The summary at the bottom names the same choices, so the source
+    /// screen and the popover cannot disagree.
+    private var scanOptionsPopover: some View {
+        VStack(alignment: .leading, spacing: DS.Spacing.medium) {
+            Text("Scan Options")
+                .font(DS.Typography.headline)
+
+            optionToggle(
+                "Include hidden items",
+                detail: "Names macOS hides, such as ~/Library, dotfiles, and caches.",
+                isOn: $scanOptions.includeHidden
+            )
+            optionToggle(
+                "Stay on this volume",
+                detail: "Do not follow folders that point to another disk or network share.",
+                isOn: $scanOptions.stayOnVolume
+            )
+            optionToggle(
+                "Follow symbolic links",
+                detail: "Count a link's target, skipping links that leave the scan.",
+                isOn: $scanOptions.followSymlinks
+            )
+
+            Divider()
+
+            HStack {
+                Button("Reset to Defaults") {
+                    scanOptions = .standard
+                }
+                .disabled(scanOptions == .standard)
+                Spacer()
+                Text("Applies to the next scan you start.")
+                    .font(DS.Typography.caption)
+                    .foregroundStyle(DS.Color.secondaryText)
+            }
+        }
+        .padding(DS.Spacing.large)
+        .frame(width: 380)
+    }
+
+    private func optionToggle(_ title: String, detail: String, isOn: Binding<Bool>) -> some View {
+        Toggle(isOn: isOn) {
+            VStack(alignment: .leading, spacing: DS.Spacing.hairline) {
+                Text(title)
+                    .font(DS.Typography.body)
+                Text(detail)
+                    .font(DS.Typography.caption)
+                    .foregroundStyle(DS.Color.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .toggleStyle(.switch)
+        .accessibilityLabel(title)
+        .accessibilityValue(isOn.wrappedValue ? "on" : "off")
     }
 
     private func sectionHeader(_ title: String) -> some View {
@@ -487,7 +581,7 @@ public struct SourceSelectionView: View {
     private func startScan(_ url: URL) {
         RecentLocations.record(url)
         recentLocations = RecentLocations.load()
-        viewModel.start(root: url)
+        viewModel.start(root: url, options: scanOptions)
     }
 
     private func handleDrop(_ providers: [NSItemProvider]) -> Bool {

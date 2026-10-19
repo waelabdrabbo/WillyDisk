@@ -73,6 +73,12 @@ public final class ScanViewModel {
     public private(set) var blockedStartNotice: String?
     public private(set) var progress: ScanProgress?
     public private(set) var issues: [ScanIssue] = []
+    /// The options the scan on the slot was started with, so Rescan repeats the
+    /// scan the user asked for rather than a default one.
+    public private(set) var lastOptions = ScanOptions.standard
+    /// When the scan on the slot started, for the results line before a snapshot
+    /// carries its own timestamps.
+    public private(set) var scanStartedAt: Date?
 
     /// Bumped whenever the results a screen renders change: a progressive
     /// snapshot the screen takes (see `partialApplicationInterval`), the terminal
@@ -229,12 +235,7 @@ public final class ScanViewModel {
 
     // MARK: Scanning
 
-    public func start(
-        root: URL,
-        followSymlinks: Bool = false,
-        stayOnVolume: Bool = true,
-        includeHidden: Bool = true
-    ) {
+    public func start(root: URL, options: ScanOptions = .standard) {
         // The engine has one scan slot. Refusing a second start keeps one scan
         // running at a time instead of racing or replacing it; the source
         // selection screen disables its own start actions for the same reason,
@@ -262,19 +263,27 @@ public final class ScanViewModel {
         progress = nil
         issues = []
         currentRoot = root
+        lastOptions = options
+        scanStartedAt = .now
         phase = .scanning
         resultsRevision &+= 1
 
         let request = ScanRequest(
             root: root,
-            followSymlinks: followSymlinks,
-            stayOnVolume: stayOnVolume,
-            includeHidden: includeHidden
+            followSymlinks: options.followSymlinks,
+            stayOnVolume: options.stayOnVolume,
+            includeHidden: options.includeHidden
         )
         let stream = engine.scan(request)
         scanTask = Task { [weak self] in
             await self?.consume(stream, generation: generation)
         }
+    }
+
+    /// Scans the location on the slot again, with the options it was scanned with.
+    public func rescan() {
+        guard let root = currentRoot else { return }
+        start(root: root, options: lastOptions)
     }
 
     /// Asks the running scan to stop. Cancelling is a request, not an outcome:
@@ -304,6 +313,7 @@ public final class ScanViewModel {
         progress = nil
         issues = []
         currentRoot = nil
+        scanStartedAt = nil
         blockedStartNotice = nil
         phase = .idle
         route = .home

@@ -56,4 +56,22 @@ enum ExplorerQuery {
         }
         return nodes
     }
+
+    /// The largest items from a list the engine already ranked.
+    ///
+    /// The results screen shows the engine's top 100 files and folders, which come
+    /// sorted by size. Search runs over that list rather than the whole scan: the
+    /// screen says it is searching the top items, and a scan of a disk does not
+    /// retain every file for the UI to search.
+    static func ranked(_ nodes: [ScanNode], search: String) -> [ScanNode] {
+        var result = nodes.filter(\.isPresentable)
+        if !search.isEmpty {
+            result = result.filter {
+                $0.name.localizedCaseInsensitiveContains(search)
+                    || $0.url.path.localizedCaseInsensitiveContains(search)
+            }
+        }
+        result.sort { $0.logicalSize > $1.logicalSize }
+        return result
+    }
 }

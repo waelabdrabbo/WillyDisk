@@ -27,6 +27,9 @@ public struct ResultsView: View {
     @State private var searchText = ""
     @State private var sortOrder: SortOrder = .size
     @State private var filterCategory: FileCategory?
+    /// Which list the explorer shows: the folder in the chart, or the engine's
+    /// largest files and folders across the whole scan.
+    @State private var explorerMode: ExplorerMode = .folder
 
     /// Holds the visible rows between changes of the inputs that decide them.
     ///
@@ -110,6 +113,22 @@ public struct ResultsView: View {
         currentChildren.filter(\.isPresentable)
     }
 
+    /// The nodes behind the two "largest" lists, straight from the engine's own
+    /// ranking. A folder scan's root is the whole scan and is left out of the top
+    /// folders, where it would only repeat the total above the list.
+    private var topNodes: [ScanNode] {
+        guard let summary else { return [] }
+        switch explorerMode {
+        case .folder:
+            return []
+        case .topFiles:
+            return summary.largestFiles
+        case .topFolders:
+            let rootPath = summary.root.standardizedFileURL.path
+            return summary.largestDirectories.filter { $0.url.standardizedFileURL.path != rootPath }
+        }
+    }
+
     /// The folder on screen, resolved against the results being rendered.
     ///
     /// The breadcrumb's own values are the snapshots the folders were opened
@@ -176,23 +195,34 @@ public struct ResultsView: View {
             breadcrumb: breadcrumb.map(\.id),
             search: searchText,
             category: filterCategory,
-            sort: sortOrder
+            sort: sortOrder,
+            mode: explorerMode
         )
         return rowsCache.rows(for: key) {
             let colors = nodeColors
-            return ExplorerQuery.entries(in: currentChildren, search: searchText,
-                                         category: filterCategory, sort: sortOrder)
-                .map { ExplorerRow(node: $0, colors: colors) }
+            let nodes: [ScanNode]
+            switch explorerMode {
+            case .folder:
+                nodes = ExplorerQuery.entries(in: currentChildren, search: searchText,
+                                              category: filterCategory, sort: sortOrder)
+            case .topFiles, .topFolders:
+                nodes = ExplorerQuery.ranked(topNodes, search: searchText)
+            }
+            return nodes.map {
+                ExplorerRow(node: $0, colors: colors, showsLocation: explorerMode != .folder)
+            }
         }
     }
 
-    private var isFiltering: Bool { !searchText.isEmpty || filterCategory != nil }
+    private var isFiltering: Bool {
+        explorerMode == .folder ? (!searchText.isEmpty || filterCategory != nil) : !searchText.isEmpty
+    }
 
     /// The inputs that decide which rows are on screen. When any of them changes
     /// the list is reshuffled, so a hover is dropped rather than left pointing
     /// at a row that is no longer rendered.
     private var rowSetKey: ExplorerRowKey {
-        ExplorerRowKey(search: searchText, category: filterCategory, sort: sortOrder)
+        ExplorerRowKey(search: searchText, category: filterCategory, sort: sortOrder, mode: explorerMode)
     }
 
     /// Honest copy for an empty chart — an empty result set means something
@@ -203,6 +233,11 @@ public struct ResultsView: View {
 
     /// Honest copy for an empty explorer list, in the same two situations.
     private var listEmptyMessage: String {
+        if explorerMode != .folder {
+            if isFiltering { return "No matches in the top items" }
+            if isLiveScan { return "Waiting for the first items…" }
+            return explorerMode == .topFiles ? "No files to rank" : "No folders to rank"
+        }
         if isLiveScan && !isFiltering { return "Waiting for the first items…" }
         if isFiltering { return "No matches" }
         // The folder holds entries, but none of them has bytes to list.
@@ -242,6 +277,21 @@ public struct ResultsView: View {
             // event when the visible set changes, so the shared hover is dropped
             // rather than left pointing at a row that is no longer rendered.
             hover.url = nil
+        }
+        .onChange(of: explorerMode) { _, newMode in
+            // The list's scope changed, so a selection, a hover, and a search
+            // that were about the old list would otherwise point at rows that are
+            // no longer on screen.
+            hover.url = nil
+            selectedNode = nil
+            searchText = ""
+            filterCategory = nil
+            // The chart shows a folder; the largest lists are about the whole
+            // scan. Returning the chart to the scanned location keeps the map and
+            // the list talking about the same thing.
+            if newMode != .folder {
+                breadcrumb.removeAll()
+            }
         }
         .task(id: viewModel.scanRun) {
             // Re-run for every scan and on Rescan: grant Full Disk Access in
@@ -563,6 +613,8 @@ public struct ResultsView: View {
     private var explorerPane: some View {
         VStack(spacing: 0) {
             compactHeader
+            explorerModeBar
+            topListCaption
             explorerToolbar
 
             ScrollView {
@@ -572,6 +624,58 @@ public struct ResultsView: View {
             if let node = selectedNode {
                 detailPane(node)
             }
+        }
+    }
+
+    /// The switch between the folder in the chart and the two largest lists.
+    private var explorerModeBar: some View {
+        Picker("Explorer view", selection: $explorerMode) {
+            ForEach(ExplorerMode.allCases) { mode in
+                Text(mode.label).tag(mode)
+            }
+        }
+        .pickerStyle(.segmented)
+        .labelsHidden()
+        .controlSize(.small)
+        .padding(.horizontal, DS.Spacing.medium)
+        .padding(.bottom, DS.Spacing.xSmall)
+        .accessibilityLabel("Explorer view")
+    }
+
+    /// Says what the list is ranked by, and — while a search is on — that the
+    /// search covers the top items rather than every file on the disk.
+    @ViewBuilder
+    private var topListCaption: some View {
+        if let text = topListCaptionText {
+            Text(text)
+                .font(DS.Typography.caption)
+                .foregroundStyle(DS.Color.secondaryText)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, DS.Spacing.small)
+                .padding(.bottom, DS.Spacing.xSmall)
+        }
+    }
+
+    private var topListCaptionText: String? {
+        guard explorerMode != .folder else { return nil }
+        guard let s = summary else { return nil }
+        let n = topNodes.count
+        if n == 0 {
+            return isLiveScan ? "Ranking items by size…" : nil
+        }
+        let searching = !searchText.isEmpty
+        switch explorerMode {
+        case .folder:
+            return nil
+        case .topFiles:
+            if searching { return "Matches in the \(n) largest files by size" }
+            if n == s.fileCount { return "All \(n) files, largest first" }
+            return "The largest \(n) files by size · \(s.fileCount) files scanned"
+        case .topFolders:
+            let folders = max(0, s.directoryCount - 1)
+            if searching { return "Matches in the \(n) largest folders by size" }
+            if n == folders { return "All \(n) folders, largest first" }
+            return "The largest \(n) folders by size · \(folders) folders scanned"
         }
     }
 
@@ -598,14 +702,51 @@ public struct ResultsView: View {
             }
             // Counted the way the list counts: an entry with nothing in it is one
             // the explorer does not list, so it does not read as an item here.
-            Text("\(viewModel.filesScanned) files · \(presentableChildren.count) items")
+            Text(countsText)
                 .font(DS.Typography.caption)
                 .foregroundStyle(DS.Color.secondaryText)
+            provenanceLine
             if viewModel.stoppedEarly { stoppedEarlyNote }
         }
         .padding(.horizontal, DS.Spacing.medium)
         .padding(.vertical, DS.Spacing.small)
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// Counts for the list's scope: the folder's own entries while the chart and
+    /// list agree on a folder, and the whole scan's counts while the list is one
+    /// of the largest lists.
+    private var countsText: String {
+        if explorerMode == .folder {
+            return "\(viewModel.filesScanned) files · \(presentableChildren.count) items"
+        }
+        guard let s = summary else { return "\(viewModel.filesScanned) files" }
+        // The scan root is a folder in the summary, but it is the scan itself and
+        // never one of its own subfolders, so the largest-list counts leave it out.
+        return "\(s.fileCount) files · \(max(0, s.directoryCount - 1)) folders"
+    }
+
+    /// When the results were gathered and how long the scan took, so the numbers
+    /// are never read as current. A live scan states its start and keeps the
+    /// elapsed time moving; a settled one states both and stops.
+    @ViewBuilder
+    private var provenanceLine: some View {
+        if isLiveScan, let started = viewModel.scanStartedAt ?? summary?.startedAt {
+            TimelineView(.periodic(from: .now, by: 1)) { context in
+                provenanceText(ScanProvenance.live(startedAt: started, now: context.date))
+            }
+        } else if let s = summary {
+            provenanceText(ScanProvenance.settled(startedAt: s.startedAt, finishedAt: s.finishedAt))
+        }
+    }
+
+    private func provenanceText(_ text: String) -> some View {
+        Text(text)
+            .font(DS.Typography.caption)
+            .monospacedDigit()
+            .foregroundStyle(DS.Color.secondaryText)
+            .lineLimit(1)
+            .truncationMode(.tail)
     }
 
     /// The settled notice for a scan that stopped before it had covered the whole
@@ -633,7 +774,7 @@ public struct ResultsView: View {
             HStack(spacing: DS.Spacing.xSmall) {
                 Image(systemName: "magnifyingglass")
                     .foregroundStyle(DS.Color.secondaryText)
-                TextField("Search", text: $searchText)
+                TextField(searchPrompt, text: $searchText)
                     .textFieldStyle(.plain)
                 if !searchText.isEmpty {
                     Button {
@@ -649,28 +790,38 @@ public struct ResultsView: View {
             .padding(.vertical, 5)
             .background(DS.Color.controlBackground, in: RoundedRectangle(cornerRadius: DS.Radius.medium, style: .continuous))
 
-            Picker("Sort", selection: $sortOrder) {
-                ForEach(SortOrder.allCases) { order in
-                    Text(order.label).tag(order)
+            if explorerMode == .folder {
+                Picker("Sort", selection: $sortOrder) {
+                    ForEach(SortOrder.allCases) { order in
+                        Text(order.label).tag(order)
+                    }
                 }
-            }
-            .pickerStyle(.menu)
-            .fixedSize()
+                .pickerStyle(.menu)
+                .fixedSize()
 
-            Menu {
-                Button("All Categories") { filterCategory = nil }
-                Divider()
-                ForEach(FileCategory.allCases, id: \.self) { category in
-                    Button(category.displayName) { filterCategory = category }
+                Menu {
+                    Button("All Categories") { filterCategory = nil }
+                    Divider()
+                    ForEach(FileCategory.allCases, id: \.self) { category in
+                        Button(category.displayName) { filterCategory = category }
+                    }
+                } label: {
+                    Image(systemName: "line.3.horizontal.decrease.circle")
                 }
-            } label: {
-                Image(systemName: "line.3.horizontal.decrease.circle")
+                .menuStyle(.borderlessButton)
+                .fixedSize()
+                .help("Filter by category")
             }
-            .menuStyle(.borderlessButton)
-            .fixedSize()
-            .help("Filter by category")
         }
         .padding(DS.Spacing.small)
+    }
+
+    private var searchPrompt: String {
+        switch explorerMode {
+        case .folder: "Search"
+        case .topFiles: "Search top files"
+        case .topFolders: "Search top folders"
+        }
     }
 
     private var contentsList: some View {
@@ -755,6 +906,7 @@ public struct ResultsView: View {
             hover.url = nil
             breadcrumb.append(node)
             selectedNode = nil
+            explorerMode = .folder
         } else {
             selectedNode = node
         }
@@ -779,13 +931,13 @@ public struct ResultsView: View {
     }
 
     private func rescan() {
-        guard let root = summary?.root ?? viewModel.currentRoot else { return }
         hover.url = nil
         breadcrumb.removeAll()
         selectedNode = nil
         searchText = ""
         filterCategory = nil
-        viewModel.start(root: root)
+        explorerMode = .folder
+        viewModel.rescan()
     }
 
     private func goHome() {
@@ -797,6 +949,7 @@ public struct ResultsView: View {
         selectedNode = nil
         searchText = ""
         filterCategory = nil
+        explorerMode = .folder
         viewModel.showHome()
     }
 }
@@ -869,23 +1022,43 @@ private struct ContentsList: View {
     }
 }
 
+/// Which list the explorer is showing.
+private enum ExplorerMode: String, CaseIterable, Identifiable {
+    case folder
+    case topFiles
+    case topFolders
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .folder: "This Folder"
+        case .topFiles: "Top Files"
+        case .topFolders: "Top Folders"
+        }
+    }
+}
+
 /// The explorer inputs that decide which rows are on screen.
 private struct ExplorerRowKey: Equatable {
     var search: String
     var category: FileCategory?
     var sort: SortOrder
+    var mode: ExplorerMode
 }
 
 /// The inputs the visible rows are derived from.
 ///
 /// A change to any of them — new scan data, a different folder, a search, filter
-/// or ordering — is what makes the list stale. Nothing else is.
+/// or ordering, or a different list — is what makes the list stale. Nothing else
+/// is.
 private struct ExplorerRowsKey: Equatable {
     var revision: Int
     var breadcrumb: [UUID]
     var search: String
     var category: FileCategory?
     var sort: SortOrder
+    var mode: ExplorerMode
 }
 
 /// Keeps the explorer's visible rows while their inputs stay the same.
@@ -969,7 +1142,7 @@ private struct ExplorerRow: Equatable {
     let subtitle: String
     let sizeText: String
 
-    init(node: ScanNode, colors: NodeColors) {
+    init(node: ScanNode, colors: NodeColors, showsLocation: Bool = false) {
         self.node = node
         url = node.url
         name = node.name
@@ -977,9 +1150,13 @@ private struct ExplorerRow: Equatable {
         isSymlink = node.isSymlink
         isAccessible = node.isAccessible
         iconColor = colors.color(for: node.url).color
-        subtitle = node.isDirectory
-            ? "\(node.fileCount) files · \(node.directoryCount) folders"
-            : node.category.displayName
+        if showsLocation {
+            subtitle = PathFormat.abbreviated(node.url.path)
+        } else if node.isDirectory {
+            subtitle = "\(node.fileCount) files · \(node.directoryCount) folders"
+        } else {
+            subtitle = node.category.displayName
+        }
         sizeText = ByteFormat.string(node.logicalSize)
     }
 
@@ -1034,6 +1211,8 @@ private struct NodeRow: View, Equatable {
                         Text(row.subtitle)
                             .font(DS.Typography.caption)
                             .foregroundStyle(DS.Color.secondaryText)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
                     }
                     Spacer()
                     Text(row.sizeText)

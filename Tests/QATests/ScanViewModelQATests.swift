@@ -152,7 +152,7 @@ final class ScanViewModelQATests: XCTestCase {
         defer { try? FileManager.default.removeItem(at: root) }
 
         let vm = ScanViewModel(engine: FileScanEngine())
-        vm.start(root: root, followSymlinks: true)
+        vm.start(root: root, options: ScanOptions(followSymlinks: true))
         _ = await waitUntil { vm.phase == .finished }
 
         XCTAssertEqual(vm.phase, .finished)

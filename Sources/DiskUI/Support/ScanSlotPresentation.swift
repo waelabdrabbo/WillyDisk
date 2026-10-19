@@ -50,7 +50,9 @@ public struct ScanSlotPresentation: Equatable, Sendable {
     /// yet, so the row never shows a fabricated zero.
     public var detail: String? {
         var parts: [String] = []
-        if filesScanned > 0 { parts.append("\(filesScanned.formatted(.number)) files") }
+        if filesScanned > 0 {
+            parts.append(filesScanned == 1 ? "1 file" : "\(filesScanned.formatted(.number)) files")
+        }
         if bytesScanned > 0 { parts.append(ByteFormat.string(bytesScanned)) }
         guard !parts.isEmpty else { return nil }
         let counts = parts.joined(separator: " · ")

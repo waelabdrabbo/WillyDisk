@@ -81,6 +81,17 @@ public enum PathFormat {
     }
 }
 
+/// Counts with the right noun, so a folder of one never reads “1 folders”.
+enum CountFormat {
+    static func files(_ count: Int) -> String { unit(count, "file", "files") }
+    static func folders(_ count: Int) -> String { unit(count, "folder", "folders") }
+    static func items(_ count: Int) -> String { unit(count, "item", "items") }
+
+    private static func unit(_ count: Int, _ singular: String, _ plural: String) -> String {
+        "\(count) \(count == 1 ? singular : plural)"
+    }
+}
+
 public enum DateFormat {
     /// Short date + time, e.g. "Oct 13, 2026 at 2:41 PM".
     public static func short(_ date: Date) -> String {

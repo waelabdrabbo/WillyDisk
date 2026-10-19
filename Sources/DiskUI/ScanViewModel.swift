@@ -79,6 +79,105 @@ public final class ScanViewModel {
     /// When the scan on the slot started, for the results line before a snapshot
     /// carries its own timestamps.
     public private(set) var scanStartedAt: Date?
+    /// Set when something outside the engine changed the tree the summary
+    /// describes — moving an item to the Trash — so the screen can say the
+    /// numbers are older than the disk instead of presenting them as current.
+    /// Cleared when a scan starts over the same slot.
+    public private(set) var resultsAreStale = false
+    /// The outcome of the last trash request, kept until the screen dismisses it
+    /// or a new scan starts.
+    public private(set) var reclaimNotice: ReclaimNotice?
+
+    /// Moves items to the Trash through the guard, one at a time, and reports
+    /// what happened in the screen's words.
+    ///
+    /// Every request is checked again here even though the confirmation sheet
+    /// already showed a decision: the tree can change while the sheet is open,
+    /// and the engine's own rule is that no action is taken without a current
+    /// answer.
+    @discardableResult
+    public func reclaim(_ candidates: [ReclaimCandidate]) async -> ReclaimNotice {
+        guard let root = currentRoot else {
+            let notice = ReclaimNotice(
+                tone: .failure,
+                message: "There is no finished scan to check this item against. Run a scan, then try again.",
+                showsShowTrash: false
+            )
+            reclaimNotice = notice
+            return notice
+        }
+
+        var moved: [ReclaimCandidate] = []
+        var failures: [String] = []
+
+        for candidate in candidates {
+            var context = await ReclaimContextProbe.context(for: candidate.url, scanRoot: root)
+            context.isScanning = isScanning
+            if let refusal = ReclaimPolicy.refusal(for: candidate.url, in: context) {
+                failures.append("\(candidate.name): \(refusal.title)")
+                continue
+            }
+            switch await reclaimController.trash(candidate.url) {
+            case .trashed:
+                moved.append(candidate)
+            case .failed(let reason):
+                failures.append("\(candidate.name): \(reason)")
+            }
+        }
+
+        if !moved.isEmpty {
+            markResultsStale()
+        }
+
+        let notice = makeReclaimNotice(moved: moved, failures: failures)
+        reclaimNotice = notice
+        return notice
+    }
+
+    /// The guard's answer for one item, asked before the confirmation sheet
+    /// opens so the sheet can explain a refusal instead of offering a dead button.
+    public func reclaimRefusal(for url: URL) async -> ReclaimRefusal? {
+        guard let root = currentRoot else { return .missing }
+        var context = await ReclaimContextProbe.context(for: url, scanRoot: root)
+        context.isScanning = isScanning
+        return ReclaimPolicy.refusal(for: url, in: context)
+    }
+
+    public func dismissReclaimNotice() {
+        reclaimNotice = nil
+    }
+
+    private func makeReclaimNotice(moved: [ReclaimCandidate], failures: [String]) -> ReclaimNotice {
+        let size = ByteFormat.string(moved.reduce(0) { $0 + $1.allocatedSize })
+        if moved.isEmpty {
+            let reason = failures.first ?? "The item is still in place."
+            return ReclaimNotice(
+                tone: .failure,
+                message: "Couldn’t move to the Trash. \(reason)",
+                showsShowTrash: false
+            )
+        }
+
+        let movedSubject: String
+        if moved.count == 1 {
+            movedSubject = "“\(moved[0].name)” (\(size))"
+        } else {
+            movedSubject = "\(moved.count) items (\(size))"
+        }
+
+        if failures.isEmpty {
+            return ReclaimNotice(
+                tone: .success,
+                message: "Moved \(movedSubject) to the Trash. Space is freed when you empty the Trash.",
+                showsShowTrash: true
+            )
+        }
+        return ReclaimNotice(
+            tone: .failure,
+            message: "Moved \(movedSubject) to the Trash; \(failures.count) could not be moved. \(failures[0])",
+            showsShowTrash: true
+        )
+    }
 
     /// Bumped whenever the results a screen renders change: a progressive
     /// snapshot the screen takes (see `partialApplicationInterval`), the terminal
@@ -89,6 +188,7 @@ public final class ScanViewModel {
     public private(set) var resultsRevision = 0
 
     private var engine: (any ScanEngine)?
+    private let reclaimController: ReclaimController
     private var scanTask: Task<Void, Never>?
     /// Bumped whenever a scan starts or is discarded, so work belonging to a
     /// superseded scan — a late event, or a cancel that was requested before the
@@ -128,6 +228,14 @@ public final class ScanViewModel {
 
     public init(engine: (any ScanEngine)? = nil) {
         self.engine = engine
+        self.reclaimController = ReclaimController()
+    }
+
+    /// The trashing seam is injectable so the guard's decision and the system's
+    /// Trash operation can be exercised separately, without touching a real Trash.
+    init(engine: (any ScanEngine)? = nil, reclaimController: ReclaimController) {
+        self.engine = engine
+        self.reclaimController = reclaimController
     }
 
     /// Connects (or replaces) the scanning engine. Called by the app shell once
@@ -265,6 +373,8 @@ public final class ScanViewModel {
         currentRoot = root
         lastOptions = options
         scanStartedAt = .now
+        resultsAreStale = false
+        reclaimNotice = nil
         phase = .scanning
         resultsRevision &+= 1
 
@@ -284,6 +394,16 @@ public final class ScanViewModel {
     public func rescan() {
         guard let root = currentRoot else { return }
         start(root: root, options: lastOptions)
+    }
+
+    /// Marks the results on the slot as older than the disk.
+    ///
+    /// Used after an item is moved to the Trash. The tree the summary describes is
+    /// no longer what the engine measured, and rescanning a whole disk for one
+    /// removal would be worse than saying so: the screen keeps the last honest
+    /// totals, labels them stale, and offers Rescan.
+    public func markResultsStale() {
+        resultsAreStale = true
     }
 
     /// Asks the running scan to stop. Cancelling is a request, not an outcome:
@@ -314,6 +434,8 @@ public final class ScanViewModel {
         issues = []
         currentRoot = nil
         scanStartedAt = nil
+        resultsAreStale = false
+        reclaimNotice = nil
         blockedStartNotice = nil
         phase = .idle
         route = .home

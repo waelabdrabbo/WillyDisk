@@ -174,4 +174,13 @@ final class ScanOptionsQATests: XCTestCase {
         XCTAssertEqual(PathFormat.abbreviated(home), "~")
         XCTAssertEqual(PathFormat.abbreviated(home + "/Library/Caches"), "~/Library/Caches")
     }
+
+    // MARK: - Counts
+
+    func testCountsUseTheSingularOnlyForOne() {
+        XCTAssertEqual(CountFormat.files(1), "1 file")
+        XCTAssertEqual(CountFormat.files(2), "2 files")
+        XCTAssertEqual(CountFormat.folders(1), "1 folder")
+        XCTAssertEqual(CountFormat.items(0), "0 items")
+    }
 }

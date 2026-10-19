@@ -61,6 +61,16 @@ public struct ResultsView: View {
     /// otherwise, so a slow probe fails toward informing rather than hiding.
     @State private var fullDiskAccessGranted = false
 
+    // Reclaim
+    @State private var reclaimCandidates: [ReclaimCandidate] = []
+    @State private var reclaimRefusal: ReclaimRefusal?
+    @State private var showingReclaim = false
+    @State private var isCheckingReclaim = false
+    @State private var isTrashing = false
+    /// A token that makes a slow guard probe land only on the request that asked
+    /// for it, never on a later selection the sheet is now about.
+    @State private var reclaimRequestID = UUID()
+
     public init(viewModel: ScanViewModel = ScanViewModel()) {
         _viewModel = State(initialValue: viewModel)
     }
@@ -298,6 +308,33 @@ public struct ResultsView: View {
             // System Settings, hit Rescan, and the notice must disappear.
             fullDiskAccessGranted = await FullDiskAccessProbe.isGranted()
         }
+        .overlay(alignment: .bottom) {
+            if let notice = viewModel.reclaimNotice {
+                ReclaimBanner(
+                    tone: notice.tone,
+                    message: notice.message,
+                    showsShowTrash: notice.showsShowTrash,
+                    onShowTrash: openTrash,
+                    onRescan: rescan,
+                    onDismiss: viewModel.dismissReclaimNotice
+                )
+                .padding(.horizontal, DS.Spacing.large)
+                .padding(.bottom, DS.Spacing.small)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .animation(.easeInOut(duration: 0.2), value: viewModel.reclaimNotice)
+        .sheet(isPresented: $showingReclaim) {
+            ReclaimSheet(
+                candidates: reclaimCandidates,
+                refusal: reclaimRefusal,
+                isChecking: isCheckingReclaim,
+                isWorking: isTrashing,
+                onCancel: { showingReclaim = false },
+                onConfirm: confirmReclaim
+            )
+            .interactiveDismissDisabled(isTrashing)
+        }
         .toolbar {
             // One step back, wherever the screen is: out of the folder the chart
             // is drawn from, and from the scanned location itself to source
@@ -501,7 +538,7 @@ public struct ResultsView: View {
     private var scanStatusBanner: some View {
         HStack(spacing: DS.Spacing.medium) {
             scanStatusIndicator
-            Text("\(viewModel.filesScanned) files · \(ByteFormat.string(viewModel.displayedTotal))")
+            Text("\(CountFormat.files(viewModel.filesScanned)) · \(ByteFormat.string(viewModel.displayedTotal))")
                 .font(DS.Typography.caption)
                 .monospacedDigit()
                 .foregroundStyle(DS.Color.secondaryText)
@@ -706,6 +743,9 @@ public struct ResultsView: View {
                 .font(DS.Typography.caption)
                 .foregroundStyle(DS.Color.secondaryText)
             provenanceLine
+            if viewModel.resultsAreStale {
+                StaleResultsBadge(onRescan: rescan)
+            }
             if viewModel.stoppedEarly { stoppedEarlyNote }
         }
         .padding(.horizontal, DS.Spacing.medium)
@@ -718,12 +758,12 @@ public struct ResultsView: View {
     /// of the largest lists.
     private var countsText: String {
         if explorerMode == .folder {
-            return "\(viewModel.filesScanned) files · \(presentableChildren.count) items"
+            return "\(CountFormat.files(viewModel.filesScanned)) · \(CountFormat.items(presentableChildren.count))"
         }
-        guard let s = summary else { return "\(viewModel.filesScanned) files" }
+        guard let s = summary else { return CountFormat.files(viewModel.filesScanned) }
         // The scan root is a folder in the summary, but it is the scan itself and
         // never one of its own subfolders, so the largest-list counts leave it out.
-        return "\(s.fileCount) files · \(max(0, s.directoryCount - 1)) folders"
+        return "\(CountFormat.files(s.fileCount)) · \(CountFormat.folders(max(0, s.directoryCount - 1)))"
     }
 
     /// When the results were gathered and how long the scan took, so the numbers
@@ -831,10 +871,11 @@ public struct ResultsView: View {
         ContentsList(
             rows: visibleRows,
             emptyMessage: listEmptyMessage,
-            selectedURL: selectedNode?.url
-        ) { node in
-            select(node)
-        }
+            selectedURL: selectedNode?.url,
+            onSelect: { node in select(node) },
+            onReclaim: { node in requestReclaim([node]) },
+            onReveal: revealInFinder
+        )
     }
 
     // MARK: - Detail pane
@@ -866,7 +907,7 @@ public struct ResultsView: View {
             detailRow("Size", ByteFormat.exact(node.logicalSize))
             detailRow("On disk", ByteFormat.exact(node.allocatedSize))
             if node.isDirectory {
-                detailRow("Contents", "\(node.fileCount) files · \(node.directoryCount) folders")
+                detailRow("Contents", "\(CountFormat.files(node.fileCount)) · \(CountFormat.folders(node.directoryCount))")
             }
             if let modified = node.modifiedAt {
                 detailRow("Modified", DateFormat.short(modified))
@@ -878,6 +919,16 @@ public struct ResultsView: View {
                 detailRow("Access", node.errorMessage ?? "Inaccessible")
                     .foregroundStyle(DS.Color.warning)
             }
+
+            Button(role: .destructive) {
+                requestReclaim([node])
+            } label: {
+                Label("Move to Trash…", systemImage: "trash")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+            .padding(.top, DS.Spacing.xSmall)
         }
         .padding(DS.Spacing.medium)
         .background(DS.Color.controlBackground.opacity(0.5))
@@ -928,6 +979,52 @@ public struct ResultsView: View {
 
     private func revealInFinder(_ node: ScanNode) {
         NSWorkspace.shared.activateFileViewerSelecting([node.url])
+    }
+
+    /// Opens the confirmation sheet for the items just chosen.
+    ///
+    /// The guard's answer is asked off the main thread and arrives with the
+    /// sheet already up: a refused item still gets an explanation rather than a
+    /// context menu entry that silently does nothing.
+    private func requestReclaim(_ nodes: [ScanNode]) {
+        let candidates = nodes.map(ReclaimCandidate.init)
+        guard !candidates.isEmpty else { return }
+
+        let requestID = UUID()
+        reclaimRequestID = requestID
+        reclaimCandidates = candidates
+        reclaimRefusal = nil
+        isCheckingReclaim = true
+        showingReclaim = true
+
+        Task {
+            var refusal: ReclaimRefusal?
+            for candidate in candidates {
+                if let answer = await viewModel.reclaimRefusal(for: candidate.url) {
+                    refusal = answer
+                    break
+                }
+            }
+            guard reclaimRequestID == requestID else { return }
+            reclaimRefusal = refusal
+            isCheckingReclaim = false
+        }
+    }
+
+    private func confirmReclaim() {
+        guard !isTrashing else { return }
+        isTrashing = true
+        let candidates = reclaimCandidates
+        Task {
+            await viewModel.reclaim(candidates)
+            isTrashing = false
+            showingReclaim = false
+        }
+    }
+
+    private func openTrash() {
+        guard let trash = FileManager.default.urls(for: .trashDirectory, in: .userDomainMask).first else { return }
+        NSWorkspace.shared.open(trash)
     }
 
     private func rescan() {
@@ -989,6 +1086,8 @@ private struct ContentsList: View {
     let emptyMessage: String
     let selectedURL: URL?
     let onSelect: (ScanNode) -> Void
+    let onReclaim: (ScanNode) -> Void
+    let onReveal: (ScanNode) -> Void
 
     @Environment(ChartHover.self) private var hover
 
@@ -1016,6 +1115,14 @@ private struct ContentsList: View {
                     // rebuilds every row on each pass, so a hover or a selection
                     // would re-render the whole list.
                     .equatable()
+                    .contextMenu {
+                        Button("Move to Trash…", role: .destructive) {
+                            onReclaim(row.node)
+                        }
+                        Button("Reveal in Finder") {
+                            onReveal(row.node)
+                        }
+                    }
                 }
             }
         }
@@ -1153,7 +1260,7 @@ private struct ExplorerRow: Equatable {
         if showsLocation {
             subtitle = PathFormat.abbreviated(node.url.path)
         } else if node.isDirectory {
-            subtitle = "\(node.fileCount) files · \(node.directoryCount) folders"
+            subtitle = "\(CountFormat.files(node.fileCount)) · \(CountFormat.folders(node.directoryCount))"
         } else {
             subtitle = node.category.displayName
         }

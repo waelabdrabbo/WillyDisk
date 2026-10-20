@@ -77,8 +77,10 @@ struct WillyDiskMark: View {
                 GrooveRing(radius: outer, slot: slot, from: litFrom, to: 1)
                     .stroke(DS.Color.plateSignal, style: StrokeStyle(lineWidth: lineWidth, lineCap: .butt))
             }
+            // The spindle is turned enamel, as on the app icon: the dot is what
+            // makes the centre read as a spindle rather than as solid ink.
             Circle()
-                .fill(DS.Color.plateGround)
+                .fill(DS.Color.plateGroove)
                 .frame(width: spindleDiameter, height: spindleDiameter)
         }
         .frame(width: size, height: size)

@@ -99,19 +99,23 @@ public struct SourceSelectionView: View {
 
     // MARK: - Sections
 
+    /// The lockup that names the app: the mark on the left, and beside it the
+    /// wordmark with the one line that says what the window is for.
     private var hero: some View {
-        VStack(spacing: DS.Spacing.medium) {
-            WillyDiskMark(size: 64)
-                .padding(.bottom, DS.Spacing.small)
-            Text("WillyDisk")
-                .font(DS.Typography.largeTitle)
-                .tracking(DS.Typography.displayTracking)
-                .foregroundStyle(DS.Color.primaryText)
-            Text("Choose a folder. See what it weighs.")
-                .font(DS.Typography.body)
-                .foregroundStyle(DS.Color.secondaryText)
-                .multilineTextAlignment(.center)
+        HStack(alignment: .center, spacing: DS.Spacing.large) {
+            WillyDiskMark(size: 56)
+            VStack(alignment: .leading, spacing: DS.Spacing.xxSmall) {
+                Text("WillyDisk")
+                    .font(DS.Typography.largeTitle)
+                    .tracking(DS.Typography.displayTracking)
+                    .foregroundStyle(DS.Color.primaryText)
+                Text("Choose a folder. See what it weighs.")
+                    .font(DS.Typography.body)
+                    .foregroundStyle(DS.Color.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.top, DS.Spacing.section)
     }
 

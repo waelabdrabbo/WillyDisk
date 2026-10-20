@@ -74,6 +74,21 @@ It opens no window and needs no Screen Recording permission.
 sandbox there, and the shared module cache is unwritable, so the script adds
 `--disable-sandbox` and points swiftc at a module cache under `.build`.
 
+### Give the home render a Recent list
+
+The home screen reads `RecentLocations` from `UserDefaults`, whose key
+`WillyDisk.RecentLocations` holds `absoluteString` values and drops any whose path no
+longer exists. An unbundled renderer's defaults domain is its own process name, so the
+domain is empty and the home screen renders with no Recent section. Seed it first:
+
+```
+defaults write render-screens WillyDisk.RecentLocations -array \
+  "file:///Users/me/" "file:///Users/me/Downloads/"
+```
+
+That writes the throwaway `render-screens` domain, not the app's, so the real recents
+list is untouched; `defaults delete render-screens WillyDisk.RecentLocations` clears it.
+
 ### Give every review a fresh output path
 
 The renderer names its files after the size and appearance, so rendering the same size

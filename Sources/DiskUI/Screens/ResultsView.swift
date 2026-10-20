@@ -47,12 +47,6 @@ public struct ResultsView: View {
     /// and formatting off the redraw path.
     @State private var rowsCache = ExplorerRowsCache()
 
-    /// Holds the chart colour index between changes of the inputs that decide it.
-    /// It is the chart's own layout of the focused directory, so a drill-down
-    /// rebuilds it and the explorer's icons and the chart's wedges are always read
-    /// off the same rings.
-    @State private var nodeColorsCache = NodeColorsCache()
-
     /// The one hovered node, shared by the explorer rows and the chart, so
     /// hovering either side lights the other. Matched by URL, never by identity.
     ///
@@ -166,41 +160,6 @@ public struct ResultsView: View {
         return resolved
     }
 
-    /// Each node's colour in the chart, keyed by path, across every ring the
-    /// chart draws from the focused directory outwards.
-    ///
-    /// The chart colours a node by where it sits in the tree, and the icons in
-    /// the explorer and the detail pane are the same node as a wedge, so they
-    /// resolve their tint from here rather than from a palette of their own. The
-    /// index is the chart's own layout of the focused directory, so it holds a
-    /// colour for every entry a row or the detail pane can show — including the
-    /// descendants the chart draws on its outer rings.
-    ///
-    /// Derived work — the chart's layout walk — so it is computed once per change
-    /// of the inputs that decide it and reused while they hold.
-    private var nodeColors: NodeColors {
-        nodeColorsCache.colors(
-            for: NodeColorsKey(
-                revision: viewModel.resultsRevision,
-                focused: breadcrumb.last?.url.path ?? "",
-                maxChildren: chartChildLimit
-            ),
-            build: { buildNodeColors(of: currentChildren) }
-        )
-    }
-
-    /// The icons' colours, read off the very ring layout the chart draws.
-    ///
-    /// A node's colour follows its siblings and the ring it is drawn on, and the
-    /// chart decides both — so the chart draws the index instead of the two
-    /// deriving it separately. Drilling into a folder re-roots the chart, and the
-    /// index with it: the folder's children open colour families of their own on
-    /// ring 1 rather than keeping the family hue the folder wore one ring out.
-    private func buildNodeColors(of children: [ScanNode]) -> NodeColors {
-        NodeColors(colors: SunburstLayout.fillsByPath(roots: children,
-                                                      maxChildren: chartChildLimit))
-    }
-
     /// The explorer's visible rows: the focused folder's entries, filtered,
     /// ordered and resolved for display.
     ///
@@ -219,7 +178,6 @@ public struct ResultsView: View {
             maxChildren: chartChildLimit
         )
         return rowsCache.rows(for: key) {
-            let colors = nodeColors
             let nodes: [ScanNode]
             switch explorerMode {
             case .folder:
@@ -229,7 +187,7 @@ public struct ResultsView: View {
                 nodes = ExplorerQuery.ranked(topNodes, search: searchText)
             }
             return nodes.map {
-                ExplorerRow(node: $0, colors: colors, showsLocation: explorerMode != .folder)
+                ExplorerRow(node: $0, showsLocation: explorerMode != .folder)
             }
         }
     }
@@ -293,7 +251,7 @@ public struct ResultsView: View {
     /// Honest copy for an empty chart — an empty result set means something
     /// different while a scan is still filling in than after it has settled.
     private var chartEmptyMessage: String {
-        isLiveScan ? "Waiting for the first folders…" : "Nothing to show here"
+        isLiveScan ? "Reading the first folders…" : "This folder has nothing big enough to draw."
     }
 
     /// Honest copy for an empty explorer list, in the same two situations.
@@ -492,6 +450,20 @@ public struct ResultsView: View {
         breadcrumb.last?.name ?? scannedRootName ?? "WillyDisk"
     }
 
+    /// The size the header states: the focused folder's, not the whole scan's.
+    ///
+    /// The chart's centre disc sums the same children, so the header and the disc
+    /// agree at every depth. While a scan is running this is the folder's size as
+    /// known so far; the status strip carries the scan's own progress, which is
+    /// the number that moves.
+    private var focusedTotal: Int64 {
+        if let node = breadcrumb.last { return node.logicalSize }
+        if viewModel.isScanning {
+            return currentChildren.reduce(Int64(0)) { $0 + max($1.logicalSize, 0) }
+        }
+        return viewModel.displayedTotal
+    }
+
     /// The results layout: the chart owns the canvas and the inspector holds the
     /// item list with the access notice at its foot.
     ///
@@ -568,7 +540,7 @@ public struct ResultsView: View {
     private var scanStatusBanner: some View {
         HStack(spacing: DS.Spacing.medium) {
             scanStatusIndicator
-            Text("\(CountFormat.files(viewModel.filesScanned)) · \(ByteFormat.string(viewModel.displayedTotal))")
+            Text("\(CountFormat.files(viewModel.filesScanned)), \(ByteFormat.string(viewModel.displayedTotal))")
                 .font(DS.Typography.caption)
                 .monospacedDigit()
                 .foregroundStyle(DS.Color.secondaryText)
@@ -628,7 +600,7 @@ public struct ResultsView: View {
             HStack(spacing: DS.Spacing.small) {
                 ProgressView()
                     .controlSize(.small)
-                Text("Scanning…")
+                Text("Reading files…")
                     .font(DS.Typography.caption)
                     .foregroundStyle(DS.Color.secondaryText)
             }
@@ -668,9 +640,7 @@ public struct ResultsView: View {
     /// live scan's first moments or a scan that found nothing.
     private var emptyChart: some View {
         VStack(spacing: DS.Spacing.small) {
-            Image(systemName: isLiveScan ? "hourglass" : "chart.pie")
-                .font(DS.Icon.medium)
-                .foregroundStyle(DS.Color.secondaryText)
+            WillyDiskMark(size: 44)
             Text(chartEmptyMessage)
                 .font(DS.Typography.callout)
                 .foregroundStyle(DS.Color.secondaryText)
@@ -692,7 +662,9 @@ public struct ResultsView: View {
                 .frame(maxHeight: .infinity)
 
             if !selectedNodes.isEmpty {
-                Divider()
+                Rectangle()
+                    .fill(DS.Color.rule)
+                    .frame(height: DS.Stroke.hairline)
                 detailPane
             }
 
@@ -806,22 +778,20 @@ public struct ResultsView: View {
                     .lineLimit(1)
                     .truncationMode(.middle)
                 Spacer(minLength: DS.Spacing.small)
-                Text(ByteFormat.string(viewModel.displayedTotal))
-                    .font(DS.Typography.title2)
+                Text(ByteFormat.string(focusedTotal))
+                    .font(DS.Typography.metric)
                     .monospacedDigit()
                     .foregroundStyle(DS.Color.primaryText)
             }
             // The full timestamp would push the line past the inspector's
             // width; the compact form keeps the counts and recency together and
             // the full provenance stays in the tooltip and accessibility label.
-            HStack(spacing: DS.Spacing.xSmall) {
+            HStack(spacing: DS.Spacing.small) {
                 Text(countsText)
                     .font(DS.Typography.caption)
                     .foregroundStyle(DS.Color.secondaryText)
                     .lineLimit(1)
-                Text("·")
-                    .font(DS.Typography.caption)
-                    .foregroundStyle(DS.Color.secondaryText)
+                Spacer(minLength: DS.Spacing.xSmall)
                 provenanceMetadata
             }
             .lineLimit(1)
@@ -840,12 +810,12 @@ public struct ResultsView: View {
     /// of the largest lists.
     private var countsText: String {
         if explorerMode == .folder {
-            return "\(CountFormat.files(viewModel.filesScanned)) · \(CountFormat.items(presentableChildren.count))"
+            return "\(CountFormat.files(viewModel.filesScanned)) across \(CountFormat.items(presentableChildren.count))"
         }
         guard let s = summary else { return CountFormat.files(viewModel.filesScanned) }
         // The scan root is a folder in the summary, but it is the scan itself and
         // never one of its own subfolders, so the largest-list counts leave it out.
-        return "\(CountFormat.files(s.fileCount)) · \(CountFormat.folders(max(0, s.directoryCount - 1)))"
+        return "\(CountFormat.files(s.fileCount)) in \(CountFormat.folders(max(0, s.directoryCount - 1)))"
     }
 
     /// When the results were gathered and how long the scan took, so the numbers
@@ -1023,10 +993,7 @@ public struct ResultsView: View {
         VStack(alignment: .leading, spacing: DS.Spacing.small) {
             HStack(spacing: DS.Spacing.small) {
                 Image(systemName: node.isDirectory ? "folder.fill" : "doc.fill")
-                    // Drawn at the wedge's own opacity so a node's icon and its
-                    // wedge land on the very same colour, background included.
-                    .foregroundStyle(nodeColors.color(for: node.url).color)
-                    .opacity(DS.Sunburst.fillOpacity)
+                    .foregroundStyle(DS.Color.graphite)
                 Text(node.name)
                     .font(DS.Typography.headline)
                     .lineLimit(1)
@@ -1064,7 +1031,7 @@ public struct ResultsView: View {
                 detailRow("Visibility", "Hidden")
             }
             if node.isDirectory {
-                detailRow("Contents", "\(CountFormat.files(node.fileCount)) · \(CountFormat.folders(node.directoryCount))")
+                detailRow("Contents", "\(CountFormat.files(node.fileCount)) in \(CountFormat.folders(node.directoryCount))")
             }
             if let modified = node.modifiedAt {
                 detailRow("Modified", DateFormat.short(modified))
@@ -1643,51 +1610,11 @@ private final class ExplorerRowsCache {
     }
 }
 
-/// What makes the chart colour index stale: new scan data, or a different
-/// directory focused in the chart. Nothing else.
-private struct NodeColorsKey: Equatable {
-    var revision: Int
-    var focused: String
-    var maxChildren: Int
-}
-
-/// Keeps the chart colour index while its inputs stay the same.
-///
-/// Laying out the chart's rings is pure work on inputs a view body rarely
-/// changes, so the result is held beside the key that produced it and reused for
-/// as long as they hold.
-@MainActor
-private final class NodeColorsCache {
-    private var key: NodeColorsKey?
-    private var colors = NodeColors(colors: [:])
-
-    func colors(for key: NodeColorsKey, build: () -> NodeColors) -> NodeColors {
-        if key == self.key { return colors }
-        let fresh = build()
-        self.key = key
-        self.colors = fresh
-        return fresh
-    }
-}
-
-/// Every node the chart draws, keyed by path.
-///
-/// A node the chart does not draw — an entry with no bytes, or one below the
-/// chart's density limits — has no entry here and is drawn neutral, so the icons
-/// never claim a colour the chart does not show.
-private struct NodeColors {
-    var colors: [String: ChartFill]
-
-    func color(for url: URL) -> ChartFill {
-        colors[url.path] ?? .neutral
-    }
-}
-
 /// One explorer row, resolved from a node once per list change.
 ///
 /// The row body draws these values directly, so the comparatively costly work —
-/// resolving the node's chart colour, composing its subtitle, formatting its size
-/// — happens when the list is rebuilt rather than on every redraw.
+/// composing the subtitle and formatting the size — happens when the list is
+/// rebuilt rather than on every redraw.
 private struct ExplorerRow: Equatable {
     /// The node, carried so the row's action can drill into a folder or open a
     /// file's details. Only the fields the row draws take part in equality: the
@@ -1703,13 +1630,10 @@ private struct ExplorerRow: Equatable {
     /// The scan can include these, so the row and detail pane name them rather
     /// than presenting them as ordinary entries.
     let isHiddenName: Bool
-    /// The colour of the node's wedge in the chart, so a row's icon and its wedge
-    /// always read as the same thing.
-    let iconColor: Color
     let subtitle: String
     let sizeText: String
 
-    init(node: ScanNode, colors: NodeColors, showsLocation: Bool = false) {
+    init(node: ScanNode, showsLocation: Bool = false) {
         self.node = node
         url = node.url
         name = node.name
@@ -1717,11 +1641,10 @@ private struct ExplorerRow: Equatable {
         isSymlink = node.isSymlink
         isAccessible = node.isAccessible
         isHiddenName = node.name.hasPrefix(".")
-        iconColor = colors.color(for: node.url).color
         if showsLocation {
             subtitle = PathFormat.abbreviated(node.url.path)
         } else if node.isDirectory {
-            subtitle = "\(CountFormat.files(node.fileCount)) · \(CountFormat.folders(node.directoryCount))"
+            subtitle = "\(CountFormat.files(node.fileCount)) in \(CountFormat.folders(node.directoryCount))"
         } else {
             subtitle = node.category.displayName
         }
@@ -1735,7 +1658,6 @@ private struct ExplorerRow: Equatable {
             && lhs.isSymlink == rhs.isSymlink
             && lhs.isAccessible == rhs.isAccessible
             && lhs.isHiddenName == rhs.isHiddenName
-            && lhs.iconColor == rhs.iconColor
             && lhs.subtitle == rhs.subtitle
             && lhs.sizeText == rhs.sizeText
     }
@@ -1773,8 +1695,7 @@ private struct NodeRow: View, Equatable {
             Button(action: action) {
                 HStack(spacing: DS.Spacing.small) {
                     Image(systemName: row.isDirectory ? "folder.fill" : "doc.fill")
-                        .foregroundStyle(row.iconColor)
-                        .opacity(DS.Sunburst.fillOpacity)
+                        .foregroundStyle(DS.Color.graphite)
                     VStack(alignment: .leading, spacing: DS.Spacing.hairline) {
                         Text(row.name)
                             .font(DS.Typography.body)
@@ -1789,7 +1710,7 @@ private struct NodeRow: View, Equatable {
                     }
                     Spacer()
                     Text(row.sizeText)
-                        .font(DS.Typography.body)
+                        .font(DS.Typography.figures)
                         .foregroundStyle(DS.Color.secondaryText)
                     if row.isSymlink {
                         Image(systemName: "arrow.turn.up.right")
@@ -1813,7 +1734,9 @@ private struct NodeRow: View, Equatable {
             .onHover(perform: onHover)
             .accessibilityLabel("\(row.name)\(row.isHiddenName ? ", hidden item" : ""), \(row.subtitle), \(row.sizeText)")
             .accessibilityAddTraits(isSelected ? [.isSelected] : [])
-            Divider()
+            Rectangle()
+                .fill(DS.Color.rule)
+                .frame(height: DS.Stroke.hairline)
         }
     }
 

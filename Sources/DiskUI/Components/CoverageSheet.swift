@@ -92,7 +92,7 @@ struct CoverageSheet: View {
     /// for a measurement taken at the same moment as the totals.
     private var provenance: String {
         if isLive {
-            return "Scan started \(DateFormat.short(summary.startedAt)) · totals are still growing"
+            return "Scan started \(DateFormat.short(summary.startedAt)); the totals are still growing"
         }
         return ScanProvenance.settled(startedAt: summary.startedAt, finishedAt: summary.finishedAt)
     }

@@ -83,10 +83,10 @@ public struct SunburstView: View {
             let side = min(geo.size.width, geo.size.height)
             ZStack {
                 if segments.isEmpty {
-                    placeholder(icon: "chart.pie", message: "Nothing to show here")
+                    placeholder(message: "Nothing here is big enough to draw.")
                 } else if side < DS.Sunburst.minimumSize {
-                    placeholder(icon: "arrow.up.left.and.arrow.down.right",
-                                message: "Enlarge this pane to see the chart")
+                    placeholder(message: "Enlarge this pane to see the chart",
+                                icon: "arrow.up.left.and.arrow.down.right")
                 } else {
                     chart(side: side, segments: segments, revision: revision)
                 }
@@ -119,6 +119,15 @@ public struct SunburstView: View {
         }
 
         return ZStack {
+            // The platter: the disc the rings are cut into. Painting it makes
+            // the gaps between wedges, and the empty end of a sparse outer ring,
+            // the platter's surface rather than the window behind the chart.
+            Circle()
+                .fill(DS.Color.enamel)
+                .overlay {
+                    Circle().strokeBorder(DS.Color.rule, lineWidth: DS.Stroke.hairline)
+                }
+                .frame(width: geometry.outerRadius * 2, height: geometry.outerRadius * 2)
             // The picture itself, which no hover changes.
             SunburstWedgeLayer(
                 segments: segments,
@@ -134,8 +143,12 @@ public struct SunburstView: View {
             // fade needs something to fade towards, but a selection draws its
             // outline whether or not anything is hovered.
             if active != nil || selected != nil {
-                SunburstEmphasis(active: active, selected: selected,
-                                 geometry: geometry, side: side)
+                SunburstEmphasis(active: active,
+                                 trail: active.map { lineage(of: $0, in: segments) } ?? [],
+                                 selected: selected,
+                                 geometry: geometry,
+                                 side: side,
+                                 animates: !reduceMotion)
             }
             centerDisc(radius: geometry.innerRadius, center: geometry.center, active: active)
         }
@@ -159,6 +172,15 @@ public struct SunburstView: View {
         }
     }
 
+    /// The wedges that contain `segment` on the rings inside it — the groove
+    /// trace's errand. A child's span always sits inside its parent's, so
+    /// containment is the whole test.
+    private func lineage(of segment: SunburstSegment, in segments: [SunburstSegment]) -> [SunburstSegment] {
+        segments
+            .filter { $0.ring < segment.ring && $0.start <= segment.start && $0.end >= segment.end }
+            .sorted { $0.ring < $1.ring }
+    }
+
     /// Sets the shared hovered URL only when it actually changes, so sweeping
     /// the pointer does not re-render the screen on every mouse move.
     private func publish(_ url: URL?) {
@@ -175,21 +197,25 @@ public struct SunburstView: View {
         let title = active?.label ?? centerLabel
         let detail = ByteFormat.string(active?.size ?? totalSize)
 
+        // The disc is the platter's spindle hole and uses the platter's own
+        // fixed palette, so it stays ink in both appearances: a printed disc on a
+        // light window, a dark well with a hairline rim on a dark one.
         return ZStack {
             Circle()
-                .fill(DS.Color.controlBackground)
-                .overlay(Circle().strokeBorder(DS.Color.separator, lineWidth: DS.Stroke.hairline))
+                .fill(DS.Color.plateGround)
+                .overlay(Circle().strokeBorder(DS.Color.plateGroove.opacity(DS.Opacity.discBorder),
+                                               lineWidth: DS.Stroke.hairline))
             VStack(spacing: DS.Spacing.xxSmall) {
                 Text(title)
                     .font(DS.Typography.callout)
                     .fontWeight(.semibold)
-                    .foregroundStyle(DS.Color.primaryText)
+                    .foregroundStyle(DS.Color.plateGroove)
                     .lineLimit(2)
                     .truncationMode(.middle)
                     .multilineTextAlignment(.center)
                 Text(detail)
-                    .font(DS.Typography.caption)
-                    .foregroundStyle(DS.Color.secondaryText)
+                    .font(DS.Typography.figures)
+                    .foregroundStyle(DS.Color.plateGroove.opacity(0.62))
                     .lineLimit(1)
             }
             .padding(DS.Spacing.small)
@@ -205,11 +231,15 @@ public struct SunburstView: View {
         .accessibilityLabel("\(title), \(detail)")
     }
 
-    private func placeholder(icon: String, message: String) -> some View {
+    private func placeholder(message: String, icon: String? = nil) -> some View {
         VStack(spacing: DS.Spacing.small) {
-            Image(systemName: icon)
-                .font(DS.Icon.medium)
-                .foregroundStyle(DS.Color.secondaryText)
+            if let icon {
+                Image(systemName: icon)
+                    .font(DS.Icon.medium)
+                    .foregroundStyle(DS.Color.mutedText)
+            } else {
+                WillyDiskMark(size: 40)
+            }
             Text(message)
                 .font(DS.Typography.callout)
                 .foregroundStyle(DS.Color.secondaryText)
@@ -264,9 +294,6 @@ enum SunburstLayout {
         let start: Double
         let end: Double
         let prefix: String
-        /// The fill this node's own wedge carries. Descendants keep its hue, so
-        /// it is also what opens their colour family.
-        let fill: ChartFill
     }
 
     /// The rings the chart draws, at the density it ships with.
@@ -327,7 +354,6 @@ enum SunburstLayout {
             end: 2 * .pi,
             ring: 1,
             parentPrefix: "",
-            parentFill: nil,
             maxChildren: maxChildren,
             maxSegments: maxSegments,
             into: &result,
@@ -344,7 +370,6 @@ enum SunburstLayout {
                     end: parent.end,
                     ring: ring,
                     parentPrefix: parent.prefix,
-                    parentFill: parent.fill,
                     maxChildren: maxChildren,
                     maxSegments: maxSegments,
                     into: &result,
@@ -364,7 +389,6 @@ enum SunburstLayout {
         end: Double,
         ring: Int,
         parentPrefix: String,
-        parentFill: ChartFill?,
         maxChildren: Int,
         maxSegments: Int,
         into result: inout [SunburstSegment],
@@ -383,12 +407,12 @@ enum SunburstLayout {
         let slots = maxSegments - result.count
         guard slots > 0 else { return }
 
-        // Colour ranks the siblings by path, not by size, and ranks every child
-        // the parent holds — including one whose bytes have not been counted yet.
-        // A sibling arriving during a scan therefore takes a place of its own
-        // instead of moving the colours already on screen; the relative order of
+        // Tone ranks the siblings by path, not by size, and ranks every child the
+        // parent holds — including one whose bytes have not been counted yet. A
+        // sibling arriving during a scan therefore takes a place of its own
+        // instead of moving the tones already on screen; the relative order of
         // paths never changes.
-        let fills = ChartPalette.fills(for: children, ring: ring, parentFill: parentFill)
+        let fills = ChartPalette.fills(for: children, ring: ring)
 
         // A parent whose children do not all fit needs a slot for the aggregate
         // wedge as well as for the children it draws; when only that slot is left
@@ -430,7 +454,7 @@ enum SunburstLayout {
                     fill: fill
                 )
             )
-            level.append(Placed(node: node, start: angle, end: nodeEnd, prefix: prefix, fill: fill))
+            level.append(Placed(node: node, start: angle, end: nodeEnd, prefix: prefix))
             angle = nodeEnd
         }
 
@@ -488,6 +512,13 @@ struct SunburstGeometry {
     func radii(ring: Int) -> (inner: CGFloat, outer: CGFloat) {
         let outer = outerRadius - CGFloat(ringCount - ring) * thickness
         return (outer - thickness, outer)
+    }
+
+    /// The half-gap, in radians, that keeps `wedgeGap` points of enamel between
+    /// this ring's neighbours however far out the ring sits.
+    func angularGap(ring: Int) -> Double {
+        let band = radii(ring: ring)
+        return DS.Sunburst.angularGap(atRadius: (band.inner + band.outer) / 2)
     }
 
     /// The wedge a point in the chart's local space falls in, or nil outside the
@@ -601,18 +632,18 @@ private struct SunburstWedgeLayer: View, Equatable {
                         outerRadius: geometry.radii(ring: segment.ring).outer,
                         startAngle: segment.start,
                         endAngle: segment.end,
-                        angularGap: DS.Sunburst.angularGap,
+                        angularGap: geometry.angularGap(ring: segment.ring),
                         radialGap: DS.Sunburst.radialGap
                     ),
                     side: side,
                     focusedID: focusedID,
                     onSelect: onSelect
                 )
+                .equatable()
                 // A wedge is redrawn when what it draws changes and not
                 // otherwise, which is what keeps the whole layer out of the way
                 // of everything that is not new data.
-                .equatable()
-            }
+                }
         }
         .frame(width: side, height: side)
     }
@@ -622,39 +653,52 @@ private struct SunburstWedgeLayer: View, Equatable {
 
 /// What the pointer or the keyboard emphasises on the chart.
 ///
-/// Every wedge keeps the fill the layer gave it. The active wedge alone is washed
-/// with the surface it is drawn on, so it recedes slightly; the rest of the chart
-/// holds its opacity. That keeps the pointer from flashing the whole chart while
-/// still making the wedge under it legible.
+/// Every wedge keeps the fill the layer gave it. The active wedge is washed with
+/// signal and outlined at the same weight, and the bands that contain it are
+/// outlined too, so the pointer reads as a path through the tree rather than as
+/// one lit wedge.
 ///
-/// Nothing is outlined for a hover: a wedge at rest draws no outline, and adding
-/// one as the pointer arrives would read as the wedge growing under it. The wash
-/// alone is what moves the emphasis.
-///
-/// The selection's outline is drawn here, over the wash, because the wash covers
-/// the fill a wedge draws its outline around: an outline under it would lose its
-/// outer half.
+/// The selection is drawn here too, and over the wash, because the wash covers
+/// the fill an outline would sit on. Its tone is deepened with ink and it carries
+/// the heaviest line in the chart, so "what I clicked" survives the pointer moving
+/// on to another wedge.
 private struct SunburstEmphasis: View {
     let active: SunburstSegment?
+    /// The wedges inside `active` that contain it, innermost first.
+    let trail: [SunburstSegment]
     /// The wedge the user selected, when the chart draws it.
     let selected: SunburstSegment?
     let geometry: SunburstGeometry
     let side: CGFloat
+    /// False under Reduce Motion, where the emphasis appears at once.
+    let animates: Bool
 
     var body: some View {
         ZStack {
+            if let selected {
+                SunburstShade(wedges: [wedge(selected)])
+                    .fill(DS.Color.ink.opacity(DS.Sunburst.selectedOverlayOpacity))
+            }
             if let active {
                 SunburstShade(wedges: [wedge(active)])
-                    .fill(DS.Color.windowBackground.opacity(DS.Sunburst.hoverShadeOpacity))
+                    .fill(DS.Color.signal.opacity(DS.Sunburst.hoverShadeOpacity))
+                // Ancestors first: the wedge under the pointer keeps the top line.
+                ForEach(trail) { ancestor in
+                    wedge(ancestor)
+                        .stroke(DS.Color.signal, lineWidth: DS.Sunburst.hoverStrokeWidth)
+                        .opacity(DS.Opacity.hoverAncestor)
+                }
+                wedge(active)
+                    .stroke(DS.Color.signal, lineWidth: DS.Sunburst.hoverStrokeWidth)
             }
             if let selected {
-                // The selected wedge carries the heaviest outline in the chart.
+                // The selected wedge carries the heaviest line in the chart.
                 wedge(selected)
-                    .stroke(DS.Color.primaryText.opacity(DS.Sunburst.selectedStrokeOpacity),
-                            lineWidth: DS.Stroke.selection)
+                    .stroke(DS.Color.signal, lineWidth: DS.Sunburst.selectedStrokeWidth)
             }
         }
         .frame(width: side, height: side)
+        .animation(animates ? .easeOut(duration: 0.12) : nil, value: active?.id)
         // The emphasis is a picture of the pointer, never a target. It covers
         // only the active wedge; the wedges underneath remain the controls.
         .allowsHitTesting(false)
@@ -667,7 +711,7 @@ private struct SunburstEmphasis: View {
             outerRadius: geometry.radii(ring: segment.ring).outer,
             startAngle: segment.start,
             endAngle: segment.end,
-            angularGap: DS.Sunburst.angularGap,
+            angularGap: geometry.angularGap(ring: segment.ring),
             radialGap: DS.Sunburst.radialGap
         )
     }
@@ -675,9 +719,8 @@ private struct SunburstEmphasis: View {
 
 /// The active wedge, filled as a shape of its own.
 ///
-/// The chart is drawn directly on the window's background
-/// (`DS.Color.windowBackground`), so washing one wedge with that surface lowers
-/// its opacity toward the page without touching its neighbours or the gaps
+/// The chart is drawn on the platter, so washing one wedge with a translucent
+/// surface deepens that wedge without touching its neighbours or the enamel gaps
 /// between wedges.
 private struct SunburstShade: Shape {
     var wedges: [SunburstWedge]

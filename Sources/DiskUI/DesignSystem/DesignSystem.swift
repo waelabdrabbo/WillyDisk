@@ -59,6 +59,17 @@ public enum DS {
         public static let actionMinWidth: CGFloat = 120
         /// Fixed width of a volume's usage gauge.
         public static let gaugeWidth: CGFloat = 120
+        /// Side of a volume row's capacity arc. The arc replaces a bar because the
+        /// row already reads as a dial: the same concentric geometry as the mark.
+        public static let capacityArcSize: CGFloat = 44
+        /// The optical box a preset's location symbol occupies.
+        public static let presetGlyph: CGFloat = 20
+        /// Stroke of that arc, and the fraction of a full turn it covers. Three
+        /// quarters leave the gap at the bottom, under the name.
+        public static let capacityArcWidth: CGFloat = 3.5
+        public static let capacityArcSweep: CGFloat = 0.75
+        /// Rotation that puts the arc's gap at six o'clock.
+        public static let capacityArcRotation: Double = 135
         /// Widest the toolbar's folder trail grows before its names compress, so a
         /// deep path cannot push the title or the trailing actions out of reach.
         public static let toolbarBreadcrumbMaxWidth: CGFloat = 420
@@ -96,6 +107,11 @@ public enum DS {
         public static let rowPrimary: Double = 0.10
         /// Dimming applied to rows that cannot act during a scan.
         public static let disabled: Double = 0.5
+        /// How much of the active wedge's outline an ancestor keeps, so the
+        /// groove trace reads as one line from the centre outwards.
+        public static let hoverAncestor: Double = 0.6
+        /// The hairline that separates the spire from the platter it sits on.
+        public static let discBorder: Double = 0.3
         /// Tint painted behind a content panel so it separates from the window
         /// without becoming a floating control.
         public static let contentPanel: Double = 0.04
@@ -151,65 +167,74 @@ public enum DS {
         /// Below this side length the chart is too small to read and a compact
         /// list state is shown instead.
         public static let minimumSize: CGFloat = 140
-        /// Angular gap between adjacent wedges at the inner radius.
-        public static let angularGap: Double = 0.006
+        /// Width of the enamel gap between adjacent wedges, in points. Held
+        /// constant at every radius, so a sliver near the centre and a wide wedge
+        /// at the rim are separated by the same line.
+        public static let wedgeGap: CGFloat = 1.5
         /// Radial gap between rings, in points.
-        public static let radialGap: CGFloat = 1
+        public static let radialGap: CGFloat = 1.5
+
+        /// Half a wedge gap expressed as an angle at `radius`. The wedge shape
+        /// insets each edge by this much, so two neighbours end up `wedgeGap`
+        /// apart however far out they sit.
+        public static func angularGap(atRadius radius: CGFloat) -> Double {
+            guard radius > 0 else { return 0 }
+            return Double(wedgeGap / 2) / Double(radius)
+        }
         /// Width of the centre disc's label block, as a fraction of its radius.
         public static let centerLabelWidthFraction: CGFloat = 1.7
         /// Wedge opacity. A chart-coloured icon wears it too, so a node's icon and
         /// its wedge land on the same colour against the same background.
         public static let fillOpacity: Double = 0.92
-        /// A wash of the chart's own surface painted over the active wedge only.
-        /// The rest of the chart keeps `fillOpacity`; the hovered wedge recedes a
-        /// little instead of the other wedges dimming.
-        public static let hoverShadeOpacity: Double = 0.10
+        /// A wash of signal painted over the active wedge only.
+        public static let hoverShadeOpacity: Double = 0.12
         /// Fill opacity of the selected wedge: at full strength it reads as the
-        /// brightest wedge in the chart, including while another is hovered.
+        /// heaviest wedge in the chart, including while another is hovered.
         public static let selectedFillOpacity: Double = 1
-        /// Opacity of the selected wedge's outline. High enough to stand apart
-        /// from both the hairlines between the other wedges and the softer
-        /// hover/focus emphasis.
-        public static let selectedStrokeOpacity: Double = 0.85
+        /// How much ink a selected wedge takes on top of its own tone, so the
+        /// selection is the chart's darkest mark in light and its brightest in
+        /// dark without repainting the wedge underneath.
+        public static let selectedOverlayOpacity: Double = 0.34
+        /// Outline of the selected wedge, and of the wedge under the pointer.
+        public static let selectedStrokeWidth: CGFloat = 2
+        public static let hoverStrokeWidth: CGFloat = 1.5
+        /// The groove trace: the hairline that runs from the spindle to the rim
+        /// while a wedge is hovered, and the tangential tick that ends it.
 
-        // MARK: Tree-position palette
+        // MARK: Tone ladder
         //
-        // The chart is coloured by where a node sits in the tree, so one subtree
-        // reads as a single colour family and unrelated folders never share a
-        // fill. These are the hues and shades behind that mapping; the sibling
-        // ordering and hue arithmetic live in `ChartPalette`.
+        // The chart is one material at depth, not a set of colour families. Ring 1
+        // (the focused directory's children) is the darkest, each ring further out
+        // is paler, so depth reads as distance from the centre. Within a ring,
+        // siblings cycle through three neighbouring tones so touching wedges
+        // separate; the cycle is keyed by path order, which stays put while a scan
+        // streams in.
         //
-        // Each array is indexed by distance from the focused directory: entry 0
-        // is the focused directory's children, the entry after it their children,
-        // and so on. One family is one hue, with every ring a tint of it: the
-        // nearest ring is the most saturated and each ring further out is paler —
-        // saturation down, brightness up. Depth therefore reads as the same colour
-        // going lighter, and the rim is the airiest ring in the chart.
+        // Arrays are indexed by ring: entry 0 is ring 1.
 
-        /// Hue, in degrees, of the first child of the focused directory. The rest
-        /// of the ring follows evenly around the wheel.
-        public static let paletteFirstHue: Double = 205
-        /// How far, in degrees either side, a descendant's hue may drift from its
-        /// subtree's hue. Small enough that a family reads as one hue while
-        /// sibling folders in it still differ.
-        public static let paletteFamilySpread: Double = 6
-        /// Saturation of a palette wedge, nearest ring first, in the light
-        /// appearance.
-        public static let paletteSaturation: [Double] = [0.72, 0.50, 0.28]
-        /// Brightness of a palette wedge, nearest ring first, light appearance.
-        public static let paletteBrightness: [Double] = [0.91, 0.94, 0.97]
-        /// Saturation of a palette wedge, nearest ring first, dark appearance.
-        public static let paletteDarkSaturation: [Double] = [0.78, 0.56, 0.34]
-        /// Brightness of a palette wedge, nearest ring first, dark appearance.
-        public static let paletteDarkBrightness: [Double] = [0.93, 0.96, 0.98]
-        /// Brightness range shared across the siblings of one descendant group,
-        /// so folders in the same family never land on the same fill.
-        public static let paletteSiblingBrightnessSpread: Double = 0.14
+        /// The one hue every wedge is mixed from: a cool ink, not a colour.
+        public static let toneHue: Double = 188
+        /// Brightness nearest the centre, light appearance.
+        public static let toneLightBrightness: [Double] = [0.46, 0.68, 0.83]
+        /// Brightness nearest the centre, dark appearance. Depth inverts: the
+        /// nearest ring is the brightest so it still reads as the strongest.
+        public static let toneDarkBrightness: [Double] = [0.88, 0.72, 0.58]
+        /// How much colour the ink carries, nearest ring first.
+        public static let toneLightSaturation: [Double] = [0.20, 0.14, 0.09]
+        public static let toneDarkSaturation: [Double] = [0.16, 0.12, 0.09]
+        /// Brightness step between the three sibling tones, so a tone is ± this
+        /// from its ring's base.
+        public static let toneStepOffset: Double = 0.055
     }
 
     // MARK: - Typography (SF Pro roles)
 
     /// Semantic text styles, so the whole app follows the system text size.
+    ///
+    /// SF Pro only: the identity comes from weight, width, and figures, not from a
+    /// bundled font. Sizes, counts, percentages, and durations are set in
+    /// `DS.Typography.figures` or with `.monospacedDigit()` so columns hold still
+    /// as a scan streams numbers in.
     ///
     /// `caption` uses `.subheadline` (11 pt) rather than `.caption` (10 pt):
     /// metadata and paths are already the smallest text in the app and 10 pt is
@@ -222,32 +247,85 @@ public enum DS {
         public static let body: SwiftUI.Font = .body
         public static let callout: SwiftUI.Font = .callout
         public static let caption: SwiftUI.Font = .subheadline
-        public static let metric: SwiftUI.Font = .system(.largeTitle, design: .rounded).weight(.semibold)
+        /// The one number that rules a screen: a scan's total on the results
+        /// header, a volume's share on the home screen.
+        public static let metric: SwiftUI.Font = .system(size: 30, weight: .semibold)
+        /// A figure inside running text — a size in a row, a count in a caption.
+        public static let figures: SwiftUI.Font = .system(.body).monospacedDigit()
+        /// Figures set inside a gauge too small for `figures`.
+        public static let gaugeFigures: SwiftUI.Font = .system(size: 9, weight: .semibold).monospacedDigit()
         public static let monospaced: SwiftUI.Font = .system(.callout, design: .monospaced)
+        /// Lockup tracking for the wordmark and screen titles, in points. Type set
+        /// at title size and above closes up a little; body text does not.
+        public static let displayTracking: CGFloat = -0.4
     }
 
     // MARK: - Semantic colors (light + dark adaptive)
 
     public enum Color {
-        public static let accent: SwiftUI.Color = .accentColor
-        public static let primaryText: SwiftUI.Color = .primary
-        public static let secondaryText: SwiftUI.Color = .secondary
-        /// De-emphasized text that still meets the text contrast floor over the
-        /// window: primary at 66%, roughly 4.9:1 in light and higher in dark. Use this for
-        /// paths and captions; `secondaryText` is for chrome that only needs the
-        /// 3:1 UI floor.
-        public static let mutedText: SwiftUI.Color = .primary.opacity(0.66)
+        // The app has one material and one signal. Ink is what text is set in and
+        // what the chart is drawn with; signal is the only colour that means
+        // anything, and madder is the only colour that means trouble. Nothing else
+        // is tinted for decoration — a second hue would dilute the signal.
+
+        /// Text, figures, the mark's groove at rest, and the chart's darkest tone.
+        public static let ink = dynamic(light: 0x16191B, dark: 0xEDEFEC)
+        /// The platter: panels, the chart's centre disc, and the mark's groove on
+        /// the icon.
+        public static let enamel = dynamic(light: 0xF2F3F1, dark: 0x171A1B)
+        /// Secondary text, glyphs at rest, and the chart's middle tone: the quiet
+        /// step between ink and rule.
+        public static let graphite = dynamic(light: 0x5F676C, dark: 0xA9B1B2)
+        /// Hairlines, dividers, and the chart's palest tone.
+        public static let rule = dynamic(light: 0xD5D9D8, dark: 0x3A4042)
+
+        // The mark is an object, not a glyph: it keeps the ink ground and enamel
+        // grooves the app icon is drawn with, in both appearances. The ground
+        // disappears into a dark window instead of turning white.
+        public static let plateGround = dynamic(light: 0x16191B, dark: 0x16191B)
+        public static let plateGroove = dynamic(light: 0xF2F3F1, dark: 0xF2F3F1)
+        public static let plateSignal = dynamic(light: 0x0E6E70, dark: 0x0E6E70)
+        /// The live thing: selection, focus, progress, and the mark's live sector.
+        /// The only accent in the app.
+        public static let signal = dynamic(light: 0x0E6E70, dark: 0x56B7AE)
+        /// Destruction and failure. Never used for ordinary emphasis.
+        public static let madder = dynamic(light: 0x8A3B2E, dark: 0xE08A73)
+
+        public static let accent: SwiftUI.Color = signal
+        public static let primaryText: SwiftUI.Color = ink
+        public static let secondaryText: SwiftUI.Color = graphite
+        /// De-emphasised text — paths, counts under a name, hidden entries. A third
+        /// step below `secondaryText` that still clears 4.5:1 over the window.
+        public static let mutedText = dynamic(light: 0x6B7377, dark: 0x8F9798)
         /// A chart fill fallback only. Never use this for text or a control.
         public static let tertiaryText: SwiftUI.Color = SwiftUI.Color(nsColor: .tertiaryLabelColor)
         public static let quaternaryText: SwiftUI.Color = SwiftUI.Color(nsColor: .quaternaryLabelColor)
-        public static let separator: SwiftUI.Color = SwiftUI.Color(nsColor: .separatorColor)
+        public static let separator: SwiftUI.Color = rule
         public static let windowBackground: SwiftUI.Color = SwiftUI.Color(nsColor: .windowBackgroundColor)
         public static let controlBackground: SwiftUI.Color = SwiftUI.Color(nsColor: .controlBackgroundColor)
-        public static let success: SwiftUI.Color = SwiftUI.Color(nsColor: .systemGreen)
-        public static let warning: SwiftUI.Color = SwiftUI.Color(nsColor: .systemOrange)
-        public static let danger: SwiftUI.Color = SwiftUI.Color(nsColor: .systemRed)
+        public static let success: SwiftUI.Color = signal
+        public static let warning: SwiftUI.Color = madder
+        public static let danger: SwiftUI.Color = madder
         /// Neutral fill for a chart wedge that groups several small items.
-        public static let chartRemainder: SwiftUI.Color = SwiftUI.Color(nsColor: .systemGray)
+        public static let chartRemainder: SwiftUI.Color = rule
+
+        /// A palette colour that resolves per appearance. The values are sRGB
+        /// hex, so a token can be stated once and checked against a contrast
+        /// calculator without running the app.
+        static func dynamic(light: UInt32, dark: UInt32) -> SwiftUI.Color {
+            let lightColor = nsColor(hex: light)
+            let darkColor = nsColor(hex: dark)
+            return SwiftUI.Color(nsColor: NSColor(name: nil) { appearance in
+                appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua ? darkColor : lightColor
+            })
+        }
+
+        private static func nsColor(hex: UInt32) -> NSColor {
+            NSColor(srgbRed: CGFloat((hex >> 16) & 0xFF) / 255,
+                    green: CGFloat((hex >> 8) & 0xFF) / 255,
+                    blue: CGFloat(hex & 0xFF) / 255,
+                    alpha: 1)
+        }
     }
 }
 

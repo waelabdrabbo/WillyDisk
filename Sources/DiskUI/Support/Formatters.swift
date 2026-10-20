@@ -88,7 +88,7 @@ enum CountFormat {
     static func items(_ count: Int) -> String { unit(count, "item", "items") }
 
     private static func unit(_ count: Int, _ singular: String, _ plural: String) -> String {
-        "\(count) \(count == 1 ? singular : plural)"
+        "\(count.formatted()) \(count == 1 ? singular : plural)"
     }
 }
 

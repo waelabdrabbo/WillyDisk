@@ -51,19 +51,25 @@ public struct SourceSelectionView: View {
 
     public var body: some View {
         ZStack {
-            ScrollView {
-                VStack(spacing: DS.Spacing.section) {
-                    hero
-                    if case .failed(let message) = viewModel.phase {
-                        failureBanner(message)
+            GeometryReader { proxy in
+                ScrollView {
+                    VStack(spacing: DS.Spacing.section) {
+                        hero
+                        if case .failed(let message) = viewModel.phase {
+                            failureBanner(message)
+                        }
+                        presetsSection
+                        volumesSection
+                        recentSection
                     }
-                    presetsSection
-                    volumesSection
-                    recentSection
+                    .padding(DS.Spacing.xxLarge)
+                    .frame(maxWidth: 720)
+                    .frame(maxWidth: .infinity)
+                    // Short lists sit in the middle of the window instead of
+                    // hanging from the top edge with the rest of the window empty.
+                    .frame(minHeight: proxy.size.height - proxy.safeAreaInsets.top - proxy.safeAreaInsets.bottom,
+                           alignment: .center)
                 }
-                .padding(DS.Spacing.xxLarge)
-                .frame(maxWidth: 720)
-                .frame(maxWidth: .infinity)
             }
 
             if isDragOver {
@@ -95,12 +101,13 @@ public struct SourceSelectionView: View {
 
     private var hero: some View {
         VStack(spacing: DS.Spacing.medium) {
-            Image(systemName: "internaldrive.fill")
-                .font(DS.Icon.hero)
-                .foregroundStyle(DS.Color.accent)
+            WillyDiskMark(size: 64)
+                .padding(.bottom, DS.Spacing.small)
             Text("WillyDisk")
                 .font(DS.Typography.largeTitle)
-            Text("See what's taking up space, then find and reclaim it.")
+                .tracking(DS.Typography.displayTracking)
+                .foregroundStyle(DS.Color.primaryText)
+            Text("Choose a folder. See what it weighs.")
                 .font(DS.Typography.body)
                 .foregroundStyle(DS.Color.secondaryText)
                 .multilineTextAlignment(.center)
@@ -124,69 +131,102 @@ public struct SourceSelectionView: View {
     /// The usual large folders, so the common scans do not begin with a file
     /// panel. A preset starts the same scan as picking the folder by hand, and
     /// one that is missing stays visible but disabled instead of vanishing.
+    ///
+    /// The slots are one panel cut by hairlines rather than six cards, and each
+    /// slot leads with its location's symbol: the group reads as a ruled index,
+    /// not as a kit of tiles.
     private var presetsSection: some View {
-        VStack(alignment: .leading, spacing: DS.Spacing.medium) {
+        VStack(alignment: .leading, spacing: DS.Spacing.small) {
             sectionHeader("Quick scans")
-            LazyVGrid(
-                columns: [GridItem(.adaptive(minimum: 180), spacing: DS.Spacing.small)],
-                alignment: .leading,
-                spacing: DS.Spacing.small
-            ) {
-                ForEach(presets) { preset in
-                    Button {
-                        startScan(preset.url)
-                    } label: {
-                        HStack(spacing: DS.Spacing.small) {
-                            Image(systemName: preset.symbolName)
-                                .font(DS.Icon.small)
-                                .foregroundStyle(DS.Color.accent)
-                                .frame(width: 20)
-                                .accessibilityHidden(true)
-                            VStack(alignment: .leading, spacing: DS.Spacing.hairline) {
-                                Text(preset.name)
-                                    .font(DS.Typography.body)
-                                Text(preset.isAvailable ? PathFormat.abbreviated(preset.url.path) : "Not on this Mac")
-                                    .font(DS.Typography.caption)
-                                    .foregroundStyle(DS.Color.secondaryText)
-                                    .lineLimit(1)
-                                    .truncationMode(.middle)
-                            }
-                            Spacer(minLength: 0)
-                        }
-                        .padding(DS.Spacing.small)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .contentShape(Rectangle())
+            if !presets.isEmpty {
+                LazyVGrid(columns: presetColumns, spacing: 0) {
+                    ForEach(Array(presets.enumerated()), id: \.element.id) { index, preset in
+                        presetCell(preset, index: index)
                     }
-                    .buttonStyle(.bordered)
-                    .overlay {
-                        RoundedRectangle(cornerRadius: DS.Radius.large, style: .continuous)
-                            .fill(DS.Color.primaryText.opacity(
-                                hoveredPreset == preset.id ? DS.Opacity.rowHover : 0
-                            ))
-                            .allowsHitTesting(false)
-                    }
-                    .disabled(viewModel.isScanning || !preset.isAvailable)
-                    .onHover { inside in
-                        guard !viewModel.isScanning, preset.isAvailable else {
-                            hoveredPreset = nil
-                            return
-                        }
-                        if inside {
-                            hoveredPreset = preset.id
-                        } else if hoveredPreset == preset.id {
-                            hoveredPreset = nil
-                        }
-                    }
-                    .help(preset.isAvailable
-                        ? "Scan \(preset.name) at \(preset.url.path)"
-                        : "\(preset.name) is not on this Mac")
-                    .accessibilityLabel("Scan \(preset.name)")
-                    .accessibilityHint(preset.isAvailable
-                        ? preset.url.path
-                        : "This location is not on this Mac")
+                }
+                .background(DS.Color.enamel.opacity(DS.Opacity.contentPanel))
+                .clipShape(RoundedRectangle(cornerRadius: DS.Radius.panel, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: DS.Radius.panel, style: .continuous)
+                        .strokeBorder(DS.Color.rule, lineWidth: DS.Stroke.hairline)
                 }
             }
         }
+    }
+
+    /// Three equal slots across the panel. The presets are a fixed short list, so
+    /// a fixed lattice is what lets the hairlines meet at the corners.
+    private var presetColumns: [GridItem] {
+        Array(repeating: GridItem(.flexible(), spacing: 0), count: 3)
+    }
+
+    private func presetCell(_ preset: ScanPreset, index: Int) -> some View {
+        let column = index % 3
+        let row = index / 3
+        return Button {
+            startScan(preset.url)
+        } label: {
+            HStack(alignment: .presetNameMiddle, spacing: DS.Spacing.small) {
+                // The location's own symbol, in the slot's gutter: one glyph
+                // per slot, in the rule's grey, so the accent stays reserved for
+                // the capacity gauge. The name beside it already says the word.
+                Image(systemName: preset.symbolName)
+                    .font(.system(size: 16, weight: .regular))
+                    .foregroundStyle(DS.Color.graphite)
+                    .frame(width: DS.Size.presetGlyph, alignment: .leading)
+                    .alignmentGuide(.presetNameMiddle) { $0[VerticalAlignment.center] }
+                    .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: DS.Spacing.hairline) {
+                    Text(preset.name)
+                        .font(DS.Typography.body)
+                        .foregroundStyle(DS.Color.primaryText)
+                    Text(preset.isAvailable ? PathFormat.abbreviated(preset.url.path) : "Not on this Mac")
+                        .font(DS.Typography.caption)
+                        .foregroundStyle(DS.Color.secondaryText)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, DS.Spacing.medium)
+            .padding(.vertical, DS.Spacing.medium)
+            // Fill the whole grid slot, not just the text: a row is as tall as
+            // its tallest slot, and the hover wash has to reach the hairlines.
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .background(hoveredPreset == preset.id ? DS.Color.ink.opacity(DS.Opacity.rowHover) : .clear)
+        .overlay(alignment: .top) {
+            if row > 0 {
+                Rectangle().fill(DS.Color.rule).frame(height: DS.Stroke.hairline)
+            }
+        }
+        .overlay(alignment: .leading) {
+            if column > 0 {
+                Rectangle().fill(DS.Color.rule).frame(width: DS.Stroke.hairline)
+            }
+        }
+        .disabled(viewModel.isScanning || !preset.isAvailable)
+        .opacity(preset.isAvailable ? 1 : DS.Opacity.disabled)
+        .onHover { inside in
+            guard !viewModel.isScanning, preset.isAvailable else {
+                hoveredPreset = nil
+                return
+            }
+            if inside {
+                hoveredPreset = preset.id
+            } else if hoveredPreset == preset.id {
+                hoveredPreset = nil
+            }
+        }
+        .help(preset.isAvailable
+            ? "Scan \(preset.name) at \(preset.url.path)"
+            : "\(preset.name) is not on this Mac")
+        .accessibilityLabel("Scan \(preset.name)")
+        .accessibilityHint(preset.isAvailable
+            ? preset.url.path
+            : "This location is not on this Mac")
     }
 
     @ViewBuilder
@@ -205,6 +245,33 @@ public struct SourceSelectionView: View {
         }
     }
 
+    /// A volume's share of its capacity as a three-quarter ring: the mark's
+    /// geometry at row scale, with the percentage set in the well. The figures
+    /// beside it carry the exact numbers; the ring says how full at a glance.
+    @ViewBuilder
+    private func capacityArc(_ volume: VolumeInfo) -> some View {
+        if let fraction = volume.usedFraction {
+            let used = min(max(fraction, 0), 1)
+            ZStack {
+                Circle()
+                    .trim(from: 0, to: DS.Size.capacityArcSweep)
+                    .stroke(DS.Color.rule,
+                            style: StrokeStyle(lineWidth: DS.Size.capacityArcWidth, lineCap: .butt))
+                    .rotationEffect(.degrees(DS.Size.capacityArcRotation))
+                Circle()
+                    .trim(from: 0, to: DS.Size.capacityArcSweep * used)
+                    .stroke(DS.Color.signal,
+                            style: StrokeStyle(lineWidth: DS.Size.capacityArcWidth, lineCap: .butt))
+                    .rotationEffect(.degrees(DS.Size.capacityArcRotation))
+                Text("\(Int((used * 100).rounded()))%")
+                    .font(DS.Typography.gaugeFigures)
+                    .foregroundStyle(DS.Color.primaryText)
+            }
+            .frame(width: DS.Size.capacityArcSize, height: DS.Size.capacityArcSize)
+            .accessibilityHidden(true)
+        }
+    }
+
     private func volumeRow(_ volume: VolumeInfo) -> some View {
         let slot = viewModel.scanSlot(for: volume.url)
         let isPrimary = slot != nil && rowResultsArePrimary
@@ -218,33 +285,29 @@ public struct SourceSelectionView: View {
             }
         } label: {
             HStack(spacing: DS.Spacing.medium) {
-                Image(systemName: volume.isInternal ? "internaldrive" : "externaldrive")
-                    .font(DS.Icon.small)
-                    .foregroundStyle(DS.Color.accent)
-                    .accessibilityHidden(true)
+                capacityArc(volume)
                 VStack(alignment: .leading, spacing: DS.Spacing.xxSmall) {
                     Text(volume.name)
                         .font(DS.Typography.headline)
                         .foregroundStyle(DS.Color.primaryText)
-                    if let total = volume.totalCapacity {
-                        let used = volume.usedCapacity ?? 0
-                        Text("\(ByteFormat.string(used)) of \(ByteFormat.string(total)) used")
-                            .font(DS.Typography.caption)
-                            .foregroundStyle(DS.Color.secondaryText)
-                    }
-                    // The location on the engine's scan slot reports that scan's
-                    // status in place of a start-scan action.
-                    if let slot {
-                        scanStatusBlock(slot)
+                    HStack(spacing: DS.Spacing.medium) {
+                        if let total = volume.totalCapacity {
+                            let used = volume.usedCapacity ?? 0
+                            Text("\(ByteFormat.string(used)) used of \(ByteFormat.string(total))")
+                                .font(DS.Typography.caption)
+                                .monospacedDigit()
+                                .foregroundStyle(DS.Color.secondaryText)
+                                .lineLimit(1)
+                        }
+                        // The location on the engine's scan slot reports that
+                        // scan's state on this line, so finishing a scan never
+                        // adds a line the row did not already have.
+                        if let slot {
+                            scanStatus(slot)
+                        }
                     }
                 }
                 Spacer()
-                if let fraction = volume.usedFraction {
-                    Gauge(value: fraction) {}
-                        .gaugeStyle(.accessoryLinearCapacity)
-                        .frame(width: DS.Size.gaugeWidth)
-                        .accessibilityHidden(true)
-                }
                 sourceRowAffordance(isView: slot != nil, isPrimary: isPrimary)
             }
             .padding(.vertical, DS.Spacing.xSmall)
@@ -275,38 +338,36 @@ public struct SourceSelectionView: View {
         return "\(volumeSummary(volume)), \(slot.accessibilityLabel)"
     }
 
-    /// The status of the scan running on a location, as its source row reads it.
+    /// The state of the scan on a location, set inline beside the row's own
+    /// facts so the row keeps its two lines whether or not it has been scanned.
     ///
     /// Live counters come straight from the engine; nothing here is inferred, and
     /// a completion fraction appears only when the engine reports a reliable one.
-    ///
     /// The status is the row's wording and its counts, never the directory the
-    /// engine happens to be reading: that path is a long monospaced run that
-    /// changes many times a second, and it pushed the row taller for a fact the
-    /// counters already cover.
-    @ViewBuilder
-    private func scanStatusBlock(_ slot: ScanSlotPresentation) -> some View {
-        VStack(alignment: .leading, spacing: DS.Spacing.xxSmall) {
-            HStack(spacing: DS.Spacing.xSmall) {
-                if slot.isLive {
-                    scanProgressIndicator(slot)
-                } else {
-                    Image(systemName: slot.state == .finished ? "checkmark.circle.fill" : "stop.circle")
-                        .font(DS.Icon.detail)
-                        .foregroundStyle(slot.state == .finished ? DS.Color.success : DS.Color.secondaryText)
-                        .accessibilityHidden(true)
-                }
-                Text(slot.label)
+    /// engine happens to be reading: that path is a long run that changes many
+    /// times a second, and it pushed the row taller for a fact the counters
+    /// already cover.
+    private func scanStatus(_ slot: ScanSlotPresentation) -> some View {
+        HStack(spacing: DS.Spacing.xSmall) {
+            if slot.isLive {
+                scanProgressIndicator(slot)
+            } else {
+                Image(systemName: slot.state == .finished ? "checkmark.circle.fill" : "stop.circle")
+                    .font(DS.Icon.detail)
+                    .foregroundStyle(slot.state == .finished ? DS.Color.success : DS.Color.secondaryText)
+                    .accessibilityHidden(true)
+            }
+            Text(slot.label)
+                .font(DS.Typography.caption)
+                .foregroundStyle(DS.Color.primaryText)
+            if let detail = slot.detail {
+                Text(detail)
                     .font(DS.Typography.caption)
-                    .foregroundStyle(DS.Color.primaryText)
-                if let detail = slot.detail {
-                    Text(detail)
-                        .font(DS.Typography.caption)
-                        .foregroundStyle(DS.Color.secondaryText)
-                        .lineLimit(1)
-                }
+                    .foregroundStyle(DS.Color.secondaryText)
             }
         }
+        .lineLimit(1)
+        .layoutPriority(1)
     }
 
     @ViewBuilder
@@ -326,11 +387,10 @@ public struct SourceSelectionView: View {
     /// The row's trailing affordance. The row itself is the control, so this is
     /// a label rather than a second button.
     private func sourceRowAffordance(isView: Bool, isPrimary: Bool) -> some View {
-        Label(isView ? "View Results" : "Scan", systemImage: isView ? "chart.pie" : "play.fill")
+        Text(isView ? "View Results" : "Scan")
             .font(DS.Typography.caption)
             .fontWeight(.medium)
-            .foregroundStyle(isPrimary ? DS.Color.accent : DS.Color.secondaryText)
-            .labelStyle(.titleAndIcon)
+            .foregroundStyle(DS.Color.accent)
             .accessibilityHidden(true)
     }
 
@@ -417,15 +477,17 @@ public struct SourceSelectionView: View {
                     Text(name)
                         .font(DS.Typography.body)
                         .foregroundStyle(DS.Color.primaryText)
-                    Text(url.path)
-                        .font(DS.Typography.caption)
-                        .foregroundStyle(DS.Color.mutedText)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                    // The location on the engine's scan slot reports that scan's
-                    // status in place of a start-scan action.
-                    if let slot {
-                        scanStatusBlock(slot)
+                    HStack(spacing: DS.Spacing.medium) {
+                        Text(url.path)
+                            .font(DS.Typography.caption)
+                            .foregroundStyle(DS.Color.mutedText)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                        // The scan's state sits beside the path, so a scanned
+                        // location keeps the same two lines as an unscanned one.
+                        if let slot {
+                            scanStatus(slot)
+                        }
                     }
                 }
                 Spacer()
@@ -527,11 +589,15 @@ public struct SourceSelectionView: View {
                 isOn: $scanOptions.followSymlinks
             )
 
-            Divider()
+            Rectangle()
+                .fill(DS.Color.rule)
+                .frame(height: DS.Stroke.hairline)
 
             exclusionsEditor
 
-            Divider()
+            Rectangle()
+                .fill(DS.Color.rule)
+                .frame(height: DS.Stroke.hairline)
 
             HStack {
                 Button("Reset to Defaults") {
@@ -624,11 +690,20 @@ public struct SourceSelectionView: View {
         .accessibilityValue(isOn.wrappedValue ? "on" : "off")
     }
 
+    /// A section's name set against a hairline that runs to the panel edge, so
+    /// the home screen reads as a ruled index rather than as stacked groups.
     private func sectionHeader(_ title: String) -> some View {
-        Text(title)
-            .font(DS.Typography.caption)
-            .fontWeight(.semibold)
-            .foregroundStyle(DS.Color.secondaryText)
+        HStack(spacing: DS.Spacing.small) {
+            Text(title)
+                .font(DS.Typography.caption)
+                .fontWeight(.semibold)
+                .foregroundStyle(DS.Color.graphite)
+                .fixedSize()
+            Rectangle()
+                .fill(DS.Color.rule)
+                .frame(height: DS.Stroke.hairline)
+        }
+        .accessibilityAddTraits(.isHeader)
     }
 
     private var dropOverlay: some View {
@@ -709,4 +784,16 @@ public struct SourceSelectionView: View {
         }
         return true
     }
+}
+
+/// Aligns a preset slot's symbol with the optical middle of the name beside
+/// it: between the x-height's middle and the cap height's, above the baseline.
+private enum PresetNameMiddle: AlignmentID {
+    static func defaultValue(in context: ViewDimensions) -> CGFloat {
+        context[VerticalAlignment.firstTextBaseline] - 4.5
+    }
+}
+
+private extension VerticalAlignment {
+    static let presetNameMiddle = VerticalAlignment(PresetNameMiddle.self)
 }

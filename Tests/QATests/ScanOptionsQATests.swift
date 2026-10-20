@@ -83,7 +83,7 @@ final class ScanOptionsQATests: XCTestCase {
                                                         stayOnVolume: true,
                                                         includeHidden: true))
         XCTAssertEqual(ScanOptions.standard.summary,
-                       "hidden items included · stays on this volume · symbolic links not followed")
+                       "Hidden items included, stays on this volume, symbolic links not followed")
     }
 
     func testOptionsRoundTripThroughTheStore() throws {
@@ -176,7 +176,7 @@ final class ScanOptionsQATests: XCTestCase {
 
         let live = ScanProvenance.live(startedAt: started, now: started.addingTimeInterval(5))
         XCTAssertTrue(live.hasPrefix("Scanning since "))
-        XCTAssertTrue(live.hasSuffix("5s elapsed"), live)
+        XCTAssertTrue(live.hasSuffix("5s so far"), live)
     }
 
     // MARK: - Largest lists

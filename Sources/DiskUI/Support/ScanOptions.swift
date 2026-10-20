@@ -38,11 +38,11 @@ public struct ScanOptions: Equatable, Sendable {
 
     /// One sentence naming the choices, for a caption beside the scan action.
     public var summary: String {
-        let hidden = includeHidden ? "hidden items included" : "hidden items skipped"
+        let hidden = includeHidden ? "Hidden items included" : "Hidden items skipped"
         let volumes = stayOnVolume ? "stays on this volume" : "may cross volumes"
         let links = followSymlinks ? "follows symbolic links" : "symbolic links not followed"
-        let exclusions = excludedPaths.isEmpty ? "" : " · \(excludedPaths.count) excluded"
-        return "\(hidden) · \(volumes) · \(links)\(exclusions)"
+        let exclusions = excludedPaths.isEmpty ? "" : ", \(excludedPaths.count) excluded"
+        return "\(hidden), \(volumes), \(links)\(exclusions)"
     }
 }
 

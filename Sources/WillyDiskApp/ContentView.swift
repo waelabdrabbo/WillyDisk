@@ -22,6 +22,9 @@ struct ContentView: View {
 
     var body: some View {
         ScanFlowView(viewModel: appState.scanViewModel)
+            // One ink for every control state: the app's signal, set once here so
+            // no screen has to remember it.
+            .tint(DS.Color.signal)
             .onChange(of: appearance) { _, choice in appState.applyAppearance(choice) }
     }
 }

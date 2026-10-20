@@ -55,7 +55,7 @@ public struct ScanSlotPresentation: Equatable, Sendable {
         }
         if bytesScanned > 0 { parts.append(ByteFormat.string(bytesScanned)) }
         guard !parts.isEmpty else { return nil }
-        let counts = parts.joined(separator: " · ")
+        let counts = parts.joined(separator: ", ")
         switch state {
         case .scanning: return "\(counts) so far"
         case .finished: return counts
@@ -66,7 +66,7 @@ public struct ScanSlotPresentation: Equatable, Sendable {
     /// One spoken phrase for the status, saying plainly whether the numbers are
     /// still arriving or are final.
     public var accessibilityLabel: String {
-        let counts = detail?.replacingOccurrences(of: " · ", with: ", ")
+        let counts = detail
         switch state {
         case .scanning:
             return counts.map { "Scanning, \($0)" } ?? "Scanning"

@@ -180,7 +180,7 @@ struct ReclaimSheet: View {
                             .lineLimit(1)
                             .truncationMode(.middle)
                         if candidate.isDirectory {
-                            Text("\(CountFormat.files(candidate.fileCount)) · \(CountFormat.folders(candidate.directoryCount))")
+                            Text("\(CountFormat.files(candidate.fileCount)) in \(CountFormat.folders(candidate.directoryCount))")
                                 .font(DS.Typography.caption)
                                 .foregroundStyle(DS.Color.secondaryText)
                         }
@@ -309,7 +309,7 @@ struct StaleResultsBadge: View {
             HStack(spacing: DS.Spacing.xSmall) {
                 Image(systemName: "clock.arrow.circlepath")
                     .font(DS.Icon.inline)
-                Text("Results changed since this scan · Rescan")
+                Text("Results changed since this scan. Rescan.")
                     .font(DS.Typography.caption)
             }
             .foregroundStyle(DS.Color.warning)

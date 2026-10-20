@@ -241,90 +241,57 @@ final class UIOverhaulQATests: XCTestCase {
         }
     }
 
-    /// A deeper entry inherits its subtree's hue in a softer shade, so the rings
-    /// of one family stay legible and no descendant is mistaken for a sibling of
-    /// its ancestor.
-    func testDescendantKeepsItsFamilyHueInASofterShade() {
-        let parent = makeNode("Family", size: 300, path: "/qa/Family")
-        let rootFills = ChartPalette.fills(for: [parent], ring: 1, parentFill: nil)
-        guard case .palette(let familyHue, let familyRing, _)? = rootFills[parent.url.path] else {
-            return XCTFail("the first ring must colour by the tree-position palette")
+    /// Depth reads as tone: each ring outward takes the next step of the depth
+    /// ladder, lighter in the light appearance and darker in the dark one, so a
+    /// subtree's rings stay one colour and the rim is the airiest ring.
+    func testEachRingTakesTheNextToneOfTheDepthLadder() {
+        let ladders = [
+            ("light", DS.Sunburst.toneLightBrightness, DS.Sunburst.toneLightSaturation),
+            ("dark", DS.Sunburst.toneDarkBrightness, DS.Sunburst.toneDarkSaturation),
+        ]
+        for (name, brightness, saturation) in ladders {
+            XCTAssertEqual(brightness.count, DS.Sunburst.maxRings,
+                           "\(name): every ring the chart can draw needs a tone")
+            XCTAssertEqual(saturation.count, DS.Sunburst.maxRings)
+            XCTAssertEqual(Set(brightness).count, brightness.count,
+                           "\(name): no two rings share a tone")
         }
-        XCTAssertEqual(familyRing, 1)
+        for (inner, outer) in zip(DS.Sunburst.toneLightBrightness, DS.Sunburst.toneLightBrightness.dropFirst()) {
+            XCTAssertGreaterThan(outer, inner, "light: a ring further out is a lighter tone")
+        }
+        for (inner, outer) in zip(DS.Sunburst.toneDarkBrightness, DS.Sunburst.toneDarkBrightness.dropFirst()) {
+            XCTAssertLessThan(outer, inner, "dark: a ring further out is a darker tone")
+        }
 
-        let childFills = ChartPalette.fills(for: [makeNode("kid", size: 10, path: "/qa/Family/kid")],
-                                            ring: 2, parentFill: rootFills[parent.url.path])
-        guard case .palette(let childHue, let childRing, _)? = childFills["/qa/Family/kid"] else {
-            return XCTFail("a descendant must keep the palette")
+        let parent = makeNode("Family", size: 300, path: "/qa/Family")
+        let rootFills = ChartPalette.fills(for: [parent], ring: 1)
+        guard case .tone(let rootRing, _)? = rootFills[parent.url.path] else {
+            return XCTFail("a drawn entry takes a tone from the depth ladder")
+        }
+        XCTAssertEqual(rootRing, 1)
+
+        let childFills = ChartPalette.fills(for: [makeNode("kid", size: 10, path: "/qa/Family/kid")], ring: 2)
+        guard case .tone(let childRing, _)? = childFills["/qa/Family/kid"] else {
+            return XCTFail("a descendant takes a tone of its own ring")
         }
         XCTAssertEqual(childRing, 2, "a child of a ring-1 folder is drawn on ring 2")
-        XCTAssertLessThanOrEqual(abs(childHue - familyHue),
-                                 DS.Sunburst.paletteFamilySpread + 1e-9,
-                                 "a descendant stays inside its family's hue spread")
     }
 
-    /// One family is one hue, and every ring outward is a paler tint of it.
-    ///
-    /// Saturation falls and brightness rises with each ring, so depth reads as the
-    /// same colour going lighter and the rim is the airiest ring. A ramp that runs
-    /// the other way makes a subtree's rings jump between a dark inside and a pale
-    /// rim, and a hue that drifts between rings leaves the family looking like
-    /// unrelated siblings.
-    func testEachRingOutwardIsAPalerTintOfOneHue() {
-        let families = [
-            ("light", DS.Sunburst.paletteSaturation, DS.Sunburst.paletteBrightness),
-            ("dark", DS.Sunburst.paletteDarkSaturation, DS.Sunburst.paletteDarkBrightness),
-        ]
-        for (name, saturation, brightness) in families {
-            XCTAssertEqual(saturation.count, DS.Sunburst.maxRings,
-                           "\(name): every ring the chart can draw needs a shade")
-            XCTAssertEqual(brightness.count, DS.Sunburst.maxRings)
-            for (inner, outer) in zip(saturation, saturation.dropFirst()) {
-                XCTAssertGreaterThan(inner, outer,
-                                     "\(name): a ring further out must be a paler tint")
-            }
-            for (inner, outer) in zip(brightness, brightness.dropFirst()) {
-                XCTAssertLessThan(inner, outer,
-                                  "\(name): a paler tint is also a lighter one")
-            }
-            for value in saturation {
-                XCTAssertLessThanOrEqual(value, 0.9,
-                                         "\(name): a wedge stays short of a pure hue")
-            }
-            // The palest ring is still a colour, not white: at the wedge opacity it
-            // is drawn with, its saturation has to survive compositing on the pane.
-            XCTAssertGreaterThan(Self.compositeSaturation(saturation.last!, brightness.last!),
-                                 0.2,
-                                 "\(name): the palest ring keeps a readable hue")
-        }
-
-        // A sibling group spans its family hue tightly while each index still
-        // takes a shade of its own.
-        let parent = makeNode("Family", size: 300, path: "/qa/Family")
+    /// Siblings span three tones on their one ring, cycling by position, so a
+    /// group reads as one surface cut into wedges rather than as a rainbow.
+    func testSiblingsCycleThroughThreeTonesOnOneRing() {
         let siblings = (0..<6).map { makeNode("kid\($0)", size: 10, path: "/qa/Family/kid\($0)") }
-        let parentFill = ChartPalette.fills(for: [parent], ring: 1, parentFill: nil)[parent.url.path]
-        let fills = ChartPalette.fills(for: siblings, ring: 2, parentFill: parentFill)
-        var hues: [Double] = []
+        let fills = ChartPalette.fills(for: siblings, ring: 2)
+        var steps: [Int] = []
         for sibling in siblings {
-            guard case .palette(let hue, let ring, _)? = fills[sibling.url.path] else {
-                return XCTFail("a descendant must keep the palette")
+            guard case .tone(let ring, let step)? = fills[sibling.url.path] else {
+                return XCTFail("a sibling takes a tone of the ring it is drawn on")
             }
             XCTAssertEqual(ring, 2)
-            hues.append(hue)
+            steps.append(step)
         }
-        XCTAssertEqual(hues.count, siblings.count)
-        XCTAssertLessThanOrEqual(hues.max()! - hues.min()!,
-                                 2 * DS.Sunburst.paletteFamilySpread + 1e-9,
-                                 "siblings differ in shade, not by leaving the family hue")
-    }
-
-    /// The saturation the eye gets once a wedge is drawn at the chart's own
-    /// opacity: the fill is composited over the pane, so a pale tint loses a
-    /// little of its colour on the way to the screen.
-    private static func compositeSaturation(_ saturation: Double, _ brightness: Double) -> Double {
-        let background = 0.5
-        let drawn = brightness * DS.Sunburst.fillOpacity + background * (1 - DS.Sunburst.fillOpacity)
-        return saturation * brightness / max(drawn, 0.0001)
+        XCTAssertEqual(steps, [0, 1, 2, 0, 1, 2],
+                       "the tone cycle repeats across a sibling group")
     }
 
     /// An entry with no bytes is not drawn by the chart, so it wears the neutral
@@ -334,7 +301,7 @@ final class UIOverhaulQATests: XCTestCase {
             makeNode("real", size: 100, path: "/qa/real"),
             makeNode("empty", size: 0, path: "/qa/empty"),
         ]
-        let fills = ChartPalette.fills(for: roots, ring: 1, parentFill: nil)
+        let fills = ChartPalette.fills(for: roots, ring: 1)
         XCTAssertNotNil(fills["/qa/real"])
         XCTAssertNil(fills["/qa/empty"], "a zero-byte entry has no wedge and so no chart colour")
     }

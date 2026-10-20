@@ -43,13 +43,13 @@ public enum ScanPresetCatalog {
             ScanPreset(
                 id: "applications",
                 name: "Applications",
-                symbolName: "square.grid.2x2",
+                symbolName: "macwindow",
                 url: URL(fileURLWithPath: "/Applications", isDirectory: true)
             ),
             ScanPreset(
                 id: "caches",
                 name: "Caches",
-                symbolName: "internaldrive",
+                symbolName: "archivebox",
                 url: home.appendingPathComponent("Library/Caches", isDirectory: true)
             ),
             ScanPreset(

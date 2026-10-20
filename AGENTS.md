@@ -21,6 +21,7 @@ contracts, shared-interface rules §7, non-negotiables §8).
 |---|---|
 | `Package.swift` | products: executable `WillyDisk`, libraries `DiskCore` and `DiskUI` |
 | `VERSION` | the only source of the marketing version; the bundle script stamps it |
+| `Resources/` | committed icon assets: `AppIcon.icns` (Finder) and `AppIcon-1024.png` (the app image) |
 | `Sources/DiskCore/Models/` | frozen value model: `FileCategory`, `ScanNode`, `ScanSummary` |
 | `Sources/DiskCore/Scanning/Contracts.swift` | frozen `ScanRequest`, `ScanEvent`, `ScanProgress`, `ScanEngine`, `ScanIssueKind` |
 | `Sources/DiskCore/Scanning/` (the rest) | the scan engine and its filesystem plumbing |
@@ -76,6 +77,10 @@ bash Scripts/bundle-app.sh           # assemble .build/WillyDisk.app; its versio
 bash Scripts/render-screens.sh       # offscreen PNGs (-S results|home|help|both), no window, no screen-recording permission
 bash Scripts/repo-map.sh             # one-screen structural inventory (--types adds declarations)
 ```
+
+`Scripts/make-icon.swift` regenerates both icon files from the mark; they are committed,
+and the bundle ships the PNG as `AppIcon.png` so the About panel shows it. To display an
+icon, use that asset — do not draw or rebuild one at runtime.
 
 For a cosmetic change, stop early: edit, `swift build`, one render into a fresh directory
 (`bash Scripts/render-screens.sh -a both -S <screen> -o .build/renders/<change>`), then

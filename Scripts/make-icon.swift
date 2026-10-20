@@ -1,12 +1,17 @@
 #!/usr/bin/env swift
 
-// Draws Resources/AppIcon.icns from the app's mark.
+// Draws Resources/AppIcon.icns and Resources/AppIcon-1024.png from the app's mark.
 //
 // The icon is the mark on an ink ground: a platter's grooves around a spindle,
 // cut by one slot at three o'clock, with the outer groove's last stretch lit in
 // signal. Each representation is drawn at its own size rather than downscaled, so
 // the 16 and 32 point cuts keep a single heavier groove instead of collapsing
 // into a disc.
+//
+// The 1024 PNG is the same cut the .icns carries at its largest size, written as
+// a plain image so the app can show the mark wherever it needs an icon — the
+// About panel reads it out of the bundle instead of relying on the bundle's
+// icon registration.
 
 import AppKit
 import Foundation
@@ -125,4 +130,6 @@ guard process.terminationStatus == 0 else {
     exit(1)
 }
 try? FileManager.default.removeItem(at: iconset)
-print("wrote Resources/AppIcon.icns")
+
+try draw(size: 1024).write(to: URL(fileURLWithPath: "Resources/AppIcon-1024.png"))
+print("wrote Resources/AppIcon.icns and Resources/AppIcon-1024.png")

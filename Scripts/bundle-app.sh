@@ -9,9 +9,10 @@
 # Inside an agent sandbox, where SwiftPM cannot nest its own sandbox:
 #          WILLYDISK_NO_SANDBOX=1 bash Scripts/bundle-app.sh
 #
-# The bundle contains Contents/MacOS/WillyDisk, the original app icon, and an
-# Info.plist carrying LSMinimumSystemVersion 14.0, CFBundleIdentifier,
-# NSHighResolutionCapable, and the version read from the repository's VERSION file.
+# The bundle contains Contents/MacOS/WillyDisk, the app icon as both the .icns the
+# Finder draws and the 1024 PNG the About panel shows, and an Info.plist carrying
+# LSMinimumSystemVersion 14.0, CFBundleIdentifier, NSHighResolutionCapable, and the
+# version read from the repository's VERSION file.
 set -euo pipefail
 
 # Resolve the repository root (the directory containing Package.swift).
@@ -24,6 +25,7 @@ APP_NAME="WillyDisk"
 BIN_PATH="$ROOT_DIR/.build/$CONFIGURATION/$APP_NAME"
 APP_BUNDLE="$ROOT_DIR/.build/$APP_NAME.app"
 ICON_SRC="$ROOT_DIR/Resources/AppIcon.icns"
+ICON_PNG_SRC="$ROOT_DIR/Resources/AppIcon-1024.png"
 
 # The marketing version has one source: the repository's VERSION file. Nothing
 # else may state a version, so About, the bundle and a future DMG cannot drift
@@ -94,9 +96,16 @@ if [ ! -f "$ICON_SRC" ]; then
     echo "error: missing app icon at $ICON_SRC" >&2
     exit 1
 fi
+if [ ! -f "$ICON_PNG_SRC" ]; then
+    echo "error: missing icon image at $ICON_PNG_SRC" >&2
+    exit 1
+fi
 
 cp "$BIN_PATH" "$STAGED_BIN"
 cp "$ICON_SRC" "$RESOURCES_DIR/AppIcon.icns"
+# The same cut as a plain image: the About panel reads it from the bundle rather
+# than depending on how the system resolved this app's icon registration.
+cp "$ICON_PNG_SRC" "$RESOURCES_DIR/AppIcon.png"
 
 # Guard 2: restamp after staging and before signing. vtool warns that rewriting
 # the Mach-O invalidates the (ad-hoc) signature; that is expected — we re-sign

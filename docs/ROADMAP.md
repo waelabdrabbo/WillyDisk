@@ -56,8 +56,9 @@ Details worth remembering:
 - The marketing version has one source: `VERSION`. `Scripts/bundle-app.sh` validates
   it, stamps `CFBundleShortVersionString` from it, and takes `CFBundleVersion` from
   the commit count; CI fails when the assembled bundle disagrees. About is the
-  system panel with the app's own credits: it reads the bundle's name, icon,
-  version, and copyright instead of restating them.
+  system panel with the app's own credits: it reads the bundle's name, version, and
+  copyright, and shows the committed 1024 PNG the bundle ships as `AppIcon.png`
+  instead of relying on how the system resolved the app icon.
 - Help is a sheet on the main window (⌘?), not a window of its own, so the app keeps
   one window. It restates the scan, coverage, and reclaim rules in short form;
   `Scripts/render-screens.sh -S help` renders it so the copy can be reviewed.

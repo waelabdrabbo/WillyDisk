@@ -674,8 +674,12 @@ public struct SourceSelectionView: View {
         }
     }
 
+    /// One scan option: the consequence spelled out on the left, the switch held
+    /// against the trailing edge. The text claims the row's width and the switch
+    /// keeps its own, so every switch lands on the same line however the
+    /// description wraps.
     private func optionToggle(_ title: String, detail: String, isOn: Binding<Bool>) -> some View {
-        Toggle(isOn: isOn) {
+        HStack(alignment: .center, spacing: DS.Spacing.medium) {
             VStack(alignment: .leading, spacing: DS.Spacing.hairline) {
                 Text(title)
                     .font(DS.Typography.body)
@@ -684,10 +688,14 @@ public struct SourceSelectionView: View {
                     .foregroundStyle(DS.Color.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            Toggle(title, isOn: isOn)
+                .toggleStyle(.switch)
+                .labelsHidden()
+                .accessibilityLabel(title)
+                .accessibilityValue(isOn.wrappedValue ? "on" : "off")
         }
-        .toggleStyle(.switch)
-        .accessibilityLabel(title)
-        .accessibilityValue(isOn.wrappedValue ? "on" : "off")
     }
 
     /// A section's name set against a hairline that runs to the panel edge, so

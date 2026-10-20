@@ -21,8 +21,9 @@
 #       is taken
 #   -c  capture the screen alone, with no window around it (default: the window)
 #
-# Inside an agent sandbox, where SwiftPM cannot nest its own sandbox, run it as:
-#   WILLYDISK_NO_SANDBOX=1 Scripts/render-screens.sh
+# Inside an agent sandbox, where SwiftPM cannot nest its own sandbox, the build is
+# retried with --disable-sandbox automatically. Set WILLYDISK_NO_SANDBOX=1 to skip
+# the first attempt.
 
 set -euo pipefail
 
@@ -51,15 +52,29 @@ done
 
 BUILD_FLAGS=()
 SWIFTC_FLAGS=()
-if [[ -n "${WILLYDISK_NO_SANDBOX:-}" ]]; then
+
+# A sandboxed agent cannot nest SwiftPM's own sandbox and cannot write the shared
+# module cache, so it gets a cache inside the build directory instead.
+use_sandboxless_flags() {
   BUILD_FLAGS=(--disable-sandbox)
-  # A sandboxed agent cannot write the shared module cache, so it gets one
-  # inside the build directory; everyone else uses the system cache.
   SWIFTC_FLAGS=(-disable-sandbox -module-cache-path "$ROOT/.build/render-module-cache")
+}
+
+if [[ -n "${WILLYDISK_NO_SANDBOX:-}" ]]; then
+  use_sandboxless_flags
 fi
 
 echo "==> Building"
-swift build --package-path "$ROOT" ${BUILD_FLAGS[@]+"${BUILD_FLAGS[@]}"}
+if ! build_output=$(swift build --package-path "$ROOT" ${BUILD_FLAGS[@]+"${BUILD_FLAGS[@]}"} 2>&1); then
+  printf '%s\n' "$build_output"
+  if [[ -z "${WILLYDISK_NO_SANDBOX:-}" && "$build_output" == *sandbox_apply* ]]; then
+    echo "==> SwiftPM cannot nest its own sandbox here; retrying with --disable-sandbox"
+    use_sandboxless_flags
+    swift build --package-path "$ROOT" ${BUILD_FLAGS[@]+"${BUILD_FLAGS[@]}"}
+  else
+    exit 1
+  fi
+fi
 
 echo "==> Compiling the renderer"
 xcrun swiftc ${SWIFTC_FLAGS[@]+"${SWIFTC_FLAGS[@]}"} \

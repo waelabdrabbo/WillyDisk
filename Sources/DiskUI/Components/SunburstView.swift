@@ -157,6 +157,17 @@ public struct SunburstView: View {
         // views: every segment fills the same square, so a view-level hover
         // region would let whichever segment is on top swallow the whole chart.
         .contentShape(Rectangle())
+        // The top ring is made of real controls; a tap on a deeper wedge is
+        // resolved here, by the geometry, and selects what it landed on.
+        .simultaneousGesture(
+            SpatialTapGesture().onEnded { value in
+                guard let id = geometry.segmentID(at: value.location, in: segments),
+                      let segment = segments.first(where: { $0.id == id }),
+                      segment.ring > 1,
+                      let node = segment.node else { return }
+                onSelect(node)
+            }
+        )
         .onContinuousHover(coordinateSpace: .local) { phase in
             switch phase {
             case .active(let point):
@@ -589,12 +600,17 @@ struct SunburstWedge: Shape, Equatable {
 
 /// Every wedge of the chart, drawn as it stands with nothing emphasised.
 ///
+/// The picture is one canvas rather than a view per wedge: with up to
+/// `DS.Sunburst.maxSegments` wedges, a control each costs more than a frame
+/// every time the data changes, and a live scan changes it once a second. The
+/// top ring also gets a control per wedge (see `SunburstWedgeView`) for the
+/// keyboard, assistive technology, and tooltips; deeper rings are hit through
+/// the chart's own tap gesture, which resolves them from the same geometry the
+/// hover uses.
+///
 /// Nothing here depends on where the pointer or the keyboard is: the wedges a
 /// hover fades and the outline it draws are painted over this layer by
-/// `SunburstEmphasis`. That is what keeps a sweep across the explorer's rows from
-/// re-making the wedges — up to `DS.Sunburst.maxSegments` buttons, each with a
-/// tooltip, a focus binding and a hit region of its own, which is more than a
-/// frame can pay for every time the pointer leaves one row for the next.
+/// `SunburstEmphasis`, so a pointer sweep never re-makes the picture.
 ///
 /// Its comparison is by `revision` and `side` rather than by the segments
 /// themselves: `revision` is bumped whenever the rings are rebuilt, and comparing
@@ -614,38 +630,57 @@ private struct SunburstWedgeLayer: View, Equatable {
 
     var body: some View {
         ZStack {
-            ForEach(segments) { segment in
+            // The picture: one canvas paints every wedge, so a snapshot that
+            // changes a size redraws pixels rather than rebuilding a view per
+            // wedge. A view per wedge costs more than a frame once a chart draws
+            // a couple of hundred of them.
+            Canvas { context, size in
+                let rect = CGRect(origin: .zero, size: size)
+                for segment in segments {
+                    context.fill(wedgeShape(for: segment).path(in: rect),
+                                 with: .color(segment.fill.color.opacity(
+                                    fillOpacity(for: segment))))
+                }
+            }
+            .frame(width: side, height: side)
+
+            // The top ring keeps a control per wedge: it is what the keyboard
+            // and assistive technology reach, and it is small enough to rebuild
+            // while a scan runs. Deeper wedges are hit through the chart's own
+            // tap gesture, resolved by the same geometry the hover uses.
+            ForEach(segments.filter { $0.ring == 1 }) { segment in
                 SunburstWedgeView(
                     id: segment.id,
                     node: segment.node,
                     label: segment.label,
                     size: segment.size,
-                    // The selection is matched through the node, never by URL
-                    // alone: an aggregate wedge has no node, and a bare
-                    // comparison would read it as the one selected whenever
-                    // nothing is.
                     isSelected: segment.node.map { $0.url == selectedURL } ?? false,
-                    fill: segment.fill,
-                    shape: SunburstWedge(
-                        center: geometry.center,
-                        innerRadius: geometry.radii(ring: segment.ring).inner,
-                        outerRadius: geometry.radii(ring: segment.ring).outer,
-                        startAngle: segment.start,
-                        endAngle: segment.end,
-                        angularGap: geometry.angularGap(ring: segment.ring),
-                        radialGap: DS.Sunburst.radialGap
-                    ),
+                    shape: wedgeShape(for: segment),
                     side: side,
                     focusedID: focusedID,
                     onSelect: onSelect
                 )
                 .equatable()
-                // A wedge is redrawn when what it draws changes and not
-                // otherwise, which is what keeps the whole layer out of the way
-                // of everything that is not new data.
-                }
+            }
         }
         .frame(width: side, height: side)
+    }
+
+    private func wedgeShape(for segment: SunburstSegment) -> SunburstWedge {
+        SunburstWedge(
+            center: geometry.center,
+            innerRadius: geometry.radii(ring: segment.ring).inner,
+            outerRadius: geometry.radii(ring: segment.ring).outer,
+            startAngle: segment.start,
+            endAngle: segment.end,
+            angularGap: geometry.angularGap(ring: segment.ring),
+            radialGap: DS.Sunburst.radialGap
+        )
+    }
+
+    private func fillOpacity(for segment: SunburstSegment) -> Double {
+        let isSelected = segment.node.map { $0.url == selectedURL } ?? false
+        return isSelected ? DS.Sunburst.selectedFillOpacity : DS.Sunburst.fillOpacity
     }
 }
 
@@ -736,17 +771,16 @@ private struct SunburstShade: Shape {
 
 // MARK: - Wedge
 
-/// One drawn wedge of the chart.
+/// One top-ring wedge's control.
 ///
-/// A wedge draws the fill it stands for, and nothing about where the pointer or
-/// the selection is: the outlines are drawn over the layer by `SunburstEmphasis`.
-/// Comparing the values it draws is what lets SwiftUI keep the wedges that are
-/// already right as they are.
+/// The layer paints the wedge; this view adds what a picture cannot: its hit
+/// region, its keyboard focus stop, its tooltip and its accessible name. Only the
+/// top ring has one, because a control per wedge across the whole chart costs
+/// more than a frame once there are a couple of hundred of them.
 ///
-/// The comparison deliberately covers the node's `id` rather than the node
-/// itself: the engine mints new ids for every snapshot, so a rebuilt node means a
-/// wedge worth drawing again, while walking a node's subtree to compare it would
-/// put a whole folder back on the redraw path.
+/// Equality is by the node's path rather than by its `id`: the engine mints new
+/// ids for every node on every snapshot, and comparing those would rebuild every
+/// unchanged control once a second.
 private struct SunburstWedgeView: View, Equatable {
     /// The wedge's identity in the layout — a ring and path derivation, which is
     /// also what the keyboard's focus is held by.
@@ -757,7 +791,6 @@ private struct SunburstWedgeView: View, Equatable {
     let label: String
     let size: Int64
     let isSelected: Bool
-    let fill: ChartFill
     let shape: SunburstWedge
     let side: CGFloat
     let focusedID: FocusState<String?>.Binding
@@ -765,21 +798,21 @@ private struct SunburstWedgeView: View, Equatable {
 
     nonisolated static func == (lhs: SunburstWedgeView, rhs: SunburstWedgeView) -> Bool {
         lhs.id == rhs.id
-            && lhs.node?.id == rhs.node?.id
+            // Identity by path, not by the node's id: the engine mints a new id
+            // for every node on every snapshot, and comparing it would redraw
+            // every unchanged wedge once a second for the whole scan.
+            && lhs.node?.url == rhs.node?.url
             && lhs.label == rhs.label
             && lhs.size == rhs.size
             && lhs.isSelected == rhs.isSelected
-            && lhs.fill == rhs.fill
             && lhs.shape == rhs.shape
             && lhs.side == rhs.side
     }
 
     var body: some View {
-        // The fill only: the outlines the chart draws — the selection's and the
-        // emphasis's — belong to `SunburstEmphasis`, which draws them over the
-        // fade rather than under it.
-        let content = shape
-            .fill(fill.color.opacity(isSelected ? DS.Sunburst.selectedFillOpacity : DS.Sunburst.fillOpacity))
+        // The canvas paints this wedge. The control is a hit region with a focus
+        // stop, a tooltip and an accessible name, and nothing to draw.
+        let content = Color.clear.contentShape(shape)
 
         return Group {
             if let node {

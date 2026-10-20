@@ -226,6 +226,52 @@ final class ScanViewModelQATests: XCTestCase {
         XCTAssertNil(vm.partialSummary, "a held snapshot never lands on a settled scan")
     }
 
+    // MARK: - Scroll hold
+
+    func testScrollingHoldsSnapshotsAndTakesTheNewestWhenItStops() async {
+        let engine = ScriptedEngine()
+        let vm = ScanViewModel(engine: engine)
+        let root = URL(fileURLWithPath: "/qa/scroll")
+
+        vm.start(root: root)
+        engine.emit(.started(root: root))
+        engine.emit(.partial(makeSummary(root: root, logical: 1_000)))
+        _ = await waitUntil(timeout: 0.2) { vm.liveSummary != nil }
+        let beforeScroll = vm.resultsRevision
+
+        vm.setResultsScrolling(true)
+        engine.emit(.partial(makeSummary(root: root, logical: 2_000)))
+        engine.emit(.partial(makeSummary(root: root, logical: 3_000)))
+        try? await Task.sleep(for: .milliseconds(300))
+
+        XCTAssertEqual(vm.liveSummary?.totalLogicalSize, 1_000,
+                       "a snapshot does not land while the list is moving")
+        XCTAssertEqual(vm.resultsRevision, beforeScroll,
+                       "a held snapshot does not redraw the screen mid-scroll")
+
+        vm.setResultsScrolling(false)
+        let resumed = await waitUntil(timeout: 0.5) { vm.liveSummary?.totalLogicalSize == 3_000 }
+        XCTAssertTrue(resumed, "the newest held snapshot lands as soon as the scroll ends")
+    }
+
+    func testATerminalSummaryLandsEvenWhileScrolling() async {
+        let engine = ScriptedEngine()
+        let vm = ScanViewModel(engine: engine)
+        let root = URL(fileURLWithPath: "/qa/scroll-terminal")
+
+        vm.start(root: root)
+        engine.emit(.started(root: root))
+        engine.emit(.partial(makeSummary(root: root, logical: 1_000)))
+        _ = await waitUntil(timeout: 0.2) { vm.liveSummary != nil }
+
+        vm.setResultsScrolling(true)
+        engine.emit(.finished(makeSummary(root: root, logical: 9_000, fileCount: 40)))
+
+        let settled = await waitUntil { vm.phase == .finished }
+        XCTAssertTrue(settled, "a finished scan is never held behind a scroll")
+        XCTAssertEqual(vm.summary?.totalLogicalSize, 9_000)
+    }
+
     func testResetDropsAHeldSnapshot() async {
         let engine = ScriptedEngine()
         let vm = ScanViewModel(engine: engine)

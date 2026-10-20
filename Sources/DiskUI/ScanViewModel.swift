@@ -201,6 +201,12 @@ public final class ScanViewModel {
     private var heldPartialTask: Task<Void, Never>?
     /// When the screen last took a progressive snapshot.
     private var lastPartialAppliedAt: ContinuousClock.Instant?
+    /// Whether the results screen is being scrolled right now.
+    ///
+    /// Applying a snapshot rebuilds the chart and the list, which lands in the
+    /// middle of a scroll. While the screen is moving the newest snapshot is
+    /// therefore held, and the screen takes it as soon as the scroll ends.
+    private var isResultsScrolling = false
 
     /// The cadence at which the screen takes progressive snapshots.
     ///
@@ -438,6 +444,7 @@ public final class ScanViewModel {
         resultsAreStale = false
         reclaimNotice = nil
         blockedStartNotice = nil
+        isResultsScrolling = false
         phase = .idle
         route = .home
         resultsRevision &+= 1
@@ -505,6 +512,9 @@ public final class ScanViewModel {
     /// it replaces were only ever an earlier reading of the same scan.
     private func hold(_ snapshot: ScanSummary, generation: Int) {
         heldPartial = snapshot
+        // The screen is moving: the newest snapshot waits for it to stop rather
+        // than landing in the middle of the scroll.
+        guard !isResultsScrolling else { return }
         guard heldPartialTask == nil else { return }
 
         let clock = ContinuousClock()
@@ -520,6 +530,24 @@ public final class ScanViewModel {
             guard !Task.isCancelled, let self, self.scanGeneration == generation else { return }
             self.applyHeldPartial()
         }
+    }
+
+    /// Reports the results list's scroll activity.
+    ///
+    /// A snapshot is taken at most once a second, but each one redraws the chart
+    /// and rebuilds the explorer's rows: work worth deferring while the user is
+    /// moving the list, and taking the moment the movement stops.
+    public func setResultsScrolling(_ scrolling: Bool) {
+        guard scrolling != isResultsScrolling else { return }
+        isResultsScrolling = scrolling
+        guard scrolling else {
+            applyHeldPartial()
+            return
+        }
+        // A snapshot the cadence was about to take would stall the scroll; keep
+        // the newest one waiting instead.
+        heldPartialTask?.cancel()
+        heldPartialTask = nil
     }
 
     /// Gives the newest held snapshot to the screens, and starts the next cadence.

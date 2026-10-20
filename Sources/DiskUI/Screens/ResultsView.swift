@@ -270,12 +270,17 @@ public struct ResultsView: View {
 
     // MARK: - Access notice
 
-    private var accessPresentation: ScanIssuesPresentation { viewModel.issuesPresentation }
-
     /// Whether the scan skipped anything worth accounting for: restricted
     /// locations, or other unreadable items. The notice is never silent.
+    ///
+    /// Read from the snapshot's own totals rather than from the issue rows:
+    /// the rows arrive one event at a time while scanning, and gating on them
+    /// would redraw the whole screen for each one. The snapshot's counts move
+    /// at the screen's rendering cadence, and the notice resolves its rows in
+    /// its own body.
     private var showsAccessNotice: Bool {
-        accessPresentation.restrictedLocationCount > 0 || accessPresentation.hasRows
+        guard let summary else { return false }
+        return summary.permissionDeniedCount > 0 || summary.surfacedIssueCount > 0
     }
 
     // MARK: - Body
@@ -331,6 +336,9 @@ public struct ResultsView: View {
             // The panel belongs to the window, not to this view; leaving the
             // results must not leave a preview of them on screen.
             quickLook.close()
+            // A list that leaves the screen mid-scroll sends no further phase,
+            // and a held snapshot must not stay held for the next scan.
+            viewModel.setResultsScrolling(false)
         }
         .task(id: viewModel.scanRun) {
             // Re-run for every scan and on Rescan: grant Full Disk Access in
@@ -487,8 +495,8 @@ public struct ResultsView: View {
 
     /// The single merged access notice, at the foot of the inspector.
     private var accessNoticeRow: some View {
-        AccessNoticeRow(
-            presentation: accessPresentation,
+        LiveAccessNotice(
+            viewModel: viewModel,
             isFullDiskAccessGranted: fullDiskAccessGranted,
             isExpanded: $accessNoticeExpanded
         )
@@ -517,7 +525,7 @@ public struct ResultsView: View {
     private var scanStatusStrip: some View {
         HStack(spacing: 0) {
             if isLiveScan {
-                scanStatusBanner
+                LiveScanStatusBanner(viewModel: viewModel, onCancel: { viewModel.cancel() })
                     .padding(.horizontal, DS.Spacing.large)
                     .padding(.vertical, DS.Spacing.small)
                     .frame(width: DS.Size.scanStatusWidth)
@@ -528,89 +536,6 @@ public struct ResultsView: View {
         .frame(maxWidth: .infinity)
         .frame(height: DS.Size.scanStatusStripHeight)
         .animation(reduceMotion ? nil : .easeInOut(duration: 0.2), value: isLiveScan)
-    }
-
-    /// The in-progress readout: an honest status indicator, the work counted so
-    /// far, and the cancel action. Deliberately small — no running path, no
-    /// elapsed clock.
-    ///
-    /// The group is sized to its contents, so the strip's capsule frames the
-    /// readout and the cancel action together rather than leaving a run of empty
-    /// fill between them.
-    private var scanStatusBanner: some View {
-        HStack(spacing: DS.Spacing.medium) {
-            scanStatusIndicator
-            Text("\(CountFormat.files(viewModel.filesScanned)), \(ByteFormat.string(viewModel.displayedTotal))")
-                .font(DS.Typography.caption)
-                .monospacedDigit()
-                .foregroundStyle(DS.Color.secondaryText)
-                .lineLimit(1)
-                .truncationMode(.tail)
-            Spacer(minLength: DS.Spacing.large)
-            cancelScanButton
-        }
-        .accessibilityElement(children: .contain)
-    }
-
-    /// Cancel Scan, as an inset chip inside the strip's capsule.
-    ///
-    /// A `.bordered` button on the capsule takes the window's control fill, which
-    /// is the capsule's own fill at this size, leaving the label to read as bare
-    /// text on the strip. The chip fills with `windowBackground` instead, so it
-    /// separates from the capsule the way a bordered control separates from a
-    /// toolbar.
-    private var cancelScanButton: some View {
-        Button(role: .cancel) {
-            viewModel.cancel()
-        } label: {
-            Label("Cancel Scan", systemImage: "stop.fill")
-                .font(DS.Typography.caption)
-                .foregroundStyle(DS.Color.primaryText)
-                .padding(.horizontal, DS.Spacing.small)
-                .padding(.vertical, DS.Spacing.xxSmall)
-                .background(DS.Color.windowBackground, in: Capsule())
-                .overlay(Capsule().strokeBorder(DS.Color.separator, lineWidth: DS.Stroke.hairline))
-                .frame(minHeight: DS.Size.iconButton)
-                .contentShape(Capsule())
-        }
-        .buttonStyle(.plain)
-        .help("Stop the scan; the results gathered so far are kept")
-    }
-
-    /// Progress read straight from the engine.
-    ///
-    /// A percentage appears only when `fractionCompleted` is present; otherwise
-    /// the indicator is honestly indeterminate, because the engine reports no
-    /// reliable total and we do not fabricate one.
-    @ViewBuilder
-    private var scanStatusIndicator: some View {
-        if let fraction = viewModel.progress?.fractionCompleted {
-            HStack(spacing: DS.Spacing.small) {
-                ProgressView(value: fraction)
-                    .progressViewStyle(.linear)
-                    .frame(width: DS.Size.rowProgressWidth)
-                Text(percentText(fraction))
-                    .font(DS.Typography.caption)
-                    .monospacedDigit()
-                    .foregroundStyle(DS.Color.primaryText)
-            }
-            .accessibilityElement(children: .combine)
-            .accessibilityLabel("Scan \(percentText(fraction)) complete")
-        } else {
-            HStack(spacing: DS.Spacing.small) {
-                ProgressView()
-                    .controlSize(.small)
-                Text("Reading files…")
-                    .font(DS.Typography.caption)
-                    .foregroundStyle(DS.Color.secondaryText)
-            }
-            .accessibilityElement(children: .combine)
-            .accessibilityLabel("Scanning, progress not yet measurable")
-        }
-    }
-
-    private func percentText(_ fraction: Double) -> String {
-        "\(Int((min(max(fraction, 0), 1) * 100).rounded()))%"
     }
 
     // MARK: - Chart pane
@@ -810,9 +735,9 @@ public struct ResultsView: View {
     /// of the largest lists.
     private var countsText: String {
         if explorerMode == .folder {
-            return "\(CountFormat.files(viewModel.filesScanned)) across \(CountFormat.items(presentableChildren.count))"
+            return "\(CountFormat.files(summary?.fileCount ?? 0)) across \(CountFormat.items(presentableChildren.count))"
         }
-        guard let s = summary else { return CountFormat.files(viewModel.filesScanned) }
+        guard let s = summary else { return CountFormat.files(0) }
         // The scan root is a folder in the summary, but it is the scan itself and
         // never one of its own subfolders, so the largest-list counts leave it out.
         return "\(CountFormat.files(s.fileCount)) in \(CountFormat.folders(max(0, s.directoryCount - 1)))"
@@ -967,7 +892,11 @@ public struct ResultsView: View {
             onReclaim: { node in
                 requestReclaim(contextTargets(for: node))
             },
-            onEscape: clearSelection
+            onEscape: clearSelection,
+            onScrollActivity: { scrolling in
+                viewModel.setResultsScrolling(scrolling)
+                hover.setSuspended(scrolling)
+            }
         )
     }
 
@@ -1343,21 +1272,69 @@ public struct ResultsView: View {
 
 // MARK: - Supporting types
 
+/// Where the pointer sits in the explorer when a scroll ends.
+///
+/// Rows are uniform, so the pointer's place in the scroll view plus the content
+/// offset names the row without reading a frame per row. The caller checks the
+/// index against the rows it is actually showing; a pointer past the last row
+/// (over Show More, or the notice) resolves to nothing.
+enum ExplorerHoverRow {
+    static func index(pointerY: CGFloat, contentOffset: CGFloat, rowHeight: CGFloat) -> Int? {
+        guard rowHeight > 0 else { return nil }
+        let y = pointerY + contentOffset
+        guard y >= 0 else { return nil }
+        return Int(y / rowHeight)
+    }
+}
+
+/// What restoring the hover needs: the pointer, the content offset and one row's
+/// height.
+///
+/// Held in a reference box rather than view state: the scroll view reports the
+/// offset on every frame of a scroll, and storing that in `@State` would redraw
+/// the list on every frame for a value read once, when the scroll ends.
+private final class ScrollHoverMetrics {
+    var pointer: CGPoint?
+    var contentOffset: CGFloat = 0
+    var rowHeight: CGFloat = 0
+}
+
 /// The one hovered node, shared by the explorer rows and the chart.
 ///
 /// It is a reference the two panes observe rather than a value the screen holds,
 /// so a pointer crossing the explorer's rows re-renders the list and the chart and
 /// leaves every other part of the screen as it was. Matched by URL, never by
 /// identity: the engine rebuilds every node value on each progressive snapshot.
+///
+/// Hover is suspended while the list scrolls. Rows pass under a still pointer as
+/// the content moves, and lighting each one on the way past is neither useful
+/// nor cheap: it would re-render the list and the chart's emphasis for every row
+/// that crosses. Suspending drops the current hover too, so no row stays lit
+/// while its content slides out from under the pointer; when the scroll ends the
+/// list names the row under the pointer and asks for it again, so the highlight
+/// returns in the same frame.
 @MainActor
 @Observable
 final class ChartHover {
     var url: URL?
 
+    /// Whether row hover is being ignored because the list is scrolling.
+    private(set) var isSuspended = false
+
+    /// Suspends or resumes row hover. The scroll's own phases decide both, so
+    /// there is no timer to keep: hover stops with the movement and resumes when
+    /// the list settles.
+    func setSuspended(_ suspended: Bool) {
+        guard suspended != isSuspended else { return }
+        isSuspended = suspended
+        if suspended { url = nil }
+    }
+
     /// Publishes the row under the pointer as the one hovered node. Only the row
     /// that is still hovered clears it, so moving between rows never leaves the
     /// highlight stuck on the wrong one.
     func set(_ url: URL, _ hovering: Bool) {
+        guard !isSuspended else { return }
         if hovering {
             if self.url != url { self.url = url }
         } else if self.url == url {
@@ -1376,6 +1353,108 @@ private enum ExplorerClick {
         let flags = NSEvent.modifierFlags
         let extending = flags.contains(.shift)
         return (toggling: !extending && flags.contains(.command), extending: extending)
+    }
+}
+
+/// The in-progress readout: an honest status indicator, the work counted so far,
+/// and the cancel action.
+///
+/// It resolves the engine's live counters in its own body. Progress events
+/// arrive far faster than the results change, and this is the only part of the
+/// screen they redraw: the strip updates while the chart, the list and the
+/// header stay on the snapshot cadence.
+private struct LiveScanStatusBanner: View {
+    let viewModel: ScanViewModel
+    let onCancel: () -> Void
+
+    var body: some View {
+        HStack(spacing: DS.Spacing.medium) {
+            indicator
+            Text("\(CountFormat.files(viewModel.filesScanned)), \(ByteFormat.string(viewModel.displayedTotal))")
+                .font(DS.Typography.caption)
+                .monospacedDigit()
+                .foregroundStyle(DS.Color.secondaryText)
+                .lineLimit(1)
+                .truncationMode(.tail)
+            Spacer(minLength: DS.Spacing.large)
+            cancelButton
+        }
+        .accessibilityElement(children: .contain)
+    }
+
+    /// Progress read straight from the engine.
+    ///
+    /// A percentage appears only when `fractionCompleted` is present; otherwise
+    /// the indicator is honestly indeterminate, because the engine reports no
+    /// reliable total and we do not fabricate one.
+    @ViewBuilder
+    private var indicator: some View {
+        if let fraction = viewModel.progress?.fractionCompleted {
+            HStack(spacing: DS.Spacing.small) {
+                ProgressView(value: fraction)
+                    .progressViewStyle(.linear)
+                    .frame(width: DS.Size.rowProgressWidth)
+                Text(percentText(fraction))
+                    .font(DS.Typography.caption)
+                    .monospacedDigit()
+                    .foregroundStyle(DS.Color.primaryText)
+            }
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("Scan \(percentText(fraction)) complete")
+        } else {
+            HStack(spacing: DS.Spacing.small) {
+                ProgressView()
+                    .controlSize(.small)
+                Text("Reading files…")
+                    .font(DS.Typography.caption)
+                    .foregroundStyle(DS.Color.secondaryText)
+            }
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("Scanning, progress not yet measurable")
+        }
+    }
+
+    /// Cancel Scan, as an inset chip inside the strip's capsule.
+    ///
+    /// A `.bordered` button on the capsule takes the window's control fill, which
+    /// is the capsule's own fill at this size, leaving the label to read as bare
+    /// text on the strip. The chip fills with `windowBackground` instead, so it
+    /// separates from the capsule the way a bordered control separates from a
+    /// toolbar.
+    private var cancelButton: some View {
+        Button(role: .cancel, action: onCancel) {
+            Label("Cancel Scan", systemImage: "stop.fill")
+                .font(DS.Typography.caption)
+                .foregroundStyle(DS.Color.primaryText)
+                .padding(.horizontal, DS.Spacing.small)
+                .padding(.vertical, DS.Spacing.xxSmall)
+                .background(DS.Color.windowBackground, in: Capsule())
+                .overlay(Capsule().strokeBorder(DS.Color.separator, lineWidth: DS.Stroke.hairline))
+                .frame(minHeight: DS.Size.iconButton)
+                .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .help("Stop the scan; the results gathered so far are kept")
+    }
+
+    private func percentText(_ fraction: Double) -> String {
+        "\(Int((min(max(fraction, 0), 1) * 100).rounded()))%"
+    }
+}
+
+/// The access notice, resolving its rows from the live view model in its own
+/// body so that a surfaced issue redraws the notice rather than the screen.
+private struct LiveAccessNotice: View {
+    let viewModel: ScanViewModel
+    let isFullDiskAccessGranted: Bool
+    @Binding var isExpanded: Bool
+
+    var body: some View {
+        AccessNoticeRow(
+            presentation: viewModel.issuesPresentation,
+            isFullDiskAccessGranted: isFullDiskAccessGranted,
+            isExpanded: $isExpanded
+        )
     }
 }
 
@@ -1401,9 +1480,12 @@ private struct ContentsList: View {
     let onReveal: (ScanNode) -> Void
     let onReclaim: (ScanNode) -> Void
     let onEscape: () -> Void
+    let onScrollActivity: (Bool) -> Void
 
     @Environment(ChartHover.self) private var hover
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// Survives body passes without invalidating the list as the scroll moves.
+    @State private var metrics = ScrollHoverMetrics()
 
     var body: some View {
         // The scroll view is the keyboard focus holder: the rows decline focus
@@ -1435,6 +1517,10 @@ private struct ContentsList: View {
                             // SwiftUI rebuilds every row on each pass, so a hover or
                             // a selection would re-render the whole list.
                             .equatable()
+                            // One row's height stands for all of them; it is what
+                            // maps the pointer back to a row when a scroll ends.
+                            .modifier(RowHeightReader(metrics: metrics,
+                                                      isSampled: row.url == rows.first?.url))
                             .simultaneousGesture(
                                 TapGesture(count: 2).onEnded { onOpen(row.node) }
                             )
@@ -1476,6 +1562,19 @@ private struct ContentsList: View {
             .focusable()
             .focused($isFocused)
             .focusEffectDisabled()
+            .modifier(ScrollActivityReporter(onChange: { scrolling in
+                onScrollActivity(scrolling)
+                // The pointer has not moved, but the rows under it have: restore
+                // the highlight the moment the list settles.
+                if !scrolling { restoreHover() }
+            }))
+            .modifier(ScrollMetricsReader(metrics: metrics))
+            .onContinuousHover { phase in
+                switch phase {
+                case .active(let point): metrics.pointer = point
+                case .ended: metrics.pointer = nil
+                }
+            }
             .onKeyPress(phases: .down) { press in key(press) }
             .onChange(of: isFocused) { _, focused in
                 // Tabbing into the list puts the cursor on the first row, so the
@@ -1494,6 +1593,21 @@ private struct ContentsList: View {
             .accessibilityLabel("Files and folders")
             .accessibilityHint("Use the arrow keys to move through the list, Space to preview, and Return to open.")
         }
+    }
+
+    /// Lights whichever row the pointer is over, once the list has settled.
+    ///
+    /// Hover is suspended for the duration of a scroll, and rows moving under a
+    /// still pointer do not produce a new hover event, so the row that ended up
+    /// under it would stay unlit until the pointer moved. This resolves it from
+    /// the pointer's place and the content offset instead.
+    private func restoreHover() {
+        guard let pointer = metrics.pointer,
+              let index = ExplorerHoverRow.index(pointerY: pointer.y,
+                                                 contentOffset: metrics.contentOffset,
+                                                 rowHeight: metrics.rowHeight),
+              rows.indices.contains(index) else { return }
+        hover.set(rows[index].url, true)
     }
 
     private func key(_ press: KeyPress) -> KeyPress.Result {
@@ -1538,6 +1652,57 @@ private struct ContentsList: View {
             return .handled
         }
         return .ignored
+    }
+}
+
+/// Reports the list's scroll activity to the view model.
+///
+/// A snapshot applied mid-scroll rebuilds the chart and the list under the
+/// user's hand, so the model holds progressive snapshots while the list moves.
+/// `ScrollPhase` arrives with macOS 15; on macOS 14 the list simply keeps its
+/// earlier cadence.
+private struct ScrollActivityReporter: ViewModifier {
+    let onChange: (Bool) -> Void
+
+    func body(content: Content) -> some View {
+        if #available(macOS 15.0, *) {
+            content.onScrollPhaseChange { _, phase in
+                onChange(phase.isScrolling)
+            }
+        } else {
+            content
+        }
+    }
+}
+
+/// Reports the content offset into the metrics box without touching view state.
+private struct ScrollMetricsReader: ViewModifier {
+    let metrics: ScrollHoverMetrics
+
+    func body(content: Content) -> some View {
+        if #available(macOS 15.0, *) {
+            content.onScrollGeometryChange(for: CGFloat.self) { $0.contentOffset.y } action: { _, offset in
+                metrics.contentOffset = offset
+            }
+        } else {
+            content
+        }
+    }
+}
+
+/// Measures one row's height, which is every row's height.
+private struct RowHeightReader: ViewModifier {
+    let metrics: ScrollHoverMetrics
+    let isSampled: Bool
+
+    func body(content: Content) -> some View {
+        if #available(macOS 15.0, *), isSampled {
+            content.onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height in
+                metrics.rowHeight = height
+            }
+        } else {
+            content
+        }
     }
 }
 

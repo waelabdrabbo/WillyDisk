@@ -219,7 +219,9 @@ carries the root node itself in `largestDirectories`.
   terminal. Because a scan may surface them far faster than a screen can usefully
   redraw, the view model takes them at a bounded cadence, where the newest
   snapshot wins: the chart's rings and the explorer's rows are re-derived at a
-  rate a person can see, never once per snapshot.
+  rate a person can see, never once per snapshot. While the explorer is being
+  scrolled the newest snapshot is held and taken when the scroll ends, so a
+  redraw never lands under a moving list.
 - `SourceSelectionView` offers quick-scan presets (Home, Downloads, Applications,
   Caches, Derived Data, Trash) that start the same real scan as picking the folder
   by hand, and lists the next scan's excluded paths in its Scan Options popover.

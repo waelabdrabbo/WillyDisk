@@ -463,6 +463,44 @@ final class UIOverhaulQATests: XCTestCase {
         XCTAssertEqual(hover.url, first, "leaving a row that was never hovered changes nothing")
     }
 
+    /// A scroll moves rows under a still pointer. Hover is suspended for the
+    /// duration, so the highlight neither walks the list nor redraws the chart's
+    /// emphasis for every row that passes.
+    func testHoverIsSuspendedWhileTheListScrolls() {
+        let hover = ChartHover()
+        let row = URL(fileURLWithPath: "/qa/row")
+
+        hover.set(row, true)
+        XCTAssertEqual(hover.url, row)
+
+        hover.setSuspended(true)
+        XCTAssertNil(hover.url, "starting a scroll drops the row that was lit")
+
+        hover.set(row, true)
+        XCTAssertNil(hover.url, "a row passing under the pointer claims nothing while scrolling")
+        hover.set(row, false)
+        XCTAssertNil(hover.url)
+
+        hover.setSuspended(false)
+        hover.set(row, true)
+        XCTAssertEqual(hover.url, row, "hover resumes when the list settles")
+    }
+
+    /// Hover is suspended while the list scrolls, and rows moving under a still
+    /// pointer produce no new hover event. When the scroll ends the row under the
+    /// pointer is resolved from its place and the content offset, so the
+    /// highlight returns without waiting for a mouse move.
+    func testHoverRestoreNamesTheRowUnderThePointer() {
+        XCTAssertEqual(ExplorerHoverRow.index(pointerY: 0, contentOffset: 0, rowHeight: 40), 0)
+        XCTAssertEqual(ExplorerHoverRow.index(pointerY: 39.9, contentOffset: 0, rowHeight: 40), 0)
+        XCTAssertEqual(ExplorerHoverRow.index(pointerY: 40, contentOffset: 0, rowHeight: 40), 1)
+        XCTAssertEqual(ExplorerHoverRow.index(pointerY: 10, contentOffset: 80, rowHeight: 40), 2)
+        XCTAssertNil(ExplorerHoverRow.index(pointerY: 10, contentOffset: 0, rowHeight: 0),
+                     "without a measured row there is no row to name")
+        XCTAssertNil(ExplorerHoverRow.index(pointerY: 10, contentOffset: -40, rowHeight: 40),
+                     "a pointer above the first row names nothing")
+    }
+
     // MARK: - Live results: the model the results screen renders
 
     /// A scripted engine, so the view model's live/growing state can be asserted

@@ -200,7 +200,7 @@ public struct SourceSelectionView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .background(hoveredPreset == preset.id ? DS.Color.ink.opacity(DS.Opacity.rowHover) : .clear)
+        .background(hoveredPreset == preset.id ? DS.Color.accent.opacity(DS.Opacity.rowHover) : .clear)
         .overlay(alignment: .top) {
             if row > 0 {
                 Rectangle().fill(DS.Color.rule).frame(height: DS.Stroke.hairline)
@@ -416,12 +416,15 @@ public struct SourceSelectionView: View {
         RoundedRectangle(cornerRadius: DS.Radius.medium, style: .continuous)
     }
 
+    /// The wash under a row: the app's accent throughout, heaviest on the row
+    /// whose results are open and lightest under the pointer, so "where the
+    /// pointer is" never reads as "what is open".
     private func rowFill(isPrimary: Bool, isHovered: Bool) -> Color {
         if isPrimary {
             return DS.Color.accent.opacity(isHovered ? DS.Opacity.rowSelection : DS.Opacity.rowPrimary)
         }
         if isHovered {
-            return DS.Color.primaryText.opacity(DS.Opacity.rowHover)
+            return DS.Color.accent.opacity(DS.Opacity.rowHover)
         }
         return .clear
     }

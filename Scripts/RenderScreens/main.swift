@@ -36,7 +36,7 @@ enum ScreenKind: String, CaseIterable {
 
 struct Options {
     var out = URL(fileURLWithPath: ".build/renders")
-    var size = CGSize(width: 1088, height: 816)
+    var size = CGSize(width: 1000, height: 720)
     var appearances: [ColorScheme] = [.light, .dark]
     var screens: [ScreenKind] = [.results]
     var fixture: URL?
@@ -64,7 +64,7 @@ func parse(_ arguments: [String]) -> Options {
         case "--size":
             let parts = next("--size").split(separator: "x")
             guard parts.count == 2, let w = Double(parts[0]), let h = Double(parts[1]) else {
-                fail("--size expects WxH in points, e.g. 1088x816")
+                fail("--size expects WxH in points, e.g. 1000x720")
             }
             options.size = CGSize(width: w, height: h)
         case "--appearance":
@@ -99,7 +99,7 @@ func parse(_ arguments: [String]) -> Options {
             usage: render-screens --out DIR [--size WxH] [--appearance light|dark|both] [--screen home|results|both] [--fixture DIR] [--state finished|scanning] [--window|--content]
 
               --out        directory the PNGs are written to
-              --size       render size in points (default 1088x816)
+              --size       render size in points (default 1000x720)
               --appearance which appearances to render (default both)
               --screen     which screens to render (default results)
               --fixture    scan this directory instead of the generated fixture

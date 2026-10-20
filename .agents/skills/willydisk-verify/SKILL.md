@@ -64,7 +64,7 @@ It opens no window and needs no Screen Recording permission.
 | Flag | Meaning | Default |
 |---|---|---|
 | `-o DIR` | output directory | `.build/renders` |
-| `-s WxH` | render size in points | `1088x816` |
+| `-s WxH` | render size in points | `1000x720`, the app's default window |
 | `-a light\|dark\|both` | appearances | `both` |
 | `-S results\|home\|both` | screens: results, source selection | `results` |
 | `-t DIR` | scan this directory instead of the fixture | generated fixture |
@@ -92,7 +92,7 @@ list is untouched; `defaults delete render-screens WillyDisk.RecentLocations` cl
 ### Give every review a fresh output path
 
 The renderer names its files after the size and appearance, so rendering the same size
-twice reuses the same path — `results-window-light-1088x816.png`. A viewer that already
+twice reuses the same path — `results-window-light-1000x720.png`. A viewer that already
 loaded that path (the session GUI, a browser, a preview pane) keeps serving the bitmap it
 cached, and the screenshot then contradicts the source. Name the output directory for the
 change instead:
@@ -106,7 +106,7 @@ assume it fixed itself, and do not doubt the build: copy the current PNG to a pa
 has never been rendered and show that, which no cache can answer.
 
 ```
-cp .build/renders/<change>/results-window-light-1088x816.png .build/renders/<change>/check.png
+cp .build/renders/<change>/results-window-light-1000x720.png .build/renders/<change>/check.png
 ```
 
 If the fresh path shows the change, the code was right and the reader's cache was stale.

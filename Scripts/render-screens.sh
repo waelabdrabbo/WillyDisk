@@ -11,7 +11,7 @@
 #   Scripts/render-screens.sh [-o OUT_DIR] [-s WxH] [-a light|dark|both] [-S results|home|both] [-t FIXTURE_DIR] [-T STATE]
 #
 #   -o  output directory                     (default .build/renders)
-#   -s  render size in points                (default 1088x816)
+#   -s  render size in points                (default 1000x720)
 #   -a  appearances to render                (default both)
 #   -S  screens to render                    (default results)
 #   -t  scan this directory instead of the generated fixture
@@ -28,7 +28,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 OUT="$ROOT/.build/renders"
-SIZE="1088x816"
+SIZE="1000x720"
 APPEARANCE="both"
 SCREEN="results"
 STATE="finished"

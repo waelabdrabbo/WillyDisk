@@ -928,28 +928,7 @@ public struct ResultsView: View {
                     .lineLimit(1)
                     .truncationMode(.middle)
                 Spacer()
-                Button {
-                    quickLook.toggle([node.url])
-                } label: {
-                    Image(systemName: "eye")
-                        .foregroundStyle(DS.Color.primaryText)
-                }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
-                .frame(width: DS.Size.iconButton, height: DS.Size.iconButton)
-                .help("Quick Look")
-                .accessibilityLabel("Quick Look")
-                Button {
-                    revealInFinder([node])
-                } label: {
-                    Image(systemName: "arrow.up.forward.square")
-                        .foregroundStyle(DS.Color.primaryText)
-                }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
-                .frame(width: DS.Size.iconButton, height: DS.Size.iconButton)
-                .help("Reveal in Finder")
-                .accessibilityLabel("Reveal in Finder")
+                detailHeaderActions([node])
             }
 
             detailRow("Path", node.url.path)
@@ -1018,28 +997,7 @@ public struct ResultsView: View {
                 Text("\(nodes.count) Items Selected")
                     .font(DS.Typography.headline)
                 Spacer()
-                Button {
-                    quickLook.toggle(nodes.map(\.url))
-                } label: {
-                    Image(systemName: "eye")
-                        .foregroundStyle(DS.Color.primaryText)
-                }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
-                .frame(width: DS.Size.iconButton, height: DS.Size.iconButton)
-                .help("Quick Look")
-                .accessibilityLabel("Quick Look")
-                Button {
-                    revealInFinder(nodes)
-                } label: {
-                    Image(systemName: "arrow.up.forward.square")
-                        .foregroundStyle(DS.Color.primaryText)
-                }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
-                .frame(width: DS.Size.iconButton, height: DS.Size.iconButton)
-                .help("Reveal in Finder")
-                .accessibilityLabel("Reveal in Finder")
+                detailHeaderActions(nodes)
             }
 
             detailRow("Kind", kind)
@@ -1062,6 +1020,36 @@ public struct ResultsView: View {
             }
             .buttonStyle(.bordered)
             .controlSize(.small)
+        }
+    }
+
+    /// One of a detail pane's icon-only header actions.
+    private func detailAction(_ symbol: String, _ help: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .foregroundStyle(DS.Color.primaryText)
+        }
+        .buttonStyle(.bordered)
+        .controlSize(.small)
+        .frame(width: DS.Size.iconButton, height: DS.Size.iconButton)
+        .help(help)
+        .accessibilityLabel(help)
+    }
+
+    /// The actions every detail pane's header carries, each applied to the whole
+    /// selection. Closing clears the selection: the pane exists only while there
+    /// is something selected to describe, so dismissing it is deselecting.
+    private func detailHeaderActions(_ nodes: [ScanNode]) -> some View {
+        HStack(spacing: DS.Spacing.small) {
+            detailAction("eye", "Quick Look") {
+                quickLook.toggle(nodes.map(\.url))
+            }
+            detailAction("arrow.up.forward.square", "Reveal in Finder") {
+                revealInFinder(nodes)
+            }
+            detailAction("xmark", "Close Details") {
+                clearSelection()
+            }
         }
     }
 
@@ -1299,6 +1287,15 @@ private final class ScrollHoverMetrics {
     var rowHeight: CGFloat = 0
 }
 
+/// Whether a press that began in the list is still down.
+///
+/// Focus moves to the list on mouse-down, before the pressed row's action runs,
+/// so the focus change alone cannot say whether the keyboard brought focus here
+/// or a click is about to select a row.
+private final class PointerPress {
+    var isPressed = false
+}
+
 /// The one hovered node, shared by the explorer rows and the chart.
 ///
 /// It is a reference the two panes observe rather than a value the screen holds,
@@ -1483,9 +1480,10 @@ private struct ContentsList: View {
     let onScrollActivity: (Bool) -> Void
 
     @Environment(ChartHover.self) private var hover
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     /// Survives body passes without invalidating the list as the scroll moves.
     @State private var metrics = ScrollHoverMetrics()
+    /// Whether a press that began in the list is still down.
+    @State private var press = PointerPress()
 
     var body: some View {
         // The scroll view is the keyboard focus holder: the rows decline focus
@@ -1577,22 +1575,59 @@ private struct ContentsList: View {
             }
             .onKeyPress(phases: .down) { press in key(press) }
             .onChange(of: isFocused) { _, focused in
+                guard focused else {
+                    press.isPressed = false
+                    return
+                }
                 // Tabbing into the list puts the cursor on the first row, so the
                 // list has a visible focus rather than being focused invisibly.
-                if focused && selection.focused == nil && !rows.isEmpty {
+                // A click focuses the list on mouse-down, before the row's own
+                // action runs, so it must not be mistaken for that.
+                if !press.isPressed && selection.focused == nil && !rows.isEmpty {
                     onJump(0, false)
                 }
             }
+            // Recorded before the focus change that the same event causes, which
+            // is why this is a plain reference type rather than view state: the
+            // focus handler must see the press immediately, not on the next pass.
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { _ in press.isPressed = true }
+                    .onEnded { _ in press.isPressed = false }
+            )
             .onChange(of: selection.focused) { _, focused in
                 guard let focused else { return }
-                withAnimation(reduceMotion ? nil : .easeOut(duration: 0.12)) {
-                    proxy.scrollTo(focused)
+                reveal(focused, with: proxy)
+            }
+            // The detail pane below the list claims its own height, so a click on
+            // a row at the list's foot can select a row that the smaller viewport
+            // then hides. Reacting to the list's height catches that change after
+            // layout and scrolls the focused row clear of the pane.
+            .background {
+                GeometryReader { geometry in
+                    Color.clear
+                        .onChange(of: geometry.size.height) { oldHeight, newHeight in
+                            guard newHeight < oldHeight,
+                                  let focused = selection.focused else { return }
+                            reveal(focused, with: proxy)
+                        }
                 }
             }
             .accessibilityElement(children: .contain)
             .accessibilityLabel("Files and folders")
             .accessibilityHint("Use the arrow keys to move through the list, Space to preview, and Return to open.")
         }
+    }
+
+    /// Scrolls the focused row just clear of the list's edges. The default anchor
+    /// moves the list no further than the row needs, so a row already on screen
+    /// stays where it is.
+    ///
+    /// This is immediate rather than animated: it runs as the detail pane takes
+    /// its height, and the row should be in view in that pass rather than after
+    /// an animation.
+    private func reveal(_ url: URL, with proxy: ScrollViewProxy) {
+        proxy.scrollTo(url)
     }
 
     /// Lights whichever row the pointer is over, once the list has settled.

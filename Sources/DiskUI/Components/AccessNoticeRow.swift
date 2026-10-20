@@ -81,10 +81,16 @@ public struct AccessNoticeRow: View {
 
             Spacer(minLength: DS.Spacing.medium)
 
-            Button("Details") {
+            // The notice's one action follows the app accent, like the other
+            // inline affordances.
+            Button {
                 isExpanded = true
+            } label: {
+                Text("Details")
+                    .font(DS.Typography.callout)
+                    .foregroundStyle(DS.Color.accent)
             }
-            .buttonStyle(.link)
+            .buttonStyle(.borderless)
             .controlSize(.small)
             .frame(minHeight: DS.Size.iconButton)
             .contentShape(Rectangle())

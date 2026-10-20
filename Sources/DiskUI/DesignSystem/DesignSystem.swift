@@ -331,13 +331,6 @@ public enum DS {
 
 extension View {
 
-    /// A content surface: a quiet tint and hairline that separate a card from
-    /// the window without putting it on the functional Glass layer. Content
-    /// stays legible in both appearances and never competes with a control.
-    public func dsContentPanel(cornerRadius: CGFloat = DS.Radius.panel) -> some View {
-        modifier(DSContentPanelModifier(cornerRadius: cornerRadius))
-    }
-
     /// A functional-layer surface: toolbar-like controls, floating actions, and
     /// popovers. Liquid Glass on macOS 26, a native material on macOS 15, and a
     /// solid control surface on macOS 14.
@@ -349,22 +342,6 @@ extension View {
         interactive: Bool = false
     ) -> some View {
         modifier(DSGlassControlModifier(cornerRadius: cornerRadius, interactive: interactive))
-    }
-}
-
-private struct DSContentPanelModifier: ViewModifier {
-    @Environment(\.colorSchemeContrast) private var contrast
-
-    let cornerRadius: CGFloat
-
-    func body(content: Content) -> some View {
-        let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-        content
-            .background(DS.Color.primaryText.opacity(DS.Opacity.contentPanel), in: shape)
-            .overlay(shape.strokeBorder(
-                DS.Color.separator,
-                lineWidth: contrast == .increased ? DS.Stroke.emphasis : DS.Stroke.hairline
-            ))
     }
 }
 

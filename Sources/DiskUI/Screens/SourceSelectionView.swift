@@ -229,20 +229,34 @@ public struct SourceSelectionView: View {
             : "This location is not on this Mac")
     }
 
+    /// The mounted drives as an open list: each row sits on the window and a
+    /// hairline, not a card, says where one ends and the next begins.
     @ViewBuilder
     private var volumesSection: some View {
         if !volumes.isEmpty {
-            VStack(alignment: .leading, spacing: DS.Spacing.medium) {
+            VStack(alignment: .leading, spacing: DS.Spacing.xSmall) {
                 sectionHeader("Volumes")
-                VStack(spacing: DS.Spacing.small) {
-                    ForEach(volumes) { volume in
+                VStack(spacing: 0) {
+                    ForEach(Array(volumes.enumerated()), id: \.element.id) { index, volume in
                         volumeRow(volume)
+                        if index < volumes.count - 1 {
+                            rowSeparator
+                        }
                     }
                 }
-                .padding(DS.Spacing.large)
-                .dsContentPanel()
             }
         }
+    }
+
+    /// The rule between two rows. It runs the list's full width so the stack
+    /// reads as one ruled index rather than as separate cards, and it keeps
+    /// clear of a row's highlight: a fill that reached the hairline would paint
+    /// it out and the row would look unruled while the pointer is on it.
+    private var rowSeparator: some View {
+        Rectangle()
+            .fill(DS.Color.rule)
+            .frame(height: DS.Stroke.hairline)
+            .padding(.vertical, DS.Spacing.xSmall)
     }
 
     /// A volume's share of its capacity as a three-quarter ring: the mark's
@@ -310,7 +324,7 @@ public struct SourceSelectionView: View {
                 Spacer()
                 sourceRowAffordance(isView: slot != nil, isPrimary: isPrimary)
             }
-            .padding(.vertical, DS.Spacing.xSmall)
+            .padding(.vertical, DS.Spacing.small)
             .padding(.horizontal, DS.Spacing.small)
             .background(rowFill(isPrimary: isPrimary, isHovered: isHovered), in: rowShape)
             .contentShape(rowShape)
@@ -440,18 +454,22 @@ public struct SourceSelectionView: View {
         return parts.joined(separator: ", ")
     }
 
+    /// The recent locations as the same open list as the volumes: one hairline
+    /// between rows, no card of their own.
     @ViewBuilder
     private var recentSection: some View {
-        if !recentLocationsShown.isEmpty {
-            VStack(alignment: .leading, spacing: DS.Spacing.medium) {
+        let locations = recentLocationsShown
+        if !locations.isEmpty {
+            VStack(alignment: .leading, spacing: DS.Spacing.xSmall) {
                 sectionHeader("Recent")
-                VStack(spacing: DS.Spacing.small) {
-                    ForEach(recentLocationsShown, id: \.self) { url in
+                VStack(spacing: 0) {
+                    ForEach(Array(locations.enumerated()), id: \.element) { index, url in
                         recentRow(url)
+                        if index < locations.count - 1 {
+                            rowSeparator
+                        }
                     }
                 }
-                .padding(DS.Spacing.large)
-                .dsContentPanel()
             }
         }
     }
@@ -470,8 +488,12 @@ public struct SourceSelectionView: View {
             }
         } label: {
             HStack(spacing: DS.Spacing.medium) {
+                // The gutter the volume rows give their capacity ring, so both
+                // lists start their text on the same line.
                 Image(systemName: "clock")
+                    .font(DS.Icon.inline)
                     .foregroundStyle(DS.Color.secondaryText)
+                    .frame(width: DS.Size.capacityArcSize, alignment: .center)
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 1) {
                     Text(name)

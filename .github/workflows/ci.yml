@@ -1,0 +1,66 @@
+name: CI
+
+# Every change must build, pass the suite, assemble a bundle whose version comes
+# from VERSION, and render the screens. The renders are uploaded so a visual
+# change can be reviewed without a Mac in front of you.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test-render:
+    runs-on: macos-15
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+        with:
+          # Full history so the bundle's build number is the commit count, not
+          # the single commit a shallow clone holds.
+          fetch-depth: 0
+
+      - name: Toolchain
+        run: swift --version
+
+      - name: Build
+        run: swift build
+
+      - name: Test
+        run: swift test
+
+      - name: Bundle
+        run: bash Scripts/bundle-app.sh
+
+      - name: Bundle reports the version in VERSION
+        run: |
+          set -euo pipefail
+          expected="$(tr -d '[:space:]' < VERSION)"
+          actual="$(plutil -extract CFBundleShortVersionString raw \
+            .build/WillyDisk.app/Contents/Info.plist)"
+          if [ "$actual" != "$expected" ]; then
+            echo "::error::bundle reports version '$actual' but VERSION says '$expected'"
+            exit 1
+          fi
+          echo "Bundle version: $actual"
+
+      - name: Render the screens
+        run: |
+          set -euo pipefail
+          bash Scripts/render-screens.sh -a both -S both -o .build/renders/ci
+          bash Scripts/render-screens.sh -a both -S help -c -o .build/renders/ci
+
+      - name: Upload renders
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: renders
+          path: .build/renders/ci/*.png
+          if-no-files-found: warn

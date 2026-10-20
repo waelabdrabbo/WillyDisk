@@ -26,5 +26,8 @@ struct ContentView: View {
             // no screen has to remember it.
             .tint(DS.Color.signal)
             .onChange(of: appearance) { _, choice in appState.applyAppearance(choice) }
+            .sheet(isPresented: $appState.isShowingHelp) {
+                HelpView { appState.isShowingHelp = false }
+            }
     }
 }

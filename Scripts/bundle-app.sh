@@ -10,8 +10,8 @@
 #          WILLYDISK_NO_SANDBOX=1 bash Scripts/bundle-app.sh
 #
 # The bundle contains Contents/MacOS/WillyDisk, the original app icon, and an
-# Info.plist carrying LSMinimumSystemVersion 14.0, CFBundleIdentifier, and
-# NSHighResolutionCapable.
+# Info.plist carrying LSMinimumSystemVersion 14.0, CFBundleIdentifier,
+# NSHighResolutionCapable, and the version read from the repository's VERSION file.
 set -euo pipefail
 
 # Resolve the repository root (the directory containing Package.swift).
@@ -24,6 +24,25 @@ APP_NAME="WillyDisk"
 BIN_PATH="$ROOT_DIR/.build/$CONFIGURATION/$APP_NAME"
 APP_BUNDLE="$ROOT_DIR/.build/$APP_NAME.app"
 ICON_SRC="$ROOT_DIR/Resources/AppIcon.icns"
+
+# The marketing version has one source: the repository's VERSION file. Nothing
+# else may state a version, so About, the bundle and a future DMG cannot drift
+# apart. CFBundleVersion is the build counter, taken from the commit count so
+# successive builds order chronologically.
+VERSION_FILE="$ROOT_DIR/VERSION"
+if [ ! -f "$VERSION_FILE" ]; then
+    echo "error: missing version source at $VERSION_FILE" >&2
+    exit 1
+fi
+APP_VERSION="$(tr -d '[:space:]' < "$VERSION_FILE")"
+if ! [[ "$APP_VERSION" =~ ^[0-9]+(\.[0-9]+){0,2}$ ]]; then
+    echo "error: VERSION must be one to three period-separated numbers, not '$APP_VERSION'." >&2
+    exit 1
+fi
+BUILD_NUMBER="$(git -C "$ROOT_DIR" rev-list --count HEAD 2>/dev/null || true)"
+if ! [[ "$BUILD_NUMBER" =~ ^[0-9]+$ ]]; then
+    BUILD_NUMBER="1"
+fi
 
 # Minimum supported OS — must match `platforms: [.macOS(.v14)]` in Package.swift.
 DEPLOYMENT_TARGET="14.0"
@@ -55,7 +74,7 @@ if [ -n "$SDK_VERSION" ]; then
                     -Xlinker "$DEPLOYMENT_TARGET" -Xlinker "$SDK_VERSION")
 fi
 
-echo "Building $APP_NAME ($CONFIGURATION)…"
+echo "Building $APP_NAME $APP_VERSION ($BUILD_NUMBER, $CONFIGURATION)…"
 BUILD_FLAGS=()
 if [[ -n "${WILLYDISK_NO_SANDBOX:-}" ]]; then
     BUILD_FLAGS=(--disable-sandbox)
@@ -112,9 +131,9 @@ cat > "$CONTENTS_DIR/Info.plist" <<PLIST
     <key>CFBundleIdentifier</key>
     <string>com.willydisk.app</string>
     <key>CFBundleVersion</key>
-    <string>1.0</string>
+    <string>$BUILD_NUMBER</string>
     <key>CFBundleShortVersionString</key>
-    <string>1.0</string>
+    <string>$APP_VERSION</string>
     <key>CFBundleExecutable</key>
     <string>WillyDisk</string>
     <key>CFBundlePackageType</key>
@@ -124,7 +143,7 @@ cat > "$CONTENTS_DIR/Info.plist" <<PLIST
     <key>LSApplicationCategoryType</key>
     <string>public.app-category.utilities</string>
     <key>NSHumanReadableCopyright</key>
-    <string>Copyright © 2026 WillyDisk.</string>
+    <string>Copyright © 2026 Wael Abdrabbo.</string>
     <key>LSMinimumSystemVersion</key>
     <string>14.0</string>
     <key>NSHighResolutionCapable</key>

@@ -8,12 +8,13 @@
 # locked session and inside an agent sandbox.
 #
 # Usage:
-#   Scripts/render-screens.sh [-o OUT_DIR] [-s WxH] [-a light|dark|both] [-S results|home|both] [-t FIXTURE_DIR] [-T STATE]
+#   Scripts/render-screens.sh [-o OUT_DIR] [-s WxH] [-a light|dark|both] [-S results|home|help|both] [-t FIXTURE_DIR] [-T STATE]
 #
 #   -o  output directory                     (default .build/renders)
 #   -s  render size in points                (default 1000x720)
 #   -a  appearances to render                (default both)
-#   -S  screens to render                    (default results)
+#   -S  screens to render                    (default results; both is home and
+#       results, help is the help sheet's content)
 #   -t  scan this directory instead of the generated fixture
 #   -T  finished (default), scanning, or stopped — the screen a cancelled scan
 #       leaves behind. scanning and stopped both need a directory large enough
@@ -45,7 +46,7 @@ while getopts "o:s:a:S:t:T:ch" opt; do
     t) FIXTURE=(--fixture "$OPTARG") ;;
     T) STATE="$OPTARG" ;;
     c) MODE=(--content) ;;
-    h) sed -n '2,22p' "$0"; exit 0 ;;
+    h) sed -n '2,24p' "$0"; exit 0 ;;
     *) exit 2 ;;
   esac
 done

@@ -32,6 +32,7 @@ enum RenderState: String {
 enum ScreenKind: String, CaseIterable {
     case results
     case home
+    case help
 }
 
 struct Options {
@@ -78,8 +79,9 @@ func parse(_ arguments: [String]) -> Options {
             switch next("--screen") {
             case "results": options.screens = [.results]
             case "home": options.screens = [.home]
-            case "both": options.screens = ScreenKind.allCases
-            case let other: fail("--screen expects home, results or both, not \(other)")
+            case "help": options.screens = [.help]
+            case "both": options.screens = [.results, .home]
+            case let other: fail("--screen expects home, results, help or both, not \(other)")
             }
         case "--fixture":
             options.fixture = URL(fileURLWithPath: next("--fixture"))
@@ -96,12 +98,13 @@ func parse(_ arguments: [String]) -> Options {
             options.rendersWindow = false
         case "--help", "-h":
             print("""
-            usage: render-screens --out DIR [--size WxH] [--appearance light|dark|both] [--screen home|results|both] [--fixture DIR] [--state finished|scanning] [--window|--content]
+            usage: render-screens --out DIR [--size WxH] [--appearance light|dark|both] [--screen home|results|help|both] [--fixture DIR] [--state finished|scanning] [--window|--content]
 
               --out        directory the PNGs are written to
               --size       render size in points (default 1000x720)
               --appearance which appearances to render (default both)
-              --screen     which screens to render (default results)
+              --screen     which screens to render (default results); both is
+                           home and results, help is the help sheet's content
               --fixture    scan this directory instead of the generated fixture
               --state      finished (default) or scanning, which captures the
                            screen while the scan is still running
@@ -150,14 +153,19 @@ func makeFixture(at root: URL) {
 
 @MainActor
 func render(_ options: Options) {
+    // Help is static content: it needs no fixture and no scan, so a help-only
+    // render is quick and cannot fail on the fixture.
+    let needsScan = options.screens.contains { $0 != .help }
     let fixture = options.fixture ?? options.out.appendingPathComponent("fixture")
-    if options.fixture == nil {
+    if needsScan, options.fixture == nil {
         try? FileManager.default.createDirectory(at: options.out, withIntermediateDirectories: true)
         makeFixture(at: fixture)
     }
 
     let viewModel = ScanViewModel(engine: FileScanEngine())
-    viewModel.start(root: fixture)
+    if needsScan {
+        viewModel.start(root: fixture)
+    }
 
     // A scanning render is a picture of work in flight. The frame is taken as
     // soon as the engine has counted something, and it is taken with the scan
@@ -167,37 +175,39 @@ func render(_ options: Options) {
     // A stopped render cancels that scan and waits for the engine to settle it,
     // which is the only way to reach the screen a stopped scan leaves behind: a
     // fixture that runs to completion never does.
-    if options.state == .finished {
-        var spins = 0
-        while viewModel.isScanning && spins < 1_200 {
-            RunLoop.current.run(until: Date().addingTimeInterval(0.05))
-            spins += 1
-        }
-        guard !viewModel.isScanning else { fail("the fixture scan did not finish") }
-    } else {
-        let deadline = Date().addingTimeInterval(30)
-        while viewModel.isScanning, viewModel.filesScanned == 0, Date() < deadline {
-            RunLoop.current.run(until: Date().addingTimeInterval(0.02))
-        }
-        guard viewModel.isScanning, viewModel.filesScanned > 0 else {
-            fail("the scan did not report progress while it was running")
-        }
-        if options.state == .stopped {
-            viewModel.cancel()
-            let settle = Date().addingTimeInterval(30)
-            while viewModel.isScanning, Date() < settle {
+    if needsScan {
+        if options.state == .finished {
+            var spins = 0
+            while viewModel.isScanning && spins < 1_200 {
+                RunLoop.current.run(until: Date().addingTimeInterval(0.05))
+                spins += 1
+            }
+            guard !viewModel.isScanning else { fail("the fixture scan did not finish") }
+        } else {
+            let deadline = Date().addingTimeInterval(30)
+            while viewModel.isScanning, viewModel.filesScanned == 0, Date() < deadline {
                 RunLoop.current.run(until: Date().addingTimeInterval(0.02))
             }
-            guard !viewModel.isScanning else { fail("the stopped scan did not settle") }
-            // The point of this state is the screen a stopped scan leaves, so the
-            // capture is only valid if the engine really recorded one: stopped
-            // short of the whole root, with something gathered to show.
-            guard viewModel.stoppedEarly, viewModel.displayedTotal > 0 else {
-                fail("the cancel did not leave a stopped-early scan with results")
+            guard viewModel.isScanning, viewModel.filesScanned > 0 else {
+                fail("the scan did not report progress while it was running")
+            }
+            if options.state == .stopped {
+                viewModel.cancel()
+                let settle = Date().addingTimeInterval(30)
+                while viewModel.isScanning, Date() < settle {
+                    RunLoop.current.run(until: Date().addingTimeInterval(0.02))
+                }
+                guard !viewModel.isScanning else { fail("the stopped scan did not settle") }
+                // The point of this state is the screen a stopped scan leaves, so
+                // the capture is only valid if the engine really recorded one:
+                // stopped short of the whole root, with something gathered to show.
+                guard viewModel.stoppedEarly, viewModel.displayedTotal > 0 else {
+                    fail("the cancel did not leave a stopped-early scan with results")
+                }
             }
         }
+        print("\(options.state.rawValue) \(fixture.path): \(viewModel.filesScanned) files, \(viewModel.displayedTotal) bytes")
     }
-    print("\(options.state.rawValue) \(fixture.path): \(viewModel.filesScanned) files, \(viewModel.displayedTotal) bytes")
 
     try? FileManager.default.createDirectory(at: options.out, withIntermediateDirectories: true)
 
@@ -212,6 +222,7 @@ func render(_ options: Options) {
                 switch kind {
                 case .results: ResultsView(viewModel: viewModel)
                 case .home: SourceSelectionView(viewModel: viewModel)
+                case .help: HelpView()
                 }
             }
             .environment(\.colorScheme, appearance)

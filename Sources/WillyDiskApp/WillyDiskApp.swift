@@ -40,8 +40,15 @@ private struct WillyDiskCommands: Commands {
     @FocusedValue(\.resultsCommands) private var resultsCommands
 
     var body: some Commands {
-        // Single-window utility: no "New Window" command.
+        // Single-window utility: no "New Window" command. The About panel keeps
+        // the system layout; everything it names comes from the bundle, whose
+        // plist is stamped from the repository's VERSION file.
         CommandGroup(replacing: .newItem) {}
+        CommandGroup(replacing: .appInfo) {
+            Button("About WillyDisk") {
+                AboutPanel.present()
+            }
+        }
 
         CommandGroup(after: .newItem) {
             Button("Choose Folder…") {
@@ -89,6 +96,15 @@ private struct WillyDiskCommands: Commands {
                 }
             }
             .disabled(!(resultsCommands?.canExport ?? false))
+        }
+
+        // Help lives in the main window as a sheet, so it works from either
+        // screen and the app keeps one window.
+        CommandGroup(replacing: .help) {
+            Button("WillyDisk Help") {
+                appState.isShowingHelp = true
+            }
+            .keyboardShortcut("?", modifiers: .command)
         }
     }
 }

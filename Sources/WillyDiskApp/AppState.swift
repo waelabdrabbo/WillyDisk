@@ -13,6 +13,10 @@ final class AppState: ObservableObject {
     /// The one view model the whole app shares.
     let scanViewModel: ScanViewModel
 
+    /// Whether the Help sheet is up. The main window hosts it, so Help is
+    /// reachable from either screen and never opens a second window.
+    @Published var isShowingHelp = false
+
     init() {
         scanViewModel = ScanViewModel(engine: FileScanEngine())
 

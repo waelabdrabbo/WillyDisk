@@ -70,9 +70,9 @@ It opens no window and needs no Screen Recording permission.
 | `-t DIR` | scan this directory instead of the fixture | generated fixture |
 | `-c` | capture the content alone, without the window | the window |
 
-`WILLYDISK_NO_SANDBOX=1` matters inside an agent sandbox: SwiftPM cannot nest its own
-sandbox there, and the shared module cache is unwritable, so the script adds
-`--disable-sandbox` and points swiftc at a module cache under `.build`.
+Inside an agent sandbox SwiftPM cannot nest its own sandbox and the shared module cache is
+unwritable, so the script detects that and retries with `--disable-sandbox` and a module
+cache under `.build`. Set `WILLYDISK_NO_SANDBOX=1` to skip the first attempt.
 
 ### Give the home render a Recent list
 

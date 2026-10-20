@@ -72,13 +72,19 @@ bash Scripts/render-screens.sh       # offscreen PNGs of the app's screens (-S r
 bash Scripts/repo-map.sh             # one-screen structural inventory (--types adds declarations)
 ```
 
+For a cosmetic change, stop early: edit, `swift build`, one render into a fresh directory
+(`bash Scripts/render-screens.sh -a both -S <screen> -o .build/renders/<change>`), then
+read the one PNG you need — a screenshot you read stays in the conversation and is re-sent
+on every later step. The full ladder in `.agents/skills/willydisk-verify/` is for changes
+that touch the engine, the bundle, or window chrome.
+
 Do **not** use `swift run WillyDisk` to inspect the UI. SwiftPM stamps the executable's
 linked SDK with the deployment target, so AppKit draws the legacy pre-Tahoe window
 chrome. `Scripts/run.sh` goes through `Scripts/bundle-app.sh`, which restamps it; that
 script fails loudly if the stamp is wrong. `docs/ARCHITECTURE.md` §6 has the details.
-Inside an agent sandbox SwiftPM cannot nest its own sandbox, so prefix
-`WILLYDISK_NO_SANDBOX=1` when running the render or bundle scripts, and add
-`--disable-sandbox` to a plain `swift build` or `swift test`.
+Inside an agent sandbox SwiftPM cannot nest its own sandbox. The render script detects
+that and retries by itself; for the bundle script prefix `WILLYDISK_NO_SANDBOX=1`, and
+add `--disable-sandbox` to a plain `swift build` or `swift test`.
 
 ## Recon rules — the cheap way to look at this repo
 

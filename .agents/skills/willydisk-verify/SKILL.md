@@ -66,7 +66,7 @@ It opens no window and needs no Screen Recording permission.
 | `-o DIR` | output directory | `.build/renders` |
 | `-s WxH` | render size in points | `1000x720`, the app's default window |
 | `-a light\|dark\|both` | appearances | `both` |
-| `-S results\|home\|both` | screens: results, source selection | `results` |
+| `-S results\|home\|help\|both` | screens: results, source selection, help sheet content; `both` is home and results | `results` |
 | `-t DIR` | scan this directory instead of the fixture | generated fixture |
 | `-c` | capture the content alone, without the window | the window |
 

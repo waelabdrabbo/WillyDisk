@@ -6,16 +6,20 @@ decisions. This is a handoff document, not a specification of frozen interfaces 
 
 ## Current state
 
-- The current code is the Explorer trust pass (`f6c8ca5`) with its toolbar
-  follow-ups through `99c8b64`, plus quick-scan presets and request exclusions at
-  `c53d8b5`; this docs handoff follows on top. Working tree clean.
+- The current code is the Explorer trust pass (`f6c8ca5`), quick-scan presets and
+  request exclusions (`c53d8b5`), the engraved-platter identity and macOS alignment
+  (`17a7e29`, `794cd6a`), the results and Home polish through `fdbc450`, and the
+  install-trust work at `d7155dc`; this docs handoff follows on top. Working tree
+  clean.
 - Build: `swift build --disable-sandbox`.
-- Tests: 112 QATests + 51 DiskCoreTests, 0 failures, 1 skipped
+- Tests: 119 QATests + 51 DiskCoreTests, 0 failures, 1 skipped
   (`ScanBenchmarkTests` needs `WILLYDISK_BENCH_ROOT`).
+- CI: `.github/workflows/ci.yml` builds, tests, checks that the bundle reports
+  `VERSION`, and uploads the offscreen renders on every push.
 - The app is a working single-window analyzer: choose a volume, folder, or quick
   preset, watch a progressive scan, read the sunburst and explorer, inspect
   coverage, select rows with the mouse or keyboard, preview them with Quick Look,
-  and move items to the Trash behind a guard and confirmation.
+  move items to the Trash behind a guard and confirmation, and read About or Help.
 
 ## Shipped — do not rebuild
 
@@ -26,6 +30,8 @@ decisions. This is a handoff document, not a specification of frozen interfaces 
 | Coverage sheet, volume/snapshot facts, hard-link/dataless/skip accounting | `abce87a` |
 | Explorer selection, keyboard navigation, Quick Look, batch reclaim, breadcrumb, folder inspector | `f6c8ca5`, `45d3dc0`, `7a7bb90`, `99c8b64` |
 | Quick-scan presets, request exclusions, coverage disclosure | `c53d8b5` |
+| Engraved-platter identity, macOS alignment, Settings window | `17a7e29`, `794cd6a` |
+| Version from `VERSION`, About panel, in-app Help, CI | `d7155dc` |
 
 Details worth remembering:
 
@@ -47,6 +53,14 @@ Details worth remembering:
   path, so an unrelated hard link is not mistaken for the excluded path. Coverage
   reports the count as "Skipped by your exclusions" and never estimates the size of
   what was not read.
+- The marketing version has one source: `VERSION`. `Scripts/bundle-app.sh` validates
+  it, stamps `CFBundleShortVersionString` from it, and takes `CFBundleVersion` from
+  the commit count; CI fails when the assembled bundle disagrees. About is the
+  system panel with the app's own credits: it reads the bundle's name, icon,
+  version, and copyright instead of restating them.
+- Help is a sheet on the main window (⌘?), not a window of its own, so the app keeps
+  one window. It restates the scan, coverage, and reclaim rules in short form;
+  `Scripts/render-screens.sh -S help` renders it so the copy can be reviewed.
 - Explorer selection is held as URLs, not node values, so a live snapshot can replace
   the nodes underneath it. Entering a folder, changing mode, a breadcrumb jump,
   Rescan, and Home clear it; search and filtering do not. Each scan revision prunes
@@ -80,30 +94,45 @@ Details worth remembering:
 swift build --disable-sandbox
 swift test --disable-sandbox
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S both -o .build/renders/check
+WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S help -c -o .build/renders/check
 ```
 
-Sheets are not reachable from the renderer's screen states. The working practice is a
-temporary `@MainActor` QA test that hosts the view in `NSHostingView`, renders it with
-`cacheDisplay`, writes a PNG under `.build/renders/`, and is deleted before commit.
-Do not ship a renderer hook for a one-off visual check.
+CI runs the build, the suite, the bundle version check, and both renders on every push.
+
+Help is reachable because it is a view: `-S help` captures its content, not the sheet
+presentation. For any other sheet, the working practice is a temporary `@MainActor` QA
+test that hosts the view in `NSHostingView`, renders it with `cacheDisplay`, writes a
+PNG under `.build/renders/`, and is deleted before commit. Do not ship a renderer hook
+for a one-off visual check.
 
 ## Remaining work, in recommended order
 
-### 1. Install and distribution trust
+### 1. Settings for scan defaults and exclusions
 
-The app is ad-hoc signed, has no icon, no notarized DMG, no About/Settings window, and
-no CI.
+Appearance is the only preference in Settings. `ScanOptionsStore` already persists the
+scan defaults and excluded paths, but they can only be changed on the source screen
+before a scan starts. Add Settings sections that edit the same store — hidden items,
+other volumes, symbolic links — and list the resolved exclusions with a way to remove
+one. One store only: Settings and the Scan Options sheet must never hold different
+values.
 
-- App icon and `CFBundleIconFile`.
-- Version from one source, not hardcoded `1.0`.
-- Developer ID signing and notarization; a DMG build script.
-- About window, Help, and a Settings scene (appearance, defaults, exclusions).
-- CI that builds and tests every change, plus the renderer as a visual check.
+Acceptance: a change in Settings is what the next scan and Rescan use; the Scan Options
+sheet shows the same values; removing an exclusion changes the next scan's totals and
+never edits the tree already on screen.
 
-This is cheap compared with history/compare and directly answers “is this safe to
-install?”.
+### 2. Developer ID signing, notarization, and a DMG
 
-### 2. History and compare
+The bundle is ad-hoc signed and does not ship as a notarized artifact. This needs an
+Apple Developer ID certificate and credentials, so it cannot be finished without them;
+write the scripts, document every input, and do not claim a notarized build until one
+verifies.
+
+- A DMG build script around `.build/WillyDisk.app`.
+- `codesign` with a Developer ID and `notarytool` submission, plus a check that the
+  stapled ticket validates.
+- CI publishing the DMG on a tag, only when the signing secrets are present.
+
+### 3. History and compare
 
 Persist finished scan summaries and compare two runs of the same root: what grew,
 what shrank, what appeared. `ScanSummary` is not `Codable`; introduce a versioned
@@ -114,7 +143,7 @@ Acceptance: schema version is checked on read; a corrupt store degrades to no hi
 comparison labels “new”, “grown”, “shrunk”, and “unchanged” with real numbers; no
 fabricated savings claim.
 
-### 3. Global search
+### 4. Global search
 
 Search the whole finished scan, not just the current folder or the stored top 100.
 The UI has the root’s tree in the summary, but a multi-million-file tree needs a
@@ -124,15 +153,16 @@ result drill to its folder.
 Acceptance: searching a deep path finds it; results are bounded and say so; typing
 does not block the main actor; clearing restores the previous scope.
 
-### 4. Category breakdown and cleanup suggestions
+### 5. Category breakdown and cleanup suggestions
 
-- A category breakdown screen already has the data: `summary.categoryBreakdown`.
-  Add a chart/legend and a way to filter the explorer by category.
+- The data is already in `summary.categoryBreakdown`: add a chart and legend of the
+  sizes by category. The explorer's category menu filters already, so the chart only
+  has to show the split and offer that same filter.
 - Cleanup suggestions are heuristics: large and old, caches, duplicate candidates
   (hash only on explicit user action), stale downloads. Never auto-delete; route
   every action through the reclaim sheet.
 
-### 5. Diagnostics, performance, and polish
+### 6. Diagnostics, performance, and polish
 
 - Export a diagnostics bundle (scan settings, timing, issue counts, version) with no
   user file contents.
@@ -154,13 +184,13 @@ does not block the main actor; clearing restores the previous scope.
 - Trash does not free space until it is emptied; result wording must say so.
 - A move marks results stale and offers Rescan; it does not edit the tree or start an
   automatic full-disk rescan.
-- The app is a single window. Coverage and reclaim are sheets on the results screen.
+- The app is a single window. Coverage, reclaim, and Help are sheets on the main
+  window.
 
 ## Suggested opening prompt
 
 > Read `docs/ROADMAP.md`. Verify `HEAD` and run the build and tests. Implement the
-> install and distribution trust work: app icon and bundle metadata, one version
-> source, Developer ID signing and notarization with a DMG script, an About window,
-> Help, a Settings scene for appearance/defaults/exclusions, and CI that builds,
-> tests, and runs the offscreen renderer. Keep frozen contracts untouched, verify
-> light/dark, then commit.
+> Settings work: sections for scan defaults and excluded paths that edit
+> `ScanOptionsStore`, so the source screen's Scan Options sheet and Settings always
+> show the same values. Keep frozen contracts untouched, verify light/dark with the
+> renderer, then commit.

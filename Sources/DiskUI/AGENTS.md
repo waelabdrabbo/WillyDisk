@@ -10,8 +10,8 @@ stream reports.
   `AsyncStream<ScanEvent>`. Owns the scan phases and the presentation types the screens
   render (`ScanIssue`, `ScanIssuesPresentation`, `ScanSlotPresentation`).
 - `Screens/` — `ScanFlowView` routes phases; `SourceSelectionView` is screen A;
-  `ResultsView` is screen C and also the live in-progress state. Scanning is not a
-  separate screen.
+  `ResultsView` is screen C and also the live in-progress state; `HelpView` is the
+  help sheet's content. Scanning is not a separate screen.
 - `Components/` — `SunburstView` (the disk chart: wedges drawn in one static layer,
   with the hover emphasis painted over them), `AccessNoticeRow`, `FlowLayout`.
 - `DesignSystem/` — `DesignSystem.swift` holds every token (`DS`), `ChartPalette.swift`
@@ -51,9 +51,11 @@ Screen Recording permission:
 ```
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -o .build/renders/<change>
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S home -o .build/renders/<change>
+WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S help -c -o .build/renders/<change>
 ```
 
-`-S` picks the screen: `results` (default), `home` (source selection), or `both`.
+`-S` picks the screen: `results` (default), `home` (source selection), `help` (the help
+sheet's content), or `both` (home and results).
 
 The `-o` matters: renders are named after their size and appearance, so reusing a
 directory reuses the path, and a viewer that already loaded it keeps showing the cached

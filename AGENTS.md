@@ -20,6 +20,7 @@ contracts, shared-interface rules §7, non-negotiables §8).
 | Path | What it holds |
 |---|---|
 | `Package.swift` | products: executable `WillyDisk`, libraries `DiskCore` and `DiskUI` |
+| `VERSION` | the only source of the marketing version; the bundle script stamps it |
 | `Sources/DiskCore/Models/` | frozen value model: `FileCategory`, `ScanNode`, `ScanSummary` |
 | `Sources/DiskCore/Scanning/Contracts.swift` | frozen `ScanRequest`, `ScanEvent`, `ScanProgress`, `ScanEngine`, `ScanIssueKind` |
 | `Sources/DiskCore/Scanning/` (the rest) | the scan engine and its filesystem plumbing |
@@ -28,6 +29,7 @@ contracts, shared-interface rules §7, non-negotiables §8).
 | `Tests/DiskCoreTests/` | engine tests |
 | `Tests/QATests/` | independent verification that does not trust the engine's own tests |
 | `Scripts/` | build, bundle, launch, offscreen render, repo map |
+| `.github/workflows/ci.yml` | build, test, bundle version check, renders |
 | `docs/` | `ARCHITECTURE.md` |
 
 ## Where things are
@@ -45,7 +47,8 @@ onto `FileCategory`, `ScanErrorClassifier.swift` maps errno onto `ScanIssueKind`
 `ScanViewModel.swift` is the `@MainActor @Observable` state machine that consumes
 `AsyncStream<ScanEvent>`. `Screens/ScanFlowView.swift` routes phases,
 `Screens/SourceSelectionView.swift` is screen A, `Screens/ResultsView.swift` is screen C
-(and the live in-progress state). `Components/SunburstView.swift` is the disk chart;
+(and the live in-progress state). `Screens/HelpView.swift` is the help sheet's content.
+`Components/SunburstView.swift` is the disk chart;
 `AccessNoticeRow`, `FlowLayout` are the other views.
 `DesignSystem/DesignSystem.swift` holds every token (`DS`), `ChartPalette.swift` the
 chart fills, `FileCategory+UI.swift` the category symbols and labels, `AppAppearance.swift`
@@ -59,7 +62,8 @@ the stored system/light/dark appearance preference behind the first screen's too
 **`WillyDiskApp`.**
 `WillyDiskApp.swift` is `@main`, `AppState.swift` builds the single
 `ScanViewModel(engine: FileScanEngine())`, `ContentView.swift` hosts `ScanFlowView`,
-`AppDelegate.swift` is the lifecycle delegate.
+`AboutPanel.swift` presents the system About panel, `AppDelegate.swift` is the
+lifecycle delegate.
 
 ## Commands
 
@@ -68,7 +72,8 @@ swift build                          # compile
 swift test                           # full suite
 swift test --filter FileScanEngineTests   # one test class
 bash Scripts/run.sh                  # build the bundle and launch it (the way to look at the UI)
-bash Scripts/render-screens.sh       # offscreen PNGs of the app's screens (-S results|home|both), no window, no screen-recording permission
+bash Scripts/bundle-app.sh           # assemble .build/WillyDisk.app; its version comes from VERSION
+bash Scripts/render-screens.sh       # offscreen PNGs (-S results|home|help|both), no window, no screen-recording permission
 bash Scripts/repo-map.sh             # one-screen structural inventory (--types adds declarations)
 ```
 

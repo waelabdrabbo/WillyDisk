@@ -55,7 +55,7 @@ is the disk chart; `AccessNoticeRow`, `FlowLayout`, and `ScanOptionToggle` are t
 views.
 `DesignSystem/DesignSystem.swift` holds every token (`DS`), `ChartPalette.swift` the
 chart fills, `FileCategory+UI.swift` the category symbols and labels, `AppAppearance.swift`
-the stored system/light/dark appearance preference behind the first screen's toolbar.
+the stored system/light/dark appearance preference the Settings window edits.
 `Support/` holds non-view helpers: `ExplorerQuery` (sorting/filtering), `Formatters`,
 `LocationName` (a location's display name), `VolumeInfo` (mounted volumes),
 `RecentLocations`, `FullDiskAccess` + `FullDiskAccessProbe` (TCC),

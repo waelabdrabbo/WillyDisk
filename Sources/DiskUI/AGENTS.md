@@ -21,8 +21,8 @@ stream reports.
   sheet and Settings).
 - `DesignSystem/` — `DesignSystem.swift` holds every token (`DS`), `ChartPalette.swift`
   the chart fills, `FileCategory+UI.swift` the category symbols and labels,
-  `AppAppearance.swift` the stored system/light/dark preference behind the first
-  screen's toolbar menu, `GrooveMark.swift` the packaged circular mark
+  `AppAppearance.swift` the stored system/light/dark preference the Settings window
+  edits, `GrooveMark.swift` the packaged circular mark
   (`Resources/AppMark.png`) that the hero, the chart placeholder, Help, and About draw
   from — it is an image, not a shape drawn in code.
 - `Support/` — non-view helpers: `ExplorerQuery` (sorting/filtering), `Formatters`,

@@ -10,10 +10,10 @@ decisions. This is a handoff document, not a specification of frozen interfaces 
   request exclusions (`c53d8b5`), the engraved-platter identity and macOS alignment
   (`17a7e29`, `794cd6a`), the results and Home polish through `fdbc450`, the
   install-trust work at `d7155dc`, the packaged circular mark at `55f5032`, the
-  cleanup candidates at `9a69a3b`, and the Categories mode at `71bae92`; this docs
-  handoff follows on top. Working tree clean.
+  cleanup candidates at `9a69a3b`, the Categories mode at `71bae92`, and the
+  Settings work at `607ef77`; this docs handoff follows it. Working tree clean.
 - Build: `swift build --disable-sandbox`.
-- Tests: 149 QATests + 51 DiskCoreTests, 0 failures, 1 skipped
+- Tests: 151 QATests + 51 DiskCoreTests, 0 failures, 1 skipped
   (`ScanBenchmarkTests` needs `WILLYDISK_BENCH_ROOT`).
 - CI: `.github/workflows/ci.yml` builds, tests, checks that the bundle reports
   `VERSION`, and uploads the offscreen renders on every push.
@@ -21,8 +21,8 @@ decisions. This is a handoff document, not a specification of frozen interfaces 
   preset, watch a progressive scan, read the sunburst and explorer, inspect
   coverage, see where the bytes sit by file category, review large/old/cache
   candidates before trashing them, select rows with the mouse or keyboard, preview
-  them with Quick Look, move items to the Trash behind a guard and confirmation, and
-  read About or Help.
+  them with Quick Look, move items to the Trash behind a guard and confirmation,
+  change the scan defaults and excluded paths in Settings, and read About or Help.
 
 ## Shipped — do not rebuild
 
@@ -34,6 +34,7 @@ decisions. This is a handoff document, not a specification of frozen interfaces 
 | Explorer selection, keyboard navigation, Quick Look, batch reclaim, breadcrumb, folder inspector | `f6c8ca5`, `45d3dc0`, `7a7bb90`, `99c8b64` |
 | Quick-scan presets, request exclusions, coverage disclosure | `c53d8b5` |
 | Engraved-platter identity, macOS alignment, Settings window | `17a7e29`, `794cd6a` |
+| Settings for scan defaults and excluded paths | `607ef77` |
 | Version from `VERSION`, About panel, in-app Help, CI | `d7155dc` |
 | Category breakdown (Categories mode and its category detail), cleanup candidates through reclaim | `9a69a3b`, `71bae92`, `6266abc`, `031dbda` |
 
@@ -57,6 +58,13 @@ Details worth remembering:
   path, so an unrelated hard link is not mistaken for the excluded path. Coverage
   reports the count as "Skipped by your exclusions" and never estimates the size of
   what was not read.
+- Settings and the source screen's Scan Options sheet edit one
+  `ScanOptionsStore.shared`. Both windows observe that object and every mutation is
+  persisted, so neither can hold a private copy; Rescan reads the store, not the
+  options its previous run began with. Adding an exclusion, removing one, or changing
+  a default never edits the results already on screen — the next scan, including
+  Rescan, reads the new choices. Appearance stays an app preference in the same
+  window.
 - The marketing version has one source: `VERSION`. `Scripts/bundle-app.sh` validates
   it, stamps `CFBundleShortVersionString` from it, and takes `CFBundleVersion` from
   the commit count; CI fails when the assembled bundle disagrees. About is the
@@ -129,35 +137,25 @@ swift test --disable-sandbox
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S both -o .build/renders/check
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S categories -o .build/renders/check
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S help -c -o .build/renders/check
+WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S settings -c -s 460x760 -o .build/renders/check
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S cleanup -c -o .build/renders/check
 ```
 
-CI runs the build, the suite, the bundle version check, and all four renders on every push.
+CI runs the build, the suite, the bundle version check, and all five renders on every push.
 
 `-S categories` renders the real results screen in Categories mode, window and all.
-Help and cleanup are sheets, so `-S` captures their content. Cleanup uses its own sample
-tree (sparse files with set ages), so its render shows real candidates without a second
-filesystem pass. For any sheet without a screen state, the working practice is a
-temporary `@MainActor` QA test that hosts the view in `NSHostingView`, renders it with
+Help, Settings, and cleanup are sheets or a preferences window, so `-S` captures their
+content. Settings renders with its own non-default sample options and two exclusions, so
+the switches and the list are both reviewable; cleanup uses its own sample tree (sparse
+files with set ages), so its render shows real candidates without a second filesystem
+pass. For any sheet without a screen state, the working practice is a temporary
+`@MainActor` QA test that hosts the view in `NSHostingView`, renders it with
 `cacheDisplay`, writes a PNG under `.build/renders/`, and is deleted before commit. Do
 not ship a renderer hook for a one-off visual check.
 
 ## Remaining work, in recommended order
 
-### 1. Settings for scan defaults and exclusions
-
-Appearance is the only preference in Settings. `ScanOptionsStore` already persists the
-scan defaults and excluded paths, but they can only be changed on the source screen
-before a scan starts. Add Settings sections that edit the same store — hidden items,
-other volumes, symbolic links — and list the resolved exclusions with a way to remove
-one. One store only: Settings and the Scan Options sheet must never hold different
-values.
-
-Acceptance: a change in Settings is what the next scan and Rescan use; the Scan Options
-sheet shows the same values; removing an exclusion changes the next scan's totals and
-never edits the tree already on screen.
-
-### 2. Developer ID signing, notarization, and a DMG
+### 1. Developer ID signing, notarization, and a DMG
 
 The bundle is ad-hoc signed and does not ship as a notarized artifact. This needs an
 Apple Developer ID certificate and credentials, so it cannot be finished without them;
@@ -169,7 +167,7 @@ verifies.
   stapled ticket validates.
 - CI publishing the DMG on a tag, only when the signing secrets are present.
 
-### 3. History and compare
+### 2. History and compare
 
 Persist finished scan summaries and compare two runs of the same root: what grew,
 what shrank, what appeared. `ScanSummary` is not `Codable`; introduce a versioned
@@ -180,7 +178,7 @@ Acceptance: schema version is checked on read; a corrupt store degrades to no hi
 comparison labels “new”, “grown”, “shrunk”, and “unchanged” with real numbers; no
 fabricated savings claim.
 
-### 4. Global search
+### 3. Global search
 
 Search the whole finished scan, not just the current folder or the stored top 100.
 The UI has the root’s tree in the summary, but a multi-million-file tree needs a
@@ -190,7 +188,7 @@ result drill to its folder.
 Acceptance: searching a deep path finds it; results are bounded and say so; typing
 does not block the main actor; clearing restores the previous scope.
 
-### 5. Duplicate candidates
+### 4. Duplicate candidates
 
 The cleanup sheet covers large-and-old files, caches, and stale downloads. Duplicates
 are still missing, and need the most care: same-size files are candidates, not
@@ -206,7 +204,7 @@ Acceptance: same-size different-content files are never called duplicates; a can
 hash run confirms nothing; every suggested move is a real path the reclaim guard still
 checks.
 
-### 6. Diagnostics, performance, and polish
+### 5. Diagnostics, performance, and polish
 
 - Export a diagnostics bundle (scan settings, timing, issue counts, version) with no
   user file contents.
@@ -234,7 +232,8 @@ checks.
 ## Suggested opening prompt
 
 > Read `docs/ROADMAP.md`. Verify `HEAD` and run the build and tests. Implement the
-> Settings work: sections for scan defaults and excluded paths that edit
-> `ScanOptionsStore`, so the source screen's Scan Options sheet and Settings always
-> show the same values. Keep frozen contracts untouched, verify light/dark with the
-> renderer, then commit.
+> Developer ID signing, notarization, and DMG work: write the scripts and document
+> every input, keep the ad-hoc bundle path working without credentials, and do not
+> claim a notarized build until one verifies. If the certificate and `notarytool`
+> credentials are unavailable, stop after the scripts and documentation and say what
+> is missing. Keep frozen contracts untouched, then commit.

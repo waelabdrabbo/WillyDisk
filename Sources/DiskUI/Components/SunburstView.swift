@@ -1,4 +1,3 @@
-import AppKit
 import SwiftUI
 import DiskCore
 
@@ -188,34 +187,10 @@ public struct SunburstView: View {
                 // Publish the resolved active wedge (pointer over keyboard), and
                 // an aggregate wedge — which has no node — names no counterpart.
                 publish(url(for: id ?? focusedID, in: segments))
-                updatePointer(at: point, geometry: geometry, segments: segments)
             case .ended:
                 if hoveredID != nil { hoveredID = nil }
                 publish(url(for: focusedID, in: segments))
-                NSCursor.arrow.set()
             }
-        }
-    }
-
-    /// A hand over what a click will act on: a wedge with a node, or the centre
-    /// when it can go up a level. The gaps, the aggregate wedge and the empty
-    /// platter keep the arrow.
-    private func updatePointer(at point: CGPoint, geometry: SunburstGeometry, segments: [SunburstSegment]) {
-        let distance = hypot(point.x - geometry.center.x, point.y - geometry.center.y)
-        if distance <= geometry.innerRadius {
-            if onCenterTap != nil {
-                NSCursor.pointingHand.set()
-            } else {
-                NSCursor.arrow.set()
-            }
-            return
-        }
-
-        if let id = geometry.segmentID(at: point, in: segments),
-           segments.first(where: { $0.id == id })?.node != nil {
-            NSCursor.pointingHand.set()
-        } else {
-            NSCursor.arrow.set()
         }
     }
 

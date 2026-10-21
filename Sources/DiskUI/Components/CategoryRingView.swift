@@ -1,4 +1,3 @@
-import AppKit
 import SwiftUI
 import DiskCore
 
@@ -92,39 +91,6 @@ struct CategoryRingView: View {
             centerDisc(radius: geometry.innerRadius, center: geometry.center, active: active)
         }
         .frame(width: side, height: side)
-        // A hand over a slice, the arrow over the spindle hole and the platter:
-        // only the slices are clickable.
-        .onContinuousHover(coordinateSpace: .local) { phase in
-            switch phase {
-            case .active(let point):
-                if category(at: point, geometry: geometry, segments: segments) != nil {
-                    NSCursor.pointingHand.set()
-                } else {
-                    NSCursor.arrow.set()
-                }
-            case .ended:
-                NSCursor.arrow.set()
-            }
-        }
-    }
-
-    /// The slice under a point, for the pointer's shape. The narrow enamel gaps
-    /// count as their neighbours; the click itself is still bounded by the
-    /// wedges' own shapes.
-    private func category(
-        at point: CGPoint,
-        geometry: SunburstGeometry,
-        segments: [CategoryRingLayout.Segment]
-    ) -> FileCategory? {
-        let band = geometry.radii(ring: 1)
-        let dx = point.x - geometry.center.x
-        let dy = point.y - geometry.center.y
-        let distance = hypot(dx, dy)
-        guard distance >= band.inner, distance <= band.outer else { return nil }
-
-        var angle = atan2(dx, -dy)
-        if angle < 0 { angle += 2 * .pi }
-        return segments.first { angle >= $0.start && angle <= $0.end }?.category
     }
 
     private func wedge(

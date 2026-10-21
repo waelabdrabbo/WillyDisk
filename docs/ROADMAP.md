@@ -12,9 +12,9 @@ decisions. This is a handoff document, not a specification of frozen interfaces 
   install-trust work at `d7155dc`, the packaged circular mark at `55f5032`, the
   cleanup candidates at `9a69a3b`, the Categories mode at `71bae92`, the
   Settings work at `607ef77`, and the duplicate content check at `3603321` with its own
-  tab at `1ed5184`; this docs handoff follows it. Working tree clean.
+  tab at `1ed5184`; this docs handoff follows it. Working tree clean at that handoff.
 - Build: `swift build --disable-sandbox`.
-- Tests: 162 QATests + 51 DiskCoreTests, 0 failures, 1 skipped
+- Tests: 164 QATests + 51 DiskCoreTests, 0 failures, 1 skipped
   (`ScanBenchmarkTests` needs `WILLYDISK_BENCH_ROOT`).
 - CI: `.github/workflows/ci.yml` builds, tests, checks that the bundle reports
   `VERSION`, and uploads the offscreen renders on every push.
@@ -209,10 +209,99 @@ does not block the main actor; clearing restores the previous scope.
 - Export a diagnostics bundle (scan settings, timing, issue counts, version) with no
   user file contents.
 - Performance guardrails for million-file scans; the benchmark test is currently
-  skipped unless an environment variable points at a root.
+  skipped unless an environment variable points at a root. The ceiling should become
+  structural, not only measured: a per-directory node cap with small files folded into
+  one expandable node, so a multi-million-file tree cannot grow the resident set without
+  bound. That changes which files the explorer can open, so it needs its own design note.
 - Polish: coverage discoverability, general staleness detection (only reclaim marks
   stale today), folder-level coverage disclosure, CSV accounting (JSON has it, CSV
   does not), pluralization, empty states, window sizing, accessibility audit.
+
+### 5. A command-line scan
+
+`WillyDisk scan <folder> --depth --top --json` over the same `FileScanEngine`: no second
+scanner and no second accounting path. The JSON is the versioned export DTO item 2
+introduces, not `ScanSummary` made codable. Answering from an already-running scan is a
+later refinement; a CLI that scans on its own is the first release.
+
+Acceptance: exit 0 on success and 2 on a usage error; `--help` lists the flags; no window
+appears and no UI is built; SIGINT takes the engine's cancellation path and says so;
+output for a fixture folder is byte-stable across runs.
+
+### 6. Watch the scanned tree
+
+FSEvents on the scan root while results are on screen, so a change made in Finder is
+reflected without Rescan. The shape is invalidation, not patching: a change marks the
+affected folder stale and re-scans it, because `ScanSummary` is a measurement of a moment
+and must never be edited in place.
+
+Acceptance: moving a file to the Trash in Finder updates that folder's totals within a
+few seconds and offers Rescan; events outside the root and under excluded paths are
+ignored; the watcher stops on cancellation, on leaving the screen, and on a new scan; a
+`/` scan does not install a watch per volume.
+
+### 7. Treemap as a second chart
+
+Boxes instead of rings, same tree, same selection, hover and drill-down, chosen in
+Settings. The sunburst stays the identity; the treemap exists for dense folders where
+arcs are too thin to compare.
+
+Acceptance: layout runs off the main actor for a large folder; one selection model
+drives both charts; reduce-motion and keyboard navigation behave as in the sunburst; both
+charts render in CI.
+
+### 8. Localization
+
+Extract every user-visible string into a catalog keyed by the English source, then finish
+one language end to end before adding more. SwiftUI supplies script fallback and RTL
+layout; the work is string discipline, not font plumbing.
+
+Acceptance: no user-visible literal outside the catalog; a pseudolanguage render pass
+catches truncation; one RTL language (`ar`) renders results, coverage and cleanup without
+clipping; plurals are resolved rather than concatenated; the render harness takes a
+`--locale`.
+
+### 9. Reclaim past the Trash
+
+Today the only removal path is Move to Trash, and Trash frees nothing until it is emptied.
+The fuller flow is permanent delete, a secure erase that overwrites before removing, and
+an optional copy to another folder or an external drive first — all behind the existing
+confirmation, cancellable, and reporting bytes moved and errors rather than a savings
+claim.
+
+This needs a decision before any code: the ground rules say "No permanent-delete path",
+and that rule stands until it is deliberately changed and recorded here. It is the only
+item in this list that can destroy data nobody selected for destruction, so it needs its
+own review of the guard, the wording, and the failure modes — a delete that stopped
+halfway, a backup that failed, a read-only destination.
+
+Acceptance, once the rule is changed: the guard runs again for every item at the moment
+of removal; a permanent delete cannot be reached without a typed or held confirmation; a
+failed backup removes nothing; a cancelled job says what was and was not removed; no
+screen claims space was freed before it was.
+
+### 10. Remote and cloud scans
+
+Scan a machine reachable over SSH, and cloud remotes, through the same explorer.
+`ScanEngine` is the seam: a second conformance that emits the same events, so the UI never
+learns about transports. Credentials, key handling, a remote helper, and network failure
+modes are the real work; traversal is not.
+
+Acceptance: an SSH scan of the standard fixture folder produces the same totals as a local
+scan of it; a dropped connection ends in `.finished` with issues or `.cancelled`, never a
+stream that hangs; credentials never reach the export DTO or a diagnostics bundle; nothing
+is scanned remotely without an explicit host choice.
+
+### 11. Self-update, and platforms beyond macOS
+
+Self-update is worth shipping only after item 1: a release feed, a verified download, and
+a relaunch. Windows and Linux are a larger step — a UI without AppKit, per-platform
+packaging, per-platform filesystem semantics — and wait until a signed macOS release
+actually ships.
+
+Acceptance (self-update): a newer version is offered with its notes; the download is
+verified before it replaces anything; a failed check or download changes nothing and says
+why; the app never updates without consent.
 
 ## Decisions to preserve
 
@@ -228,6 +317,9 @@ does not block the main actor; clearing restores the previous scope.
   automatic full-disk rescan.
 - The app is a single window. Coverage, reclaim, and Help are sheets on the main
   window.
+- The interface stays native AppKit and SwiftUI, so VoiceOver, Quick Look, menus, text
+  editing and window chrome are the system's. A custom-drawn canvas is not an acceptable
+  substitute for a chart or a list.
 
 ## Suggested opening prompt
 

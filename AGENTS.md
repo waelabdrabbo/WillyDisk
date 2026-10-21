@@ -21,7 +21,8 @@ contracts, shared-interface rules §7, non-negotiables §8).
 |---|---|
 | `Package.swift` | products: executable `WillyDisk`, libraries `DiskCore` and `DiskUI` |
 | `VERSION` | the only source of the marketing version; the bundle script stamps it |
-| `Resources/` | committed icon assets: `AppIcon.icns` (Finder) and `AppIcon-1024.png` (the app image) |
+| `Resources/` | the macOS icon: `AppIcon.icns` and its 1024 `AppIcon-1024.png` |
+| `Sources/DiskUI/Resources/AppMark.png` | the circular in-app mark the UI and About show |
 | `Sources/DiskCore/Models/` | frozen value model: `FileCategory`, `ScanNode`, `ScanSummary` |
 | `Sources/DiskCore/Scanning/Contracts.swift` | frozen `ScanRequest`, `ScanEvent`, `ScanProgress`, `ScanEngine`, `ScanIssueKind` |
 | `Sources/DiskCore/Scanning/` (the rest) | the scan engine and its filesystem plumbing |
@@ -78,9 +79,11 @@ bash Scripts/render-screens.sh       # offscreen PNGs (-S results|home|help|both
 bash Scripts/repo-map.sh             # one-screen structural inventory (--types adds declarations)
 ```
 
-`Scripts/make-icon.swift` regenerates both icon files from the mark; they are committed,
-and the bundle ships the PNG as `AppIcon.png` so the About panel shows it. To display an
-icon, use that asset — do not draw or rebuild one at runtime.
+`Scripts/make-icon.swift` draws both bodies from one mark: `Resources/AppIcon.icns` with
+the rounded body macOS asks for, and `Sources/DiskUI/Resources/AppMark.png` as the circle
+the hero, the chart, Help, and About show. Both are committed; the UI reads its mark from
+DiskUI's resource bundle, which `Scripts/bundle-app.sh` copies into the app. Never draw a
+second mark in code.
 
 For a cosmetic change, stop early: edit, `swift build`, one render into a fresh directory
 (`bash Scripts/render-screens.sh -a both -S <screen> -o .build/renders/<change>`), then

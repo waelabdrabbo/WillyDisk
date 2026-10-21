@@ -77,11 +77,13 @@ if ! build_output=$(swift build --package-path "$ROOT" ${BUILD_FLAGS[@]+"${BUILD
   fi
 fi
 
+# The renderer goes in the build directory beside `WillyDisk_DiskUI.bundle`, so
+# the UI's `Bundle.module` resolves its resources exactly as it does in the app.
 echo "==> Compiling the renderer"
 xcrun swiftc ${SWIFTC_FLAGS[@]+"${SWIFTC_FLAGS[@]}"} \
   -I "$ROOT/.build/debug" -L "$ROOT/.build/debug" -lDiskUI -lDiskCore \
-  -o "$ROOT/.build/render-screens" \
+  -o "$ROOT/.build/debug/render-screens" \
   "$ROOT/Scripts/RenderScreens/main.swift"
 
 echo "==> Rendering"
-"$ROOT/.build/render-screens" --out "$OUT" --size "$SIZE" --appearance "$APPEARANCE" --screen "$SCREEN" --state "$STATE" "${MODE[@]}" ${FIXTURE[@]+"${FIXTURE[@]}"}
+"$ROOT/.build/debug/render-screens" --out "$OUT" --size "$SIZE" --appearance "$APPEARANCE" --screen "$SCREEN" --state "$STATE" "${MODE[@]}" ${FIXTURE[@]+"${FIXTURE[@]}"}

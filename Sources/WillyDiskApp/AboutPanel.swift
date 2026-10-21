@@ -1,28 +1,20 @@
 import AppKit
+import DiskUI
 
 /// Presents the standard About panel, filled with the app's own credits.
 ///
 /// The name, marketing version, build number, and copyright come from the
 /// bundle's Info.plist, which `Scripts/bundle-app.sh` assembles from the
-/// repository's `VERSION` file. The icon is the committed 1024 PNG rather than
-/// the system's resolved application icon: it is the same cut the `.icns`
-/// carries, and naming it explicitly means the panel shows the mark whatever the
-/// launch context resolved the bundle icon to, including an unbundled run.
+/// repository's `VERSION` file. The icon is `AppMarkImage`, the same circular
+/// mark the hero and the rest of the UI show — the rounded-square body belongs
+/// to the macOS app icon alone.
 @MainActor
 enum AboutPanel {
     static func present() {
-        var options: [NSApplication.AboutPanelOptionKey: Any] = [.credits: credits]
-        if let icon = bundleIcon {
-            options[.applicationIcon] = icon
-        }
-        NSApplication.shared.orderFrontStandardAboutPanel(options: options)
-    }
-
-    private static var bundleIcon: NSImage? {
-        guard let url = Bundle.main.url(forResource: "AppIcon", withExtension: "png") else {
-            return nil
-        }
-        return NSImage(contentsOf: url)
+        NSApplication.shared.orderFrontStandardAboutPanel(options: [
+            .credits: credits,
+            .applicationIcon: AppMarkImage.shared,
+        ])
     }
 
     private static var credits: NSAttributedString {

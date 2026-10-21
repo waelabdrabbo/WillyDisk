@@ -57,8 +57,13 @@ Details worth remembering:
   it, stamps `CFBundleShortVersionString` from it, and takes `CFBundleVersion` from
   the commit count; CI fails when the assembled bundle disagrees. About is the
   system panel with the app's own credits: it reads the bundle's name, version, and
-  copyright, and shows the committed 1024 PNG the bundle ships as `AppIcon.png`
-  instead of relying on how the system resolved the app icon.
+  copyright, and shows the circular in-app mark rather than the rounded macOS icon.
+- The mark has two bodies, drawn once by `Scripts/make-icon.swift`: the rounded
+  square macOS asks for in `Resources/AppIcon.icns`, and the circle in
+  `Sources/DiskUI/Resources/AppMark.png` that the UI and About show. The mark is a
+  packaged image, so the renderer and any scratch host that hosts `DiskUI` must run
+  beside `WillyDisk_DiskUI.bundle`; `Scripts/bundle-app.sh` copies that bundle into
+  the app's Resources.
 - Help is a sheet on the main window (⌘?), not a window of its own, so the app keeps
   one window. It restates the scan, coverage, and reclaim rules in short form;
   `Scripts/render-screens.sh -S help` renders it so the copy can be reviewed.

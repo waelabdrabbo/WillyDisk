@@ -22,10 +22,12 @@ let package = Package(
 
         // DiskUI — SwiftUI design system + screens. Depends on the shared models.
         // The directory's AGENTS.md carries agent-facing notes, not package resources.
+        // `Resources/AppMark.png` is the mark `Scripts/make-icon.swift` draws.
         .target(
             name: "DiskUI",
             dependencies: ["DiskCore"],
-            exclude: ["AGENTS.md"]
+            exclude: ["AGENTS.md"],
+            resources: [.process("Resources")]
         ),
 
         // WillyDiskApp — @main executable that owns the window and wiring.

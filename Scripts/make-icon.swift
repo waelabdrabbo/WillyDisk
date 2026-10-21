@@ -1,17 +1,18 @@
 #!/usr/bin/env swift
 
-// Draws Resources/AppIcon.icns and Resources/AppIcon-1024.png from the app's mark.
+// Draws the app's icon family from one mark: the macOS icon in
+// Resources/AppIcon.icns and Resources/AppIcon-1024.png, and the in-app mark in
+// Sources/DiskUI/Resources/AppMark.png.
 //
-// The icon is the mark on an ink ground: a platter's grooves around a spindle,
-// cut by one slot at three o'clock, with the outer groove's last stretch lit in
-// signal. Each representation is drawn at its own size rather than downscaled, so
+// The macOS icon is the mark on an ink rounded square, laid into the 824 body the
+// platform asks for. Inside the app the body is the mark's own circle, edge to
+// edge, so the hero, the results screen, Help, and About show the same artwork
+// without the platform's square around it. Both come from this file, so the two
+// shapes cannot drift apart.
+//
+// Each icon representation is drawn at its own size rather than downscaled, so
 // the 16 and 32 point cuts keep a single heavier groove instead of collapsing
 // into a disc.
-//
-// The 1024 PNG is the same cut the .icns carries at its largest size, written as
-// a plain image so the app can show the mark wherever it needs an icon — the
-// About panel reads it out of the bundle instead of relying on the bundle's
-// icon registration.
 
 import AppKit
 import Foundation
@@ -20,6 +21,14 @@ struct Ink {
     static let ground = CGColor(srgbRed: 0x16 / 255, green: 0x19 / 255, blue: 0x1B / 255, alpha: 1)
     static let groove = CGColor(srgbRed: 0xF2 / 255, green: 0xF3 / 255, blue: 0xF1 / 255, alpha: 1)
     static let signal = CGColor(srgbRed: 0x0E / 255, green: 0x6E / 255, blue: 0x70 / 255, alpha: 1)
+}
+
+/// The shape the mark is laid on.
+enum Body {
+    /// The macOS app icon: an 824 square with 185.4 corners, centred on 1024.
+    case macOS
+    /// The in-app mark: the body is the mark's own circle, edge to edge.
+    case circle
 }
 
 /// The mark's geometry on a 24×24 grid, in grid units.
@@ -36,7 +45,7 @@ struct Mark {
     var slotBearing: CGFloat { 90 }
 }
 
-func draw(size: Int) -> Data {
+func draw(size: Int, body: Body) -> Data {
     let side = CGFloat(size)
     let space = CGColorSpace(name: CGColorSpace.sRGB)!
     let context = CGContext(
@@ -46,18 +55,23 @@ func draw(size: Int) -> Data {
     context.setAllowsAntialiasing(true)
     context.interpolationQuality = .high
 
-    // The body macOS lays an app icon into: an 824 square centred on 1024.
-    let unit = side / 1024
-    let body = CGRect(x: 100 * unit, y: 100 * unit, width: 824 * unit, height: 824 * unit)
-    let radius = 185.4 * unit
-    let path = CGPath(roundedRect: body, cornerWidth: radius, cornerHeight: radius, transform: nil)
-    context.addPath(path)
+    let rect: CGRect
+    switch body {
+    case .macOS:
+        let unit = side / 1024
+        rect = CGRect(x: 100 * unit, y: 100 * unit, width: 824 * unit, height: 824 * unit)
+        let radius = 185.4 * unit
+        context.addPath(CGPath(roundedRect: rect, cornerWidth: radius, cornerHeight: radius, transform: nil))
+    case .circle:
+        rect = CGRect(x: 0, y: 0, width: side, height: side)
+        context.addPath(CGPath(ellipseIn: rect, transform: nil))
+    }
     context.setFillColor(Ink.ground)
     context.fillPath()
 
     let mark = size <= 32 ? Mark.compact : Mark.full
-    let grid = body.width / 24
-    let center = CGPoint(x: body.midX, y: body.midY)
+    let grid = rect.width / 24
+    let center = CGPoint(x: rect.midX, y: rect.midY)
     context.setLineWidth(mark.stroke * grid)
     context.setLineCap(.butt)
 
@@ -117,7 +131,7 @@ let entries: [(Int, String)] = [
 ]
 
 for (size, name) in entries {
-    try draw(size: size).write(to: iconset.appendingPathComponent(name))
+    try draw(size: size, body: .macOS).write(to: iconset.appendingPathComponent(name))
 }
 
 let process = Process()
@@ -131,5 +145,16 @@ guard process.terminationStatus == 0 else {
 }
 try? FileManager.default.removeItem(at: iconset)
 
-try draw(size: 1024).write(to: URL(fileURLWithPath: "Resources/AppIcon-1024.png"))
-print("wrote Resources/AppIcon.icns and Resources/AppIcon-1024.png")
+try draw(size: 1024, body: .macOS).write(to: URL(fileURLWithPath: "Resources/AppIcon-1024.png"))
+
+// The mark the app itself shows, packaged with the UI target so the hero, the
+// results screen, Help, and About all load one image at any size.
+let markDirectory = URL(fileURLWithPath: "Sources/DiskUI/Resources", isDirectory: true)
+try FileManager.default.createDirectory(at: markDirectory, withIntermediateDirectories: true)
+try draw(size: 1024, body: .circle)
+    .write(to: markDirectory.appendingPathComponent("AppMark.png"))
+
+print("""
+wrote Resources/AppIcon.icns, Resources/AppIcon-1024.png, \
+Sources/DiskUI/Resources/AppMark.png
+""")

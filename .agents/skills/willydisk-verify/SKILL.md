@@ -139,8 +139,12 @@ gitignored `.build/` the way `Scripts/render-screens.sh` compiles its renderer:
 ```
 xcrun swiftc -disable-sandbox -module-cache-path "$PWD/.build/render-module-cache" \
   -I "$PWD/.build/release" -L "$PWD/.build/release" -lDiskUI -lDiskCore \
-  -o "$PWD/.build/probe" "$PWD/.build/probe.swift"
+  -o "$PWD/.build/release/probe" "$PWD/.build/probe.swift"
 ```
+
+The host must sit beside `WillyDisk_DiskUI.bundle`, which is how the UI resolves its
+packaged mark; a probe in plain `.build/` would not find it. `Scripts/render-screens.sh`
+puts its renderer in `.build/debug/` for the same reason.
 
 The host starts a `ScanViewModel(engine: FileScanEngine())`, puts `ResultsView` in an
 `NSHostingView` (inside a never-ordered `NSWindow`), and runs the loop with a repeating

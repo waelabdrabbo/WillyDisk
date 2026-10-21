@@ -81,6 +81,11 @@ private struct WillyDiskCommands: Commands {
                 resultsCommands?.showCleanup()
             }
             .disabled(!(resultsCommands?.canShowCleanup ?? false))
+
+            Button("History…") {
+                resultsCommands?.showHistory()
+            }
+            .disabled(!(resultsCommands?.canShowHistory ?? false))
         }
 
         CommandGroup(after: .pasteboard) {

@@ -37,6 +37,7 @@ enum ScreenKind: String, CaseIterable {
     case categories
     case cleanup
     case duplicates
+    case history
 }
 
 struct Options {
@@ -88,8 +89,9 @@ func parse(_ arguments: [String]) -> Options {
             case "categories": options.screens = [.categories]
             case "cleanup": options.screens = [.cleanup]
             case "duplicates": options.screens = [.duplicates]
+            case "history": options.screens = [.history]
             case "both": options.screens = [.results, .home]
-            case let other: fail("--screen expects home, results, help, settings, categories, cleanup, duplicates or both, not \(other)")
+            case let other: fail("--screen expects home, results, help, settings, categories, cleanup, duplicates, history or both, not \(other)")
             }
         case "--fixture":
             options.fixture = URL(fileURLWithPath: next("--fixture"))
@@ -106,7 +108,7 @@ func parse(_ arguments: [String]) -> Options {
             options.rendersWindow = false
         case "--help", "-h":
             print("""
-            usage: render-screens --out DIR [--size WxH] [--appearance light|dark|both] [--screen home|results|help|settings|categories|cleanup|duplicates|both] [--fixture DIR] [--state finished|scanning] [--window|--content]
+            usage: render-screens --out DIR [--size WxH] [--appearance light|dark|both] [--screen home|results|help|settings|categories|cleanup|duplicates|history|both] [--fixture DIR] [--state finished|scanning] [--window|--content]
 
               --out        directory the PNGs are written to
               --size       render size in points (default 1000x720)
@@ -115,7 +117,8 @@ func parse(_ arguments: [String]) -> Options {
                            home and results, categories is the results screen in
                            Categories mode, help and settings are the sheet and
                            preferences contents, cleanup and duplicates are the
-                           cleanup sheet's two tabs (they use their own fixture)
+                           cleanup sheet's two tabs (they use their own fixture),
+                           history is the scan-history comparison
               --fixture    scan this directory instead of the generated fixture
               --state      finished (default) or scanning, which captures the
                            screen while the scan is still running
@@ -200,6 +203,105 @@ func makeCleanupFixture(at root: URL) {
     sparse("Documents/copy-c.bin", size: 12_000_000, ageDays: 10, firstByte: 0xFF)
 }
 
+// MARK: - History fixture
+
+/// The two older runs of a location, derived from the scan the renderer just
+/// made so the comparison shows this fixture's own numbers. The newer run is the
+/// one the view model records as the scan settles; these are scaled, one file is
+/// left out of them, and one was larger, so the sheet shows a grown folder, a new
+/// file, and a shrunk file.
+func makeOlderHistoryRecords(summary: ScanSummary) -> [ScanRecord] {
+    let options = RecordedOptions(
+        followSymlinks: false,
+        stayOnVolume: true,
+        includeHidden: true,
+        excludedPaths: []
+    )
+    let newest = ScanRecord(summary: summary, options: options)
+    let installer = summary.root.appendingPathComponent("Archives/installer.dmg").standardizedFileURL.path
+
+    func scaled(_ entries: [RecordedEntry], by factor: Double, dropping dropped: Set<String>) -> [RecordedEntry] {
+        entries.filter { !dropped.contains($0.path) }.map { entry in
+            RecordedEntry(
+                path: entry.path,
+                name: entry.name,
+                isDirectory: entry.isDirectory,
+                logicalSize: Int64((Double(entry.logicalSize) * factor).rounded()),
+                allocatedSize: Int64((Double(entry.allocatedSize) * factor).rounded()),
+                modifiedAt: entry.modifiedAt
+            )
+        }
+    }
+
+    /// One entry that was larger in the older run, so the comparison has a
+    /// shrunk row as well as grown and new ones.
+    func larger(_ entries: [RecordedEntry], path: String, by factor: Double) -> [RecordedEntry] {
+        entries.map { entry in
+            guard entry.path == path else { return entry }
+            return RecordedEntry(
+                path: entry.path,
+                name: entry.name,
+                isDirectory: entry.isDirectory,
+                logicalSize: Int64((Double(entry.logicalSize) * factor).rounded()),
+                allocatedSize: Int64((Double(entry.allocatedSize) * factor).rounded()),
+                modifiedAt: entry.modifiedAt
+            )
+        }
+    }
+
+    func older(daysAgo: Double, factor: Double, droppingFiles: Set<String>, droppingFolders: Set<String>) -> ScanRecord {
+        let finished = newest.finishedAt.addingTimeInterval(-daysAgo * 86_400)
+        return ScanRecord(
+            rootPath: newest.rootPath,
+            startedAt: finished.addingTimeInterval(-newest.duration),
+            finishedAt: finished,
+            totalLogicalSize: Int64((Double(newest.totalLogicalSize) * factor).rounded()),
+            totalAllocatedSize: Int64((Double(newest.totalAllocatedSize) * factor).rounded()),
+            fileCount: newest.fileCount,
+            directoryCount: newest.directoryCount,
+            inaccessibleCount: 0,
+            errorCount: 0,
+            permissionDeniedCount: 0,
+            surfacedIssueCount: 0,
+            categorySizes: newest.categorySizes.mapValues { Int64((Double($0) * factor).rounded()) },
+            largestFiles: scaled(newest.largestFiles, by: factor, dropping: droppingFiles),
+            largestDirectories: scaled(newest.largestDirectories, by: factor, dropping: droppingFolders),
+            entryCapacity: newest.entryCapacity,
+            accounting: newest.accounting,
+            options: options,
+            volume: nil
+        )
+    }
+
+    var sixDaysAgo = older(daysAgo: 6, factor: 0.78, droppingFiles: [installer], droppingFolders: [])
+    let screenshot = summary.root.appendingPathComponent("Photos/screenshot.png").standardizedFileURL.path
+    sixDaysAgo = ScanRecord(
+        rootPath: sixDaysAgo.rootPath,
+        startedAt: sixDaysAgo.startedAt,
+        finishedAt: sixDaysAgo.finishedAt,
+        totalLogicalSize: sixDaysAgo.totalLogicalSize,
+        totalAllocatedSize: sixDaysAgo.totalAllocatedSize,
+        fileCount: sixDaysAgo.fileCount,
+        directoryCount: sixDaysAgo.directoryCount,
+        inaccessibleCount: sixDaysAgo.inaccessibleCount,
+        errorCount: sixDaysAgo.errorCount,
+        permissionDeniedCount: sixDaysAgo.permissionDeniedCount,
+        surfacedIssueCount: sixDaysAgo.surfacedIssueCount,
+        categorySizes: sixDaysAgo.categorySizes,
+        largestFiles: larger(sixDaysAgo.largestFiles, path: screenshot, by: 6.5),
+        largestDirectories: sixDaysAgo.largestDirectories,
+        entryCapacity: sixDaysAgo.entryCapacity,
+        accounting: sixDaysAgo.accounting,
+        options: sixDaysAgo.options,
+        volume: sixDaysAgo.volume
+    )
+
+    return [
+        sixDaysAgo,
+        older(daysAgo: 20, factor: 0.64, droppingFiles: [], droppingFolders: [])
+    ]
+}
+
 // MARK: - Rendering
 
 /// The scanned root's own node, the way `ResultsView` finds it.
@@ -250,7 +352,13 @@ func render(_ options: Options) {
     }
 
     let settingsStore = options.screens.contains(.settings) ? makeSettingsStore(fixture: fixture) : nil
-    let viewModel = ScanViewModel(engine: FileScanEngine())
+    // History lives in the render directory, never in the user's own store. The
+    // view model records the finished scan exactly as the app does; the history
+    // screen adds two older runs so the comparison has a pair to show.
+    let historyStore = ScanHistoryStore(directory: options.out.appendingPathComponent("history"))
+    try? historyStore.clear()
+    let history = ScanHistory(store: historyStore)
+    let viewModel = ScanViewModel(engine: FileScanEngine(), history: history)
     if needsScan {
         viewModel.start(root: fixture)
     }
@@ -297,6 +405,26 @@ func render(_ options: Options) {
         print("\(options.state.rawValue) \(fixture.path): \(viewModel.filesScanned) files, \(viewModel.displayedTotal) bytes")
     }
 
+    var historyModel: ScanHistory?
+    if options.screens.contains(.history) {
+        guard let summary = viewModel.summary else {
+            fail("the scan produced no summary for the history screen")
+        }
+        for record in makeOlderHistoryRecords(summary: summary) {
+            _ = try? historyStore.save(record)
+        }
+        // The finished run is recorded by the view model as it settles; the
+        // render waits for that write so the sheet lists the scan it came from.
+        let deadline = Date().addingTimeInterval(10)
+        while historyStore.load().records.count < 3, Date() < deadline {
+            RunLoop.current.run(until: Date().addingTimeInterval(0.02))
+        }
+        guard historyStore.load().records.count >= 3 else {
+            fail("the finished scan was not recorded in the history")
+        }
+        historyModel = history
+    }
+
     if options.screens.contains(.categories), viewModel.summary == nil {
         fail("the scan produced no summary for the categories screen")
     }
@@ -326,6 +454,14 @@ func render(_ options: Options) {
                     }
                 case .categories:
                     ResultsView(viewModel: viewModel, initialMode: .categories)
+                case .history:
+                    if let historyModel, let summary = viewModel.summary {
+                        HistorySheet(
+                            history: historyModel,
+                            root: summary.root,
+                            rootName: LocationName.of(summary.root)
+                        )
+                    }
                 case .cleanup, .duplicates:
                     if let summary = viewModel.summary,
                        let root = rootNode(in: summary),

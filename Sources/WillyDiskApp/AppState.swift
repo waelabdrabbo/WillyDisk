@@ -22,7 +22,11 @@ final class AppState: ObservableObject {
     @Published var isShowingHelp = false
 
     init() {
-        scanViewModel = ScanViewModel(engine: FileScanEngine(), optionsStore: scanOptions)
+        scanViewModel = ScanViewModel(
+            engine: FileScanEngine(),
+            optionsStore: scanOptions,
+            history: ScanHistory()
+        )
 
         // The stored appearance is in place before the first window exists, so a
         // choice held over from the last launch is never painted over by the

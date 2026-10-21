@@ -43,7 +43,7 @@ public struct HelpView: View {
             VStack(alignment: .leading, spacing: DS.Spacing.xxSmall) {
                 Text("WillyDisk Help")
                     .font(DS.Typography.title2)
-                Text("Scans, results, cleanup, coverage, and the Trash.")
+                Text("Scans, results, history, cleanup, coverage, and the Trash.")
                     .font(DS.Typography.callout)
                     .foregroundStyle(DS.Color.secondaryText)
             }
@@ -157,6 +157,15 @@ private extension HelpView {
             paragraphs: [
                 "Add Path… in Scan Options leaves paths out of the next scan. A nested exclusion is skipped without being entered; an exclusion at or above the scan root is ignored.",
                 "Coverage reports how many items your exclusions skipped, so a narrower total is never a silent one.",
+            ]
+        ),
+        HelpTopic(
+            id: "history",
+            title: "Compare two scans",
+            symbol: "clock.arrow.circlepath",
+            paragraphs: [
+                "History lists the runs recorded for the location you scanned. Choose two to see what grew, what shrank, and what appeared. Totals and categories are exact; folders and files are each run's largest 100, matched by path, and a New entry may simply have been below the earlier run's cut-off.",
+                "Only finished scans are recorded: a cancelled scan covers part of the folder, so it is not offered as a run to compare. Records stay on this Mac and hold paths and totals, never file contents. Clear History… removes them all.",
             ]
         ),
         HelpTopic(

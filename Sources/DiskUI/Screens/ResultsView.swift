@@ -522,6 +522,10 @@ public struct ResultsView: View {
                         onClose: { activeSheet = nil }
                     )
                 }
+            case .history:
+                if let history = viewModel.history, let root = summary?.root ?? viewModel.currentRoot {
+                    HistorySheet(history: history, root: root, rootName: LocationName.of(root))
+                }
             }
         }
         .interactiveDismissDisabled(isTrashing)
@@ -559,6 +563,14 @@ public struct ResultsView: View {
             }
 
             ToolbarItemGroup(placement: .primaryAction) {
+                Button {
+                    showHistory()
+                } label: {
+                    Label("History", systemImage: "clock.arrow.circlepath")
+                }
+                .help("Compare this location's recorded scans")
+                .disabled(summary == nil || viewModel.history == nil)
+
                 Button {
                     showCleanup()
                 } label: {
@@ -1103,8 +1115,6 @@ public struct ResultsView: View {
             .frame(maxWidth: .infinity)
 
             if explorerMode == .folder {
-                // One control, one value: the old separate "Sort" label cost
-                // width without adding information.
                 Menu {
                     ForEach(SortOrder.allCases) { order in
                         Button {
@@ -1498,6 +1508,8 @@ public struct ResultsView: View {
             showCoverage: { showCoverage() },
             canShowCleanup: summary != nil && !viewModel.isScanning,
             showCleanup: { showCleanup() },
+            canShowHistory: summary != nil && viewModel.history != nil,
+            showHistory: { showHistory() },
             focusSearch: { searchFocusRequest += 1 }
         )
     }
@@ -1509,6 +1521,11 @@ public struct ResultsView: View {
     private func showCleanup() {
         guard summary != nil, !viewModel.isScanning else { return }
         activeSheet = .cleanup
+    }
+
+    private func showHistory() {
+        guard summary != nil, viewModel.history != nil else { return }
+        activeSheet = .history
     }
 
     /// Opens the reclaim confirmation for a selection the cleanup sheet made,
@@ -2042,6 +2059,7 @@ private enum ResultsSheet: String, Identifiable {
     case reclaim
     case coverage
     case cleanup
+    case history
 
     var id: String { rawValue }
 }

@@ -15,6 +15,8 @@ public struct ResultsCommands {
     public var showCoverage: () -> Void
     public var canShowCleanup: Bool
     public var showCleanup: () -> Void
+    public var canShowHistory: Bool
+    public var showHistory: () -> Void
     public var focusSearch: () -> Void
 
     public init(
@@ -27,6 +29,8 @@ public struct ResultsCommands {
         showCoverage: @escaping () -> Void,
         canShowCleanup: Bool,
         showCleanup: @escaping () -> Void,
+        canShowHistory: Bool,
+        showHistory: @escaping () -> Void,
         focusSearch: @escaping () -> Void
     ) {
         self.canRescan = canRescan
@@ -38,6 +42,8 @@ public struct ResultsCommands {
         self.showCoverage = showCoverage
         self.canShowCleanup = canShowCleanup
         self.showCleanup = showCleanup
+        self.canShowHistory = canShowHistory
+        self.showHistory = showHistory
         self.focusSearch = focusSearch
     }
 }

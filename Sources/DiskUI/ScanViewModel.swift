@@ -193,6 +193,11 @@ public final class ScanViewModel {
     /// The same store the source screen and Settings edit, so the sheet and a
     /// Rescan use the choices currently on screen rather than a private copy.
     public let optionsStore: ScanOptionsStore
+    /// Where a finished scan is remembered. `nil` means this process does not
+    /// keep history: the app shell supplies one so scans are recorded, while a
+    /// test or a preview that drives a scan is not made to write into the user's
+    /// history.
+    public let history: ScanHistory?
     private var scanTask: Task<Void, Never>?
     /// Bumped whenever a scan starts or is discarded, so work belonging to a
     /// superseded scan — a late event, or a cancel that was requested before the
@@ -238,11 +243,13 @@ public final class ScanViewModel {
 
     public init(
         engine: (any ScanEngine)? = nil,
-        optionsStore: ScanOptionsStore = .shared
+        optionsStore: ScanOptionsStore = .shared,
+        history: ScanHistory? = nil
     ) {
         self.engine = engine
         self.reclaimController = ReclaimController()
         self.optionsStore = optionsStore
+        self.history = history
     }
 
     /// The trashing seam is injectable so the guard's decision and the system's
@@ -250,11 +257,13 @@ public final class ScanViewModel {
     init(
         engine: (any ScanEngine)? = nil,
         reclaimController: ReclaimController,
-        optionsStore: ScanOptionsStore = .shared
+        optionsStore: ScanOptionsStore = .shared,
+        history: ScanHistory? = nil
     ) {
         self.engine = engine
         self.reclaimController = reclaimController
         self.optionsStore = optionsStore
+        self.history = history
     }
 
     /// Connects (or replaces) the scanning engine. Called by the app shell once
@@ -489,6 +498,7 @@ public final class ScanViewModel {
                 progress = nil
                 phase = .finished
                 resultsRevision &+= 1
+                recordHistory(s)
             case .cancelled(let partial):
                 discardHeldPartial()
                 if let partial { summary = partial }
@@ -517,6 +527,20 @@ public final class ScanViewModel {
         phase = .cancelled
         resultsRevision &+= 1
         if summary == nil { route = .home }
+    }
+
+    // MARK: - History
+
+    /// Remembers a finished scan without holding up the results.
+    ///
+    /// The record is built from the summary already in hand and written off the
+    /// main actor, so the screen settles at once and the history list catches up
+    /// when the write lands. `lastOptions` is read now, while it still describes
+    /// the scan that just finished.
+    private func recordHistory(_ summary: ScanSummary) {
+        guard let history else { return }
+        let options = lastOptions
+        Task { await history.record(summary, options: options) }
     }
 
     // MARK: - Progressive rendering

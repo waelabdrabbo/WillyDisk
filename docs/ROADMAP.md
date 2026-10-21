@@ -104,7 +104,8 @@ Details worth remembering:
   removed so the app name does not sit between the controls. It holds a Home button and
   a folder trail: the scanned location is always named, ancestors are clickable, and the
   current folder is text. Home returns to source selection; the trail covers stepping
-  up, so there is no Back action.
+  up, and the chart's spindle hole is the same move in the chart — up one folder, or back
+  to all categories when one is open. There is no toolbar Back action.
 
 ## Ground rules
 

@@ -113,8 +113,8 @@ private extension HelpView {
             title: "Read the results",
             symbol: "chart.pie",
             paragraphs: [
-                "The sunburst maps the folder you are in. Click a folder wedge to enter it; click a file wedge to select the file.",
-                "This Folder, Top Files, and Top Folders change what the list ranks. Search (⌘F) filters the list on screen, and the category menu narrows it further. Show More pages through a long list.",
+                "The sunburst maps the folder you are in. Click a folder wedge to enter it; click a file wedge to select the file, and click the centre to go up one folder.",
+                "Choose This Folder, Top Files, Top Folders, or Categories. Search (⌘F) filters the list on screen; Categories shows the same scan split by file category, and choosing a category there lists its largest files without leaving the mode. Show More pages through a long list.",
                 "The ⓘ button opens Coverage: what the scan counted, what it skipped, and the volume's own figures side by side.",
             ]
         ),

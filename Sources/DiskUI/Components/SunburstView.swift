@@ -30,6 +30,10 @@ public struct SunburstView: View {
     private let maxChildren: Int
     @Binding private var hoveredURL: URL?
     private let onSelect: (ScanNode) -> Void
+    /// What clicking the spindle hole does — going up one level — or nil when
+    /// there is no level above this chart.
+    private let onCenterTap: (() -> Void)?
+    private let centerHint: String
 
     /// The wedge under the pointer, so the centre can name it.
     @State private var hoveredID: String?
@@ -38,6 +42,9 @@ public struct SunburstView: View {
     @FocusState private var focusedID: String?
     /// Holds the rings between changes of the data they are built from.
     @State private var segmentsCache = SunburstSegmentsCache()
+    /// Whether the pointer is on the centre disc, which is a control when it can
+    /// go up a level.
+    @State private var centerHovered = false
 
     public init(
         nodes: [ScanNode],
@@ -45,6 +52,8 @@ public struct SunburstView: View {
         selectedNodeURL: URL? = nil,
         maxChildren: Int = DS.Sunburst.maxChildrenPerNode,
         hoveredURL: Binding<URL?> = .constant(nil),
+        onCenterTap: (() -> Void)? = nil,
+        centerHint: String = "Go up one level",
         onSelect: @escaping (ScanNode) -> Void
     ) {
         self.nodes = nodes
@@ -52,6 +61,8 @@ public struct SunburstView: View {
         self.selectedNodeURL = selectedNodeURL
         self.maxChildren = maxChildren
         self._hoveredURL = hoveredURL
+        self.onCenterTap = onCenterTap
+        self.centerHint = centerHint
         self.onSelect = onSelect
     }
 
@@ -204,6 +215,7 @@ public struct SunburstView: View {
         return segments.first { $0.id == id }?.node?.url
     }
 
+    @ViewBuilder
     private func centerDisc(radius: CGFloat, center: CGPoint, active: SunburstSegment?) -> some View {
         let title = active?.label ?? centerLabel
         let detail = ByteFormat.string(active?.size ?? totalSize)
@@ -211,7 +223,7 @@ public struct SunburstView: View {
         // The disc is the platter's spindle hole and uses the platter's own
         // fixed palette, so it stays ink in both appearances: a printed disc on a
         // light window, a dark well with a hairline rim on a dark one.
-        return ZStack {
+        let disc = ZStack {
             Circle()
                 .fill(DS.Color.plateGround)
                 .overlay(Circle().strokeBorder(DS.Color.plateGroove.opacity(DS.Opacity.discBorder),
@@ -236,10 +248,31 @@ public struct SunburstView: View {
         // Keeps a long two-line name inside the disc instead of letting it spill
         // into the first ring.
         .clipShape(Circle())
-        .position(center)
         .animation(reduceMotion ? nil : .snappy, value: active?.id)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(title), \(detail)")
+
+        if let onCenterTap {
+            Button(action: onCenterTap) {
+                disc
+            }
+            .buttonStyle(.plain)
+            .onHover { centerHovered = $0 }
+            .overlay {
+                if centerHovered {
+                    Circle()
+                        .strokeBorder(DS.Color.accent.opacity(0.8),
+                                      lineWidth: DS.Stroke.emphasis)
+                }
+            }
+            .help(centerHint)
+            .accessibilityLabel("\(title), \(detail)")
+            .accessibilityHint(centerHint)
+            .position(center)
+        } else {
+            disc
+                .position(center)
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("\(title), \(detail)")
+        }
     }
 
     private func placeholder(message: String, icon: String? = nil) -> some View {

@@ -326,6 +326,22 @@ public struct ResultsView: View {
     /// The explorer paints part of the chart's density. A page of 15 items
     /// should show those 15 children in the chart rather than 12 plus a remainder;
     /// Show More therefore spends more chart slots, within the chart's ceiling.
+    /// Where the spindle hole leads: up one folder, or back to all categories.
+    private var chartCenterAction: (() -> Void)? {
+        if explorerMode == .categories {
+            return drilledCategory == nil ? nil : { closeCategory() }
+        }
+        return breadcrumb.isEmpty ? nil : { goToBreadcrumb(depth: breadcrumb.count - 1) }
+    }
+
+    private var chartCenterHint: String {
+        if explorerMode == .categories { return "Show all categories" }
+        guard !breadcrumb.isEmpty else { return "The scanned location" }
+        return breadcrumb.count == 1
+            ? "Return to the scanned location"
+            : "Go up to \(breadcrumb[breadcrumb.count - 2].name)"
+    }
+
     private var chartChildLimit: Int {
         switch explorerMode {
         case .folder:
@@ -692,7 +708,9 @@ public struct ResultsView: View {
                         centerLabel: category.displayName,
                         selectedNodeURL: selectedNodes.count == 1 ? selectedNodes[0].url : nil,
                         maxChildren: chartChildLimit,
-                        hoveredURL: $hover.url
+                        hoveredURL: $hover.url,
+                        onCenterTap: chartCenterAction,
+                        centerHint: chartCenterHint
                     ) { node in
                         chartSelect(node)
                     }
@@ -719,7 +737,9 @@ public struct ResultsView: View {
                     centerLabel: breadcrumb.last?.name ?? scannedRootName ?? "Root",
                     selectedNodeURL: selectedNodes.count == 1 ? selectedNodes[0].url : nil,
                     maxChildren: chartChildLimit,
-                    hoveredURL: $hover.url
+                    hoveredURL: $hover.url,
+                    onCenterTap: chartCenterAction,
+                    centerHint: chartCenterHint
                 ) { node in
                     chartSelect(node)
                 }

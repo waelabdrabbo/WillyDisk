@@ -12,20 +12,22 @@ decisions. This is a handoff document, not a specification of frozen interfaces 
   install-trust work at `d7155dc`, the packaged circular mark at `55f5032`, the
   cleanup candidates at `9a69a3b`, the Categories mode at `71bae92`, the
   Settings work at `607ef77`, the duplicate content check at `3603321` with its own
-  tab at `1ed5184`, and scan history with its comparison sheet; this docs handoff
-  follows it. Working tree clean at that handoff.
+  tab at `1ed5184`, scan history with its comparison sheet, and the command-line
+  scan (`38f6e50`); this docs handoff follows it. Working tree clean at that handoff.
 - Build: `swift build --disable-sandbox`.
-- Tests: 168 QATests + 68 DiskCoreTests, 0 failures, 1 skipped
-  (`ScanBenchmarkTests` needs `WILLYDISK_BENCH_ROOT`).
+- Tests: 168 QATests + 68 DiskCoreTests (1 skipped, `ScanBenchmarkTests` needs
+  `WILLYDISK_BENCH_ROOT`) + 16 DiskCLITests, 0 failures.
 - CI: `.github/workflows/ci.yml` builds, tests, checks that the bundle reports
-  `VERSION`, and uploads the offscreen renders on every push.
+  `VERSION`, runs the bundled binary's `scan` and its usage exit status, and uploads
+  the offscreen renders on every push.
 - The app is a working single-window analyzer: choose a volume, folder, or quick
   preset, watch a progressive scan, read the sunburst and explorer, inspect
   coverage, see where the bytes sit by file category, review large/old/cache candidates,
   check possible duplicates by their contents before trashing them, compare the recorded
   runs of a location, select rows with the mouse or keyboard, preview them with Quick
   Look, move items to the Trash behind a guard and confirmation, change the scan defaults
-  and excluded paths in Settings, and read About or Help.
+  and excluded paths in Settings, and read About or Help. The same binary also scans a
+  folder from the command line, as text or as the record JSON, with no window.
 
 ## Shipped — do not rebuild
 
@@ -42,6 +44,7 @@ decisions. This is a handoff document, not a specification of frozen interfaces 
 | Category breakdown (Categories mode and its category detail), cleanup candidates through reclaim | `9a69a3b`, `71bae92`, `6266abc`, `031dbda` |
 | Duplicate candidates with an explicit SHA-256 content check, and their own tab | `3603321`, `1ed5184` |
 | Scan history: a versioned record per finished scan, and the comparison sheet | `5b07181` |
+| Command-line scan over the same engine, with the record DTO as JSON | `38f6e50` |
 
 Details worth remembering:
 
@@ -143,6 +146,19 @@ Details worth remembering:
   engine's slot, and compares two of its runs. The current run is recorded as it
   settles; the sheet picks the two newest by default and lets any two be chosen. Clear
   History… removes every record for every location and touches no user file.
+- The command line is a front end over the same `FileScanEngine`, not a second scanner:
+  `DiskCLI` depends on `DiskCore` only, and the executable's `@main` routes
+  `WillyDisk scan …` (or a leading option such as `--help`) before SwiftUI is touched,
+  so no `NSApplication`, window, or Dock icon exists. `--depth` and `--top` are print
+  widths: the walk still measures everything, and `--json` keeps the engine's ranked
+  capacity. The report and the record order every list size-first and path-second,
+  because the engine ranks equal sizes arbitrarily; the JSON is the versioned
+  `ScanRecord` and differs between runs only in its `id` and two timestamps. It carries
+  no volume facts, which describe the whole disk and move while the command runs. A
+  CLI scan writes no history record: the record goes to stdout, and only the app
+  records runs. Exit statuses are 0 finished, 1 missing folder or unwritable report,
+  2 usage, and 130 cancelled; SIGINT/SIGTERM call `ScanEngine.cancel()`, and a
+  cancelled run prints no report.
 - The results toolbar carries no separate title or path, and the system title item is
   removed so the app name does not sit between the controls. It holds a Home button and
   a folder trail: the scanned location is always named, ancestors are clickable, and the
@@ -169,6 +185,8 @@ Details worth remembering:
 ```bash
 swift build --disable-sandbox
 swift test --disable-sandbox
+swift run --disable-sandbox WillyDisk scan . --depth 1 --top 5
+swift run --disable-sandbox WillyDisk scan . --json | jq -e '.schemaVersion == 1'
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S both -o .build/renders/check
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S categories -o .build/renders/check
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S help -c -o .build/renders/check
@@ -178,7 +196,8 @@ WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S duplicates -c -
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S history -c -o .build/renders/check
 ```
 
-CI runs the build, the suite, the bundle version check, and all seven renders on every push.
+CI runs the build, the suite, the bundle version check, a bundled `scan` plus its usage
+exit status, and all seven renders on every push.
 
 `-S categories` renders the real results screen in Categories mode, window and all.
 Help, Settings, and the cleanup sheet are sheets or a preferences window, so `-S`
@@ -231,19 +250,7 @@ does not block the main actor; clearing restores the previous scope.
   stale today), folder-level coverage disclosure, CSV accounting (JSON has it, CSV
   does not), pluralization, empty states, window sizing, accessibility audit.
 
-### 4. A command-line scan
-
-`WillyDisk scan <folder> --depth --top --json` over the same `FileScanEngine`: no second
-scanner and no second accounting path. The JSON is the versioned record DTO the history
-work introduced (`ScanRecord`), not `ScanSummary` made codable. Answering from an
-already-running scan is a later refinement; a CLI that scans on its own is the first
-release.
-
-Acceptance: exit 0 on success and 2 on a usage error; `--help` lists the flags; no window
-appears and no UI is built; SIGINT takes the engine's cancellation path and says so;
-output for a fixture folder is byte-stable across runs.
-
-### 5. Watch the scanned tree
+### 4. Watch the scanned tree
 
 FSEvents on the scan root while results are on screen, so a change made in Finder is
 reflected without Rescan. The shape is invalidation, not patching: a change marks the
@@ -255,7 +262,7 @@ few seconds and offers Rescan; events outside the root and under excluded paths 
 ignored; the watcher stops on cancellation, on leaving the screen, and on a new scan; a
 `/` scan does not install a watch per volume.
 
-### 6. Treemap as a second chart
+### 5. Treemap as a second chart
 
 Boxes instead of rings, same tree, same selection, hover and drill-down, chosen in
 Settings. The sunburst stays the identity; the treemap exists for dense folders where
@@ -265,7 +272,7 @@ Acceptance: layout runs off the main actor for a large folder; one selection mod
 drives both charts; reduce-motion and keyboard navigation behave as in the sunburst; both
 charts render in CI.
 
-### 7. Localization
+### 6. Localization
 
 Extract every user-visible string into a catalog keyed by the English source, then finish
 one language end to end before adding more. SwiftUI supplies script fallback and RTL
@@ -276,7 +283,7 @@ catches truncation; one RTL language (`ar`) renders results, coverage and cleanu
 clipping; plurals are resolved rather than concatenated; the render harness takes a
 `--locale`.
 
-### 8. Reclaim past the Trash
+### 7. Reclaim past the Trash
 
 Today the only removal path is Move to Trash, and Trash frees nothing until it is emptied.
 The fuller flow is permanent delete, a secure erase that overwrites before removing, and
@@ -295,7 +302,7 @@ of removal; a permanent delete cannot be reached without a typed or held confirm
 failed backup removes nothing; a cancelled job says what was and was not removed; no
 screen claims space was freed before it was.
 
-### 9. Remote and cloud scans
+### 8. Remote and cloud scans
 
 Scan a machine reachable over SSH, and cloud remotes, through the same explorer.
 `ScanEngine` is the seam: a second conformance that emits the same events, so the UI never
@@ -307,7 +314,7 @@ scan of it; a dropped connection ends in `.finished` with issues or `.cancelled`
 stream that hangs; credentials never reach the export DTO or a diagnostics bundle; nothing
 is scanned remotely without an explicit host choice.
 
-### 10. Self-update, and platforms beyond macOS
+### 9. Self-update, and platforms beyond macOS
 
 Self-update is worth shipping only after item 1: a release feed, a verified download, and
 a relaunch. Windows and Linux are a larger step — a UI without AppKit, per-platform

@@ -61,7 +61,9 @@ the stored system/light/dark appearance preference the Settings window edits.
 `RecentLocations`, `FullDiskAccess` + `FullDiskAccessProbe` (TCC),
 `ScanIssuesPresentation`, `ScanSlotPresentation`, `ReportExport` (JSON/CSV via
 `NSSavePanel`), `AccessNoticeDismissal`, `ScanOptions` + `ScanOptionsStore` (the one
-shared, persisted set of choices the next scan and Rescan use).
+shared, persisted set of choices the next scan and Rescan use), `CleanupAnalysis` +
+`DuplicateAnalysis` (bounded cleanup heuristics and the explicit SHA-256 content
+check).
 
 **`WillyDiskApp`.**
 `WillyDiskApp.swift` is `@main`, `AppState.swift` builds the single

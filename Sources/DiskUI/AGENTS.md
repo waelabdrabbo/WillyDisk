@@ -16,9 +16,9 @@ stream reports.
 - `Components/` — `SunburstView` (the disk chart: wedges drawn in one static layer,
   with the hover emphasis painted over them), `CategoryRingView` (the scan by
   category, one ring; opening a category charts its files with `SunburstView`),
-  `CleanupSheet` (candidates that go to the reclaim confirmation), `AccessNoticeRow`,
-  `FlowLayout`, `ScanOptionToggle` (one scan option, shared by the source screen's
-  sheet and Settings).
+  `CleanupSheet` (large/old, cache, download, and duplicate candidates that go to the
+  reclaim confirmation), `AccessNoticeRow`, `FlowLayout`, `ScanOptionToggle` (one scan
+  option, shared by the source screen's sheet and Settings).
 - `DesignSystem/` — `DesignSystem.swift` holds every token (`DS`), `ChartPalette.swift`
   the chart fills, `FileCategory+UI.swift` the category symbols and labels,
   `AppAppearance.swift` the stored system/light/dark preference the Settings window
@@ -31,8 +31,10 @@ stream reports.
   `ScanSlotPresentation`, `ReportExport` (JSON/CSV through `NSSavePanel`),
   `CategoryBreakdown` (sizes by category), `CategoryFiles` (a category's largest
   files, walked off the main actor), `CleanupAnalysis` (bounded large/old, cache, and
-  download heuristics over the finished tree), `ScanOptions` + `ScanOptionsStore`
-  (the one shared, persisted set of choices the next scan and Rescan use).
+  download heuristics over the finished tree, including same-size duplicate
+  candidates), `DuplicateAnalysis` (the explicit SHA-256 content check and its
+  cancellable controller), `ScanOptions` + `ScanOptionsStore` (the one shared,
+  persisted set of choices the next scan and Rescan use).
 
 ## Rules
 

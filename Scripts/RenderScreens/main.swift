@@ -168,12 +168,15 @@ func makeCleanupFixture(at root: URL) {
     let manager = FileManager.default
     let now = Date()
 
-    func sparse(_ path: String, size: Int64, ageDays: Double) {
+    func sparse(_ path: String, size: Int64, ageDays: Double, firstByte: UInt8? = nil) {
         let url = root.appendingPathComponent(path)
         try? manager.createDirectory(at: url.deletingLastPathComponent(),
                                      withIntermediateDirectories: true)
         manager.createFile(atPath: url.path, contents: nil)
         if let handle = try? FileHandle(forWritingTo: url) {
+            if let firstByte {
+                try? handle.write(contentsOf: Data([firstByte]))
+            }
             try? handle.truncate(atOffset: UInt64(size))
             try? handle.close()
         }
@@ -188,6 +191,11 @@ func makeCleanupFixture(at root: URL) {
     sparse("Downloads/recent.zip", size: 40_000_000, ageDays: 2)
     sparse("Library/Caches/com.example.app/blob.bin", size: 900_000_000, ageDays: 800)
     sparse("Documents/notes.txt", size: 2_000, ageDays: 2)
+    // Two identical files and one same-size different file, so the duplicate
+    // section has a confirmed pair and a size match the check rejects.
+    sparse("Documents/copy-a.bin", size: 12_000_000, ageDays: 10)
+    sparse("Documents/copy-b.bin", size: 12_000_000, ageDays: 10)
+    sparse("Documents/copy-c.bin", size: 12_000_000, ageDays: 10, firstByte: 0xFF)
 }
 
 // MARK: - Rendering
@@ -317,12 +325,15 @@ func render(_ options: Options) {
                 case .categories:
                     ResultsView(viewModel: viewModel, initialMode: .categories)
                 case .cleanup:
-                    if let summary = viewModel.summary, let root = rootNode(in: summary) {
+                    if let summary = viewModel.summary,
+                       let root = rootNode(in: summary),
+                       let preview = CleanupAnalysis.analyze(root: root, now: Date()) {
                         CleanupSheet(
                             root: root,
                             rootName: root.name,
                             scannedAt: summary.finishedAt,
-                            previewReport: CleanupAnalysis.analyze(root: root, now: Date()),
+                            previewReport: preview,
+                            previewDuplicateReport: DuplicateHasher.check(groups: preview.duplicateGroups),
                             onMove: { _ in },
                             onClose: {}
                         )

@@ -109,6 +109,69 @@ final class CleanupAnalysisQATests: XCTestCase {
         XCTAssertEqual(group.candidates.map(\.name), ["old.zip"])
     }
 
+    // MARK: - Duplicate candidates
+
+    func testSameSizeFilesAtLeastOneMegabyteBecomeDuplicateCandidates() throws {
+        let root = directory("/scan", children: [
+            file("/scan/a.bin", size: 2 * megabyte, modified: now),
+            file("/scan/b.bin", size: 2 * megabyte, modified: now),
+            file("/scan/single.bin", size: 3 * megabyte, modified: now),
+            file("/scan/small-a.bin", size: megabyte - 1, modified: now),
+            file("/scan/small-b.bin", size: megabyte - 1, modified: now),
+        ])
+
+        let report = try XCTUnwrap(CleanupAnalysis.analyze(root: root, now: now))
+
+        XCTAssertEqual(report.duplicateGroupCount, 1)
+        let group = try XCTUnwrap(report.duplicateGroups.first)
+        XCTAssertEqual(group.logicalSize, 2 * megabyte)
+        XCTAssertEqual(group.candidates.map(\.name), ["a.bin", "b.bin"])
+        XCTAssertEqual(group.matchCount, 2)
+        XCTAssertFalse(group.isTruncated)
+    }
+
+    func testARepeatedSizeBelowTheDuplicateMinimumIsNotACandidate() throws {
+        let root = directory("/scan", children: [
+            file("/scan/small-a.bin", size: megabyte - 1, modified: now),
+            file("/scan/small-b.bin", size: megabyte - 1, modified: now),
+        ])
+
+        let report = try XCTUnwrap(CleanupAnalysis.analyze(root: root, now: now))
+        XCTAssertTrue(report.duplicateGroups.isEmpty)
+        XCTAssertEqual(report.duplicateGroupCount, 0)
+    }
+
+    func testDuplicateGroupCapCountsEveryFileAndReportsTruncation() throws {
+        let root = directory("/scan", children: (0..<4).map {
+            file("/scan/\($0).bin", size: 4 * megabyte, modified: now)
+        })
+        let policy = CleanupPolicy(maxDuplicateFilesPerGroup: 2)
+
+        let report = try XCTUnwrap(CleanupAnalysis.analyze(root: root, policy: policy, now: now))
+        let group = try XCTUnwrap(report.duplicateGroups.first)
+
+        XCTAssertEqual(group.matchCount, 4)
+        XCTAssertEqual(group.candidates.count, 2)
+        XCTAssertTrue(group.isTruncated)
+        XCTAssertEqual(report.duplicateCandidateCount, 4)
+    }
+
+    func testDuplicateGroupCapKeepsTheLargestSizesAndCountsEveryGroup() throws {
+        let root = directory("/scan", children: [
+            file("/scan/small-a.bin", size: 5 * megabyte, modified: now),
+            file("/scan/small-b.bin", size: 5 * megabyte, modified: now),
+            file("/scan/large-a.bin", size: 10 * megabyte, modified: now),
+            file("/scan/large-b.bin", size: 10 * megabyte, modified: now),
+        ])
+        let policy = CleanupPolicy(maxDuplicateGroups: 1)
+
+        let report = try XCTUnwrap(CleanupAnalysis.analyze(root: root, policy: policy, now: now))
+
+        XCTAssertEqual(report.duplicateGroupCount, 2)
+        XCTAssertEqual(report.duplicateGroups.count, 1)
+        XCTAssertEqual(report.duplicateGroups.first?.logicalSize, 10 * megabyte)
+    }
+
     // MARK: - Limits and honesty
 
     func testTheCapKeepsTheLargestButCountsEveryMatch() throws {
@@ -176,6 +239,9 @@ final class CleanupAnalysisQATests: XCTestCase {
         XCTAssertGreaterThan(policy.largeFileAge, 0)
         XCTAssertGreaterThan(policy.downloadAge, 0)
         XCTAssertGreaterThan(policy.maxCandidatesPerGroup, 0)
+        XCTAssertGreaterThan(policy.duplicateMinimum, 0)
+        XCTAssertGreaterThan(policy.maxDuplicateGroups, 0)
+        XCTAssertGreaterThan(policy.maxDuplicateFilesPerGroup, 1)
         XCTAssertGreaterThan(policy.maxVisitedNodes, 0)
     }
 

@@ -43,7 +43,7 @@ public struct HelpView: View {
             VStack(alignment: .leading, spacing: DS.Spacing.xxSmall) {
                 Text("WillyDisk Help")
                     .font(DS.Typography.title2)
-                Text("Scans, results, coverage, and the Trash.")
+                Text("Scans, results, cleanup, coverage, and the Trash.")
                     .font(DS.Typography.callout)
                     .foregroundStyle(DS.Color.secondaryText)
             }
@@ -126,6 +126,16 @@ private extension HelpView {
                 "Click a row to select it, ⌘-click to add or remove one, and Shift-click to extend. The arrow keys move, Shift extends, Home and End jump.",
                 "Space previews the selection with Quick Look, Return opens a folder or a file, and Escape clears the selection.",
                 "Right-click a row, or use the detail pane, to reveal it in Finder or move it to the Trash. A move asks first and refuses the scan root, volume roots, your home folder, and protected system locations. The space returns when the Trash is emptied, not when the item is moved.",
+            ]
+        ),
+        HelpTopic(
+            id: "cleanup",
+            title: "Review cleanup candidates",
+            symbol: "sparkles",
+            paragraphs: [
+                "Cleanup reads the finished scan for large and old files, cache folders, old downloads, and possible duplicates. Looking costs nothing; nothing moves until you confirm.",
+                "A possible duplicate is only a same-size candidate. Check Contents reads the files and compares SHA-256 digests; only matching contents are listed as identical, and cancelling the check confirms nothing.",
+                "Select copies, then Move to Trash…, and the usual confirmation checks every path. The space returns when the Trash is emptied, and moving one hard link frees nothing while another link remains.",
             ]
         ),
         HelpTopic(

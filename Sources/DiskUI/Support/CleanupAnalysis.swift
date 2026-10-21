@@ -59,6 +59,12 @@ public struct CleanupGroup: Identifiable, Equatable, Sendable {
 /// What one pass over a finished scan found, with the limits it ran under.
 public struct CleanupReport: Equatable, Sendable {
     public let groups: [CleanupGroup]
+    /// Same-size files worth checking, largest size first, capped by the policy.
+    /// These are candidates, not duplicates; `DuplicateHasher` is what reads
+    /// their contents.
+    public let duplicateGroups: [DuplicateSizeGroup]
+    /// Every size group with at least two files, including those the cap left out.
+    public let duplicateGroupCount: Int
     /// Nodes actually looked at, so a stopped walk can say how far it got.
     public let visitedCount: Int
     /// True when the walk stopped at the policy's node cap: the report is a
@@ -67,7 +73,11 @@ public struct CleanupReport: Equatable, Sendable {
     public let policy: CleanupPolicy
 
     public var isEmpty: Bool {
-        groups.allSatisfy { $0.candidates.isEmpty }
+        groups.allSatisfy { $0.candidates.isEmpty } && duplicateGroups.isEmpty
+    }
+
+    public var duplicateCandidateCount: Int {
+        duplicateGroups.reduce(0) { $0 + $1.matchCount }
     }
 }
 
@@ -84,6 +94,13 @@ public struct CleanupPolicy: Equatable, Sendable {
     public var downloadAge: TimeInterval
     /// Most candidates kept per section; the report still counts every match.
     public var maxCandidatesPerGroup: Int
+    /// A file must be at least this large to be a duplicate candidate. Same-size
+    /// files below it are not worth the read.
+    public var duplicateMinimum: Int64
+    /// Most same-size groups checked; the largest sizes are kept.
+    public var maxDuplicateGroups: Int
+    /// Most files kept from one same-size group.
+    public var maxDuplicateFilesPerGroup: Int
     /// Most nodes one analysis may look at before it reports a partial picture.
     public var maxVisitedNodes: Int
 
@@ -92,12 +109,18 @@ public struct CleanupPolicy: Equatable, Sendable {
         largeFileAge: TimeInterval = 365 * 24 * 3600,
         downloadAge: TimeInterval = 180 * 24 * 3600,
         maxCandidatesPerGroup: Int = 100,
+        duplicateMinimum: Int64 = 1_000_000,
+        maxDuplicateGroups: Int = 20,
+        maxDuplicateFilesPerGroup: Int = 20,
         maxVisitedNodes: Int = 2_000_000
     ) {
         self.largeFileMinimum = largeFileMinimum
         self.largeFileAge = largeFileAge
         self.downloadAge = downloadAge
         self.maxCandidatesPerGroup = maxCandidatesPerGroup
+        self.duplicateMinimum = duplicateMinimum
+        self.maxDuplicateGroups = maxDuplicateGroups
+        self.maxDuplicateFilesPerGroup = maxDuplicateFilesPerGroup
         self.maxVisitedNodes = maxVisitedNodes
     }
 
@@ -125,6 +148,7 @@ public enum CleanupAnalysis {
         var largeAndOld = BoundedGroup(kind: .largeAndOld, capacity: policy.maxCandidatesPerGroup)
         var caches = BoundedGroup(kind: .caches, capacity: policy.maxCandidatesPerGroup)
         var downloads = BoundedGroup(kind: .downloads, capacity: policy.maxCandidatesPerGroup)
+        var duplicateSizes = DuplicateSizeBuckets(capacity: policy.maxDuplicateFilesPerGroup)
 
         let largeCutoff = now.addingTimeInterval(-policy.largeFileAge)
         let downloadCutoff = now.addingTimeInterval(-policy.downloadAge)
@@ -162,6 +186,10 @@ public enum CleanupAnalysis {
                 continue
             }
 
+            if node.logicalSize >= policy.duplicateMinimum {
+                duplicateSizes.offer(node)
+            }
+
             if node.logicalSize >= policy.largeFileMinimum,
                let modified = node.modifiedAt,
                modified <= largeCutoff {
@@ -175,8 +203,11 @@ public enum CleanupAnalysis {
             }
         }
 
+        let duplicates = duplicateSizes.finish(maxGroups: policy.maxDuplicateGroups)
         return CleanupReport(
             groups: [largeAndOld.finish(), caches.finish(), downloads.finish()],
+            duplicateGroups: duplicates.groups,
+            duplicateGroupCount: duplicates.totalGroupCount,
             visitedCount: visited,
             stoppedAtLimit: stoppedAtLimit,
             policy: policy
@@ -250,6 +281,92 @@ public enum CleanupAnalysis {
                     ? lhs.url.path < rhs.url.path
                     : lhs.logicalSize > rhs.logicalSize
             }
+            if kept.count > capacity {
+                kept.removeLast(kept.count - capacity)
+            }
+        }
+    }
+
+    /// Collects files by size without keeping every file in memory.
+    ///
+    /// A size seen once is held as a single node; a second file moves it into a
+    /// bounded group. A size that never repeats is dropped when the walk ends.
+    private struct DuplicateSizeBuckets {
+        let capacity: Int
+        private var firstBySize: [Int64: ScanNode] = [:]
+        private var groups: [Int64: BoundedDuplicateGroup] = [:]
+
+        init(capacity: Int) {
+            self.capacity = max(2, capacity)
+        }
+
+        mutating func offer(_ node: ScanNode) {
+            let size = max(0, node.logicalSize)
+            if var group = groups[size] {
+                group.offer(node)
+                groups[size] = group
+            } else if let first = firstBySize.removeValue(forKey: size) {
+                var group = BoundedDuplicateGroup(logicalSize: size, capacity: capacity)
+                group.offer(first)
+                group.offer(node)
+                groups[size] = group
+            } else {
+                firstBySize[size] = node
+            }
+        }
+
+        func finish(maxGroups: Int) -> (groups: [DuplicateSizeGroup], totalGroupCount: Int) {
+            let totalGroupCount = groups.count
+            var finished = groups.values.map { $0.finish() }
+            finished.sort { lhs, rhs in
+                lhs.logicalSize == rhs.logicalSize
+                    ? lhs.matchCount > rhs.matchCount
+                    : lhs.logicalSize > rhs.logicalSize
+            }
+            let capacity = max(0, maxGroups)
+            if finished.count > capacity {
+                finished.removeLast(finished.count - capacity)
+            }
+            return (finished, totalGroupCount)
+        }
+    }
+
+    /// One size's files, counting every match while keeping the first `capacity`
+    /// paths. All files have the same size, so path order is a stable cut.
+    private struct BoundedDuplicateGroup {
+        let logicalSize: Int64
+        let capacity: Int
+        private(set) var matchCount = 0
+        private var kept: [ScanNode] = []
+
+        init(logicalSize: Int64, capacity: Int) {
+            self.logicalSize = logicalSize
+            self.capacity = max(2, capacity)
+        }
+
+        mutating func offer(_ node: ScanNode) {
+            matchCount += 1
+            kept.append(node)
+            if kept.count > max(capacity * 2, 16) {
+                trim()
+            }
+        }
+
+        func finish() -> DuplicateSizeGroup {
+            var items = kept
+            items.sort { $0.url.path < $1.url.path }
+            if items.count > capacity {
+                items.removeLast(items.count - capacity)
+            }
+            return DuplicateSizeGroup(
+                logicalSize: logicalSize,
+                candidates: items.map(CleanupCandidate.init),
+                matchCount: matchCount
+            )
+        }
+
+        private mutating func trim() {
+            kept.sort { $0.url.path < $1.url.path }
             if kept.count > capacity {
                 kept.removeLast(kept.count - capacity)
             }

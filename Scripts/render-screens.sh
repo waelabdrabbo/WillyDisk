@@ -14,8 +14,8 @@
 #   -s  render size in points                (default 1000x720)
 #   -a  appearances to render                (default both)
 #   -S  screens to render                    (default results; both is home and
-#       results; help, categories, and cleanup are the sheet contents, and
-#       cleanup scans its own sample tree)
+#       results; categories is the results screen in Categories mode; help and
+#       cleanup are the sheet contents, and cleanup scans its own sample tree)
 #   -t  scan this directory instead of the generated fixture
 #   -T  finished (default), scanning, or stopped — the screen a cancelled scan
 #       leaves behind. scanning and stopped both need a directory large enough

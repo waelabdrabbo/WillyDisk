@@ -31,9 +31,15 @@ public struct ResultsView: View {
     @State private var searchFocusRequest = 0
     @State private var sortOrder: SortOrder = .size
     @State private var filterCategory: FileCategory?
-    /// Which list the explorer shows: the folder in the chart, or the engine's
-    /// largest files and folders across the whole scan.
+    /// Which list the explorer shows: the folder in the chart, the engine's
+    /// largest files and folders, or the scan cut by file category.
     @State private var explorerMode: ExplorerMode = .folder
+    /// The category under the pointer, shared by the ring and the category list
+    /// so hovering either lights the other.
+    @State private var hoveredCategory: FileCategory?
+    /// Set just before leaving the category view, so the mode change can apply
+    /// the filter the chosen category asked for after it has cleared the old one.
+    @State private var pendingCategoryDrill: FileCategory?
     /// Only this many rows are built at first; the list offers Show More at its
     /// foot. This is a rendering budget, not a filter, so selection, search and
     /// the chart still see the whole list.
@@ -75,8 +81,9 @@ public struct ResultsView: View {
     /// for it, never on a later selection the sheet is now about.
     @State private var reclaimRequestID = UUID()
 
-    public init(viewModel: ScanViewModel = ScanViewModel()) {
+    public init(viewModel: ScanViewModel = ScanViewModel(), initialMode: ExplorerMode = .folder) {
         _viewModel = State(initialValue: viewModel)
+        _explorerMode = State(initialValue: initialMode)
     }
 
     // MARK: - Derived data
@@ -133,7 +140,7 @@ public struct ResultsView: View {
     private var topNodes: [ScanNode] {
         guard let summary else { return [] }
         switch explorerMode {
-        case .folder:
+        case .folder, .categories:
             return []
         case .topFiles:
             return summary.largestFiles
@@ -141,6 +148,22 @@ public struct ResultsView: View {
             let rootPath = summary.root.standardizedFileURL.path
             return summary.largestDirectories.filter { $0.url.standardizedFileURL.path != rootPath }
         }
+    }
+
+    /// The scan's bytes by category, for the Categories mode and its ring.
+    private var categoryBreakdown: CategoryBreakdown {
+        guard let summary else {
+            return CategoryBreakdown(categoryBreakdown: [:], totalLogicalSize: 0)
+        }
+        return CategoryBreakdown(summary: summary)
+    }
+
+    /// The category list is a way into the scan: choosing a category narrows the
+    /// explorer to that category's largest files, which is the only list that can
+    /// answer "what is in here" for a scan-wide slice.
+    private func drillIntoCategory(_ category: FileCategory) {
+        pendingCategoryDrill = category
+        explorerMode = .topFiles
     }
 
     /// The folder on screen, resolved against the results being rendered.
@@ -183,7 +206,7 @@ public struct ResultsView: View {
         return rowsCache.rows(for: key) {
             let nodes: [ScanNode]
             switch explorerMode {
-            case .folder:
+            case .folder, .categories:
                 nodes = ExplorerQuery.entries(in: currentChildren, search: searchText,
                                               category: filterCategory, sort: sortOrder)
             case .topFiles, .topFolders:
@@ -313,7 +336,11 @@ public struct ResultsView: View {
             hover.url = nil
             clearSelection()
             searchText = ""
-            filterCategory = nil
+            hoveredCategory = nil
+            // A category chosen in the category list is the one reason to arrive
+            // in a mode with a filter already set; every other move clears it.
+            filterCategory = pendingCategoryDrill
+            pendingCategoryDrill = nil
             // The chart shows a folder; the largest lists are about the whole
             // scan. Returning the chart to the scanned location keeps the map and
             // the list talking about the same thing.
@@ -380,17 +407,6 @@ public struct ResultsView: View {
                 if let summary {
                     CoverageSheet(summary: summary, isLive: viewModel.isScanning)
                 }
-            case .categories:
-                if let summary {
-                    CategoryBreakdownSheet(
-                        breakdown: CategoryBreakdown(summary: summary),
-                        rootName: rootNode(in: summary)?.name ?? summary.root.lastPathComponent,
-                        scannedAt: summary.finishedAt,
-                        selected: filterCategory,
-                        onSelect: { filterCategory = $0 },
-                        onClose: { activeSheet = nil }
-                    )
-                }
             case .cleanup:
                 if let summary, let root = rootNode(in: summary) {
                     CleanupSheet(
@@ -441,14 +457,6 @@ public struct ResultsView: View {
             }
 
             ToolbarItemGroup(placement: .primaryAction) {
-                Button {
-                    showCategories()
-                } label: {
-                    Label("Categories", systemImage: "chart.pie")
-                }
-                .help("How the bytes split by file category")
-                .disabled(summary == nil)
-
                 Button {
                     showCleanup()
                 } label: {
@@ -586,7 +594,15 @@ public struct ResultsView: View {
 
     private var chartPane: some View {
         VStack(spacing: 0) {
-            if currentChildren.isEmpty {
+            if explorerMode == .categories {
+                CategoryRingView(
+                    breakdown: categoryBreakdown,
+                    centerLabel: scannedRootName ?? "This scan",
+                    hovered: $hoveredCategory,
+                    onSelect: drillIntoCategory
+                )
+                .padding(DS.Spacing.medium)
+            } else if currentChildren.isEmpty {
                 emptyChart
             } else {
                 SunburstView(
@@ -623,14 +639,25 @@ public struct ResultsView: View {
         VStack(spacing: 0) {
             compactHeader
             explorerModeBar
-            explorerToolbar
+            if explorerMode == .categories {
+                categoryModeCaption
 
-            contentsList
-                // The list is the flexible band: it gives up height to the
-                // detail pane and the access notice at the inspector's foot.
+                CategoryShareList(
+                    shares: categoryBreakdown.shares,
+                    hovered: $hoveredCategory,
+                    onSelect: drillIntoCategory
+                )
                 .frame(maxHeight: .infinity)
+            } else {
+                explorerToolbar
 
-            if !selectedNodes.isEmpty {
+                contentsList
+                    // The list is the flexible band: it gives up height to the
+                    // detail pane and the access notice at the inspector's foot.
+                    .frame(maxHeight: .infinity)
+            }
+
+            if !selectedNodes.isEmpty && explorerMode != .categories {
                 Rectangle()
                     .fill(DS.Color.rule)
                     .frame(height: DS.Stroke.hairline)
@@ -649,6 +676,19 @@ public struct ResultsView: View {
         // Match the notice's vertical inset so the pane does not read tight at
         // the top while the notice at its foot has breathing room.
         .padding(.top, DS.Spacing.small)
+    }
+
+    /// What the category list is, in one line. The search, sort, and category
+    /// filter controls belong to the node lists and are not shown here: there is
+    /// nothing to search among nine categories, and the filter is the same axis
+    /// as the list.
+    private var categoryModeCaption: some View {
+        Text("Share of this scan's logical size. Choose a category to see its largest files.")
+            .font(DS.Typography.caption)
+            .foregroundStyle(DS.Color.secondaryText)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, DS.Spacing.medium)
+            .padding(.bottom, DS.Spacing.small)
     }
 
     /// The switch between the folder in the chart and the two largest lists.
@@ -879,8 +919,6 @@ public struct ResultsView: View {
                     ForEach(FileCategory.allCases, id: \.self) { category in
                         Button(category.displayName) { filterCategory = category }
                     }
-                    Divider()
-                    Button("Where the Bytes Are…") { showCategories() }
                 } label: {
                     Image(systemName: "line.3.horizontal.decrease.circle")
                 }
@@ -896,7 +934,7 @@ public struct ResultsView: View {
 
     private var searchPrompt: String {
         switch explorerMode {
-        case .folder: "Search"
+        case .folder, .categories: "Search"
         case .topFiles: "Search top files"
         case .topFolders: "Search top folders"
         }
@@ -1262,8 +1300,6 @@ public struct ResultsView: View {
             exportCSV: { exportCSV() },
             canShowCoverage: summary != nil,
             showCoverage: { showCoverage() },
-            canShowCategories: summary != nil,
-            showCategories: { showCategories() },
             canShowCleanup: summary != nil && !viewModel.isScanning,
             showCleanup: { showCleanup() },
             focusSearch: { searchFocusRequest += 1 }
@@ -1272,11 +1308,6 @@ public struct ResultsView: View {
 
     private func showCoverage() {
         activeSheet = .coverage
-    }
-
-    private func showCategories() {
-        guard summary != nil else { return }
-        activeSheet = .categories
     }
 
     private func showCleanup() {
@@ -1816,25 +1847,30 @@ private struct RowHeightReader: ViewModifier {
 private enum ResultsSheet: String, Identifiable {
     case reclaim
     case coverage
-    case categories
     case cleanup
 
     var id: String { rawValue }
 }
 
 /// Which list the explorer is showing.
-private enum ExplorerMode: String, CaseIterable, Identifiable {
+///
+/// `categories` is the odd one out by design: the other three list nodes, while it
+/// lists the scan's own category tallies and has no rows to select. It is public
+/// so the app and the offscreen renderer can open the results in it.
+public enum ExplorerMode: String, CaseIterable, Identifiable {
     case folder
     case topFiles
     case topFolders
+    case categories
 
-    var id: String { rawValue }
+    public var id: String { rawValue }
 
     var label: String {
         switch self {
         case .folder: "This Folder"
         case .topFiles: "Top Files"
         case .topFolders: "Top Folders"
+        case .categories: "Categories"
         }
     }
 }

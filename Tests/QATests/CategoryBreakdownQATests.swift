@@ -113,6 +113,45 @@ final class CategoryBreakdownQATests: XCTestCase {
         XCTAssertEqual(all.map(\.url), [images.url, document.url])
     }
 
+    // MARK: - Category ring
+
+    func testRingSegmentsAreProportionalAndContiguous() {
+        let shares = [
+            CategoryShare(category: .images, logicalSize: 50, share: 0.5),
+            CategoryShare(category: .video, logicalSize: 30, share: 0.3),
+            CategoryShare(category: .code, logicalSize: 20, share: 0.2),
+        ]
+
+        let segments = CategoryRingLayout.segments(from: shares)
+
+        XCTAssertEqual(segments.map(\.category), [.images, .video, .code])
+        XCTAssertEqual(segments[0].start, 0, accuracy: 0.0001)
+        XCTAssertEqual(segments[0].span, .pi, accuracy: 0.0001)
+        XCTAssertEqual(segments[1].start, segments[0].end, accuracy: 0.0001)
+        XCTAssertEqual(segments[2].end, 2 * .pi, accuracy: 0.0001)
+    }
+
+    func testRingDoesNotStretchAnIncompleteBreakdownToAFullCircle() throws {
+        let shares = [
+            CategoryShare(category: .images, logicalSize: 50, share: 0.5),
+        ]
+
+        let segments = CategoryRingLayout.segments(from: shares)
+        let end = try XCTUnwrap(segments.first).end
+        XCTAssertEqual(end, .pi, accuracy: 0.0001,
+                       "half the bytes must draw half a ring, not a whole one")
+    }
+
+    func testRingSkipsAnEmptySlice() {
+        let shares = [
+            CategoryShare(category: .images, logicalSize: 50, share: 0.5),
+            CategoryShare(category: .video, logicalSize: 0, share: 0),
+            CategoryShare(category: .code, logicalSize: 50, share: 0.5),
+        ]
+
+        XCTAssertEqual(CategoryRingLayout.segments(from: shares).map(\.category), [.images, .code])
+    }
+
     private func makeNode(
         _ path: String,
         size: Int64,

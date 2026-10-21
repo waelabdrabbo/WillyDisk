@@ -13,9 +13,9 @@ stream reports.
   `ResultsView` is screen C and also the live in-progress state; `HelpView` is the
   help sheet's content. Scanning is not a separate screen.
 - `Components/` — `SunburstView` (the disk chart: wedges drawn in one static layer,
-  with the hover emphasis painted over them), `CategoryBreakdownSheet` (bytes by
-  category, and the category filter), `CleanupSheet` (candidates that go to the
-  reclaim confirmation), `AccessNoticeRow`, `FlowLayout`.
+  with the hover emphasis painted over them), `CategoryRingView` (the scan by
+  category, one ring, and the matching explorer list), `CleanupSheet` (candidates
+  that go to the reclaim confirmation), `AccessNoticeRow`, `FlowLayout`.
 - `DesignSystem/` — `DesignSystem.swift` holds every token (`DS`), `ChartPalette.swift`
   the chart fills, `FileCategory+UI.swift` the category symbols and labels,
   `AppAppearance.swift` the stored system/light/dark preference behind the first
@@ -58,13 +58,13 @@ Screen Recording permission:
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -o .build/renders/<change>
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S home -o .build/renders/<change>
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S help -c -o .build/renders/<change>
-WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S categories -c -o .build/renders/<change>
+WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S categories -o .build/renders/<change>
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S cleanup -c -o .build/renders/<change>
 ```
 
-`-S` picks the screen: `results` (default), `home` (source selection), `help`,
-`categories`, `cleanup` (the sheets' contents; cleanup scans a sample tree of its own),
-or `both` (home and results).
+`-S` picks the screen: `results` (default), `home` (source selection), `categories`
+(the results screen in Categories mode), `help` and `cleanup` (the sheets' contents;
+cleanup scans a sample tree of its own), or `both` (home and results).
 
 The `-o` matters: renders are named after their size and appearance, so reusing a
 directory reuses the path, and a viewer that already loaded it keeps showing the cached

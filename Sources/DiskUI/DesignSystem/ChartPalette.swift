@@ -82,6 +82,25 @@ enum ChartPalette {
         )
     }
 
+    /// The fill for one slice of the category ring.
+    ///
+    /// The category view has no depth to colour by, so the single hue is stepped
+    /// across the ring instead: the largest slice is the darkest in the light
+    /// appearance and the brightest in the dark one, and every neighbour sits a
+    /// step apart. That keeps the one-material rule — no second colour family —
+    /// while letting five slices read as five.
+    static func categoryColor(index: Int, count: Int) -> Color {
+        let slices = max(count, 1)
+        let last = max(slices - 1, 1)
+        let position = slices == 1 ? 0 : Double(min(max(index, 0), slices - 1)) / Double(last)
+        return dynamic(
+            lightSaturation: 0.20 - 0.06 * position,
+            lightBrightness: 0.40 + 0.42 * position,
+            darkSaturation: 0.16 - 0.04 * position,
+            darkBrightness: 0.88 - 0.40 * position
+        )
+    }
+
     // MARK: - Internals
 
     /// A sibling's position in the three-tone cycle, by path rank.

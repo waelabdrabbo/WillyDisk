@@ -108,8 +108,9 @@ func parse(_ arguments: [String]) -> Options {
               --size       render size in points (default 1000x720)
               --appearance which appearances to render (default both)
               --screen     which screens to render (default results); both is
-                           home and results, help, categories, and cleanup are
-                           the sheets' contents (cleanup uses its own fixture)
+                           home and results, categories is the results screen in
+                           Categories mode, help and cleanup are the sheets'
+                           contents (cleanup uses its own fixture)
               --fixture    scan this directory instead of the generated fixture
               --state      finished (default) or scanning, which captures the
                            screen while the scan is still running
@@ -286,16 +287,7 @@ func render(_ options: Options) {
                 case .home: SourceSelectionView(viewModel: viewModel)
                 case .help: HelpView()
                 case .categories:
-                    if let summary = viewModel.summary {
-                        CategoryBreakdownSheet(
-                            breakdown: CategoryBreakdown(summary: summary),
-                            rootName: summary.root.lastPathComponent,
-                            scannedAt: summary.finishedAt,
-                            selected: nil,
-                            onSelect: { _ in },
-                            onClose: {}
-                        )
-                    }
+                    ResultsView(viewModel: viewModel, initialMode: .categories)
                 case .cleanup:
                     if let summary = viewModel.summary, let root = rootNode(in: summary) {
                         CleanupSheet(

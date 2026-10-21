@@ -56,7 +56,7 @@ jobs:
           set -euo pipefail
           bash Scripts/render-screens.sh -a both -S both -o .build/renders/ci
           bash Scripts/render-screens.sh -a both -S help -c -o .build/renders/ci
-          bash Scripts/render-screens.sh -a both -S categories -c -o .build/renders/ci
+          bash Scripts/render-screens.sh -a both -S categories -o .build/renders/ci
           bash Scripts/render-screens.sh -a both -S cleanup -c -o .build/renders/ci
 
       - name: Upload renders

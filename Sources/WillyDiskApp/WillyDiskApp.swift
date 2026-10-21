@@ -77,11 +77,6 @@ private struct WillyDiskCommands: Commands {
             }
             .disabled(!(resultsCommands?.canShowCoverage ?? false))
 
-            Button("Categories…") {
-                resultsCommands?.showCategories()
-            }
-            .disabled(!(resultsCommands?.canShowCategories ?? false))
-
             Button("Cleanup…") {
                 resultsCommands?.showCleanup()
             }

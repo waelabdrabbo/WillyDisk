@@ -146,6 +146,13 @@ test, bundle, launch, offscreen capture, and the SDK-stamp trap). It is offered 
 skill and its body loads only when you invoke it, so it costs nothing until then. Put
 new repeatable procedures there rather than growing this file.
 
+## Commits
+
+Never commit on your own initiative. Run `git commit` only when the current request
+explicitly asks for a commit; a finished change, green `swift build` / `swift test`, or a
+clean-looking tree is not permission. Leave the work in the working tree, report what
+changed, and wait.
+
 ## Comment rule (non-negotiable)
 
 Comments are evergreen explanations of current intent and behavior.

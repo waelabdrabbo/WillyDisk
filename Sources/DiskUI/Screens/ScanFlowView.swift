@@ -31,7 +31,6 @@ public struct ScanFlowView: View {
             }
             screen
         }
-        .animation(reduceMotion ? nil : .snappy, value: viewModel.route)
         .animation(reduceMotion ? nil : .snappy, value: viewModel.blockedStartNotice)
         .focusedSceneValue(\.scanCommands, ScanCommands(
             canCancel: viewModel.isScanning,

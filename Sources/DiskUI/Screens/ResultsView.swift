@@ -170,6 +170,8 @@ public struct ResultsView: View {
         }
         clearSelection()
         hoveredCategory = nil
+        // A category opens on its first page, like a folder entered from the chart.
+        visibleItemLimit = DS.Size.explorerPageSize
         drilledCategory = category
         loadFiles(of: category)
     }
@@ -246,8 +248,8 @@ public struct ResultsView: View {
     /// while they hold. Hovering or selecting a row changes none of those inputs,
     /// so it never re-derives the list.
     private var visibleRows: [ExplorerRow] {
-        // The category detail is a short, uncapped list of the files the walk
-        // returned, so it is built directly rather than through the folder cache.
+        // The category detail is the bounded list of the files the walk returned,
+        // so it is built directly rather than through the folder cache.
         if explorerMode == .categories {
             return (categoryFiles?.files ?? []).map {
                 ExplorerRow(node: $0, showsLocation: true)
@@ -315,17 +317,14 @@ public struct ResultsView: View {
     private var rowOrder: [URL] { visibleRows.map(\.url) }
 
     private var displayedRows: [ExplorerRow] {
-        explorerMode == .categories ? visibleRows : Array(visibleRows.prefix(visibleItemLimit))
+        Array(visibleRows.prefix(visibleItemLimit))
     }
 
     private var displayedRowOrder: [URL] { displayedRows.map(\.url) }
     private var hasMoreRows: Bool {
-        explorerMode != .categories && visibleRows.count > visibleItemLimit
+        visibleRows.count > visibleItemLimit
     }
 
-    /// The explorer paints part of the chart's density. A page of 15 items
-    /// should show those 15 children in the chart rather than 12 plus a remainder;
-    /// Show More therefore spends more chart slots, within the chart's ceiling.
     /// Where the spindle hole leads: up one folder, or back to all categories.
     private var chartCenterAction: (() -> Void)? {
         if explorerMode == .categories {
@@ -342,14 +341,13 @@ public struct ResultsView: View {
             : "Go up to \(breadcrumb[breadcrumb.count - 2].name)"
     }
 
+    /// The explorer's page is also the chart's density: a page of 15 items shows
+    /// those 15 children in the chart rather than 12 plus a remainder, and Show
+    /// More therefore spends more chart slots, within the chart's ceiling.
     private var chartChildLimit: Int {
         switch explorerMode {
-        case .folder:
+        case .folder, .categories:
             return min(max(visibleItemLimit, DS.Sunburst.maxChildrenPerNode), DS.Sunburst.maxSegments)
-        case .categories:
-            // The listed files are the category's node, so every one of them gets
-            // a wedge rather than an aggregate for the tail.
-            return min(categoryFiles?.files.count ?? 0, DS.Sunburst.maxSegments)
         case .topFiles, .topFolders:
             return DS.Sunburst.maxChildrenPerNode
         }

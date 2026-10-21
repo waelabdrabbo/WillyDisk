@@ -913,20 +913,43 @@ public struct ResultsView: View {
                 .accessibilityLabel("Sort")
                 .accessibilityValue(sortOrder.label)
 
-                Menu {
-                    Button("All Categories") { filterCategory = nil }
-                    Divider()
-                    ForEach(FileCategory.allCases, id: \.self) { category in
-                        Button(category.displayName) { filterCategory = category }
+                // A category filter is set only by drilling from the Categories
+                // mode, so it is an indication, not a menu: the chip names the
+                // category the list is narrowed to and clears it. Switching modes
+                // clears it too.
+                if let category = filterCategory {
+                    Button {
+                        filterCategory = nil
+                    } label: {
+                        HStack(spacing: DS.Spacing.xSmall) {
+                            Image(systemName: category.symbolName)
+                                .font(DS.Icon.detail)
+                                .foregroundStyle(DS.Color.accent)
+                            Text(category.displayName)
+                                .font(DS.Typography.caption)
+                                .foregroundStyle(DS.Color.primaryText)
+                            Image(systemName: "xmark.circle.fill")
+                                .font(DS.Icon.detail)
+                                .foregroundStyle(DS.Color.secondaryText)
+                        }
+                        .padding(.horizontal, DS.Spacing.small)
+                        .padding(.vertical, DS.Spacing.xSmall)
+                        .background {
+                            Capsule().fill(DS.Color.accent.opacity(DS.Opacity.rowHover))
+                        }
+                        .overlay {
+                            Capsule().strokeBorder(DS.Color.accent.opacity(0.35),
+                                                   lineWidth: DS.Stroke.hairline)
+                        }
+                        .contentShape(Capsule())
                     }
-                } label: {
-                    Image(systemName: "line.3.horizontal.decrease.circle")
+                    .buttonStyle(.plain)
+                    .fixedSize()
+                    .frame(minHeight: DS.Size.iconButton)
+                    .help("Showing only \(category.displayName). Click to show all categories.")
+                    .accessibilityLabel("Category filter: \(category.displayName)")
+                    .accessibilityHint("Clears the category filter")
                 }
-                .menuStyle(.borderlessButton)
-                .fixedSize()
-                .help("Filter by category")
-                .accessibilityLabel("Filter by category")
-                .accessibilityValue(filterCategory?.displayName ?? "All categories")
             }
         }
         .padding(DS.Spacing.small)

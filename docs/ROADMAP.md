@@ -77,7 +77,9 @@ Details worth remembering:
   bytes, and hard links count once per link. Shares are of the scan's own total, never of
   the categorised subset, and a share rounds to “<1%” rather than 0% or to “99%” rather
   than 100%. Choosing a slice or a row switches to Top Files filtered to that category;
-  the filter applies in the ranked lists as well.
+  the filter applies in the ranked lists as well. There is no category menu: the only
+  filter is the one a drill sets, shown as a chip that clears it, and changing modes
+  clears it too.
 - Cleanup candidates come from the finished tree the summary already carries, never
   from a second filesystem pass. `CleanupPolicy` states the thresholds (500 MB and a
   year for large-and-old, six months for downloads), keeps at most 100 per section, and

@@ -10,19 +10,21 @@ decisions. This is a handoff document, not a specification of frozen interfaces 
   request exclusions (`c53d8b5`), the engraved-platter identity and macOS alignment
   (`17a7e29`, `794cd6a`), the results and Home polish through `fdbc450`, the
   install-trust work at `d7155dc`, the packaged circular mark at `55f5032`, the
-  cleanup candidates at `9a69a3b`, the Categories mode at `71bae92`, and the
-  Settings work at `607ef77`; this docs handoff follows it. Working tree clean.
+  cleanup candidates at `9a69a3b`, the Categories mode at `71bae92`, the
+  Settings work at `607ef77`, and the duplicate content check at `3603321`; this docs
+  handoff follows it. Working tree clean.
 - Build: `swift build --disable-sandbox`.
-- Tests: 151 QATests + 51 DiskCoreTests, 0 failures, 1 skipped
+- Tests: 162 QATests + 51 DiskCoreTests, 0 failures, 1 skipped
   (`ScanBenchmarkTests` needs `WILLYDISK_BENCH_ROOT`).
 - CI: `.github/workflows/ci.yml` builds, tests, checks that the bundle reports
   `VERSION`, and uploads the offscreen renders on every push.
 - The app is a working single-window analyzer: choose a volume, folder, or quick
   preset, watch a progressive scan, read the sunburst and explorer, inspect
-  coverage, see where the bytes sit by file category, review large/old/cache
-  candidates before trashing them, select rows with the mouse or keyboard, preview
-  them with Quick Look, move items to the Trash behind a guard and confirmation,
-  change the scan defaults and excluded paths in Settings, and read About or Help.
+  coverage, see where the bytes sit by file category, review large/old/cache candidates,
+  check possible duplicates by their contents before trashing them, select rows with
+  the mouse or keyboard, preview them with Quick Look, move items to the Trash behind a
+  guard and confirmation, change the scan defaults and excluded paths in Settings, and
+  read About or Help.
 
 ## Shipped — do not rebuild
 
@@ -37,6 +39,7 @@ decisions. This is a handoff document, not a specification of frozen interfaces 
 | Settings for scan defaults and excluded paths | `607ef77` |
 | Version from `VERSION`, About panel, in-app Help, CI | `d7155dc` |
 | Category breakdown (Categories mode and its category detail), cleanup candidates through reclaim | `9a69a3b`, `71bae92`, `6266abc`, `031dbda` |
+| Duplicate candidates with an explicit SHA-256 content check | `3603321` |
 
 Details worth remembering:
 
@@ -101,6 +104,14 @@ Details worth remembering:
   Caches are recognised by path (`Library/Caches`, Xcode `DerivedData`), offered as one
   folder with the subtree left unwalked, and the scan root is never suggested. Every
   move goes through the reclaim confirmation; the analysis itself deletes nothing.
+- Duplicate candidates are same-size files of at least 1 MB, capped to the largest 20
+  size groups and 20 files per group; every match is counted and a truncated group says
+  so. A size match is not a duplicate: Check Contents streams SHA-256 digests off the
+  main actor with byte progress and cancel, and only matching contents are listed. A
+  cancelled check confirms nothing, unreadable files are counted rather than called
+  identical, and the sheet claims no saving. Moving a copy goes through the reclaim
+  confirmation; hard links remain separate paths and moving one frees nothing until the
+  other links are gone.
 - Explorer selection is held as URLs, not node values, so a live snapshot can replace
   the nodes underneath it. Entering a folder, changing mode, a breadcrumb jump,
   Rescan, and Home clear it; search and filtering do not. Each scan revision prunes
@@ -147,8 +158,9 @@ CI runs the build, the suite, the bundle version check, and all five renders on 
 Help, Settings, and cleanup are sheets or a preferences window, so `-S` captures their
 content. Settings renders with its own non-default sample options and two exclusions, so
 the switches and the list are both reviewable; cleanup uses its own sample tree (sparse
-files with set ages), so its render shows real candidates without a second filesystem
-pass. For any sheet without a screen state, the working practice is a temporary
+files with set ages, two identical copies, and one same-size different file), so its
+render shows real candidates and a completed duplicate check. For any sheet without a
+screen state, the working practice is a temporary
 `@MainActor` QA test that hosts the view in `NSHostingView`, renders it with
 `cacheDisplay`, writes a PNG under `.build/renders/`, and is deleted before commit. Do
 not ship a renderer hook for a one-off visual check.
@@ -188,23 +200,7 @@ result drill to its folder.
 Acceptance: searching a deep path finds it; results are bounded and say so; typing
 does not block the main actor; clearing restores the previous scope.
 
-### 4. Duplicate candidates
-
-The cleanup sheet covers large-and-old files, caches, and stale downloads. Duplicates
-are still missing, and need the most care: same-size files are candidates, not
-duplicates, until their contents are read.
-
-- Pre-filter by size (at least 1 MB, at least two files), with bounded groups.
-- Make “Check contents” an explicit action that streams SHA-256 hashes off the main
-  actor, with progress and cancel.
-- Call a group identical only after the hashes match; never claim a saving, and route
-  every move through the reclaim confirmation.
-
-Acceptance: same-size different-content files are never called duplicates; a cancelled
-hash run confirms nothing; every suggested move is a real path the reclaim guard still
-checks.
-
-### 5. Diagnostics, performance, and polish
+### 4. Diagnostics, performance, and polish
 
 - Export a diagnostics bundle (scan settings, timing, issue counts, version) with no
   user file contents.

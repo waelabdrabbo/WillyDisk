@@ -327,8 +327,16 @@ public struct ResultsView: View {
     /// should show those 15 children in the chart rather than 12 plus a remainder;
     /// Show More therefore spends more chart slots, within the chart's ceiling.
     private var chartChildLimit: Int {
-        guard explorerMode == .folder else { return DS.Sunburst.maxChildrenPerNode }
-        return min(max(visibleItemLimit, DS.Sunburst.maxChildrenPerNode), DS.Sunburst.maxSegments)
+        switch explorerMode {
+        case .folder:
+            return min(max(visibleItemLimit, DS.Sunburst.maxChildrenPerNode), DS.Sunburst.maxSegments)
+        case .categories:
+            // The listed files are the category's node, so every one of them gets
+            // a wedge rather than an aggregate for the tail.
+            return min(categoryFiles?.files.count ?? 0, DS.Sunburst.maxSegments)
+        case .topFiles, .topFolders:
+            return DS.Sunburst.maxChildrenPerNode
+        }
     }
     private var remainingRowCount: Int { max(visibleRows.count - visibleItemLimit, 0) }
 
@@ -675,14 +683,34 @@ public struct ResultsView: View {
     private var chartPane: some View {
         VStack(spacing: 0) {
             if explorerMode == .categories {
-                CategoryRingView(
-                    breakdown: categoryBreakdown,
-                    centerLabel: scannedRootName ?? "This scan",
-                    selected: drilledCategory,
-                    hovered: $hoveredCategory,
-                    onSelect: selectCategory
-                )
-                .padding(DS.Spacing.medium)
+                if let category = drilledCategory, let files = categoryFiles, !files.files.isEmpty {
+                    // The category's node is its files, so the chart is the same
+                    // sunburst the folder view uses: one wedge per listed file,
+                    // hover and selection shared with the rows below.
+                    SunburstView(
+                        nodes: files.files,
+                        centerLabel: category.displayName,
+                        selectedNodeURL: selectedNodes.count == 1 ? selectedNodes[0].url : nil,
+                        maxChildren: chartChildLimit,
+                        hoveredURL: $hover.url
+                    ) { node in
+                        chartSelect(node)
+                    }
+                    .padding(DS.Spacing.medium)
+                } else if let category = drilledCategory, categoryFiles?.files.isEmpty == true {
+                    categoryEmptyChart(category)
+                } else {
+                    // Before the walk lands (or at the top level) the ring is the
+                    // chart: the categories, with the open one outlined.
+                    CategoryRingView(
+                        breakdown: categoryBreakdown,
+                        centerLabel: scannedRootName ?? "This scan",
+                        selected: drilledCategory,
+                        hovered: $hoveredCategory,
+                        onSelect: selectCategory
+                    )
+                    .padding(DS.Spacing.medium)
+                }
             } else if currentChildren.isEmpty {
                 emptyChart
             } else {
@@ -712,6 +740,22 @@ public struct ResultsView: View {
                 .foregroundStyle(DS.Color.secondaryText)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    /// A category with nothing to draw says so in its own words, rather than
+    /// borrowing the folder chart's "nothing big enough" line.
+    private func categoryEmptyChart(_ category: FileCategory) -> some View {
+        VStack(spacing: DS.Spacing.small) {
+            WillyDiskMark(size: 44)
+            Text(isLiveScan
+                 ? "No \(category.displayName) files yet"
+                 : "No \(category.displayName) files to draw")
+                .font(DS.Typography.callout)
+                .foregroundStyle(DS.Color.secondaryText)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .accessibilityElement(children: .combine)
     }
 
     // MARK: - Explorer pane

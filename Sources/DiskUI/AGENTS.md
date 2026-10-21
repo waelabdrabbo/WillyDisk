@@ -14,7 +14,7 @@ stream reports.
   help sheet's content. Scanning is not a separate screen.
 - `Components/` — `SunburstView` (the disk chart: wedges drawn in one static layer,
   with the hover emphasis painted over them), `CategoryRingView` (the scan by
-  category, one ring, and the matching explorer list), `CleanupSheet` (candidates
+  category, one ring; opening a category charts its files with `SunburstView`), `CleanupSheet` (candidates
   that go to the reclaim confirmation), `AccessNoticeRow`, `FlowLayout`.
 - `DesignSystem/` — `DesignSystem.swift` holds every token (`DS`), `ChartPalette.swift`
   the chart fills, `FileCategory+UI.swift` the category symbols and labels,

@@ -11,8 +11,8 @@ decisions. This is a handoff document, not a specification of frozen interfaces 
   (`17a7e29`, `794cd6a`), the results and Home polish through `fdbc450`, the
   install-trust work at `d7155dc`, the packaged circular mark at `55f5032`, the
   cleanup candidates at `9a69a3b`, the Categories mode at `71bae92`, the
-  Settings work at `607ef77`, and the duplicate content check at `3603321`; this docs
-  handoff follows it. Working tree clean.
+  Settings work at `607ef77`, and the duplicate content check at `3603321` with its own
+  tab at `1ed5184`; this docs handoff follows it. Working tree clean.
 - Build: `swift build --disable-sandbox`.
 - Tests: 162 QATests + 51 DiskCoreTests, 0 failures, 1 skipped
   (`ScanBenchmarkTests` needs `WILLYDISK_BENCH_ROOT`).
@@ -39,7 +39,7 @@ decisions. This is a handoff document, not a specification of frozen interfaces 
 | Settings for scan defaults and excluded paths | `607ef77` |
 | Version from `VERSION`, About panel, in-app Help, CI | `d7155dc` |
 | Category breakdown (Categories mode and its category detail), cleanup candidates through reclaim | `9a69a3b`, `71bae92`, `6266abc`, `031dbda` |
-| Duplicate candidates with an explicit SHA-256 content check | `3603321` |
+| Duplicate candidates with an explicit SHA-256 content check, and their own tab | `3603321`, `1ed5184` |
 
 Details worth remembering:
 
@@ -104,10 +104,12 @@ Details worth remembering:
   Caches are recognised by path (`Library/Caches`, Xcode `DerivedData`), offered as one
   folder with the subtree left unwalked, and the scan root is never suggested. Every
   move goes through the reclaim confirmation; the analysis itself deletes nothing.
-- Duplicate candidates are same-size files of at least 1 MB, capped to the largest 20
-  size groups and 20 files per group; every match is counted and a truncated group says
-  so. A size match is not a duplicate: Check Contents streams SHA-256 digests off the
-  main actor with byte progress and cancel, and only matching contents are listed. A
+- The cleanup sheet has two tabs: Old for large-and-old, cache, and old-download
+  candidates, and Duplicates. It opens on Old, or on Duplicates when Old has nothing to
+  show. Duplicate candidates are same-size files of at least 1 MB, capped to the largest
+  20 size groups and 20 files per group; every match is counted and a truncated group
+  says so. A size match is not a duplicate: Check Contents streams SHA-256 digests off
+  the main actor with byte progress and cancel, and only matching contents are listed. A
   cancelled check confirms nothing, unreadable files are counted rather than called
   identical, and the sheet claims no saving. Moving a copy goes through the reclaim
   confirmation; hard links remain separate paths and moving one frees nothing until the
@@ -150,17 +152,19 @@ WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S categories -o .
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S help -c -o .build/renders/check
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S settings -c -s 460x760 -o .build/renders/check
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S cleanup -c -o .build/renders/check
+WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S duplicates -c -o .build/renders/check
 ```
 
-CI runs the build, the suite, the bundle version check, and all five renders on every push.
+CI runs the build, the suite, the bundle version check, and all six renders on every push.
 
 `-S categories` renders the real results screen in Categories mode, window and all.
-Help, Settings, and cleanup are sheets or a preferences window, so `-S` captures their
-content. Settings renders with its own non-default sample options and two exclusions, so
-the switches and the list are both reviewable; cleanup uses its own sample tree (sparse
-files with set ages, two identical copies, and one same-size different file), so its
-render shows real candidates and a completed duplicate check. For any sheet without a
-screen state, the working practice is a temporary
+Help, Settings, and the cleanup sheet are sheets or a preferences window, so `-S`
+captures their content. Settings renders with its own non-default sample options and two
+exclusions, so the switches and the list are both reviewable; cleanup and duplicates are
+the cleanup sheet's two tabs. They use one sample tree (sparse files with set ages, two
+identical copies, and one same-size different file), so the Old render shows the other
+sections and the Duplicates render shows a completed content check. For any sheet without
+a screen state, the working practice is a temporary
 `@MainActor` QA test that hosts the view in `NSHostingView`, renders it with
 `cacheDisplay`, writes a PNG under `.build/renders/`, and is deleted before commit. Do
 not ship a renderer hook for a one-off visual check.

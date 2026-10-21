@@ -253,16 +253,18 @@ public struct SunburstView: View {
         if let onCenterTap {
             Button(action: onCenterTap) {
                 disc
+                    // The disc lifts a little as the pointer arrives, so the
+                    // spindle reads as the control it is before it is clicked.
+                    .scaleEffect(centerHovered ? 1.04 : 1)
             }
             .buttonStyle(.plain)
             .onHover { centerHovered = $0 }
             .overlay {
-                if centerHovered {
-                    Circle()
-                        .strokeBorder(DS.Color.accent.opacity(0.8),
-                                      lineWidth: DS.Stroke.emphasis)
-                }
+                Circle()
+                    .strokeBorder(DS.Color.accent.opacity(centerHovered ? 0.9 : 0),
+                                  lineWidth: DS.Stroke.emphasis)
             }
+            .animation(reduceMotion ? nil : .snappy(duration: 0.16), value: centerHovered)
             .help(centerHint)
             .accessibilityLabel("\(title), \(detail)")
             .accessibilityHint(centerHint)

@@ -39,6 +39,9 @@ stream reports.
   and the chart share is `ChartHover` in `Screens/ResultsView.swift`, so a hover
   re-renders the list and the chart and leaves the rest of the screen alone.
 - Light and dark must both be polished; controls stay keyboard-accessible.
+- The chart shows a pointing hand over anything a click acts on — wedge, file or the
+  spindle hole when it can go up — and the arrow over gaps, the aggregate wedge and the
+  empty platter. The cursor lives in the chart's continuous hover, not in each wedge.
 - Liquid Glass is an enhancement only: gate macOS 26 APIs behind
   `if #available(macOS 26.0, *)`. Never call a newer API unguarded.
 - `.partial` snapshots are advisory — the engine may throttle or omit them — and are

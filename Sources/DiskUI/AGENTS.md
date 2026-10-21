@@ -16,6 +16,7 @@ stream reports.
 - `Components/` — `SunburstView` (the disk chart: wedges drawn in one static layer,
   with the hover emphasis painted over them), `CategoryRingView` (the scan by
   category, one ring; opening a category charts its files with `SunburstView`),
+  `WedgeEmphasis` (the one hover/selection overlay both charts paint),
   `CleanupSheet` (large/old, cache, download, and duplicate candidates that go to the
   reclaim confirmation), `AccessNoticeRow`, `FlowLayout`, `ScanOptionToggle` (one scan
   option, shared by the source screen's sheet and Settings), `ControlStyles` (the

@@ -154,12 +154,16 @@ public struct SunburstView: View {
             // fade needs something to fade towards, but a selection draws its
             // outline whether or not anything is hovered.
             if active != nil || selected != nil {
-                SunburstEmphasis(active: active,
-                                 trail: active.map { lineage(of: $0, in: segments) } ?? [],
-                                 selected: selected,
-                                 geometry: geometry,
-                                 side: side,
-                                 animates: !reduceMotion)
+                WedgeEmphasis(
+                    active: active.map { emphasisWedge($0, in: geometry) },
+                    trail: active.map {
+                        lineage(of: $0, in: segments).map { emphasisWedge($0, in: geometry) }
+                    } ?? [],
+                    selected: selected.map { emphasisWedge($0, in: geometry) },
+                    side: side,
+                    animates: !reduceMotion,
+                    activeID: active?.id
+                )
             }
             centerDisc(radius: geometry.innerRadius, center: geometry.center, active: active)
         }
@@ -201,6 +205,11 @@ public struct SunburstView: View {
         segments
             .filter { $0.ring < segment.ring && $0.start <= segment.start && $0.end >= segment.end }
             .sorted { $0.ring < $1.ring }
+    }
+
+    /// The drawn shape of `segment`, for the emphasis layer.
+    private func emphasisWedge(_ segment: SunburstSegment, in geometry: SunburstGeometry) -> SunburstWedge {
+        geometry.wedge(ring: segment.ring, start: segment.start, end: segment.end)
     }
 
     /// Sets the shared hovered URL only when it actually changes, so sweeping
@@ -567,6 +576,20 @@ struct SunburstGeometry {
         return DS.Sunburst.angularGap(atRadius: (band.inner + band.outer) / 2)
     }
 
+    /// The shape of one wedge on `ring`, spanning `start...end`.
+    func wedge(ring: Int, start: Double, end: Double) -> SunburstWedge {
+        let band = radii(ring: ring)
+        return SunburstWedge(
+            center: center,
+            innerRadius: band.inner,
+            outerRadius: band.outer,
+            startAngle: start,
+            endAngle: end,
+            angularGap: angularGap(ring: ring),
+            radialGap: DS.Sunburst.radialGap
+        )
+    }
+
     /// The wedge a point in the chart's local space falls in, or nil outside the
     /// rings or in a gap between wedges.
     func segmentID(at point: CGPoint, in segments: [SunburstSegment]) -> String? {
@@ -645,7 +668,7 @@ struct SunburstWedge: Shape, Equatable {
 ///
 /// Nothing here depends on where the pointer or the keyboard is: the wedges a
 /// hover fades and the outline it draws are painted over this layer by
-/// `SunburstEmphasis`, so a pointer sweep never re-makes the picture.
+/// `WedgeEmphasis`, so a pointer sweep never re-makes the picture.
 ///
 /// Its comparison is by `revision` and `side` rather than by the segments
 /// themselves: `revision` is bumped whenever the rings are rebuilt, and comparing
@@ -702,105 +725,12 @@ private struct SunburstWedgeLayer: View, Equatable {
     }
 
     private func wedgeShape(for segment: SunburstSegment) -> SunburstWedge {
-        SunburstWedge(
-            center: geometry.center,
-            innerRadius: geometry.radii(ring: segment.ring).inner,
-            outerRadius: geometry.radii(ring: segment.ring).outer,
-            startAngle: segment.start,
-            endAngle: segment.end,
-            angularGap: geometry.angularGap(ring: segment.ring),
-            radialGap: DS.Sunburst.radialGap
-        )
+        geometry.wedge(ring: segment.ring, start: segment.start, end: segment.end)
     }
 
     private func fillOpacity(for segment: SunburstSegment) -> Double {
         let isSelected = segment.node.map { $0.url == selectedURL } ?? false
         return isSelected ? DS.Sunburst.selectedFillOpacity : DS.Sunburst.fillOpacity
-    }
-}
-
-// MARK: - Emphasis
-
-/// What the pointer or the keyboard emphasises on the chart.
-///
-/// Every wedge keeps the fill the layer gave it. The active wedge is washed with
-/// signal and outlined at the same weight, and the bands that contain it are
-/// outlined too, so the pointer reads as a path through the tree rather than as
-/// one lit wedge.
-///
-/// The selection is drawn here too, and over the wash, because the wash covers
-/// the fill an outline would sit on. Its tone is deepened with ink and it carries
-/// the heaviest line in the chart, so "what I clicked" survives the pointer moving
-/// on to another wedge.
-private struct SunburstEmphasis: View {
-    let active: SunburstSegment?
-    /// The wedges inside `active` that contain it, innermost first.
-    let trail: [SunburstSegment]
-    /// The wedge the user selected, when the chart draws it.
-    let selected: SunburstSegment?
-    let geometry: SunburstGeometry
-    let side: CGFloat
-    /// False under Reduce Motion, where the emphasis appears at once.
-    let animates: Bool
-
-    var body: some View {
-        ZStack {
-            if let selected {
-                SunburstShade(wedges: [wedge(selected)])
-                    .fill(DS.Color.ink.opacity(DS.Sunburst.selectedOverlayOpacity))
-            }
-            if let active {
-                SunburstShade(wedges: [wedge(active)])
-                    .fill(DS.Color.signal.opacity(DS.Sunburst.hoverShadeOpacity))
-                // Ancestors first: the wedge under the pointer keeps the top line.
-                ForEach(trail) { ancestor in
-                    wedge(ancestor)
-                        .stroke(DS.Color.signal, lineWidth: DS.Sunburst.hoverStrokeWidth)
-                        .opacity(DS.Opacity.hoverAncestor)
-                }
-                wedge(active)
-                    .stroke(DS.Color.signal, lineWidth: DS.Sunburst.hoverStrokeWidth)
-            }
-            if let selected {
-                // The selected wedge carries the heaviest line in the chart.
-                wedge(selected)
-                    .stroke(DS.Color.signal, lineWidth: DS.Sunburst.selectedStrokeWidth)
-            }
-        }
-        .frame(width: side, height: side)
-        .animation(animates ? .easeOut(duration: 0.12) : nil, value: active?.id)
-        // The emphasis is a picture of the pointer, never a target. It covers
-        // only the active wedge; the wedges underneath remain the controls.
-        .allowsHitTesting(false)
-    }
-
-    private func wedge(_ segment: SunburstSegment) -> SunburstWedge {
-        SunburstWedge(
-            center: geometry.center,
-            innerRadius: geometry.radii(ring: segment.ring).inner,
-            outerRadius: geometry.radii(ring: segment.ring).outer,
-            startAngle: segment.start,
-            endAngle: segment.end,
-            angularGap: geometry.angularGap(ring: segment.ring),
-            radialGap: DS.Sunburst.radialGap
-        )
-    }
-}
-
-/// The active wedge, filled as a shape of its own.
-///
-/// The chart is drawn on the platter, so washing one wedge with a translucent
-/// surface deepens that wedge without touching its neighbours or the enamel gaps
-/// between wedges.
-private struct SunburstShade: Shape {
-    var wedges: [SunburstWedge]
-
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        for wedge in wedges {
-            path.addPath(wedge.path(in: rect))
-        }
-        return path
     }
 }
 

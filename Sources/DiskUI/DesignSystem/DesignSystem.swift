@@ -213,6 +213,9 @@ public enum DS {
         /// Outline of the selected wedge, and of the wedge under the pointer.
         public static let selectedStrokeWidth: CGFloat = 2
         public static let hoverStrokeWidth: CGFloat = 1.5
+        /// How long the emphasis takes to move from one wedge to the next. One
+        /// value for both wedge charts, so their hover feels the same.
+        public static let emphasisAnimationDuration: Double = 0.12
         /// The groove trace: the hairline that runs from the spindle to the rim
         /// while a wedge is hovered, and the tangential tick that ends it.
 

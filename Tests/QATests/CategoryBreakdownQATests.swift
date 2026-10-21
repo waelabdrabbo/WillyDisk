@@ -137,6 +137,45 @@ final class CategoryBreakdownQATests: XCTestCase {
         XCTAssertEqual(CategoryRingLayout.segments(from: shares).map(\.category), [.images, .code])
     }
 
+    func testRingHoverNamesTheSliceUnderThePointer() {
+        // Sized so the smallest slice is drawn last: a hover resolved by view
+        // order would report `.audio` for every point on the chart.
+        let shares = [
+            CategoryShare(category: .images, logicalSize: 65, share: 0.65),
+            CategoryShare(category: .video, logicalSize: 25, share: 0.25),
+            CategoryShare(category: .audio, logicalSize: 10, share: 0.10),
+        ]
+        let segments = CategoryRingLayout.segments(from: shares)
+        let geometry = SunburstGeometry(side: 400, ringCount: 1)
+        let band = geometry.radii(ring: 1)
+        let radius = (band.inner + band.outer) / 2
+
+        func point(atAngle angle: Double) -> CGPoint {
+            CGPoint(x: geometry.center.x + sin(angle) * radius,
+                    y: geometry.center.y - cos(angle) * radius)
+        }
+
+        XCTAssertEqual(CategoryRingLayout.category(at: point(atAngle: 0.15 * 2 * .pi),
+                                                   in: geometry, segments: segments), .images)
+        XCTAssertEqual(CategoryRingLayout.category(at: point(atAngle: 0.775 * 2 * .pi),
+                                                   in: geometry, segments: segments), .video)
+        XCTAssertEqual(CategoryRingLayout.category(at: point(atAngle: 0.95 * 2 * .pi),
+                                                   in: geometry, segments: segments), .audio)
+    }
+
+    func testRingHoverStopsAtTheSpindleAndTheRim() {
+        let shares = [
+            CategoryShare(category: .images, logicalSize: 1, share: 1),
+        ]
+        let segments = CategoryRingLayout.segments(from: shares)
+        let geometry = SunburstGeometry(side: 400, ringCount: 1)
+
+        XCTAssertNil(CategoryRingLayout.category(at: geometry.center, in: geometry, segments: segments))
+        let beyondRim = CGPoint(x: geometry.center.x + geometry.outerRadius + 1,
+                                y: geometry.center.y)
+        XCTAssertNil(CategoryRingLayout.category(at: beyondRim, in: geometry, segments: segments))
+    }
+
     private func makeNode(
         _ path: String,
         size: Int64,

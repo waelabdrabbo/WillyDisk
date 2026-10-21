@@ -8,6 +8,7 @@ import DiskCore
 /// Choosing a wedge opens that category in place; the open category stays
 /// outlined and named in the centre, so the ring is the way back out as well as in.
 struct CategoryRingView: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let breakdown: CategoryBreakdown
     let centerLabel: String
     /// The category the explorer is inside, if any.
@@ -41,9 +42,14 @@ struct CategoryRingView: View {
         let segments = CategoryRingLayout.segments(from: breakdown.shares)
         // The pointer previews a category; otherwise the open category is the
         // one the centre names.
-        let active = (hovered ?? selected).flatMap { breakdown.share(of: $0) }
-        let outlined = hovered ?? selected
-        let band = geometry.radii(ring: 1)
+        let activeCategory = hovered ?? selected
+        let active = activeCategory.flatMap { breakdown.share(of: $0) }
+        let hoveredSegment = hovered.flatMap { category in
+            segments.first { $0.category == category }
+        }
+        let selectedSegment = selected.flatMap { category in
+            segments.first { $0.category == category }
+        }
 
         return ZStack {
             Circle()
@@ -54,29 +60,15 @@ struct CategoryRingView: View {
                 .frame(width: geometry.outerRadius * 2, height: geometry.outerRadius * 2)
 
             ForEach(Array(segments.enumerated()), id: \.element.id) { index, segment in
-                let shape = wedge(segment, geometry: geometry, inner: band.inner, outer: band.outer)
+                let shape = wedge(segment, geometry: geometry)
                 Button {
                     onSelect(segment.category)
                 } label: {
-                    // A hovered category dims the rest of the ring instead of
-                    // shading itself: one band has no depth to lean on, so the
-                    // contrast between "this slice" and "the whole scan" is
-                    // what names it. The sunburst shades its active wedge and
-                    // keeps the other rings at full colour, because its depth
-                    // already carries the hierarchy.
                     shape
                         .fill(ChartPalette.categoryColor(index: index, count: segments.count))
-                        .opacity(hovered == nil || hovered == segment.category ? 1 : 0.55)
                 }
                 .buttonStyle(.plain)
                 .contentShape(shape)
-                .onHover { inside in
-                    if inside {
-                        hovered = segment.category
-                    } else if hovered == segment.category {
-                        hovered = nil
-                    }
-                }
                 .help(helpText(for: segment.category))
                 .accessibilityLabel(accessibilityLabel(for: segment.category))
                 .accessibilityHint(selected == segment.category
@@ -85,35 +77,40 @@ struct CategoryRingView: View {
                 .accessibilityAddTraits(selected == segment.category ? [.isSelected] : [])
             }
 
-            if let outlined {
-                let segment = segments.first { $0.category == outlined }
-                if let segment {
-                    wedge(segment, geometry: geometry, inner: band.inner, outer: band.outer)
-                        .stroke(DS.Color.accent, lineWidth: DS.Stroke.emphasis)
-                        .allowsHitTesting(false)
-                }
+            if hoveredSegment != nil || selectedSegment != nil {
+                WedgeEmphasis(
+                    active: hoveredSegment.map { wedge($0, geometry: geometry) },
+                    trail: [],
+                    selected: selectedSegment.map { wedge($0, geometry: geometry) },
+                    side: side,
+                    animates: !reduceMotion,
+                    activeID: activeCategory?.rawValue
+                )
             }
 
             centerDisc(radius: geometry.innerRadius, center: geometry.center, active: active)
         }
         .frame(width: side, height: side)
+        // Hover is resolved against the ring's geometry rather than the wedge
+        // controls: every control's frame covers the whole chart, so a
+        // frame-based hover would always belong to whichever slice draws last.
+        .contentShape(Rectangle())
+        .onContinuousHover(coordinateSpace: .local) { phase in
+            switch phase {
+            case .active(let point):
+                let category = CategoryRingLayout.category(at: point, in: geometry, segments: segments)
+                if hovered != category { hovered = category }
+            case .ended:
+                if hovered != nil { hovered = nil }
+            }
+        }
     }
 
     private func wedge(
         _ segment: CategoryRingLayout.Segment,
-        geometry: SunburstGeometry,
-        inner: CGFloat,
-        outer: CGFloat
+        geometry: SunburstGeometry
     ) -> SunburstWedge {
-        SunburstWedge(
-            center: geometry.center,
-            innerRadius: inner,
-            outerRadius: outer,
-            startAngle: segment.start,
-            endAngle: segment.end,
-            angularGap: geometry.angularGap(ring: 1),
-            radialGap: DS.Sunburst.radialGap
-        )
+        geometry.wedge(ring: 1, start: segment.start, end: segment.end)
     }
 
     private func centerDisc(
@@ -154,6 +151,7 @@ struct CategoryRingView: View {
         }
         .frame(width: radius * 2, height: radius * 2)
         .clipShape(Circle())
+        .animation(reduceMotion ? nil : .snappy, value: active?.category)
         .position(center)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(title), \(detail)")
@@ -212,6 +210,29 @@ enum CategoryRingLayout {
             cursor = end
         }
         return segments
+    }
+
+    /// The slice under a point in the chart's local space, or nil outside the
+    /// ring.
+    ///
+    /// Hover is resolved here, not from the wedge controls: every control fills
+    /// the same square, so a view-level hover region would always belong to
+    /// whichever slice draws last. The hairline gaps between slices count as
+    /// their neighbours; a click stays bounded by each wedge's own shape.
+    static func category(
+        at point: CGPoint,
+        in geometry: SunburstGeometry,
+        segments: [Segment]
+    ) -> FileCategory? {
+        let band = geometry.radii(ring: 1)
+        let dx = point.x - geometry.center.x
+        let dy = point.y - geometry.center.y
+        let distance = hypot(dx, dy)
+        guard distance >= band.inner, distance <= band.outer else { return nil }
+
+        var angle = atan2(dx, -dy)
+        if angle < 0 { angle += 2 * .pi }
+        return segments.first { angle >= $0.start && angle <= $0.end }?.category
     }
 }
 

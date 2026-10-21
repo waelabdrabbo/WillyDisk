@@ -18,9 +18,10 @@ stream reports.
   category, one ring; opening a category charts its files with `SunburstView`),
   `WedgeEmphasis` (the one hover/selection overlay both charts paint),
   `CleanupSheet` (large/old, cache, download, and duplicate candidates that go to the
-  reclaim confirmation), `AccessNoticeRow`, `FlowLayout`, `ScanOptionToggle` (one scan
-  option, shared by the source screen's sheet and Settings), `ControlStyles` (the
-  shared row hover, inline and icon actions, and warning notice).
+  reclaim confirmation), `HistorySheet` (the recorded runs of a location, two compared),
+  `AccessNoticeRow`, `FlowLayout`, `ScanOptionToggle` (one scan option, shared by the
+  source screen's sheet and Settings), `ControlStyles` (the shared row hover, inline and
+  icon actions, and warning notice).
 - `DesignSystem/` — `DesignSystem.swift` holds every token (`DS`), `ChartPalette.swift`
   the chart fills, `FileCategory+UI.swift` the category symbols and labels,
   `AppAppearance.swift` the stored system/light/dark preference the Settings window
@@ -36,7 +37,8 @@ stream reports.
   download heuristics over the finished tree, including same-size duplicate
   candidates), `DuplicateAnalysis` (the explicit SHA-256 content check and its
   cancellable controller), `ScanOptions` + `ScanOptionsStore` (the one shared,
-  persisted set of choices the next scan and Rescan use).
+  persisted set of choices the next scan and Rescan use), `ScanHistory` (the observable
+  view of the record store; finished scans are recorded through it, off the main actor).
 
 ## Rules
 
@@ -73,12 +75,14 @@ WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S settings -c -s 
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S categories -o .build/renders/<change>
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S cleanup -c -o .build/renders/<change>
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S duplicates -c -o .build/renders/<change>
+WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S history -c -o .build/renders/<change>
 ```
 
 `-S` picks the screen: `results` (default), `home` (source selection), `categories`
 (the results screen in Categories mode), `help` and `settings` (the sheet and
 preferences contents), `cleanup` and `duplicates` (the cleanup sheet's two tabs; they
-scan the same sample tree), or `both` (home and results).
+scan the same sample tree), `history` (the comparison sheet over that scan plus two
+older sample runs), or `both` (home and results).
 
 The `-o` matters: renders are named after their size and appearance, so reusing a
 directory reuses the path, and a viewer that already loaded it keeps showing the cached

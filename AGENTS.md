@@ -24,6 +24,7 @@ contracts, shared-interface rules §7, non-negotiables §8).
 | `Resources/` | the macOS icon: `AppIcon.icns` and its 1024 `AppIcon-1024.png` |
 | `Sources/DiskUI/Resources/AppMark.png` | the circular in-app mark the UI and About show |
 | `Sources/DiskCore/Models/` | frozen value model: `FileCategory`, `ScanNode`, `ScanSummary` |
+| `Sources/DiskCore/History/` | `ScanRecord` (versioned DTO), `ScanHistoryStore`, `ScanComparison` |
 | `Sources/DiskCore/Scanning/Contracts.swift` | frozen `ScanRequest`, `ScanEvent`, `ScanProgress`, `ScanEngine`, `ScanIssueKind` |
 | `Sources/DiskCore/Scanning/` (the rest) | the scan engine and its filesystem plumbing |
 | `Sources/DiskUI/` | screens, components, design system |
@@ -44,6 +45,9 @@ traversal scheduling, cancellation, progressive `.partial` snapshots).
 tests inject permission failures. `Scanning/DirectoryReader.swift` is bulk directory
 enumeration, `FileStat.swift` wraps `lstat`/`stat`, `FileCategorizer.swift` maps names
 onto `FileCategory`, `ScanErrorClassifier.swift` maps errno onto `ScanIssueKind`.
+`History/` stores finished runs: `ScanRecord.swift` is the versioned record DTO (never
+the tree), `ScanHistoryStore.swift` the one-file-per-run store, and
+`ScanComparison.swift` the totals/category/entry comparison.
 
 **`DiskUI` — SwiftUI.**
 `ScanViewModel.swift` is the `@MainActor @Observable` state machine that consumes
@@ -53,6 +57,8 @@ onto `FileCategory`, `ScanErrorClassifier.swift` maps errno onto `ScanIssueKind`
 `Screens/SettingsView.swift` is the preferences window. `Components/SunburstView.swift`
 is the disk chart; `AccessNoticeRow`, `FlowLayout`, and `ScanOptionToggle` are the other
 views.
+`Components/HistorySheet.swift` is the scan-history comparison, backed by
+`Support/ScanHistory.swift` (the `@Observable` view of the record store).
 `DesignSystem/DesignSystem.swift` holds every token (`DS`), `ChartPalette.swift` the
 chart fills, `FileCategory+UI.swift` the category symbols and labels, `AppAppearance.swift`
 the stored system/light/dark appearance preference the Settings window edits.
@@ -62,8 +68,8 @@ the stored system/light/dark appearance preference the Settings window edits.
 `ScanIssuesPresentation`, `ScanSlotPresentation`, `ReportExport` (JSON/CSV via
 `NSSavePanel`), `AccessNoticeDismissal`, `ScanOptions` + `ScanOptionsStore` (the one
 shared, persisted set of choices the next scan and Rescan use), `CleanupAnalysis` +
-`DuplicateAnalysis` (bounded cleanup heuristics and the explicit SHA-256 content
-check).
+`DuplicateAnalysis` (bounded cleanup heuristics and the explicit SHA-256 content check),
+`ScanHistory` (the observable view of the record store).
 
 **`WillyDiskApp`.**
 `WillyDiskApp.swift` is `@main`, `AppState.swift` builds the single
@@ -79,7 +85,7 @@ swift test                           # full suite
 swift test --filter FileScanEngineTests   # one test class
 bash Scripts/run.sh                  # build the bundle and launch it (the way to look at the UI)
 bash Scripts/bundle-app.sh           # assemble .build/WillyDisk.app; its version comes from VERSION
-bash Scripts/render-screens.sh       # offscreen PNGs (-S results|home|help|settings|categories|cleanup|duplicates|both), no window, no screen-recording permission
+bash Scripts/render-screens.sh       # offscreen PNGs (-S results|home|help|settings|categories|cleanup|duplicates|history|both), no window, no screen-recording permission
 bash Scripts/repo-map.sh             # one-screen structural inventory (--types adds declarations)
 ```
 

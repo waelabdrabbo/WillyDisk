@@ -124,6 +124,12 @@ when it observed them; a default `ScanAccounting.zero` means no finding, never a
 unchecked guess. Exclusions are counted, not sized: the walk never enters an
 excluded item, so no byte total for it would be measured.
 
+Persistence is deliberately outside this model. `DiskCore/History/ScanRecord.swift`
+is an explicit, versioned DTO (`schemaVersion`, currently 1) that keeps one finished
+scan's totals, counts, ranked top lists, accounting, scan options, and volume facts —
+never its tree. The frozen types are not a file format: making `ScanSummary` `Codable`
+would turn every field and node identity into one.
+
 ## 4. Frozen scanning contract (`DiskCore/Scanning/Contracts.swift`)
 
 The engine implements this contract in `Sources/DiskCore/Scanning/`.
@@ -251,6 +257,20 @@ carries the root node itself in `largestDirectories`.
   a refusal instead of only disabling its button. After a move the results are
   marked stale and Rescan is offered; the totals are not edited locally, because
   a locally adjusted tree would no longer be a scan.
+- Scan history is a versioned DTO, not the scan made codable. A finished run is
+  recorded as a `ScanRecord` (schema 1) under
+  `~/Library/Application Support/WillyDisk/History/`, at most 20 per location and 100
+  overall. A cancelled run is not recorded: its totals cover part of the root, and a
+  comparison against them would present missing work as space that vanished. The store
+  skips a file it cannot read or whose schema it does not know, reports how many, and
+  never deletes one by pruning. `HistorySheet` compares two runs of the location on the
+  slot: totals, counts, and the category breakdown are exact; the ranked folders and
+  files are the largest entries each run recorded (100 at the current engine capacity),
+  matched by path and labelled New, Grown, Shrunk, or Unchanged, with the earlier list's
+  cut-off stated when it was full. A record carries the capacity it was written with,
+  so changing that number later does not misread older runs. Different scan options
+  between the runs are disclosed, and nothing is called a saving — a smaller scan is a
+  smaller measurement, and the Trash still has to be emptied.
 - Appearance is a user preference rather than scan state: `DiskUI`'s
   `AppAppearance` (system, light, dark) is persisted in `UserDefaults` under one
   key, offered by the gear menu in `SourceSelectionView`'s toolbar, and applied by

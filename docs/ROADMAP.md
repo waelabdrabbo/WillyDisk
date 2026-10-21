@@ -11,20 +11,21 @@ decisions. This is a handoff document, not a specification of frozen interfaces 
   (`17a7e29`, `794cd6a`), the results and Home polish through `fdbc450`, the
   install-trust work at `d7155dc`, the packaged circular mark at `55f5032`, the
   cleanup candidates at `9a69a3b`, the Categories mode at `71bae92`, the
-  Settings work at `607ef77`, and the duplicate content check at `3603321` with its own
-  tab at `1ed5184`; this docs handoff follows it. Working tree clean at that handoff.
+  Settings work at `607ef77`, the duplicate content check at `3603321` with its own
+  tab at `1ed5184`, and scan history with its comparison sheet; this docs handoff
+  follows it. Working tree clean at that handoff.
 - Build: `swift build --disable-sandbox`.
-- Tests: 164 QATests + 51 DiskCoreTests, 0 failures, 1 skipped
+- Tests: 168 QATests + 68 DiskCoreTests, 0 failures, 1 skipped
   (`ScanBenchmarkTests` needs `WILLYDISK_BENCH_ROOT`).
 - CI: `.github/workflows/ci.yml` builds, tests, checks that the bundle reports
   `VERSION`, and uploads the offscreen renders on every push.
 - The app is a working single-window analyzer: choose a volume, folder, or quick
   preset, watch a progressive scan, read the sunburst and explorer, inspect
   coverage, see where the bytes sit by file category, review large/old/cache candidates,
-  check possible duplicates by their contents before trashing them, select rows with
-  the mouse or keyboard, preview them with Quick Look, move items to the Trash behind a
-  guard and confirmation, change the scan defaults and excluded paths in Settings, and
-  read About or Help.
+  check possible duplicates by their contents before trashing them, compare the recorded
+  runs of a location, select rows with the mouse or keyboard, preview them with Quick
+  Look, move items to the Trash behind a guard and confirmation, change the scan defaults
+  and excluded paths in Settings, and read About or Help.
 
 ## Shipped — do not rebuild
 
@@ -40,6 +41,7 @@ decisions. This is a handoff document, not a specification of frozen interfaces 
 | Version from `VERSION`, About panel, in-app Help, CI | `d7155dc` |
 | Category breakdown (Categories mode and its category detail), cleanup candidates through reclaim | `9a69a3b`, `71bae92`, `6266abc`, `031dbda` |
 | Duplicate candidates with an explicit SHA-256 content check, and their own tab | `3603321`, `1ed5184` |
+| Scan history: a versioned record per finished scan, and the comparison sheet | `5b07181` |
 
 Details worth remembering:
 
@@ -121,6 +123,26 @@ Details worth remembering:
 - Quick Look rechecks that every target still exists off the main thread before the
   panel is shown. Batch Quick Look, Reveal, and Move to Trash act on the whole
   selection; Move to Trash re-runs the per-item reclaim guard for every candidate.
+- History is a versioned record, not the scan made codable. `ScanRecord`
+  (`Sources/DiskCore/History/`) stores `schemaVersion`, timestamps, totals, counts,
+  category sizes, the two ranked lists (100 entries at the current capacity), accounting,
+  the scan options, and the volume facts — never the tree. One JSON file per finished scan lives under
+  `~/Library/Application Support/WillyDisk/History/`, at most 20 per location and 100
+  overall; the oldest fall off. A file with another schema version or unreadable bytes
+  is skipped, reported, and never deleted by pruning, because a newer release may know
+  what it says. A cancelled scan is not recorded: its totals cover part of the root, and
+  comparing it with a complete run would present missing work as space that vanished.
+- Comparison has two kinds of answer. Totals, counts, and the category breakdown are
+  exact, because a scan measures every entry it walked. The ranked folders and files are
+  each run's largest 100, matched by path, and labelled New, Grown, Shrunk, or Unchanged;
+  when the earlier list was full its cut-off size is stated, so “New” is explained as
+  absent from that list rather than certainly new. Entries that left the later list are
+  counted, not called removals. Runs with different scan options say so: the difference
+  may be what each walk included. Nothing in the comparison is called a saving.
+- History opens from the results toolbar (or Scan ▸ History…) for the location on the
+  engine's slot, and compares two of its runs. The current run is recorded as it
+  settles; the sheet picks the two newest by default and lets any two be chosen. Clear
+  History… removes every record for every location and touches no user file.
 - The results toolbar carries no separate title or path, and the system title item is
   removed so the app name does not sit between the controls. It holds a Home button and
   a folder trail: the scanned location is always named, ancestors are clickable, and the
@@ -153,9 +175,10 @@ WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S help -c -o .bui
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S settings -c -s 460x760 -o .build/renders/check
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S cleanup -c -o .build/renders/check
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S duplicates -c -o .build/renders/check
+WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S history -c -o .build/renders/check
 ```
 
-CI runs the build, the suite, the bundle version check, and all six renders on every push.
+CI runs the build, the suite, the bundle version check, and all seven renders on every push.
 
 `-S categories` renders the real results screen in Categories mode, window and all.
 Help, Settings, and the cleanup sheet are sheets or a preferences window, so `-S`
@@ -163,11 +186,13 @@ captures their content. Settings renders with its own non-default sample options
 exclusions, so the switches and the list are both reviewable; cleanup and duplicates are
 the cleanup sheet's two tabs. They use one sample tree (sparse files with set ages, two
 identical copies, and one same-size different file), so the Old render shows the other
-sections and the Duplicates render shows a completed content check. For any sheet without
-a screen state, the working practice is a temporary
-`@MainActor` QA test that hosts the view in `NSHostingView`, renders it with
-`cacheDisplay`, writes a PNG under `.build/renders/`, and is deleted before commit. Do
-not ship a renderer hook for a one-off visual check.
+sections and the Duplicates render shows a completed content check. History renders the
+sheet over the finished fixture scan plus two older recorded runs, so the comparison
+shows grown, new, and shrunk entries; it needs `-c` because it is a sheet. For any sheet
+without a screen state, the working practice is a temporary `@MainActor` QA test that
+hosts the view in `NSHostingView`, renders it with `cacheDisplay`, writes a PNG under
+`.build/renders/`, and is deleted before commit. Do not ship a renderer hook for a
+one-off visual check.
 
 ## Remaining work, in recommended order
 
@@ -183,18 +208,7 @@ verifies.
   stapled ticket validates.
 - CI publishing the DMG on a tag, only when the signing secrets are present.
 
-### 2. History and compare
-
-Persist finished scan summaries and compare two runs of the same root: what grew,
-what shrank, what appeared. `ScanSummary` is not `Codable`; introduce a versioned
-export DTO rather than making the frozen model codable by accident. Do not persist
-the full tree; store counts, top lists, accounting, and volume facts.
-
-Acceptance: schema version is checked on read; a corrupt store degrades to no history;
-comparison labels “new”, “grown”, “shrunk”, and “unchanged” with real numbers; no
-fabricated savings claim.
-
-### 3. Global search
+### 2. Global search
 
 Search the whole finished scan, not just the current folder or the stored top 100.
 The UI has the root’s tree in the summary, but a multi-million-file tree needs a
@@ -204,7 +218,7 @@ result drill to its folder.
 Acceptance: searching a deep path finds it; results are bounded and say so; typing
 does not block the main actor; clearing restores the previous scope.
 
-### 4. Diagnostics, performance, and polish
+### 3. Diagnostics, performance, and polish
 
 - Export a diagnostics bundle (scan settings, timing, issue counts, version) with no
   user file contents.
@@ -217,18 +231,19 @@ does not block the main actor; clearing restores the previous scope.
   stale today), folder-level coverage disclosure, CSV accounting (JSON has it, CSV
   does not), pluralization, empty states, window sizing, accessibility audit.
 
-### 5. A command-line scan
+### 4. A command-line scan
 
 `WillyDisk scan <folder> --depth --top --json` over the same `FileScanEngine`: no second
-scanner and no second accounting path. The JSON is the versioned export DTO item 2
-introduces, not `ScanSummary` made codable. Answering from an already-running scan is a
-later refinement; a CLI that scans on its own is the first release.
+scanner and no second accounting path. The JSON is the versioned record DTO the history
+work introduced (`ScanRecord`), not `ScanSummary` made codable. Answering from an
+already-running scan is a later refinement; a CLI that scans on its own is the first
+release.
 
 Acceptance: exit 0 on success and 2 on a usage error; `--help` lists the flags; no window
 appears and no UI is built; SIGINT takes the engine's cancellation path and says so;
 output for a fixture folder is byte-stable across runs.
 
-### 6. Watch the scanned tree
+### 5. Watch the scanned tree
 
 FSEvents on the scan root while results are on screen, so a change made in Finder is
 reflected without Rescan. The shape is invalidation, not patching: a change marks the
@@ -240,7 +255,7 @@ few seconds and offers Rescan; events outside the root and under excluded paths 
 ignored; the watcher stops on cancellation, on leaving the screen, and on a new scan; a
 `/` scan does not install a watch per volume.
 
-### 7. Treemap as a second chart
+### 6. Treemap as a second chart
 
 Boxes instead of rings, same tree, same selection, hover and drill-down, chosen in
 Settings. The sunburst stays the identity; the treemap exists for dense folders where
@@ -250,7 +265,7 @@ Acceptance: layout runs off the main actor for a large folder; one selection mod
 drives both charts; reduce-motion and keyboard navigation behave as in the sunburst; both
 charts render in CI.
 
-### 8. Localization
+### 7. Localization
 
 Extract every user-visible string into a catalog keyed by the English source, then finish
 one language end to end before adding more. SwiftUI supplies script fallback and RTL
@@ -261,7 +276,7 @@ catches truncation; one RTL language (`ar`) renders results, coverage and cleanu
 clipping; plurals are resolved rather than concatenated; the render harness takes a
 `--locale`.
 
-### 9. Reclaim past the Trash
+### 8. Reclaim past the Trash
 
 Today the only removal path is Move to Trash, and Trash frees nothing until it is emptied.
 The fuller flow is permanent delete, a secure erase that overwrites before removing, and
@@ -280,7 +295,7 @@ of removal; a permanent delete cannot be reached without a typed or held confirm
 failed backup removes nothing; a cancelled job says what was and was not removed; no
 screen claims space was freed before it was.
 
-### 10. Remote and cloud scans
+### 9. Remote and cloud scans
 
 Scan a machine reachable over SSH, and cloud remotes, through the same explorer.
 `ScanEngine` is the seam: a second conformance that emits the same events, so the UI never
@@ -292,7 +307,7 @@ scan of it; a dropped connection ends in `.finished` with issues or `.cancelled`
 stream that hangs; credentials never reach the export DTO or a diagnostics bundle; nothing
 is scanned remotely without an explicit host choice.
 
-### 11. Self-update, and platforms beyond macOS
+### 10. Self-update, and platforms beyond macOS
 
 Self-update is worth shipping only after item 1: a release feed, a verified download, and
 a relaunch. Windows and Linux are a larger step — a UI without AppKit, per-platform
@@ -315,8 +330,11 @@ why; the app never updates without consent.
 - Trash does not free space until it is emptied; result wording must say so.
 - A move marks results stale and offers Rescan; it does not edit the tree or start an
   automatic full-disk rescan.
-- The app is a single window. Coverage, reclaim, and Help are sheets on the main
-  window.
+- The app is a single window. Coverage, reclaim, cleanup, history, and Help are sheets
+  on the main window.
+- History compares measurements, never claims savings. Only a finished scan is
+  recorded, and a stored run's options travel with it so a difference in what each
+  walk included is disclosed rather than read as a change on disk.
 - The interface stays native AppKit and SwiftUI, so VoiceOver, Quick Look, menus, text
   editing and window chrome are the system's. A custom-drawn canvas is not an acceptable
   substitute for a chart or a list.

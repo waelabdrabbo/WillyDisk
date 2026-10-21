@@ -28,6 +28,17 @@ design change, so explain it and update `docs/ARCHITECTURE.md` in the same chang
   inode. `ScanRequest.followSymlinks` defaults to false and `stayOnVolume` to true.
 - Public types stay `Sendable` and Swift 6 concurrency-clean.
 
+## History (`History/`)
+
+`ScanRecord` is a versioned DTO, not the frozen model made codable: counts, ranked top
+lists, accounting, the scan options, and volume facts — never the tree. One JSON file
+per finished scan; only `.finished` summaries are recorded, never `.cancelled`. The
+store is synchronous filesystem work and belongs off the main actor. A file with an
+unknown `schemaVersion` or unreadable bytes is skipped and counted, never deleted by
+pruning: a newer release may know what it says. `ScanComparison` matches entries by
+path and reports `new`/`grown`/`shrunk`/`unchanged`; totals and categories are exact,
+ranked entries are the top 100 of each run, and no difference is called a saving.
+
 ## Testing
 
 Engine tests live in `Tests/DiskCoreTests/`. Exercise permission denials and I/O faults
@@ -36,4 +47,5 @@ filesystem.
 `ProgressiveSnapshotTests` and `ScanBenchmarkTests` cover snapshot emission and
 traversal cost; keep them green when you touch traversal, cancellation, or batching.
 
-Run one class: `swift test --filter FileScanEngineTests`.
+History storage and comparison are covered by `ScanHistoryTests` in
+`Tests/DiskCoreTests/`. Run one class: `swift test --filter FileScanEngineTests`.

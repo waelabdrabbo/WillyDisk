@@ -36,6 +36,7 @@ enum ScreenKind: String, CaseIterable {
     case settings
     case categories
     case cleanup
+    case duplicates
 }
 
 struct Options {
@@ -86,8 +87,9 @@ func parse(_ arguments: [String]) -> Options {
             case "settings": options.screens = [.settings]
             case "categories": options.screens = [.categories]
             case "cleanup": options.screens = [.cleanup]
+            case "duplicates": options.screens = [.duplicates]
             case "both": options.screens = [.results, .home]
-            case let other: fail("--screen expects home, results, help, settings, categories, cleanup or both, not \(other)")
+            case let other: fail("--screen expects home, results, help, settings, categories, cleanup, duplicates or both, not \(other)")
             }
         case "--fixture":
             options.fixture = URL(fileURLWithPath: next("--fixture"))
@@ -104,7 +106,7 @@ func parse(_ arguments: [String]) -> Options {
             options.rendersWindow = false
         case "--help", "-h":
             print("""
-            usage: render-screens --out DIR [--size WxH] [--appearance light|dark|both] [--screen home|results|help|settings|categories|cleanup|both] [--fixture DIR] [--state finished|scanning] [--window|--content]
+            usage: render-screens --out DIR [--size WxH] [--appearance light|dark|both] [--screen home|results|help|settings|categories|cleanup|duplicates|both] [--fixture DIR] [--state finished|scanning] [--window|--content]
 
               --out        directory the PNGs are written to
               --size       render size in points (default 1000x720)
@@ -112,8 +114,8 @@ func parse(_ arguments: [String]) -> Options {
               --screen     which screens to render (default results); both is
                            home and results, categories is the results screen in
                            Categories mode, help and settings are the sheet and
-                           preferences contents, cleanup is the sheet's contents
-                           (it uses its own fixture)
+                           preferences contents, cleanup and duplicates are the
+                           cleanup sheet's two tabs (they use their own fixture)
               --fixture    scan this directory instead of the generated fixture
               --state      finished (default) or scanning, which captures the
                            screen while the scan is still running
@@ -235,7 +237,7 @@ func render(_ options: Options) {
     let needsFixture = options.screens.contains { $0 != .help }
     // The cleanup sheet needs candidates the standard fixture does not have, so
     // it renders from its own tree; the other screens keep the shared fixture.
-    let isCleanupRender = options.screens.contains(.cleanup)
+    let isCleanupRender = options.screens.contains(.cleanup) || options.screens.contains(.duplicates)
     let fixtureName = isCleanupRender ? "Sample Disk" : "fixture"
     let fixture = options.fixture ?? options.out.appendingPathComponent(fixtureName)
     if needsFixture, options.fixture == nil {
@@ -324,7 +326,7 @@ func render(_ options: Options) {
                     }
                 case .categories:
                     ResultsView(viewModel: viewModel, initialMode: .categories)
-                case .cleanup:
+                case .cleanup, .duplicates:
                     if let summary = viewModel.summary,
                        let root = rootNode(in: summary),
                        let preview = CleanupAnalysis.analyze(root: root, now: Date()) {
@@ -334,6 +336,7 @@ func render(_ options: Options) {
                             scannedAt: summary.finishedAt,
                             previewReport: preview,
                             previewDuplicateReport: DuplicateHasher.check(groups: preview.duplicateGroups),
+                            initialTab: kind == .duplicates ? .duplicates : .old,
                             onMove: { _ in },
                             onClose: {}
                         )

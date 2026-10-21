@@ -68,12 +68,13 @@ WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S help -c -o .bui
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S settings -c -s 460x760 -o .build/renders/<change>
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S categories -o .build/renders/<change>
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S cleanup -c -o .build/renders/<change>
+WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S duplicates -c -o .build/renders/<change>
 ```
 
 `-S` picks the screen: `results` (default), `home` (source selection), `categories`
 (the results screen in Categories mode), `help` and `settings` (the sheet and
-preferences contents), `cleanup` (the sheet's contents; it scans a sample tree of its
-own), or `both` (home and results).
+preferences contents), `cleanup` and `duplicates` (the cleanup sheet's two tabs; they
+scan the same sample tree), or `both` (home and results).
 
 The `-o` matters: renders are named after their size and appearance, so reusing a
 directory reuses the path, and a viewer that already loaded it keeps showing the cached

@@ -79,7 +79,7 @@ swift test                           # full suite
 swift test --filter FileScanEngineTests   # one test class
 bash Scripts/run.sh                  # build the bundle and launch it (the way to look at the UI)
 bash Scripts/bundle-app.sh           # assemble .build/WillyDisk.app; its version comes from VERSION
-bash Scripts/render-screens.sh       # offscreen PNGs (-S results|home|help|settings|categories|cleanup|both), no window, no screen-recording permission
+bash Scripts/render-screens.sh       # offscreen PNGs (-S results|home|help|settings|categories|cleanup|duplicates|both), no window, no screen-recording permission
 bash Scripts/repo-map.sh             # one-screen structural inventory (--types adds declarations)
 ```
 

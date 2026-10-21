@@ -1,6 +1,21 @@
 import SwiftUI
 import DiskCore
 
+/// The two views of the cleanup report.
+public enum CleanupTab: String, CaseIterable, Identifiable, Sendable {
+    case old
+    case duplicates
+
+    public var id: String { rawValue }
+
+    public var title: String {
+        switch self {
+        case .old: "Old"
+        case .duplicates: "Duplicates"
+        }
+    }
+}
+
 /// Candidates worth reviewing, grouped by why they were noticed.
 ///
 /// The analysis runs off the main actor over the tree the finished scan already
@@ -23,10 +38,12 @@ public struct CleanupSheet: View {
     @State private var selected: Set<URL> = []
     @State private var analysisTask: Task<CleanupReport?, Never>?
     @State private var duplicateCheck: DuplicateCheck
+    @State private var tab: CleanupTab
 
     /// `previewReport` skips the walk and shows a known report; the renderer
     /// uses it so a screenshot does not race a background analysis.
     /// `previewDuplicateReport` does the same for a finished content check.
+    /// `initialTab` lets a preview open the tab it needs to show.
     public init(
         root: ScanNode,
         rootName: String,
@@ -34,6 +51,7 @@ public struct CleanupSheet: View {
         policy: CleanupPolicy = .standard,
         previewReport: CleanupReport? = nil,
         previewDuplicateReport: DuplicateReport? = nil,
+        initialTab: CleanupTab = .old,
         onMove: @escaping ([ScanNode]) -> Void,
         onClose: @escaping () -> Void
     ) {
@@ -47,6 +65,16 @@ public struct CleanupSheet: View {
         _report = State(initialValue: previewReport)
         _isAnalyzing = State(initialValue: previewReport == nil)
         _duplicateCheck = State(initialValue: DuplicateCheck(preview: previewDuplicateReport))
+        let previewTab: CleanupTab
+        if initialTab == .old,
+           let previewReport,
+           previewReport.groups.allSatisfy({ $0.candidates.isEmpty }),
+           !previewReport.duplicateGroups.isEmpty {
+            previewTab = .duplicates
+        } else {
+            previewTab = initialTab
+        }
+        _tab = State(initialValue: previewTab)
     }
 
     public var body: some View {
@@ -60,14 +88,14 @@ public struct CleanupSheet: View {
                 if report.isEmpty {
                     empty
                 } else {
-                    content(report)
+                    tabs(report)
                 }
             }
 
             Divider()
             footer
         }
-        .frame(width: 720, height: 600)
+        .frame(width: 720, height: 640)
         .background(DS.Color.windowBackground)
         .tint(DS.Color.signal)
         .task { await analyzeIfNeeded() }
@@ -127,6 +155,9 @@ public struct CleanupSheet: View {
 
     private var empty: some View {
         VStack(spacing: DS.Spacing.small) {
+            if let report {
+                stoppedNotice(report)
+            }
             Image(systemName: "checkmark.circle")
                 .font(DS.Icon.medium)
                 .foregroundStyle(DS.Color.secondaryText)
@@ -147,31 +178,113 @@ public struct CleanupSheet: View {
 
     // MARK: - Report
 
-    private func content(_ report: CleanupReport) -> some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: DS.Spacing.section) {
-                if report.stoppedAtLimit {
-                    Label("Stopped after \(report.visitedCount.formatted()) items, so this is a sample of the scan rather than all of it.",
-                          systemImage: "exclamationmark.triangle")
-                        .font(DS.Typography.caption)
-                        .foregroundStyle(DS.Color.warning)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-
-                if !report.duplicateGroups.isEmpty {
-                    duplicatesSection(report)
-                }
-
-                ForEach(report.groups) { group in
-                    if !group.candidates.isEmpty {
-                        section(group)
-                    }
+    private func tabs(_ report: CleanupReport) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Picker("Cleanup section", selection: $tab) {
+                ForEach(CleanupTab.allCases) { option in
+                    Text(option.title).tag(option)
                 }
             }
-            .padding(DS.Spacing.xxLarge)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .frame(width: 240)
+            .padding(.horizontal, DS.Spacing.xxLarge)
+            .padding(.vertical, DS.Spacing.medium)
+            .accessibilityLabel("Cleanup section")
+
+            Divider()
+
+            switch tab {
+            case .old:
+                oldContent(report)
+            case .duplicates:
+                duplicatesContent(report)
+            }
         }
-        .frame(maxHeight: 420)
+    }
+
+    @ViewBuilder
+    private func oldContent(_ report: CleanupReport) -> some View {
+        if report.groups.allSatisfy({ $0.candidates.isEmpty }) {
+            VStack(spacing: DS.Spacing.small) {
+                stoppedNotice(report)
+                Image(systemName: "checkmark.circle")
+                    .font(DS.Icon.medium)
+                    .foregroundStyle(DS.Color.secondaryText)
+                    .accessibilityHidden(true)
+                Text("Nothing to review here")
+                    .font(DS.Typography.headline)
+                Text("No file is both at least \(ByteFormat.string(policy.largeFileMinimum)) and unchanged for \(ageLabel(policy.largeFileAge)), no Caches or Derived Data folder is inside this scan, and no download is older than \(ageLabel(policy.downloadAge)).")
+                    .font(DS.Typography.callout)
+                    .foregroundStyle(DS.Color.secondaryText)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: 480)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding(DS.Spacing.section)
+            .accessibilityElement(children: .combine)
+        } else {
+            ScrollView {
+                VStack(alignment: .leading, spacing: DS.Spacing.section) {
+                    stoppedNotice(report)
+
+                    ForEach(report.groups) { group in
+                        if !group.candidates.isEmpty {
+                            section(group)
+                        }
+                    }
+                }
+                .padding(DS.Spacing.xxLarge)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .frame(maxHeight: 400)
+        }
+    }
+
+    @ViewBuilder
+    private func duplicatesContent(_ report: CleanupReport) -> some View {
+        if report.duplicateGroups.isEmpty {
+            VStack(spacing: DS.Spacing.small) {
+                stoppedNotice(report)
+                Image(systemName: "doc.on.doc")
+                    .font(DS.Icon.medium)
+                    .foregroundStyle(DS.Color.secondaryText)
+                    .accessibilityHidden(true)
+                Text("No possible duplicates")
+                    .font(DS.Typography.headline)
+                Text("No two files of at least \(ByteFormat.string(policy.duplicateMinimum)) share a size in this scan.")
+                    .font(DS.Typography.callout)
+                    .foregroundStyle(DS.Color.secondaryText)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: 480)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding(DS.Spacing.section)
+            .accessibilityElement(children: .combine)
+        } else {
+            ScrollView {
+                VStack(alignment: .leading, spacing: DS.Spacing.large) {
+                    stoppedNotice(report)
+                    duplicatesSection(report)
+                }
+                .padding(DS.Spacing.xxLarge)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .frame(maxHeight: 400)
+        }
+    }
+
+    @ViewBuilder
+    private func stoppedNotice(_ report: CleanupReport) -> some View {
+        if report.stoppedAtLimit {
+            Label("Stopped after \(report.visitedCount.formatted()) items, so this is a sample of the scan rather than all of it.",
+                  systemImage: "exclamationmark.triangle")
+                .font(DS.Typography.caption)
+                .foregroundStyle(DS.Color.warning)
+                .fixedSize(horizontal: false, vertical: true)
+        }
     }
 
     private func section(_ group: CleanupGroup) -> some View {
@@ -222,7 +335,7 @@ public struct CleanupSheet: View {
     private func duplicatesSection(_ report: CleanupReport) -> some View {
         VStack(alignment: .leading, spacing: DS.Spacing.small) {
             HStack(alignment: .firstTextBaseline, spacing: DS.Spacing.small) {
-                Text("Possible duplicates")
+                Text(duplicateSectionTitle)
                     .font(DS.Typography.headline)
                     .accessibilityAddTraits(.isHeader)
                 Text(duplicateGroupSummary(report))
@@ -249,6 +362,14 @@ public struct CleanupSheet: View {
                 .font(DS.Typography.caption)
                 .foregroundStyle(DS.Color.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private var duplicateSectionTitle: String {
+        switch duplicateCheck.state {
+        case .idle: "Possible duplicates"
+        case .checking: "Checking contents"
+        case .checked(let result): result.isEmpty ? "Checked contents" : "Identical contents"
         }
     }
 
@@ -519,6 +640,14 @@ public struct CleanupSheet: View {
         guard !Task.isCancelled else { return }
         report = result
         isAnalyzing = false
+        // A scan with no old-style candidates but some same-size groups opens on
+        // the tab that has something to show.
+        if let result,
+           tab == .old,
+           result.groups.allSatisfy({ $0.candidates.isEmpty }),
+           !result.duplicateGroups.isEmpty {
+            tab = .duplicates
+        }
     }
 
     private func allSelected(in group: CleanupGroup) -> Bool {

@@ -73,8 +73,9 @@ public final class ScanViewModel {
     public private(set) var blockedStartNotice: String?
     public private(set) var progress: ScanProgress?
     public private(set) var issues: [ScanIssue] = []
-    /// The options the scan on the slot was started with, so Rescan repeats the
-    /// scan the user asked for rather than a default one.
+    /// The options the scan on the slot was started with: the record of the
+    /// choices that produced the current results. Rescan reads the store rather
+    /// than this value, so a changed setting applies to the new run.
     public private(set) var lastOptions = ScanOptions.standard
     /// When the scan on the slot started, for the results line before a snapshot
     /// carries its own timestamps.
@@ -189,6 +190,9 @@ public final class ScanViewModel {
 
     private var engine: (any ScanEngine)?
     private let reclaimController: ReclaimController
+    /// The same store the source screen and Settings edit, so the sheet and a
+    /// Rescan use the choices currently on screen rather than a private copy.
+    public let optionsStore: ScanOptionsStore
     private var scanTask: Task<Void, Never>?
     /// Bumped whenever a scan starts or is discarded, so work belonging to a
     /// superseded scan — a late event, or a cancel that was requested before the
@@ -232,16 +236,25 @@ public final class ScanViewModel {
 
     // MARK: Init
 
-    public init(engine: (any ScanEngine)? = nil) {
+    public init(
+        engine: (any ScanEngine)? = nil,
+        optionsStore: ScanOptionsStore = .shared
+    ) {
         self.engine = engine
         self.reclaimController = ReclaimController()
+        self.optionsStore = optionsStore
     }
 
     /// The trashing seam is injectable so the guard's decision and the system's
     /// Trash operation can be exercised separately, without touching a real Trash.
-    init(engine: (any ScanEngine)? = nil, reclaimController: ReclaimController) {
+    init(
+        engine: (any ScanEngine)? = nil,
+        reclaimController: ReclaimController,
+        optionsStore: ScanOptionsStore = .shared
+    ) {
         self.engine = engine
         self.reclaimController = reclaimController
+        self.optionsStore = optionsStore
     }
 
     /// Connects (or replaces) the scanning engine. Called by the app shell once
@@ -397,10 +410,15 @@ public final class ScanViewModel {
         }
     }
 
-    /// Scans the location on the slot again, with the options it was scanned with.
+    /// Scans the location on the slot again, with the options currently stored
+    /// for the next scan.
+    ///
+    /// Rescan is a new request, so it uses the same values the source screen and
+    /// Settings show now. The results already on screen stay untouched until the
+    /// new scan replaces them.
     public func rescan() {
         guard let root = currentRoot else { return }
-        start(root: root, options: lastOptions)
+        start(root: root, options: optionsStore.options)
     }
 
     /// Marks the results on the slot as older than the disk.

@@ -1,55 +1,70 @@
 import SwiftUI
+import AppKit
 
 /// The app's preferences window.
 ///
-/// Appearance is the one preference that belongs to the app rather than to a
-/// scan, so it lives here instead of in the Home toolbar. The value is the same
-/// `@AppStorage` entry the app shell applies at launch; changing it updates
-/// every open window immediately.
+/// Appearance belongs to the app rather than to a scan. The scan defaults and
+/// exclusions belong to every scan the user starts, and they are the same
+/// `ScanOptionsStore.shared` values the source screen's Scan Options sheet
+/// edits: there is one store, so the two windows cannot show different choices.
 @MainActor
-public struct AppearanceSettingsView: View {
+public struct SettingsView: View {
     @AppStorage(AppAppearance.defaultsKey) private var appearance: AppAppearance = .system
+    @State private var optionsStore: ScanOptionsStore
     @FocusState private var listFocused: Bool
 
-    public init() {}
+    public init(optionsStore: ScanOptionsStore = .shared) {
+        _optionsStore = State(initialValue: optionsStore)
+    }
 
     public var body: some View {
         Form {
-            Section {
-                VStack(spacing: 0) {
-                    ForEach(Array(AppAppearance.allCases.enumerated()), id: \.element) { index, option in
-                        appearanceRow(option)
-                        if index < AppAppearance.allCases.count - 1 {
-                            Divider()
-                                .padding(.leading, DS.Spacing.xLarge + DS.Spacing.medium)
-                        }
-                    }
-                }
-                .focusable()
-                .focused($listFocused)
-                .focusEffectDisabled()
-                .onKeyPress(.upArrow) {
-                    moveSelection(by: -1)
-                    return .handled
-                }
-                .onKeyPress(.downArrow) {
-                    moveSelection(by: 1)
-                    return .handled
-                }
-                .accessibilityLabel("Appearance")
-
-                Text("System follows your Mac. Light or Dark holds that appearance for WillyDisk alone.")
-                    .font(DS.Typography.callout)
-                    .foregroundStyle(DS.Color.secondaryText)
-                    .fixedSize(horizontal: false, vertical: true)
-            } header: {
-                Text("Appearance")
-            }
+            appearanceSection
+            scanDefaultsSection
+            exclusionsSection
         }
         .formStyle(.grouped)
-        .frame(width: 380, height: 300)
+        // The window is its own scene, so it does not inherit the tint
+        // `ContentView` sets for the main window; the same signal ink applies.
+        .tint(DS.Color.signal)
+        .frame(width: 460, height: 760)
         .onChange(of: appearance) { _, choice in
             AppAppearance.apply(choice)
+        }
+    }
+
+    // MARK: - Appearance
+
+    private var appearanceSection: some View {
+        Section {
+            VStack(spacing: 0) {
+                ForEach(Array(AppAppearance.allCases.enumerated()), id: \.element) { index, option in
+                    appearanceRow(option)
+                    if index < AppAppearance.allCases.count - 1 {
+                        Divider()
+                            .padding(.leading, DS.Spacing.xLarge + DS.Spacing.medium)
+                    }
+                }
+            }
+            .focusable()
+            .focused($listFocused)
+            .focusEffectDisabled()
+            .onKeyPress(.upArrow) {
+                moveSelection(by: -1)
+                return .handled
+            }
+            .onKeyPress(.downArrow) {
+                moveSelection(by: 1)
+                return .handled
+            }
+            .accessibilityLabel("Appearance")
+
+            Text("System follows your Mac. Light or Dark holds that appearance for WillyDisk alone.")
+                .font(DS.Typography.callout)
+                .foregroundStyle(DS.Color.secondaryText)
+                .fixedSize(horizontal: false, vertical: true)
+        } header: {
+            Text("Appearance")
         }
     }
 
@@ -77,7 +92,7 @@ public struct AppearanceSettingsView: View {
                     .foregroundStyle(selected ? DS.Color.accent : DS.Color.secondaryText)
             }
             .padding(.horizontal, DS.Spacing.small)
-            .padding(.vertical, DS.Spacing.medium)
+            .padding(.vertical, DS.Spacing.small)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -99,5 +114,116 @@ public struct AppearanceSettingsView: View {
         let next = min(max(index + offset, 0), options.count - 1)
         guard next != index else { return }
         appearance = options[next]
+    }
+
+    // MARK: - Scan defaults
+
+    private var scanDefaultsSection: some View {
+        Section {
+            ScanOptionToggle(
+                title: "Include hidden items",
+                detail: "Names macOS hides, such as ~/Library, dotfiles, and caches.",
+                isOn: optionBinding(\.includeHidden)
+            )
+            ScanOptionToggle(
+                title: "Stay on this volume",
+                detail: "Do not follow folders that point to another disk or network share.",
+                isOn: optionBinding(\.stayOnVolume)
+            )
+            ScanOptionToggle(
+                title: "Follow symbolic links",
+                detail: "Count a link's target, skipping links that leave the scan.",
+                isOn: optionBinding(\.followSymlinks)
+            )
+
+            Text("The same values the Scan Options sheet on the source screen edits.")
+                .font(DS.Typography.caption)
+                .foregroundStyle(DS.Color.secondaryText)
+                .fixedSize(horizontal: false, vertical: true)
+        } header: {
+            Text("Scan Defaults")
+        }
+    }
+
+    // MARK: - Exclusions
+
+    private var exclusionsSection: some View {
+        Section {
+            if optionsStore.options.excludedPaths.isEmpty {
+                Text("Nothing excluded. Scans include every item they can read.")
+                    .font(DS.Typography.callout)
+                    .foregroundStyle(DS.Color.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+            } else {
+                ForEach(optionsStore.options.excludedPaths, id: \.self) { url in
+                    exclusionRow(url)
+                }
+            }
+
+            Button("Add Path…") {
+                addExclusions()
+            }
+            .controlSize(.small)
+
+            Text("Excluded items are left out of every scan's totals and reported in Coverage. The scanned location always stays included.")
+                .font(DS.Typography.caption)
+                .foregroundStyle(DS.Color.secondaryText)
+                .fixedSize(horizontal: false, vertical: true)
+        } header: {
+            Text("Excluded Paths")
+        }
+    }
+
+    /// A path the scans leave out, with the remove action beside it. The row
+    /// shows the shortened path; the exact location is in its tooltip and its
+    /// spoken label, so two folders with the same name stay distinguishable.
+    private func exclusionRow(_ url: URL) -> some View {
+        HStack(spacing: DS.Spacing.small) {
+            Image(systemName: "nosign")
+                .font(DS.Icon.detail)
+                .foregroundStyle(DS.Color.secondaryText)
+                .accessibilityHidden(true)
+
+            Text(PathFormat.abbreviated(url.path))
+                .font(DS.Typography.body)
+                .lineLimit(1)
+                .truncationMode(.middle)
+                .help(url.path)
+
+            Spacer(minLength: 0)
+
+            Button {
+                optionsStore.removeExclusion(url)
+            } label: {
+                Image(systemName: "xmark")
+                    .font(DS.Icon.detail)
+            }
+            .buttonStyle(.borderless)
+            .frame(width: DS.Size.iconButton, height: DS.Size.iconButton)
+            .contentShape(Rectangle())
+            .help("Stop excluding \(url.path)")
+            .accessibilityLabel("Remove exclusion \(url.path)")
+        }
+        .padding(.vertical, DS.Spacing.xxSmall)
+    }
+
+    private func addExclusions() {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = true
+        panel.allowsMultipleSelection = true
+        panel.prompt = "Exclude"
+        panel.message = "Choose files or folders every scan should leave out."
+        guard panel.runModal() == .OK else { return }
+        optionsStore.addExclusions(panel.urls)
+    }
+
+    /// Binds one field of the shared store, so a switch writes the store the
+    /// source screen reads rather than a copy of it.
+    private func optionBinding(_ keyPath: WritableKeyPath<ScanOptions, Bool>) -> Binding<Bool> {
+        Binding(
+            get: { optionsStore.options[keyPath: keyPath] },
+            set: { optionsStore.options[keyPath: keyPath] = $0 }
+        )
     }
 }

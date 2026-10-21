@@ -33,6 +33,7 @@ enum ScreenKind: String, CaseIterable {
     case results
     case home
     case help
+    case settings
     case categories
     case cleanup
 }
@@ -82,10 +83,11 @@ func parse(_ arguments: [String]) -> Options {
             case "results": options.screens = [.results]
             case "home": options.screens = [.home]
             case "help": options.screens = [.help]
+            case "settings": options.screens = [.settings]
             case "categories": options.screens = [.categories]
             case "cleanup": options.screens = [.cleanup]
             case "both": options.screens = [.results, .home]
-            case let other: fail("--screen expects home, results, help, categories, cleanup or both, not \(other)")
+            case let other: fail("--screen expects home, results, help, settings, categories, cleanup or both, not \(other)")
             }
         case "--fixture":
             options.fixture = URL(fileURLWithPath: next("--fixture"))
@@ -102,15 +104,16 @@ func parse(_ arguments: [String]) -> Options {
             options.rendersWindow = false
         case "--help", "-h":
             print("""
-            usage: render-screens --out DIR [--size WxH] [--appearance light|dark|both] [--screen home|results|help|categories|cleanup|both] [--fixture DIR] [--state finished|scanning] [--window|--content]
+            usage: render-screens --out DIR [--size WxH] [--appearance light|dark|both] [--screen home|results|help|settings|categories|cleanup|both] [--fixture DIR] [--state finished|scanning] [--window|--content]
 
               --out        directory the PNGs are written to
               --size       render size in points (default 1000x720)
               --appearance which appearances to render (default both)
               --screen     which screens to render (default results); both is
                            home and results, categories is the results screen in
-                           Categories mode, help and cleanup are the sheets'
-                           contents (cleanup uses its own fixture)
+                           Categories mode, help and settings are the sheet and
+                           preferences contents, cleanup is the sheet's contents
+                           (it uses its own fixture)
               --fixture    scan this directory instead of the generated fixture
               --state      finished (default) or scanning, which captures the
                            screen while the scan is still running
@@ -197,17 +200,37 @@ func rootNode(in summary: ScanSummary) -> ScanNode? {
     }
 }
 
+/// A store with non-default toggles and two exclusions, so the preferences
+/// render shows the list and both switch states instead of only the empty state.
+/// It uses the renderer's own defaults suite; the app's settings are untouched.
+@MainActor
+func makeSettingsStore(fixture: URL) -> ScanOptionsStore {
+    let defaults = UserDefaults(suiteName: "WillyDiskRenderSettings") ?? .standard
+    let store = ScanOptionsStore(defaults: defaults)
+    store.options = ScanOptions(
+        followSymlinks: true,
+        stayOnVolume: true,
+        includeHidden: false,
+        excludedPaths: [
+            fixture.appendingPathComponent("Archives"),
+            fixture.appendingPathComponent("Documents/invoice.pdf")
+        ]
+    )
+    return store
+}
+
 @MainActor
 func render(_ options: Options) {
-    // Help is static content: it needs no fixture and no scan, so a help-only
-    // render is quick and cannot fail on the fixture.
-    let needsScan = options.screens.contains { $0 != .help }
+    // Help and Settings are static content: they need no scan, so those renders
+    // are quick and cannot fail on the fixture.
+    let needsScan = options.screens.contains { $0 != .help && $0 != .settings }
+    let needsFixture = options.screens.contains { $0 != .help }
     // The cleanup sheet needs candidates the standard fixture does not have, so
     // it renders from its own tree; the other screens keep the shared fixture.
     let isCleanupRender = options.screens.contains(.cleanup)
     let fixtureName = isCleanupRender ? "Sample Disk" : "fixture"
     let fixture = options.fixture ?? options.out.appendingPathComponent(fixtureName)
-    if needsScan, options.fixture == nil {
+    if needsFixture, options.fixture == nil {
         try? FileManager.default.createDirectory(at: options.out, withIntermediateDirectories: true)
         if isCleanupRender {
             makeCleanupFixture(at: fixture)
@@ -216,6 +239,7 @@ func render(_ options: Options) {
         }
     }
 
+    let settingsStore = options.screens.contains(.settings) ? makeSettingsStore(fixture: fixture) : nil
     let viewModel = ScanViewModel(engine: FileScanEngine())
     if needsScan {
         viewModel.start(root: fixture)
@@ -286,6 +310,10 @@ func render(_ options: Options) {
                 case .results: ResultsView(viewModel: viewModel)
                 case .home: SourceSelectionView(viewModel: viewModel)
                 case .help: HelpView()
+                case .settings:
+                    if let settingsStore {
+                        SettingsView(optionsStore: settingsStore)
+                    }
                 case .categories:
                     ResultsView(viewModel: viewModel, initialMode: .categories)
                 case .cleanup:

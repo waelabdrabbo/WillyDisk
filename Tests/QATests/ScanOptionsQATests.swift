@@ -109,11 +109,62 @@ final class ScanOptionsQATests: XCTestCase {
                        exclusions.map(\.path))
     }
 
+    func testStoreEditsArePersistedAndSeenByAnotherStore() throws {
+        let suiteName = "ScanOptionsQATests-\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let store = ScanOptionsStore(defaults: defaults)
+        XCTAssertEqual(store.options, .standard)
+
+        store.options.includeHidden = false
+        store.options.followSymlinks = true
+
+        // The Settings window and the source screen each hold the shared store,
+        // and a later launch reads the same persisted values.
+        XCTAssertEqual(ScanOptionsStore.load(defaults: defaults), store.options)
+        XCTAssertEqual(ScanOptionsStore(defaults: defaults).options, store.options)
+
+        store.reset()
+        XCTAssertEqual(store.options, .standard)
+        XCTAssertEqual(ScanOptionsStore.load(defaults: defaults), .standard)
+    }
+
+    func testStoreAddsEachExclusionOnceAndRemovesByResolvedPath() throws {
+        let suiteName = "ScanOptionsQATests-\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let store = ScanOptionsStore(defaults: defaults)
+        let one = URL(fileURLWithPath: "/tmp/one")
+        let two = URL(fileURLWithPath: "/tmp/two")
+
+        store.addExclusions([
+            one,
+            URL(fileURLWithPath: "/tmp/one/../one"),
+            two
+        ])
+
+        XCTAssertEqual(store.options.excludedPaths.map(\.path), [one.path, two.path])
+        XCTAssertEqual(ScanOptionsStore.load(defaults: defaults).excludedPaths.map(\.path),
+                       [one.path, two.path])
+
+        store.removeExclusion(URL(fileURLWithPath: "/tmp/one/../one"))
+        XCTAssertEqual(store.options.excludedPaths.map(\.path), [two.path])
+        XCTAssertEqual(ScanOptionsStore.load(defaults: defaults).excludedPaths.map(\.path),
+                       [two.path])
+    }
+
     // MARK: - The view model carries the options
 
-    func testStartCarriesTheOptionsIntoTheRequestAndRescanRepeatsThem() async {
+    func testStartCarriesTheOptionsIntoTheRequestAndRescanUsesTheCurrentStore() async throws {
+        let suiteName = "ScanOptionsQATests-\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let store = ScanOptionsStore(defaults: defaults)
         let engine = RecordingEngine()
-        let vm = ScanViewModel(engine: engine)
+        let vm = ScanViewModel(engine: engine, optionsStore: store)
         let root = URL(fileURLWithPath: "/qa/options")
         let exclusions = [URL(fileURLWithPath: "/qa/options/Caches")]
         let options = ScanOptions(
@@ -122,8 +173,9 @@ final class ScanOptionsQATests: XCTestCase {
             includeHidden: false,
             excludedPaths: exclusions
         )
+        store.options = options
 
-        vm.start(root: root, options: options)
+        vm.start(root: root, options: store.options)
 
         XCTAssertEqual(engine.requests.count, 1)
         XCTAssertEqual(engine.requests[0].followSymlinks, true)
@@ -137,14 +189,25 @@ final class ScanOptionsQATests: XCTestCase {
         let finished = await waitUntil { vm.phase == .finished }
         XCTAssertTrue(finished)
 
+        // Rescan is a new scan: the options now in the store, not the ones the
+        // previous run began with, are what it requests.
+        let changed = ScanOptions(
+            followSymlinks: false,
+            stayOnVolume: true,
+            includeHidden: true,
+            excludedPaths: [URL(fileURLWithPath: "/qa/options/Trash")]
+        )
+        store.options = changed
         vm.rescan()
 
         XCTAssertEqual(engine.requests.count, 2)
         XCTAssertEqual(engine.requests[1].root, root)
-        XCTAssertEqual(engine.requests[1].followSymlinks, true)
-        XCTAssertEqual(engine.requests[1].stayOnVolume, false)
-        XCTAssertEqual(engine.requests[1].includeHidden, false)
-        XCTAssertEqual(engine.requests[1].excludedPaths, exclusions)
+        XCTAssertEqual(engine.requests[1].followSymlinks, false)
+        XCTAssertEqual(engine.requests[1].stayOnVolume, true)
+        XCTAssertEqual(engine.requests[1].includeHidden, true)
+        XCTAssertEqual(engine.requests[1].excludedPaths,
+                       [URL(fileURLWithPath: "/qa/options/Trash")])
+        XCTAssertEqual(vm.lastOptions, changed)
     }
 
     // MARK: - Presets

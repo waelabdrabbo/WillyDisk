@@ -29,12 +29,19 @@ public struct SourceSelectionView: View {
     @State private var recentLocations: [URL] = RecentLocations.load()
     @State private var volumes: [VolumeInfo] = []
     @State private var presets: [ScanPreset] = []
-    /// What the next scan includes. The choices persist, so a scan started from
-    /// the menu or a drop uses the same ones this screen shows.
-    @State private var scanOptions = ScanOptionsStore.load()
+    /// What the next scan includes. This is the one store Settings edits too, so
+    /// the sheet and the preferences window always show the same values, and a
+    /// scan started from the menu or a drop uses them as well.
+    @State private var scanOptionsStore: ScanOptionsStore
     @State private var showingScanOptions = false
+
     public init(viewModel: ScanViewModel = ScanViewModel()) {
         _viewModel = State(initialValue: viewModel)
+        _scanOptionsStore = State(initialValue: viewModel.optionsStore)
+    }
+
+    private var scanOptions: ScanOptions {
+        scanOptionsStore.options
     }
 
     /// The recent locations this screen lists, which excludes any that a volume
@@ -91,9 +98,6 @@ public struct SourceSelectionView: View {
             ToolbarItem(placement: .primaryAction) {
                 chooseFolderToolbarButton
             }
-        }
-        .onChange(of: scanOptions) { _, newValue in
-            ScanOptionsStore.save(newValue)
         }
     }
 
@@ -602,20 +606,20 @@ public struct SourceSelectionView: View {
             Text("Scan Options")
                 .font(DS.Typography.headline)
 
-            optionToggle(
-                "Include hidden items",
+            ScanOptionToggle(
+                title: "Include hidden items",
                 detail: "Names macOS hides, such as ~/Library, dotfiles, and caches.",
-                isOn: $scanOptions.includeHidden
+                isOn: optionBinding(\.includeHidden)
             )
-            optionToggle(
-                "Stay on this volume",
+            ScanOptionToggle(
+                title: "Stay on this volume",
                 detail: "Do not follow folders that point to another disk or network share.",
-                isOn: $scanOptions.stayOnVolume
+                isOn: optionBinding(\.stayOnVolume)
             )
-            optionToggle(
-                "Follow symbolic links",
+            ScanOptionToggle(
+                title: "Follow symbolic links",
                 detail: "Count a link's target, skipping links that leave the scan.",
-                isOn: $scanOptions.followSymlinks
+                isOn: optionBinding(\.followSymlinks)
             )
 
             Rectangle()
@@ -630,12 +634,12 @@ public struct SourceSelectionView: View {
 
             HStack {
                 Button("Reset to Defaults") {
-                    scanOptions = .standard
+                    scanOptionsStore.reset()
                 }
                 .controlSize(.small)
                 .disabled(scanOptions == .standard)
                 Spacer()
-                Text("Applies to the next scan you start.")
+                Text("Applies to every scan you start.")
                     .font(DS.Typography.caption)
                     .foregroundStyle(DS.Color.secondaryText)
             }
@@ -678,7 +682,7 @@ public struct SourceSelectionView: View {
                                     .truncationMode(.middle)
                                 Spacer(minLength: 0)
                                 Button {
-                                    removeExclusion(url)
+                                    scanOptionsStore.removeExclusion(url)
                                 } label: {
                                     Image(systemName: "xmark")
                                         .font(DS.Icon.detail)
@@ -703,28 +707,13 @@ public struct SourceSelectionView: View {
         }
     }
 
-    /// One scan option: the consequence spelled out on the left, the switch held
-    /// against the trailing edge. The text claims the row's width and the switch
-    /// keeps its own, so every switch lands on the same line however the
-    /// description wraps.
-    private func optionToggle(_ title: String, detail: String, isOn: Binding<Bool>) -> some View {
-        HStack(alignment: .center, spacing: DS.Spacing.medium) {
-            VStack(alignment: .leading, spacing: DS.Spacing.hairline) {
-                Text(title)
-                    .font(DS.Typography.body)
-                Text(detail)
-                    .font(DS.Typography.caption)
-                    .foregroundStyle(DS.Color.secondaryText)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-
-            Toggle(title, isOn: isOn)
-                .toggleStyle(.switch)
-                .labelsHidden()
-                .accessibilityLabel(title)
-                .accessibilityValue(isOn.wrappedValue ? "on" : "off")
-        }
+    /// Binds one field of the shared store, so this sheet edits the values the
+    /// Settings window shows instead of a private copy of them.
+    private func optionBinding(_ keyPath: WritableKeyPath<ScanOptions, Bool>) -> Binding<Bool> {
+        Binding(
+            get: { scanOptionsStore.options[keyPath: keyPath] },
+            set: { scanOptionsStore.options[keyPath: keyPath] = $0 }
+        )
     }
 
     /// A section's name set against a hairline that runs to the panel edge, so
@@ -782,20 +771,9 @@ public struct SourceSelectionView: View {
         panel.canChooseDirectories = true
         panel.allowsMultipleSelection = true
         panel.prompt = "Exclude"
-        panel.message = "Choose files or folders the next scan should leave out."
+        panel.message = "Choose files or folders every scan should leave out."
         guard panel.runModal() == .OK else { return }
-
-        var seen = Set(scanOptions.excludedPaths.map { $0.standardizedFileURL.path })
-        for url in panel.urls {
-            let standardized = url.standardizedFileURL
-            guard seen.insert(standardized.path).inserted else { continue }
-            scanOptions.excludedPaths.append(standardized)
-        }
-    }
-
-    private func removeExclusion(_ url: URL) {
-        let path = url.standardizedFileURL.path
-        scanOptions.excludedPaths.removeAll { $0.standardizedFileURL.path == path }
+        scanOptionsStore.addExclusions(panel.urls)
     }
 
     private func startScan(_ url: URL) {

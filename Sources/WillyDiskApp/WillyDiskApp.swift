@@ -23,7 +23,7 @@ struct WillyDiskApp: App {
         }
 
         Settings {
-            AppearanceSettingsView()
+            SettingsView()
         }
     }
 }

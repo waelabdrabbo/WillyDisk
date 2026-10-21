@@ -8,14 +8,15 @@
 # locked session and inside an agent sandbox.
 #
 # Usage:
-#   Scripts/render-screens.sh [-o OUT_DIR] [-s WxH] [-a light|dark|both] [-S results|home|help|categories|cleanup|both] [-t FIXTURE_DIR] [-T STATE]
+#   Scripts/render-screens.sh [-o OUT_DIR] [-s WxH] [-a light|dark|both] [-S results|home|help|settings|categories|cleanup|both] [-t FIXTURE_DIR] [-T STATE]
 #
 #   -o  output directory                     (default .build/renders)
 #   -s  render size in points                (default 1000x720)
 #   -a  appearances to render                (default both)
 #   -S  screens to render                    (default results; both is home and
 #       results; categories is the results screen in Categories mode; help and
-#       cleanup are the sheet contents, and cleanup scans its own sample tree)
+#       settings are the sheet and preferences contents; cleanup is the sheet
+#       contents and scans its own sample tree)
 #   -t  scan this directory instead of the generated fixture
 #   -T  finished (default), scanning, or stopped — the screen a cancelled scan
 #       leaves behind. scanning and stopped both need a directory large enough

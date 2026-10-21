@@ -10,6 +10,10 @@ import DiskUI
 /// used by the "Choose Folder…" menu command.
 @MainActor
 final class AppState: ObservableObject {
+    /// The one scan-options store the whole app shares, including the Settings
+    /// window and the source screen's Scan Options sheet.
+    let scanOptions = ScanOptionsStore.shared
+
     /// The one view model the whole app shares.
     let scanViewModel: ScanViewModel
 
@@ -18,7 +22,7 @@ final class AppState: ObservableObject {
     @Published var isShowingHelp = false
 
     init() {
-        scanViewModel = ScanViewModel(engine: FileScanEngine())
+        scanViewModel = ScanViewModel(engine: FileScanEngine(), optionsStore: scanOptions)
 
         // The stored appearance is in place before the first window exists, so a
         // choice held over from the last launch is never painted over by the
@@ -29,7 +33,7 @@ final class AppState: ObservableObject {
         // scan immediately on launch so screenshots and smoke tests can reach
         // the results screen without driving the UI. No effect in normal use.
         if let path = ProcessInfo.processInfo.environment["WILLYDISK_AUTOSCAN"], !path.isEmpty {
-            scanViewModel.start(root: URL(fileURLWithPath: path), options: ScanOptionsStore.load())
+            scanViewModel.start(root: URL(fileURLWithPath: path), options: scanOptions.options)
         }
     }
 
@@ -43,7 +47,7 @@ final class AppState: ObservableObject {
         panel.message = "Choose a folder or volume to scan."
 
         if panel.runModal() == .OK, let url = panel.url {
-            scanViewModel.start(root: url, options: ScanOptionsStore.load())
+            scanViewModel.start(root: url, options: scanOptions.options)
         }
     }
 

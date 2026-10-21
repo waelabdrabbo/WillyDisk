@@ -11,12 +11,14 @@ stream reports.
   render (`ScanIssue`, `ScanIssuesPresentation`, `ScanSlotPresentation`).
 - `Screens/` — `ScanFlowView` routes phases; `SourceSelectionView` is screen A;
   `ResultsView` is screen C and also the live in-progress state; `HelpView` is the
-  help sheet's content. Scanning is not a separate screen.
+  help sheet's content; `SettingsView` is the preferences window. Scanning is not a
+  separate screen.
 - `Components/` — `SunburstView` (the disk chart: wedges drawn in one static layer,
   with the hover emphasis painted over them), `CategoryRingView` (the scan by
   category, one ring; opening a category charts its files with `SunburstView`),
   `CleanupSheet` (candidates that go to the reclaim confirmation), `AccessNoticeRow`,
-  `FlowLayout`.
+  `FlowLayout`, `ScanOptionToggle` (one scan option, shared by the source screen's
+  sheet and Settings).
 - `DesignSystem/` — `DesignSystem.swift` holds every token (`DS`), `ChartPalette.swift`
   the chart fills, `FileCategory+UI.swift` the category symbols and labels,
   `AppAppearance.swift` the stored system/light/dark preference behind the first
@@ -29,7 +31,8 @@ stream reports.
   `ScanSlotPresentation`, `ReportExport` (JSON/CSV through `NSSavePanel`),
   `CategoryBreakdown` (sizes by category), `CategoryFiles` (a category's largest
   files, walked off the main actor), `CleanupAnalysis` (bounded large/old, cache, and
-  download heuristics over the finished tree).
+  download heuristics over the finished tree), `ScanOptions` + `ScanOptionsStore`
+  (the one shared, persisted set of choices the next scan and Rescan use).
 
 ## Rules
 
@@ -60,13 +63,15 @@ Screen Recording permission:
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -o .build/renders/<change>
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S home -o .build/renders/<change>
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S help -c -o .build/renders/<change>
+WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S settings -c -s 460x760 -o .build/renders/<change>
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S categories -o .build/renders/<change>
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S cleanup -c -o .build/renders/<change>
 ```
 
 `-S` picks the screen: `results` (default), `home` (source selection), `categories`
-(the results screen in Categories mode), `help` and `cleanup` (the sheets' contents;
-cleanup scans a sample tree of its own), or `both` (home and results).
+(the results screen in Categories mode), `help` and `settings` (the sheet and
+preferences contents), `cleanup` (the sheet's contents; it scans a sample tree of its
+own), or `both` (home and results).
 
 The `-o` matters: renders are named after their size and appearance, so reusing a
 directory reuses the path, and a viewer that already loaded it keeps showing the cached

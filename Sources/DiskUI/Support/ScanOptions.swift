@@ -1,4 +1,5 @@
 import Foundation
+import Observation
 
 /// The choices a scan is started with.
 ///
@@ -46,12 +47,65 @@ public struct ScanOptions: Equatable, Sendable {
     }
 }
 
-/// Remembers the last scan options across launches.
+/// Remembers the scan options across launches and shares them with every view
+/// that edits them.
 ///
-/// The preference is read when a scan starts, not when the app launches, so a
-/// scan begun from the menu, a drop, or the QA autoscan hook uses the same
-/// choices the source screen shows.
-public enum ScanOptionsStore {
+/// There is one store, not one copy per window: the source screen's Scan
+/// Options sheet and the Settings window read and write `shared`, so a change
+/// made in either place is immediately the value the other shows. Every
+/// mutation is written to `UserDefaults`, and a scan begun from the menu, a
+/// drop, or the QA autoscan hook reads the same persisted values.
+@MainActor
+@Observable
+public final class ScanOptionsStore {
+
+    /// The store the app and its windows use.
+    public static let shared = ScanOptionsStore()
+
+    private let defaults: UserDefaults
+
+    /// The choices the next scan and Rescan use. Mutating any field persists it
+    /// at once, so the value cannot outlive the store and disagree with what a
+    /// later launch reads.
+    public var options: ScanOptions {
+        didSet {
+            guard options != oldValue else { return }
+            ScanOptionsStore.save(options, defaults: defaults)
+        }
+    }
+
+    public init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+        self.options = ScanOptionsStore.load(defaults: defaults)
+    }
+
+    /// Restores every scan option, including the exclusions, to the defaults.
+    public func reset() {
+        options = .standard
+    }
+
+    /// Adds paths the scan should leave out, standardizing each one and ignoring
+    /// duplicates that differ only by `..` or a trailing slash.
+    public func addExclusions(_ urls: [URL]) {
+        var next = options
+        var seen = Set(next.excludedPaths.map { $0.standardizedFileURL.path })
+        for url in urls {
+            let standardized = url.standardizedFileURL
+            guard seen.insert(standardized.path).inserted else { continue }
+            next.excludedPaths.append(standardized)
+        }
+        guard next.excludedPaths.count != options.excludedPaths.count else { return }
+        options = next
+    }
+
+    /// Stops excluding a path, matched the same way the scan matches it.
+    public func removeExclusion(_ url: URL) {
+        let path = url.standardizedFileURL.path
+        var next = options
+        next.excludedPaths.removeAll { $0.standardizedFileURL.path == path }
+        guard next.excludedPaths.count != options.excludedPaths.count else { return }
+        options = next
+    }
 
     private enum Key {
         static let followSymlinks = "scanOptions.followSymlinks"

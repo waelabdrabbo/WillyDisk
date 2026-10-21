@@ -14,6 +14,13 @@ public enum CleanupTab: String, CaseIterable, Identifiable, Sendable {
         case .duplicates: "Duplicates"
         }
     }
+
+    public var symbolName: String {
+        switch self {
+        case .old: "clock"
+        case .duplicates: "doc.on.doc"
+        }
+    }
 }
 
 /// Candidates worth reviewing, grouped by why they were noticed.
@@ -39,6 +46,7 @@ public struct CleanupSheet: View {
     @State private var analysisTask: Task<CleanupReport?, Never>?
     @State private var duplicateCheck: DuplicateCheck
     @State private var tab: CleanupTab
+    @State private var hoveredTab: CleanupTab?
 
     /// `previewReport` skips the walk and shows a known report; the renderer
     /// uses it so a screenshot does not race a background analysis.
@@ -180,17 +188,9 @@ public struct CleanupSheet: View {
 
     private func tabs(_ report: CleanupReport) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            Picker("Cleanup section", selection: $tab) {
-                ForEach(CleanupTab.allCases) { option in
-                    Text(option.title).tag(option)
-                }
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            .frame(width: 240)
-            .padding(.horizontal, DS.Spacing.xxLarge)
-            .padding(.vertical, DS.Spacing.medium)
-            .accessibilityLabel("Cleanup section")
+            tabBar
+                .padding(.horizontal, DS.Spacing.xxLarge)
+                .padding(.vertical, DS.Spacing.medium)
 
             Divider()
 
@@ -201,6 +201,52 @@ public struct CleanupSheet: View {
                 duplicatesContent(report)
             }
         }
+    }
+
+    /// Two segmented tabs with the symbol beside the name. The system
+    /// segmented Picker draws its labels as text only, so the row is built from
+    /// buttons that keep the icon, the selected ink, and the hover wash.
+    private var tabBar: some View {
+        HStack(spacing: 2) {
+            ForEach(CleanupTab.allCases) { option in
+                Button {
+                    tab = option
+                } label: {
+                    HStack(spacing: DS.Spacing.xSmall) {
+                        Image(systemName: option.symbolName)
+                        Text(option.title)
+                    }
+                    .font(DS.Typography.callout)
+                    .foregroundStyle(tab == option ? DS.Color.windowBackground : DS.Color.primaryText)
+                    .padding(.horizontal, DS.Spacing.small)
+                    .padding(.vertical, DS.Spacing.xSmall)
+                    .frame(maxWidth: .infinity)
+                    .background(
+                        tab == option
+                            ? DS.Color.accent
+                            : (hoveredTab == option ? DS.Color.accent.opacity(DS.Opacity.rowHover) : .clear),
+                        in: RoundedRectangle(cornerRadius: DS.Radius.medium, style: .continuous)
+                    )
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .onHover { inside in
+                    if inside {
+                        hoveredTab = option
+                    } else if hoveredTab == option {
+                        hoveredTab = nil
+                    }
+                }
+                .accessibilityLabel(option.title)
+                .accessibilityAddTraits(tab == option ? .isSelected : [])
+            }
+        }
+        .frame(width: 280)
+        .padding(2)
+        .background(
+            DS.Color.rule.opacity(0.5),
+            in: RoundedRectangle(cornerRadius: DS.Radius.large, style: .continuous)
+        )
     }
 
     @ViewBuilder

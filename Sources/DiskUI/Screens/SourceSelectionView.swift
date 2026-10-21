@@ -7,7 +7,7 @@ import DiskCore
 /// background.
 ///
 /// Distinctive identity, headline + supporting text, mounted volumes and recent
-/// locations each with an inline Scan/View Results action, and "Choose a Folder"
+/// locations each with an inline Scan/View Results action, and "Choose a Folder…"
 /// (native `NSOpenPanel`). A folder picked or dropped stages into a card with a
 /// real "Scan" action. Every control performs a real action on real scan
 /// data.
@@ -124,16 +124,7 @@ public struct SourceSelectionView: View {
     }
 
     private func failureBanner(_ message: String) -> some View {
-        HStack(spacing: DS.Spacing.small) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .foregroundStyle(DS.Color.warning)
-            Text(message)
-                .font(DS.Typography.callout)
-        }
-        .padding(DS.Spacing.medium)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(DS.Color.warning.opacity(0.12), in: RoundedRectangle(cornerRadius: DS.Radius.large, style: .continuous))
-        .accessibilityElement(children: .combine)
+        WarningNotice(message)
     }
 
     /// The usual large folders, so the common scans do not begin with a file
@@ -204,7 +195,7 @@ public struct SourceSelectionView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .background(hoveredPreset == preset.id ? DS.Color.accent.opacity(DS.Opacity.rowHover) : .clear)
+        .dsHoverableRow(isHovered: hoveredPreset == preset.id, radius: nil)
         .overlay(alignment: .top) {
             if row > 0 {
                 Rectangle().fill(DS.Color.rule).frame(height: DS.Stroke.hairline)
@@ -216,7 +207,7 @@ public struct SourceSelectionView: View {
             }
         }
         .disabled(viewModel.isScanning || !preset.isAvailable)
-        .opacity(preset.isAvailable ? 1 : DS.Opacity.disabled)
+        .opacity(preset.isAvailable && !viewModel.isScanning ? 1 : DS.Opacity.disabled)
         .onHover { inside in
             guard !viewModel.isScanning, preset.isAvailable else {
                 hoveredPreset = nil
@@ -316,8 +307,7 @@ public struct SourceSelectionView: View {
                         if let total = volume.totalCapacity {
                             let used = volume.usedCapacity ?? 0
                             Text("\(ByteFormat.string(used)) used of \(ByteFormat.string(total))")
-                                .font(DS.Typography.caption)
-                                .monospacedDigit()
+                                .font(DS.Typography.metadataFigures)
                                 .foregroundStyle(DS.Color.secondaryText)
                                 .lineLimit(1)
                         }
@@ -335,6 +325,7 @@ public struct SourceSelectionView: View {
             .padding(.vertical, DS.Spacing.small)
             .padding(.horizontal, DS.Spacing.small)
             .background(rowFill(isPrimary: isPrimary, isHovered: isHovered), in: rowShape)
+            .dsHoverableRow(isHovered: isHovered && !isPrimary, radius: DS.Radius.medium)
             .contentShape(rowShape)
         }
         .buttonStyle(.plain)
@@ -420,17 +411,13 @@ public struct SourceSelectionView: View {
         RoundedRectangle(cornerRadius: DS.Radius.medium, style: .continuous)
     }
 
-    /// The wash under a row: the app's accent throughout, heaviest on the row
-    /// whose results are open and lightest under the pointer, so "where the
-    /// pointer is" never reads as "what is open".
+    /// The wash under a row: the app's accent at `rowPrimary` on the row whose
+    /// results are open, lifted to `rowCurrentHover` under the pointer, and the
+    /// shared hover wash on every other row. Both stay below a selection, so
+    /// "where the pointer is" never reads as "what I clicked".
     private func rowFill(isPrimary: Bool, isHovered: Bool) -> Color {
-        if isPrimary {
-            return DS.Color.accent.opacity(isHovered ? DS.Opacity.rowSelection : DS.Opacity.rowPrimary)
-        }
-        if isHovered {
-            return DS.Color.accent.opacity(DS.Opacity.rowHover)
-        }
-        return .clear
+        guard isPrimary else { return .clear }
+        return DS.Color.accent.opacity(isHovered ? DS.Opacity.rowCurrentHover : DS.Opacity.rowPrimary)
     }
 
     /// Why a start action is unavailable, or what it starts.
@@ -529,6 +516,7 @@ public struct SourceSelectionView: View {
             .padding(.vertical, DS.Spacing.small)
             .padding(.horizontal, DS.Spacing.small)
             .background(rowFill(isPrimary: isPrimary, isHovered: isHovered), in: rowShape)
+            .dsHoverableRow(isHovered: isHovered && !isPrimary, radius: DS.Radius.medium)
             .contentShape(rowShape)
         }
         .buttonStyle(.plain)
@@ -590,7 +578,7 @@ public struct SourceSelectionView: View {
         Button {
             chooseFolder()
         } label: {
-            Label("Choose a Folder", systemImage: "folder")
+            Label("Choose a Folder…", systemImage: "folder")
                 .labelStyle(.titleAndIcon)
         }
         .disabled(viewModel.isScanning)
@@ -654,7 +642,7 @@ public struct SourceSelectionView: View {
     private var exclusionsEditor: some View {
         VStack(alignment: .leading, spacing: DS.Spacing.small) {
             HStack {
-                Text("Excluded paths")
+                Text("Excluded Paths")
                     .font(DS.Typography.body)
                 Spacer()
                 Button("Add Path…") {
@@ -681,16 +669,13 @@ public struct SourceSelectionView: View {
                                     .lineLimit(1)
                                     .truncationMode(.middle)
                                 Spacer(minLength: 0)
-                                Button {
+                                IconActionButton(
+                                    symbol: "xmark",
+                                    help: "Stop excluding \(url.path)",
+                                    surface: .inline
+                                ) {
                                     scanOptionsStore.removeExclusion(url)
-                                } label: {
-                                    Image(systemName: "xmark")
-                                        .font(DS.Icon.detail)
                                 }
-                                .buttonStyle(.borderless)
-                                .frame(width: DS.Size.iconButton, height: DS.Size.iconButton)
-                                .contentShape(Rectangle())
-                                .help("Stop excluding \(url.path)")
                                 .accessibilityLabel("Remove exclusion \(url.path)")
                             }
                             .padding(.vertical, DS.Spacing.xxSmall)
@@ -719,17 +704,7 @@ public struct SourceSelectionView: View {
     /// A section's name set against a hairline that runs to the panel edge, so
     /// the home screen reads as a ruled index rather than as stacked groups.
     private func sectionHeader(_ title: String) -> some View {
-        HStack(spacing: DS.Spacing.small) {
-            Text(title)
-                .font(DS.Typography.caption)
-                .fontWeight(.semibold)
-                .foregroundStyle(DS.Color.graphite)
-                .fixedSize()
-            Rectangle()
-                .fill(DS.Color.rule)
-                .frame(height: DS.Stroke.hairline)
-        }
-        .accessibilityAddTraits(.isHeader)
+        SectionLabel(title, rule: true)
     }
 
     private var dropOverlay: some View {

@@ -58,6 +58,12 @@ struct CategoryRingView: View {
                 Button {
                     onSelect(segment.category)
                 } label: {
+                    // A hovered category dims the rest of the ring instead of
+                    // shading itself: one band has no depth to lean on, so the
+                    // contrast between "this slice" and "the whole scan" is
+                    // what names it. The sunburst shades its active wedge and
+                    // keeps the other rings at full colour, because its depth
+                    // already carries the hierarchy.
                     shape
                         .fill(ChartPalette.categoryColor(index: index, count: segments.count))
                         .opacity(hovered == nil || hovered == segment.category ? 1 : 0.55)
@@ -238,7 +244,7 @@ struct CategoryShareList: View {
                     .font(DS.Typography.callout)
                     .foregroundStyle(DS.Color.accent)
                     .frame(width: DS.Spacing.xLarge, alignment: .center)
-                VStack(alignment: .leading, spacing: DS.Spacing.xSmall) {
+                VStack(alignment: .leading, spacing: DS.Spacing.hairline) {
                     HStack(alignment: .firstTextBaseline, spacing: DS.Spacing.small) {
                         Text(share.category.displayName)
                             .font(DS.Typography.body)
@@ -252,7 +258,11 @@ struct CategoryShareList: View {
                             .foregroundStyle(DS.Color.secondaryText)
                             .frame(width: 44, alignment: .trailing)
                     }
-                    bar(share, isHovered: isHovered)
+                    Color.clear
+                        .frame(height: DS.Size.listRowDetailMinHeight)
+                        .overlay(alignment: .leading) {
+                            bar(share, isHovered: isHovered)
+                        }
                 }
                 Image(systemName: "chevron.right")
                     .font(DS.Icon.detail)
@@ -261,10 +271,7 @@ struct CategoryShareList: View {
             }
             .padding(.horizontal, DS.Spacing.small)
             .padding(.vertical, DS.Spacing.small)
-            .background {
-                RoundedRectangle(cornerRadius: DS.Radius.small, style: .continuous)
-                    .fill(isHovered ? DS.Color.accent.opacity(DS.Opacity.rowHover) : .clear)
-            }
+            .dsHoverableRow(isHovered: isHovered, radius: DS.Radius.medium)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

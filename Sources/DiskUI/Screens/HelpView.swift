@@ -58,9 +58,11 @@ public struct HelpView: View {
                 .font(DS.Typography.caption)
                 .foregroundStyle(DS.Color.secondaryText)
             Spacer()
-            Button("Done", action: onClose)
-                .keyboardShortcut(.defaultAction)
-                .controlSize(.large)
+            Button(action: onClose) {
+                Text("Done")
+                    .frame(minWidth: DS.Size.actionMinWidth)
+            }
+            .keyboardShortcut(.defaultAction)
         }
         .padding(.horizontal, DS.Spacing.xxLarge)
         .padding(.vertical, DS.Spacing.large)

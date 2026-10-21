@@ -14,13 +14,6 @@ public enum CleanupTab: String, CaseIterable, Identifiable, Sendable {
         case .duplicates: "Duplicates"
         }
     }
-
-    public var symbolName: String {
-        switch self {
-        case .old: "clock"
-        case .duplicates: "doc.on.doc"
-        }
-    }
 }
 
 /// Candidates worth reviewing, grouped by why they were noticed.
@@ -43,10 +36,10 @@ public struct CleanupSheet: View {
     @State private var report: CleanupReport?
     @State private var isAnalyzing: Bool
     @State private var selected: Set<URL> = []
+    @State private var hoveredCandidate: URL?
     @State private var analysisTask: Task<CleanupReport?, Never>?
     @State private var duplicateCheck: DuplicateCheck
     @State private var tab: CleanupTab
-    @State private var hoveredTab: CleanupTab?
 
     /// `previewReport` skips the walk and shows a known report; the renderer
     /// uses it so a screenshot does not race a background analysis.
@@ -203,50 +196,19 @@ public struct CleanupSheet: View {
         }
     }
 
-    /// Two segmented tabs with the symbol beside the name. The system
-    /// segmented Picker draws its labels as text only, so the row is built from
-    /// buttons that keep the icon, the selected ink, and the hover wash.
+    /// The sheet's two views, switched by the same native segmented control the
+    /// explorer uses, so "choose one view" has one control across the app.
     private var tabBar: some View {
-        HStack(spacing: 2) {
-            ForEach(CleanupTab.allCases) { option in
-                Button {
-                    tab = option
-                } label: {
-                    HStack(spacing: DS.Spacing.xSmall) {
-                        Image(systemName: option.symbolName)
-                        Text(option.title)
-                    }
-                    .font(DS.Typography.callout)
-                    .foregroundStyle(tab == option ? DS.Color.windowBackground : DS.Color.primaryText)
-                    .padding(.horizontal, DS.Spacing.small)
-                    .padding(.vertical, DS.Spacing.xSmall)
-                    .frame(maxWidth: .infinity)
-                    .background(
-                        tab == option
-                            ? DS.Color.accent
-                            : (hoveredTab == option ? DS.Color.accent.opacity(DS.Opacity.rowHover) : .clear),
-                        in: RoundedRectangle(cornerRadius: DS.Radius.medium, style: .continuous)
-                    )
-                    .contentShape(Rectangle())
+        HStack(spacing: 0) {
+            Picker("Cleanup view", selection: $tab) {
+                ForEach(CleanupTab.allCases) { option in
+                    Text(option.title).tag(option)
                 }
-                .buttonStyle(.plain)
-                .onHover { inside in
-                    if inside {
-                        hoveredTab = option
-                    } else if hoveredTab == option {
-                        hoveredTab = nil
-                    }
-                }
-                .accessibilityLabel(option.title)
-                .accessibilityAddTraits(tab == option ? .isSelected : [])
             }
+            .dsSegmentedSwitch()
+            .accessibilityLabel("Cleanup view")
+            Spacer(minLength: 0)
         }
-        .frame(width: 280)
-        .padding(2)
-        .background(
-            DS.Color.rule.opacity(0.5),
-            in: RoundedRectangle(cornerRadius: DS.Radius.large, style: .continuous)
-        )
     }
 
     @ViewBuilder
@@ -344,12 +306,9 @@ public struct CleanupSheet: View {
                     .foregroundStyle(DS.Color.secondaryText)
                 Spacer(minLength: DS.Spacing.small)
                 if group.candidates.count > 1 {
-                    Button(allSelected(in: group) ? "Deselect All" : "Select All") {
+                    InlineActionButton(allSelected(in: group) ? "Deselect All" : "Select All") {
                         toggleAll(in: group)
                     }
-                    .buttonStyle(.borderless)
-                    .font(DS.Typography.caption)
-                    .controlSize(.small)
                 }
             }
 
@@ -519,12 +478,9 @@ public struct CleanupSheet: View {
                     .font(DS.Typography.caption)
                     .foregroundStyle(DS.Color.secondaryText)
                 Spacer(minLength: DS.Spacing.small)
-                Button(extrasSelected(in: group) ? "Clear Copies" : "Select All But One") {
+                InlineActionButton(extrasSelected(in: group) ? "Clear Copies" : "Select All But One") {
                     toggleExtras(in: group)
                 }
-                .buttonStyle(.borderless)
-                .font(DS.Typography.caption)
-                .controlSize(.small)
                 .help("Selects every copy except the first, so one copy stays in place")
             }
 
@@ -595,7 +551,7 @@ public struct CleanupSheet: View {
                         .truncationMode(.middle)
                     Text(PathFormat.abbreviated(candidate.url.path, maxLength: 72))
                         .font(DS.Typography.caption)
-                        .foregroundStyle(DS.Color.secondaryText)
+                        .foregroundStyle(DS.Color.mutedText)
                         .lineLimit(1)
                         .truncationMode(.middle)
                 }
@@ -616,9 +572,17 @@ public struct CleanupSheet: View {
             }
             .padding(.horizontal, DS.Spacing.small)
             .padding(.vertical, DS.Spacing.xSmall)
+            .dsHoverableRow(isHovered: hoveredCandidate == candidate.url, radius: DS.Radius.medium)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .onHover { inside in
+            if inside {
+                hoveredCandidate = candidate.url
+            } else if hoveredCandidate == candidate.url {
+                hoveredCandidate = nil
+            }
+        }
         .accessibilityLabel("\(candidate.name), \(ByteFormat.string(candidate.logicalSize))")
         .accessibilityHint(candidate.isDirectory ? "A folder; moves everything inside it" : "A file")
         .accessibilityAddTraits(isSelected ? [.isSelected] : [])
@@ -640,14 +604,20 @@ public struct CleanupSheet: View {
 
                 Spacer()
 
-                Button("Move to Trash…") {
+                Button {
                     onMove(selectedNodes)
+                } label: {
+                    Text("Move to Trash…")
+                        .frame(minWidth: DS.Size.actionMinWidth)
                 }
                 .disabled(selected.isEmpty)
                 .accessibilityHint("Opens the confirmation for the selected items")
 
-                Button("Done", action: onClose)
-                    .keyboardShortcut(.defaultAction)
+                Button(action: onClose) {
+                    Text("Done")
+                        .frame(minWidth: DS.Size.secondaryActionMinWidth)
+                }
+                .keyboardShortcut(.defaultAction)
             }
         }
         .padding(.horizontal, DS.Spacing.xxLarge)

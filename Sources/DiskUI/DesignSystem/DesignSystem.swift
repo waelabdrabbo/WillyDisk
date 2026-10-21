@@ -57,6 +57,9 @@ public enum DS {
         public static let iconButton: CGFloat = 28
         /// Minimum width for an action button, so labels align across screens.
         public static let actionMinWidth: CGFloat = 120
+        /// Minimum width for a secondary footer action, so a sheet's pair of
+        /// buttons keeps one baseline instead of hugging each label.
+        public static let secondaryActionMinWidth: CGFloat = 84
         /// Fixed width of a volume's usage gauge.
         public static let gaugeWidth: CGFloat = 120
         /// Side of a volume row's capacity arc. The arc replaces a bar because the
@@ -81,6 +84,9 @@ public enum DS {
         /// Width of the compact progress bar a source row shows while its
         /// location is being scanned.
         public static let rowProgressWidth: CGFloat = 88
+        /// One line of caption text. A list row's detail line keeps this height,
+        /// so a bar and a subtitle occupy the same second line.
+        public static let listRowDetailMinHeight: CGFloat = 14
         /// Height of the scan-status strip at the bottom of the chart pane.
         /// Fixed, so the chart keeps its size whether or not a scan is running.
         public static let scanStatusStripHeight: CGFloat = 40
@@ -105,6 +111,13 @@ public enum DS {
         public static let rowSelection: Double = 0.15
         /// Tint behind the row that holds the only result, above hover.
         public static let rowPrimary: Double = 0.10
+        /// Hover on the row whose results are already open. Sits above the
+        /// row's resting tint and below a selection.
+        public static let rowCurrentHover: Double = 0.12
+        /// A selected row in a window that is not key. Its value matches hover,
+        /// but it names a different state so callers stop borrowing the hover
+        /// token.
+        public static let rowSelectionInactive: Double = 0.08
         /// Dimming applied to rows that cannot act during a scan.
         public static let disabled: Double = 0.5
         /// How much of the active wedge's outline an ancestor keeps, so the
@@ -128,6 +141,8 @@ public enum DS {
         public static let hairline: CGFloat = 0.5
         /// Emphasis border for a highlighted or focused element.
         public static let emphasis: CGFloat = 1.5
+        /// Border width for the keyboard-focus ring around a custom control.
+        public static let focus: CGFloat = 2
         /// Border width for the element the explorer has selected. Wider than the
         /// hover/focus emphasis so a selection stays legible where it crosses the
         /// chart's own separators.
@@ -252,6 +267,8 @@ public enum DS {
         public static let metric: SwiftUI.Font = .system(size: 30, weight: .semibold)
         /// A figure inside running text — a size in a row, a count in a caption.
         public static let figures: SwiftUI.Font = .system(.body).monospacedDigit()
+        /// Figures inside a metadata line, one step below a row's primary size.
+        public static let metadataFigures: SwiftUI.Font = .system(.subheadline).monospacedDigit()
         /// Figures set inside a gauge too small for `figures`.
         public static let gaugeFigures: SwiftUI.Font = .system(size: 9, weight: .semibold).monospacedDigit()
         public static let monospaced: SwiftUI.Font = .system(.callout, design: .monospaced)
@@ -342,6 +359,22 @@ extension View {
         interactive: Bool = false
     ) -> some View {
         modifier(DSGlassControlModifier(cornerRadius: cornerRadius, interactive: interactive))
+    }
+
+    /// The one segmented view switch: native, small, text-only, and hugging its
+    /// labels.
+    ///
+    /// The explorer's mode bar and the cleanup sheet's tabs both use it, so the
+    /// same "choose one view" control cannot take two different shapes.
+    public func dsSegmentedSwitch() -> some View {
+        self
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .controlSize(.small)
+            .fixedSize()
+            // The control carries the app's one ink itself, so it reads the
+            // same in a sheet, a preview, and the window that already sets it.
+            .tint(DS.Color.signal)
     }
 }
 

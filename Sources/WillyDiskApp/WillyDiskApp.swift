@@ -51,7 +51,7 @@ private struct WillyDiskCommands: Commands {
         }
 
         CommandGroup(after: .newItem) {
-            Button("Choose Folder…") {
+            Button("Choose a Folder…") {
                 appState.chooseSource()
             }
             .keyboardShortcut("o", modifiers: .command)

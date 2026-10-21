@@ -18,7 +18,8 @@ stream reports.
   category, one ring; opening a category charts its files with `SunburstView`),
   `CleanupSheet` (large/old, cache, download, and duplicate candidates that go to the
   reclaim confirmation), `AccessNoticeRow`, `FlowLayout`, `ScanOptionToggle` (one scan
-  option, shared by the source screen's sheet and Settings).
+  option, shared by the source screen's sheet and Settings), `ControlStyles` (the
+  shared row hover, inline and icon actions, and warning notice).
 - `DesignSystem/` — `DesignSystem.swift` holds every token (`DS`), `ChartPalette.swift`
   the chart fills, `FileCategory+UI.swift` the category symbols and labels,
   `AppAppearance.swift` the stored system/light/dark preference the Settings window
@@ -44,6 +45,8 @@ stream reports.
   and the chart share is `ChartHover` in `Screens/ResultsView.swift`, so a hover
   re-renders the list and the chart and leaves the rest of the screen alone.
 - Light and dark must both be polished; controls stay keyboard-accessible.
+- Verbs are part of the control vocabulary: "Cancel Scan" stops a scan,
+  "Cancel" dismisses a modal task, and "Dismiss" hides a notice.
 - Liquid Glass is an enhancement only: gate macOS 26 APIs behind
   `if #available(macOS 26.0, *)`. Never call a newer API unguarded.
 - `.partial` snapshots are advisory — the engine may throttle or omit them — and are

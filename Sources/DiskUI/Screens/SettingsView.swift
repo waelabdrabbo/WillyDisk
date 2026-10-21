@@ -11,6 +11,7 @@ import AppKit
 public struct SettingsView: View {
     @AppStorage(AppAppearance.defaultsKey) private var appearance: AppAppearance = .system
     @State private var optionsStore: ScanOptionsStore
+    @State private var hoveredAppearance: AppAppearance?
     @FocusState private var listFocused: Bool
 
     public init(optionsStore: ScanOptionsStore = .shared) {
@@ -93,15 +94,23 @@ public struct SettingsView: View {
             }
             .padding(.horizontal, DS.Spacing.small)
             .padding(.vertical, DS.Spacing.small)
+            .dsHoverableRow(isHovered: hoveredAppearance == option, radius: DS.Radius.medium)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .focusable(false)
+        .onHover { inside in
+            if inside {
+                hoveredAppearance = option
+            } else if hoveredAppearance == option {
+                hoveredAppearance = nil
+            }
+        }
         .overlay {
             if listFocused && selected {
-                RoundedRectangle(cornerRadius: DS.Radius.small, style: .continuous)
-                    .strokeBorder(DS.Color.accent, lineWidth: 2)
-                    .padding(1)
+                RoundedRectangle(cornerRadius: DS.Radius.medium, style: .continuous)
+                    .strokeBorder(DS.Color.accent, lineWidth: DS.Stroke.focus)
+                    .padding(DS.Spacing.hairline)
             }
         }
         .accessibilityLabel(option.label)
@@ -141,7 +150,7 @@ public struct SettingsView: View {
                 .foregroundStyle(DS.Color.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)
         } header: {
-            Text("Scan Defaults")
+            Text("Scan Options")
         }
     }
 
@@ -192,16 +201,13 @@ public struct SettingsView: View {
 
             Spacer(minLength: 0)
 
-            Button {
+            IconActionButton(
+                symbol: "xmark",
+                help: "Stop excluding \(url.path)",
+                surface: .inline
+            ) {
                 optionsStore.removeExclusion(url)
-            } label: {
-                Image(systemName: "xmark")
-                    .font(DS.Icon.detail)
             }
-            .buttonStyle(.borderless)
-            .frame(width: DS.Size.iconButton, height: DS.Size.iconButton)
-            .contentShape(Rectangle())
-            .help("Stop excluding \(url.path)")
             .accessibilityLabel("Remove exclusion \(url.path)")
         }
         .padding(.vertical, DS.Spacing.xxSmall)

@@ -71,13 +71,18 @@ struct CoverageSheet: View {
                         .foregroundStyle(DS.Color.secondaryText)
                 }
                 Spacer()
-                Button("Done") { dismiss() }
-                    .keyboardShortcut(.defaultAction)
-                    .controlSize(.large)
+                Button {
+                    dismiss()
+                } label: {
+                    Text("Done")
+                        .frame(minWidth: DS.Size.actionMinWidth)
+                }
+                .keyboardShortcut(.defaultAction)
             }
         }
         .padding(DS.Spacing.xxLarge)
         .frame(width: 780)
+        .tint(DS.Color.signal)
         .task {
             guard !didLoad else { return }
             didLoad = true
@@ -121,10 +126,7 @@ struct CoverageSheet: View {
 
     private func section(_ title: String, rows: [CoverageRow]) -> some View {
         VStack(alignment: .leading, spacing: DS.Spacing.small) {
-            Text(title)
-                .font(DS.Typography.caption)
-                .fontWeight(.semibold)
-                .foregroundStyle(DS.Color.secondaryText)
+            SectionLabel(title)
             VStack(alignment: .leading, spacing: DS.Spacing.small) {
                 ForEach(rows) { row in
                     rowView(row)
@@ -156,10 +158,7 @@ struct CoverageSheet: View {
 
     private var snapshotSection: some View {
         VStack(alignment: .leading, spacing: DS.Spacing.small) {
-            Text("Snapshots")
-                .font(DS.Typography.caption)
-                .fontWeight(.semibold)
-                .foregroundStyle(DS.Color.secondaryText)
+            SectionLabel("Snapshots")
             rowView(report.snapshots)
             if !report.snapshotNames.isEmpty {
                 VStack(alignment: .leading, spacing: DS.Spacing.xxSmall) {

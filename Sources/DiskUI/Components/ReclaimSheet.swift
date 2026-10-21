@@ -132,18 +132,25 @@ struct ReclaimSheet: View {
                     }
                 }
                 Spacer(minLength: DS.Spacing.small)
-                Button("Cancel", role: .cancel, action: onCancel)
-                    .keyboardShortcut(.cancelAction)
-                    .disabled(isWorking)
-                    .frame(minWidth: 84)
-                Button("Move to Trash", role: .destructive, action: onConfirm)
-                    .keyboardShortcut(.defaultAction)
-                    .disabled(refusal != nil || isWorking || isChecking)
-                    .frame(minWidth: 116)
+                Button(role: .cancel, action: onCancel) {
+                    Text("Cancel")
+                        .frame(minWidth: DS.Size.secondaryActionMinWidth)
+                }
+                .buttonStyle(.bordered)
+                .keyboardShortcut(.cancelAction)
+                .disabled(isWorking)
+                Button(role: .destructive, action: onConfirm) {
+                    Text("Move to Trash")
+                        .frame(minWidth: DS.Size.actionMinWidth)
+                }
+                .buttonStyle(.bordered)
+                .keyboardShortcut(.defaultAction)
+                .disabled(refusal != nil || isWorking || isChecking)
             }
         }
         .padding(DS.Spacing.xLarge)
         .frame(width: 460)
+        .tint(DS.Color.signal)
     }
 
     private var candidateList: some View {
@@ -187,9 +194,8 @@ struct ReclaimSheet: View {
                     }
                     Spacer(minLength: DS.Spacing.small)
                     Text(ByteFormat.string(candidate.logicalSize))
-                        .font(DS.Typography.caption)
+                        .font(DS.Typography.metadataFigures)
                         .foregroundStyle(DS.Color.secondaryText)
-                        .monospacedDigit()
                 }
                 .padding(.vertical, DS.Spacing.small)
                 if candidate.id != candidates.last?.id {
@@ -206,28 +212,12 @@ struct ReclaimSheet: View {
                 .font(DS.Typography.caption)
                 .foregroundStyle(DS.Color.secondaryText)
             Text(value)
-                .font(DS.Typography.caption)
-                .monospacedDigit()
+                .font(DS.Typography.metadataFigures)
         }
     }
 
     private func refusalNotice(_ refusal: ReclaimRefusal) -> some View {
-        HStack(alignment: .top, spacing: DS.Spacing.small) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .font(DS.Icon.inline)
-                .foregroundStyle(DS.Color.warning)
-            VStack(alignment: .leading, spacing: DS.Spacing.xxSmall) {
-                Text(refusal.title)
-                    .font(DS.Typography.callout.weight(.semibold))
-                Text(refusal.explanation)
-                    .font(DS.Typography.caption)
-                    .foregroundStyle(DS.Color.secondaryText)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-        .padding(DS.Spacing.medium)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(DS.Color.warning.opacity(0.12), in: RoundedRectangle(cornerRadius: DS.Radius.medium, style: .continuous))
+        WarningNotice(refusal.explanation, title: refusal.title)
     }
 }
 
@@ -282,12 +272,7 @@ struct ReclaimBanner: View {
             Button("Rescan", action: onRescan)
                 .controlSize(.small)
                 .buttonStyle(.borderedProminent)
-            Button(action: onDismiss) {
-                Image(systemName: "xmark")
-                    .font(DS.Icon.detail)
-            }
-            .buttonStyle(.borderless)
-            .accessibilityLabel("Dismiss")
+            IconActionButton(symbol: "xmark", help: "Dismiss", surface: .inline, action: onDismiss)
         }
         .padding(.horizontal, DS.Spacing.large)
         .padding(.vertical, DS.Spacing.small)
@@ -305,16 +290,12 @@ struct StaleResultsBadge: View {
     let onRescan: () -> Void
 
     var body: some View {
-        Button(action: onRescan) {
-            HStack(spacing: DS.Spacing.xSmall) {
-                Image(systemName: "clock.arrow.circlepath")
-                    .font(DS.Icon.inline)
-                Text("Results changed since this scan. Rescan.")
-                    .font(DS.Typography.caption)
-            }
-            .foregroundStyle(DS.Color.warning)
-        }
-        .buttonStyle(.plain)
+        InlineActionButton(
+            "Results changed since this scan. Rescan.",
+            systemImage: "clock.arrow.circlepath",
+            tone: .warning,
+            action: onRescan
+        )
         .help("The folder changed after this scan. Run Rescan to see the current numbers.")
     }
 }

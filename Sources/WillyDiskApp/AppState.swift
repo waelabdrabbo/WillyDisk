@@ -7,7 +7,7 @@ import DiskUI
 /// Owns the single shared `ScanViewModel` — wired to the real `FileScanEngine`
 /// from `DiskCore` — so every screen (A → B → C) reads the same scan state and
 /// no screen ever fabricates progress. Also exposes the folder-chooser action
-/// used by the "Choose Folder…" menu command.
+/// used by the "Choose a Folder…" menu command.
 @MainActor
 final class AppState: ObservableObject {
     /// The one scan-options store the whole app shares, including the Settings

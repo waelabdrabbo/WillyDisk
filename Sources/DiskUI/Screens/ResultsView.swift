@@ -849,19 +849,9 @@ public struct ResultsView: View {
     /// The way back out of a category, and what its list is showing.
     private func categoryDetailHeader(_ category: FileCategory) -> some View {
         HStack(spacing: DS.Spacing.xSmall) {
-            Button {
+            InlineActionButton("All Categories", systemImage: "chevron.left") {
                 closeCategory()
-            } label: {
-                HStack(spacing: DS.Spacing.xxSmall) {
-                    Image(systemName: "chevron.left")
-                        .font(DS.Icon.detail)
-                    Text("All Categories")
-                        .font(DS.Typography.caption)
-                }
-                .foregroundStyle(DS.Color.accent)
-                .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
             .help("Show every category")
             .accessibilityLabel("All Categories")
             .accessibilityHint("Closes this category and shows the whole breakdown")
@@ -913,20 +903,13 @@ public struct ResultsView: View {
 
     /// The switch between the folder in the chart and the two largest lists.
     private var explorerModeBar: some View {
-        // A native segmented control sizes itself to its labels; stretching it
-        // full width would need a custom control and would read heavier than
-        // the rest of the inspector. Keep it native, give it the gap above, and
-        // align it with the header and search field instead.
         HStack(spacing: 0) {
             Picker("Explorer view", selection: $explorerMode) {
                 ForEach(ExplorerMode.allCases) { mode in
                     Text(mode.label).tag(mode)
                 }
             }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            .controlSize(.small)
-            .fixedSize()
+            .dsSegmentedSwitch()
             .accessibilityLabel("Explorer view")
             Spacer(minLength: 0)
         }
@@ -980,13 +963,31 @@ public struct ResultsView: View {
                 .lineLimit(1)
                 .accessibilityAddTraits(.isHeader)
         } else {
+            BreadcrumbCrumb(name: name, action: action)
+        }
+    }
+
+    /// One ancestor crumb. The trail stays quiet at rest; hovering raises the
+    /// secondary name to the accent and reserves the standard hit target.
+    /// The folder already on screen is plain text, not a button that would do
+    /// nothing.
+    private struct BreadcrumbCrumb: View {
+        let name: String
+        let action: () -> Void
+
+        @State private var isHovered = false
+
+        var body: some View {
             Button(action: action) {
                 Text(name)
                     .font(DS.Typography.body)
-                    .foregroundStyle(DS.Color.secondaryText)
+                    .foregroundStyle(isHovered ? DS.Color.accent : DS.Color.secondaryText)
                     .lineLimit(1)
+                    .frame(minHeight: DS.Size.iconButton)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .onHover { isHovered = $0 }
             .help("Show “\(name)”")
         }
     }
@@ -1314,15 +1315,7 @@ public struct ResultsView: View {
 
     /// One of a detail pane's icon-only header actions.
     private func detailAction(_ symbol: String, _ help: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Image(systemName: symbol)
-                .foregroundStyle(DS.Color.primaryText)
-        }
-        .buttonStyle(.bordered)
-        .controlSize(.small)
-        .frame(width: DS.Size.iconButton, height: DS.Size.iconButton)
-        .help(help)
-        .accessibilityLabel(help)
+        IconActionButton(symbol: symbol, help: help, action: action)
     }
 
     /// The actions every detail pane's header carries, each applied to the whole
@@ -1847,15 +1840,13 @@ private struct ContentsList: View {
                         }
 
                         if hasMoreRows {
-                            Button(action: onShowMore) {
-                                Label("Show More", systemImage: "chevron.down")
-                                    .font(DS.Typography.callout)
-                                    .foregroundStyle(DS.Color.accent)
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, DS.Spacing.medium)
-                                    .contentShape(Rectangle())
-                            }
-                            .buttonStyle(.borderless)
+                            InlineActionButton(
+                                "Show More",
+                                systemImage: "chevron.down",
+                                fillsWidth: true,
+                                action: onShowMore
+                            )
+                            .padding(.vertical, DS.Spacing.xSmall)
                             .help("Show the next \(min(DS.Size.explorerPageSize, remainingCount)) items")
                             .accessibilityLabel("Show more items")
                             .accessibilityHint("Shows the next \(min(DS.Size.explorerPageSize, remainingCount)) items")
@@ -2142,6 +2133,7 @@ private struct ExplorerRow: Equatable {
     /// than presenting them as ordinary entries.
     let isHiddenName: Bool
     let subtitle: String
+    let subtitleIsPath: Bool
     let sizeText: String
 
     init(node: ScanNode, showsLocation: Bool = false) {
@@ -2152,6 +2144,7 @@ private struct ExplorerRow: Equatable {
         isSymlink = node.isSymlink
         isAccessible = node.isAccessible
         isHiddenName = node.name.hasPrefix(".")
+        subtitleIsPath = showsLocation
         if showsLocation {
             subtitle = PathFormat.abbreviated(node.url.path)
         } else if node.isDirectory {
@@ -2170,22 +2163,22 @@ private struct ExplorerRow: Equatable {
             && lhs.isAccessible == rhs.isAccessible
             && lhs.isHiddenName == rhs.isHiddenName
             && lhs.subtitle == rhs.subtitle
+            && lhs.subtitleIsPath == rhs.subtitleIsPath
             && lhs.sizeText == rhs.sizeText
     }
 }
 
 /// One explorer row.
 ///
-/// Hover is a light emphasis surface plus a hairline stroke, deliberately
-/// quieter than the selection fill, so "where the pointer is" and "what I
-/// clicked" never read the same. The row publishes its URL to the shared hover
-/// state while the pointer is over it, which is what lights the matching wedge.
+/// Hover is the same accent wash the category list uses, deliberately quieter
+/// than the selection fill, so "where the pointer is" and "what I clicked" never
+/// read the same. The row publishes its URL to the shared hover state while the
+/// pointer is over it, which is what lights the matching wedge.
 ///
 /// The row compares equal to itself while the values it draws, its selection and
 /// its hover state are unchanged, so a change to one row — or to anything else on
-/// the screen — does not re-render the rest of the list. Its separator is drawn
-/// inside the row for the same reason: a divider of its own would double the
-/// number of children a lazy list has to place.
+/// the screen — does not re-render the rest of the list. It draws no divider of
+/// its own: spacing separates the list, matching the category list.
 private struct NodeRow: View, Equatable {
     @Environment(\.controlActiveState) private var controlActiveState
 
@@ -2202,74 +2195,60 @@ private struct NodeRow: View, Equatable {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            Button(action: action) {
-                HStack(spacing: DS.Spacing.small) {
-                    Image(systemName: row.isDirectory ? "folder.fill" : "doc.fill")
-                        .foregroundStyle(DS.Color.graphite)
-                    VStack(alignment: .leading, spacing: DS.Spacing.hairline) {
-                        Text(row.name)
-                            .font(DS.Typography.body)
-                            .foregroundStyle(row.isHiddenName ? DS.Color.mutedText : DS.Color.primaryText)
-                            .lineLimit(1)
-                            .truncationMode(.middle)
-                        Text(row.subtitle)
-                            .font(DS.Typography.caption)
-                            .foregroundStyle(DS.Color.secondaryText)
-                            .lineLimit(1)
-                            .truncationMode(.middle)
-                    }
-                    Spacer()
-                    Text(row.sizeText)
-                        .font(DS.Typography.figures)
-                        .foregroundStyle(DS.Color.secondaryText)
-                    if row.isSymlink {
-                        Image(systemName: "arrow.turn.up.right")
-                            .font(DS.Icon.detail)
-                            .foregroundStyle(DS.Color.secondaryText)
-                    }
-                    if !row.isAccessible {
-                        Image(systemName: "lock.fill")
-                            .font(DS.Icon.detail)
-                            .foregroundStyle(DS.Color.warning)
-                    }
+        Button(action: action) {
+            HStack(spacing: DS.Spacing.small) {
+                Image(systemName: row.isDirectory ? "folder.fill" : "doc.fill")
+                    .foregroundStyle(DS.Color.graphite)
+                VStack(alignment: .leading, spacing: DS.Spacing.hairline) {
+                    Text(row.name)
+                        .font(DS.Typography.body)
+                        .foregroundStyle(row.isHiddenName ? DS.Color.mutedText : DS.Color.primaryText)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                    Text(row.subtitle)
+                        .font(DS.Typography.caption)
+                        .foregroundStyle(row.subtitleIsPath ? DS.Color.mutedText : DS.Color.secondaryText)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
                 }
-                .padding(.horizontal, DS.Spacing.small)
-                .padding(.vertical, DS.Spacing.xSmall)
-                .background(rowBackground)
-                .overlay(rowStroke)
-                .contentShape(Rectangle())
+                Spacer()
+                Text(row.sizeText)
+                    .font(DS.Typography.figures)
+                    .foregroundStyle(DS.Color.secondaryText)
+                if row.isSymlink {
+                    Image(systemName: "arrow.turn.up.right")
+                        .font(DS.Icon.detail)
+                        .foregroundStyle(DS.Color.secondaryText)
+                }
+                if !row.isAccessible {
+                    Image(systemName: "lock.fill")
+                        .font(DS.Icon.detail)
+                        .foregroundStyle(DS.Color.warning)
+                }
             }
-            .buttonStyle(.plain)
-            .focusable(false)
-            .onHover(perform: onHover)
-            .accessibilityLabel("\(row.name)\(row.isHiddenName ? ", hidden item" : ""), \(row.subtitle), \(row.sizeText)")
-            .accessibilityAddTraits(isSelected ? [.isSelected] : [])
-            Rectangle()
-                .fill(DS.Color.rule)
-                .frame(height: DS.Stroke.hairline)
+            .padding(.horizontal, DS.Spacing.small)
+            .padding(.vertical, DS.Spacing.small)
+            .background(
+                rowBackground,
+                in: RoundedRectangle(cornerRadius: DS.Radius.medium, style: .continuous)
+            )
+            .dsHoverableRow(isHovered: isHovered && !isSelected, radius: DS.Radius.medium)
+            .contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
+        .focusable(false)
+        .onHover(perform: onHover)
+        .accessibilityLabel("\(row.name)\(row.isHiddenName ? ", hidden item" : ""), \(row.subtitle), \(row.sizeText)")
+        .accessibilityAddTraits(isSelected ? [.isSelected] : [])
     }
 
     private var rowBackground: SwiftUI.Color {
         if isSelected {
             return controlActiveState == .key
                 ? DS.Color.accent.opacity(DS.Opacity.rowSelection)
-                : DS.Color.primaryText.opacity(DS.Opacity.rowHover)
+                : DS.Color.primaryText.opacity(DS.Opacity.rowSelectionInactive)
         }
-        if isHovered { return DS.Color.accent.opacity(DS.Opacity.rowHover) }
         return .clear
-    }
-
-    /// Selection is the row fill; the keyboard cursor does not add a second
-    /// outline around the content. A hairline marks hover only.
-    @ViewBuilder
-    private var rowStroke: some View {
-        if isHovered && !isSelected {
-            Rectangle().strokeBorder(DS.Color.separator, lineWidth: DS.Stroke.hairline)
-        } else {
-            SwiftUI.Color.clear
-        }
     }
 }
 

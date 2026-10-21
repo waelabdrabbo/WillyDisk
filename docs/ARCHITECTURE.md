@@ -235,7 +235,7 @@ carries the root node itself in `largestDirectories`.
   `ScanViewModel(engine: FileScanEngine())` and `ContentView` hosts
   `ScanFlowView`, which switches between source selection and results on the view
   model's phase. There is no sidebar navigation — a single
-  "Choose Folder…" menu command (⌘O) opens a panel and starts a real scan.
+  "Choose a Folder…" menu command (⌘O) opens a panel and starts a real scan.
 - The coverage sheet explains the scan rather than reconciling it. It shows the
   scan's own totals and accounting next to the volume's own capacity facts
   (`VolumeFactsProbe`), lists local snapshots via `tmutil` (`SnapshotProbe`), and

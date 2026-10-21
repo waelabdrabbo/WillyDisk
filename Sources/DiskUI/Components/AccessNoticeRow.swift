@@ -83,17 +83,9 @@ public struct AccessNoticeRow: View {
 
             // The notice's one action follows the app accent, like the other
             // inline affordances.
-            Button {
+            InlineActionButton("Details") {
                 isExpanded = true
-            } label: {
-                Text("Details")
-                    .font(DS.Typography.callout)
-                    .foregroundStyle(DS.Color.accent)
             }
-            .buttonStyle(.borderless)
-            .controlSize(.small)
-            .frame(minHeight: DS.Size.iconButton)
-            .contentShape(Rectangle())
             .popover(isPresented: $isExpanded, arrowEdge: .top) {
                 detailsPopover
             }

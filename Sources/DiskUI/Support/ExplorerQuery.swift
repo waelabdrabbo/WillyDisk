@@ -28,19 +28,15 @@ enum SortOrder: String, CaseIterable, Identifiable {
 
 /// The entries the results screen lists for one folder.
 ///
-/// Search, category filter and ordering live here rather than in the view so the
-/// chart and the explorer share one definition of what is on screen.
+/// Search and ordering live here rather than in the view so the chart and the
+/// explorer share one definition of what is on screen.
 enum ExplorerQuery {
     static func entries(
         in children: [ScanNode],
         search: String,
-        category: FileCategory?,
         sort: SortOrder
     ) -> [ScanNode] {
         var nodes = children.filter(\.isPresentable)
-        if let category {
-            nodes = nodes.filter { $0.category == category }
-        }
         if !search.isEmpty {
             nodes = nodes.filter { $0.name.localizedCaseInsensitiveContains(search) }
         }
@@ -60,14 +56,11 @@ enum ExplorerQuery {
     /// The largest items from a list the engine already ranked.
     ///
     /// The results screen shows the engine's top 100 files and folders, which come
-    /// sorted by size. Search and the category filter run over that list rather
-    /// than the whole scan: the screen says it is searching the top items, and the
-    /// summary keeps only the ranked lists, not every file for the UI to search.
-    static func ranked(_ nodes: [ScanNode], search: String, category: FileCategory?) -> [ScanNode] {
+    /// sorted by size. Search runs over that list rather than the whole scan: the
+    /// screen says it is searching the top items, and the summary keeps only the
+    /// ranked lists, not every file for the UI to search.
+    static func ranked(_ nodes: [ScanNode], search: String) -> [ScanNode] {
         var result = nodes.filter(\.isPresentable)
-        if let category {
-            result = result.filter { $0.category == category }
-        }
         if !search.isEmpty {
             result = result.filter {
                 $0.name.localizedCaseInsensitiveContains(search)

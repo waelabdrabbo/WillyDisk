@@ -26,8 +26,9 @@ stream reports.
   `LocationName` (a location's display name), `VolumeInfo`, `RecentLocations`,
   `FullDiskAccess` + `FullDiskAccessProbe`, `ScanIssuesPresentation`,
   `ScanSlotPresentation`, `ReportExport` (JSON/CSV through `NSSavePanel`),
-  `CategoryBreakdown` (sizes by category), `CleanupAnalysis` (bounded large/old,
-  cache, and download heuristics over the finished tree).
+  `CategoryBreakdown` (sizes by category), `CategoryFiles` (a category's largest
+  files, walked off the main actor), `CleanupAnalysis` (bounded large/old, cache, and
+  download heuristics over the finished tree).
 
 ## Rules
 

@@ -30,16 +30,18 @@ public struct ResultsView: View {
     @State private var searchText = ""
     @State private var searchFocusRequest = 0
     @State private var sortOrder: SortOrder = .size
-    @State private var filterCategory: FileCategory?
     /// Which list the explorer shows: the folder in the chart, the engine's
     /// largest files and folders, or the scan cut by file category.
     @State private var explorerMode: ExplorerMode = .folder
+    /// The category the Categories mode is inside, if any. Opening one keeps the
+    /// mode: the ring stays as the map back out and the list becomes its files.
+    @State private var drilledCategory: FileCategory?
+    /// The largest files of the open category, once the off-main walk lands.
+    @State private var categoryFiles: CategoryFiles?
+    @State private var categoryFilesTask: Task<CategoryFiles?, Never>?
     /// The category under the pointer, shared by the ring and the category list
     /// so hovering either lights the other.
     @State private var hoveredCategory: FileCategory?
-    /// Set just before leaving the category view, so the mode change can apply
-    /// the filter the chosen category asked for after it has cleared the old one.
-    @State private var pendingCategoryDrill: FileCategory?
     /// Only this many rows are built at first; the list offers Show More at its
     /// foot. This is a rendering budget, not a filter, so selection, search and
     /// the chart still see the whole list.
@@ -158,12 +160,62 @@ public struct ResultsView: View {
         return CategoryBreakdown(summary: summary)
     }
 
-    /// The category list is a way into the scan: choosing a category narrows the
-    /// explorer to that category's largest files, which is the only list that can
-    /// answer "what is in here" for a scan-wide slice.
-    private func drillIntoCategory(_ category: FileCategory) {
-        pendingCategoryDrill = category
-        explorerMode = .topFiles
+    /// Opens a category in place, or closes it when it is already open. The mode
+    /// does not change: the ring keeps the category outlined and the crumb above
+    /// the list leads back to every category.
+    private func selectCategory(_ category: FileCategory) {
+        guard drilledCategory != category else {
+            closeCategory()
+            return
+        }
+        clearSelection()
+        hoveredCategory = nil
+        drilledCategory = category
+        loadFiles(of: category)
+    }
+
+    private func closeCategory() {
+        drilledCategory = nil
+        categoryFilesTask?.cancel()
+        categoryFilesTask = nil
+        categoryFiles = nil
+        clearSelection()
+    }
+
+    /// The category's files come from the tree the finished scan already carries,
+    /// walked off the main actor and capped like the cleanup analysis. A live scan
+    /// has no final root node yet, so it falls back to the engine's ranked list and
+    /// the header says it is the largest files so far.
+    private func loadFiles(of category: FileCategory) {
+        categoryFilesTask?.cancel()
+        categoryFiles = nil
+        guard let summary else { return }
+
+        if let root = rootNode(in: summary) {
+            let task = Task.detached(priority: .userInitiated) {
+                CategoryFileIndex.largest(
+                    filesOf: category,
+                    in: root,
+                    isCancelled: { Task.isCancelled }
+                )
+            }
+            categoryFilesTask = task
+            Task { @MainActor in
+                let result = await task.value
+                guard drilledCategory == category else { return }
+                categoryFiles = result
+            }
+        } else {
+            let files = summary.largestFiles.filter { $0.category == category }
+            categoryFiles = CategoryFiles(
+                category: category,
+                files: files,
+                matchCount: files.count,
+                totalLogicalSize: files.reduce(0) { $0 + max(0, $1.logicalSize) },
+                visitedCount: 0,
+                stoppedAtLimit: false
+            )
+        }
     }
 
     /// The folder on screen, resolved against the results being rendered.
@@ -194,11 +246,17 @@ public struct ResultsView: View {
     /// while they hold. Hovering or selecting a row changes none of those inputs,
     /// so it never re-derives the list.
     private var visibleRows: [ExplorerRow] {
+        // The category detail is a short, uncapped list of the files the walk
+        // returned, so it is built directly rather than through the folder cache.
+        if explorerMode == .categories {
+            return (categoryFiles?.files ?? []).map {
+                ExplorerRow(node: $0, showsLocation: true)
+            }
+        }
         let key = ExplorerRowsKey(
             revision: viewModel.resultsRevision,
             breadcrumb: breadcrumb.map(\.id),
             search: searchText,
-            category: filterCategory,
             sort: sortOrder,
             mode: explorerMode,
             maxChildren: chartChildLimit
@@ -206,12 +264,13 @@ public struct ResultsView: View {
         return rowsCache.rows(for: key) {
             let nodes: [ScanNode]
             switch explorerMode {
-            case .folder, .categories:
+            case .folder:
                 nodes = ExplorerQuery.entries(in: currentChildren, search: searchText,
-                                              category: filterCategory, sort: sortOrder)
+                                              sort: sortOrder)
             case .topFiles, .topFolders:
-                nodes = ExplorerQuery.ranked(topNodes, search: searchText,
-                                             category: filterCategory)
+                nodes = ExplorerQuery.ranked(topNodes, search: searchText)
+            case .categories:
+                nodes = []
             }
             return nodes.map {
                 ExplorerRow(node: $0, showsLocation: explorerMode != .folder)
@@ -219,12 +278,19 @@ public struct ResultsView: View {
         }
     }
 
-    /// The rows the current scope can select: every entry in the folder, or the
-    /// engine's ranked lists. Filtering narrows what the list draws, not what a
-    /// selection may hold, so typing in the search field does not throw away a
-    /// choice made before the typing started.
+    /// The rows the current scope can select: every entry in the folder, the
+    /// engine's ranked lists, or the open category's files. Filtering narrows what
+    /// the list draws, not what a selection may hold, so typing in the search
+    /// field does not throw away a choice made before the typing started.
     private var scopeNodes: [ScanNode] {
-        explorerMode == .folder ? currentChildren : topNodes
+        switch explorerMode {
+        case .folder:
+            return currentChildren
+        case .topFiles, .topFolders:
+            return topNodes
+        case .categories:
+            return categoryFiles?.files ?? []
+        }
     }
 
     /// The selected nodes, resolved against the live results rather than the
@@ -249,11 +315,13 @@ public struct ResultsView: View {
     private var rowOrder: [URL] { visibleRows.map(\.url) }
 
     private var displayedRows: [ExplorerRow] {
-        Array(visibleRows.prefix(visibleItemLimit))
+        explorerMode == .categories ? visibleRows : Array(visibleRows.prefix(visibleItemLimit))
     }
 
     private var displayedRowOrder: [URL] { displayedRows.map(\.url) }
-    private var hasMoreRows: Bool { visibleRows.count > visibleItemLimit }
+    private var hasMoreRows: Bool {
+        explorerMode != .categories && visibleRows.count > visibleItemLimit
+    }
 
     /// The explorer paints part of the chart's density. A page of 15 items
     /// should show those 15 children in the chart rather than 12 plus a remainder;
@@ -265,14 +333,14 @@ public struct ResultsView: View {
     private var remainingRowCount: Int { max(visibleRows.count - visibleItemLimit, 0) }
 
     private var isFiltering: Bool {
-        !searchText.isEmpty || filterCategory != nil
+        !searchText.isEmpty
     }
 
     /// The inputs that decide which rows are on screen. When any of them changes
     /// the list is reshuffled, so a hover is dropped rather than left pointing
     /// at a row that is no longer rendered.
     private var rowSetKey: ExplorerRowKey {
-        ExplorerRowKey(search: searchText, category: filterCategory, sort: sortOrder, mode: explorerMode)
+        ExplorerRowKey(search: searchText, sort: sortOrder, mode: explorerMode)
     }
 
     /// Honest copy for an empty chart — an empty result set means something
@@ -283,6 +351,14 @@ public struct ResultsView: View {
 
     /// Honest copy for an empty explorer list, in the same two situations.
     private var listEmptyMessage: String {
+        if explorerMode == .categories {
+            if let category = drilledCategory {
+                return isLiveScan
+                    ? "No \(category.displayName) files yet"
+                    : "No \(category.displayName) files in this scan"
+            }
+            return "No categories"
+        }
         if explorerMode != .folder {
             if isFiltering { return "No matches in the top items" }
             if isLiveScan { return "Waiting for the first items…" }
@@ -337,10 +413,7 @@ public struct ResultsView: View {
             clearSelection()
             searchText = ""
             hoveredCategory = nil
-            // A category chosen in the category list is the one reason to arrive
-            // in a mode with a filter already set; every other move clears it.
-            filterCategory = pendingCategoryDrill
-            pendingCategoryDrill = nil
+            closeCategory()
             // The chart shows a folder; the largest lists are about the whole
             // scan. Returning the chart to the scanned location keeps the map and
             // the list talking about the same thing.
@@ -348,6 +421,13 @@ public struct ResultsView: View {
                 breadcrumb.removeAll()
             }
             visibleItemLimit = DS.Size.explorerPageSize
+        }
+        .onChange(of: isLiveScan) { _, live in
+            // A category opened while the walk was still running listed the
+            // engine's ranked files; once the root node exists, the full walk over
+            // the tree replaces that list.
+            guard !live, let category = drilledCategory else { return }
+            loadFiles(of: category)
         }
         .onChange(of: breadcrumb.map(\.id)) { _, _ in
             visibleItemLimit = DS.Size.explorerPageSize
@@ -598,8 +678,9 @@ public struct ResultsView: View {
                 CategoryRingView(
                     breakdown: categoryBreakdown,
                     centerLabel: scannedRootName ?? "This scan",
+                    selected: drilledCategory,
                     hovered: $hoveredCategory,
-                    onSelect: drillIntoCategory
+                    onSelect: selectCategory
                 )
                 .padding(DS.Spacing.medium)
             } else if currentChildren.isEmpty {
@@ -640,14 +721,25 @@ public struct ResultsView: View {
             compactHeader
             explorerModeBar
             if explorerMode == .categories {
-                categoryModeCaption
+                if let category = drilledCategory {
+                    categoryDetailHeader(category)
 
-                CategoryShareList(
-                    shares: categoryBreakdown.shares,
-                    hovered: $hoveredCategory,
-                    onSelect: drillIntoCategory
-                )
-                .frame(maxHeight: .infinity)
+                    if categoryFiles != nil {
+                        contentsList
+                            .frame(maxHeight: .infinity)
+                    } else {
+                        categoryFilesLoading(category)
+                    }
+                } else {
+                    categoryModeCaption
+
+                    CategoryShareList(
+                        shares: categoryBreakdown.shares,
+                        hovered: $hoveredCategory,
+                        onSelect: selectCategory
+                    )
+                    .frame(maxHeight: .infinity)
+                }
             } else {
                 explorerToolbar
 
@@ -657,7 +749,7 @@ public struct ResultsView: View {
                     .frame(maxHeight: .infinity)
             }
 
-            if !selectedNodes.isEmpty && explorerMode != .categories {
+            if !selectedNodes.isEmpty {
                 Rectangle()
                     .fill(DS.Color.rule)
                     .frame(height: DS.Stroke.hairline)
@@ -680,8 +772,7 @@ public struct ResultsView: View {
 
     /// What the category list is, in one line. The search, sort, and category
     /// filter controls belong to the node lists and are not shown here: there is
-    /// nothing to search among nine categories, and the filter is the same axis
-    /// as the list.
+    /// nothing to search among nine categories.
     private var categoryModeCaption: some View {
         Text("Share of this scan's logical size. Choose a category to see its largest files.")
             .font(DS.Typography.caption)
@@ -689,6 +780,71 @@ public struct ResultsView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, DS.Spacing.medium)
             .padding(.bottom, DS.Spacing.small)
+    }
+
+    /// The way back out of a category, and what its list is showing.
+    private func categoryDetailHeader(_ category: FileCategory) -> some View {
+        HStack(spacing: DS.Spacing.xSmall) {
+            Button {
+                closeCategory()
+            } label: {
+                HStack(spacing: DS.Spacing.xxSmall) {
+                    Image(systemName: "chevron.left")
+                        .font(DS.Icon.detail)
+                    Text("All Categories")
+                        .font(DS.Typography.caption)
+                }
+                .foregroundStyle(DS.Color.accent)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .help("Show every category")
+            .accessibilityLabel("All Categories")
+            .accessibilityHint("Closes this category and shows the whole breakdown")
+
+            Text(category.displayName)
+                .font(DS.Typography.caption)
+                .foregroundStyle(DS.Color.secondaryText)
+
+            Spacer(minLength: DS.Spacing.small)
+
+            if let files = categoryFiles {
+                Text(categorySummary(files))
+                    .font(DS.Typography.caption)
+                    .foregroundStyle(DS.Color.secondaryText)
+                    .lineLimit(1)
+                    .help(files.isTruncated
+                          ? "Showing the largest \(files.files.count) of \(CountFormat.files(files.matchCount))"
+                          : CountFormat.files(files.matchCount))
+            }
+        }
+        .padding(.horizontal, DS.Spacing.medium)
+        .padding(.bottom, DS.Spacing.small)
+    }
+
+    private func categorySummary(_ files: CategoryFiles) -> String {
+        let size = ByteFormat.string(files.totalLogicalSize)
+        if isLiveScan {
+            return "\(size) · largest \(files.files.count) so far"
+        }
+        if files.stoppedAtLimit {
+            return "\(size) · sample of \(CountFormat.files(files.matchCount))"
+        }
+        if files.isTruncated {
+            return "\(size) · largest \(files.files.count) of \(files.matchCount)"
+        }
+        return "\(size) · \(CountFormat.files(files.matchCount))"
+    }
+
+    private func categoryFilesLoading(_ category: FileCategory) -> some View {
+        VStack(spacing: DS.Spacing.small) {
+            ProgressView()
+            Text("Reading the \(category.displayName) files…")
+                .font(DS.Typography.callout)
+                .foregroundStyle(DS.Color.secondaryText)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .accessibilityElement(children: .combine)
     }
 
     /// The switch between the folder in the chart and the two largest lists.
@@ -912,44 +1068,6 @@ public struct ResultsView: View {
                 .help("Sort by \(sortOrder.label)")
                 .accessibilityLabel("Sort")
                 .accessibilityValue(sortOrder.label)
-
-                // A category filter is set only by drilling from the Categories
-                // mode, so it is an indication, not a menu: the chip names the
-                // category the list is narrowed to and clears it. Switching modes
-                // clears it too.
-                if let category = filterCategory {
-                    Button {
-                        filterCategory = nil
-                    } label: {
-                        HStack(spacing: DS.Spacing.xSmall) {
-                            Image(systemName: category.symbolName)
-                                .font(DS.Icon.detail)
-                                .foregroundStyle(DS.Color.accent)
-                            Text(category.displayName)
-                                .font(DS.Typography.caption)
-                                .foregroundStyle(DS.Color.primaryText)
-                            Image(systemName: "xmark.circle.fill")
-                                .font(DS.Icon.detail)
-                                .foregroundStyle(DS.Color.secondaryText)
-                        }
-                        .padding(.horizontal, DS.Spacing.small)
-                        .padding(.vertical, DS.Spacing.xSmall)
-                        .background {
-                            Capsule().fill(DS.Color.accent.opacity(DS.Opacity.rowHover))
-                        }
-                        .overlay {
-                            Capsule().strokeBorder(DS.Color.accent.opacity(0.35),
-                                                   lineWidth: DS.Stroke.hairline)
-                        }
-                        .contentShape(Capsule())
-                    }
-                    .buttonStyle(.plain)
-                    .fixedSize()
-                    .frame(minHeight: DS.Size.iconButton)
-                    .help("Showing only \(category.displayName). Click to show all categories.")
-                    .accessibilityLabel("Category filter: \(category.displayName)")
-                    .accessibilityHint("Clears the category filter")
-                }
             }
         }
         .padding(DS.Spacing.small)
@@ -1363,7 +1481,7 @@ public struct ResultsView: View {
         breadcrumb.removeAll()
         clearSelection()
         searchText = ""
-        filterCategory = nil
+        closeCategory()
         explorerMode = .folder
         viewModel.rescan()
     }
@@ -1376,7 +1494,7 @@ public struct ResultsView: View {
         breadcrumb.removeAll()
         clearSelection()
         searchText = ""
-        filterCategory = nil
+        closeCategory()
         explorerMode = .folder
         viewModel.showHome()
     }
@@ -1901,21 +2019,19 @@ public enum ExplorerMode: String, CaseIterable, Identifiable {
 /// The explorer inputs that decide which rows are on screen.
 private struct ExplorerRowKey: Equatable {
     var search: String
-    var category: FileCategory?
     var sort: SortOrder
     var mode: ExplorerMode
 }
 
 /// The inputs the visible rows are derived from.
 ///
-/// A change to any of them — new scan data, a different folder, a search, filter
-/// or ordering, or a different list — is what makes the list stale. Nothing else
+/// A change to any of them — new scan data, a different folder, a search, or
+/// ordering, or a different list — is what makes the list stale. Nothing else
 /// is.
 private struct ExplorerRowsKey: Equatable {
     var revision: Int
     var breadcrumb: [UUID]
     var search: String
-    var category: FileCategory?
     var sort: SortOrder
     var mode: ExplorerMode
     var maxChildren: Int

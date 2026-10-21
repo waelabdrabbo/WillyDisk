@@ -90,26 +90,11 @@ final class CategoryBreakdownQATests: XCTestCase {
         XCTAssertEqual(PercentFormat.ofWhole(1), "100%")
     }
 
-    func testRankedListAppliesTheCategoryFilter() {
-        let images = makeNode("/scan/big.jpg", size: 900, category: .images)
-        let document = makeNode("/scan/report.pdf", size: 800, category: .documents)
-        let smallImage = makeNode("/scan/small.png", size: 100, category: .images)
-
-        let filtered = ExplorerQuery.ranked(
-            [document, smallImage, images],
-            search: "",
-            category: .images
-        )
-
-        XCTAssertEqual(filtered.map(\.url), [images.url, smallImage.url],
-                       "only images, still largest first")
-    }
-
     func testRankedListWithoutAFilterKeepsEverything() {
         let images = makeNode("/scan/big.jpg", size: 900, category: .images)
         let document = makeNode("/scan/report.pdf", size: 800, category: .documents)
 
-        let all = ExplorerQuery.ranked([document, images], search: "", category: nil)
+        let all = ExplorerQuery.ranked([document, images], search: "")
         XCTAssertEqual(all.map(\.url), [images.url, document.url])
     }
 

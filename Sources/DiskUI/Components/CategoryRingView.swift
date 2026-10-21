@@ -5,11 +5,13 @@ import DiskCore
 ///
 /// The sunburst answers "what is in this folder"; this answers "what is this scan
 /// made of", so it draws the whole scan at once and never drills into a folder.
-/// Choosing a wedge hands the category to the screen, which narrows the explorer
-/// to that category's largest files.
+/// Choosing a wedge opens that category in place; the open category stays
+/// outlined and named in the centre, so the ring is the way back out as well as in.
 struct CategoryRingView: View {
     let breakdown: CategoryBreakdown
     let centerLabel: String
+    /// The category the explorer is inside, if any.
+    let selected: FileCategory?
     @Binding var hovered: FileCategory?
     let onSelect: (FileCategory) -> Void
 
@@ -37,7 +39,10 @@ struct CategoryRingView: View {
     private func ring(side: CGFloat) -> some View {
         let geometry = SunburstGeometry(side: side, ringCount: 1)
         let segments = CategoryRingLayout.segments(from: breakdown.shares)
-        let active = hovered.flatMap { breakdown.share(of: $0) }
+        // The pointer previews a category; otherwise the open category is the
+        // one the centre names.
+        let active = (hovered ?? selected).flatMap { breakdown.share(of: $0) }
+        let outlined = hovered ?? selected
         let band = geometry.radii(ring: 1)
 
         return ZStack {
@@ -55,7 +60,7 @@ struct CategoryRingView: View {
                 } label: {
                     shape
                         .fill(ChartPalette.categoryColor(index: index, count: segments.count))
-                        .opacity(active == nil || active?.category == segment.category ? 1 : 0.55)
+                        .opacity(hovered == nil || hovered == segment.category ? 1 : 0.55)
                 }
                 .buttonStyle(.plain)
                 .contentShape(shape)
@@ -68,11 +73,14 @@ struct CategoryRingView: View {
                 }
                 .help(helpText(for: segment.category))
                 .accessibilityLabel(accessibilityLabel(for: segment.category))
-                .accessibilityHint("Shows the largest files in this category")
+                .accessibilityHint(selected == segment.category
+                                   ? "Closes this category and shows all categories"
+                                   : "Shows the largest files in this category")
+                .accessibilityAddTraits(selected == segment.category ? [.isSelected] : [])
             }
 
-            if let active {
-                let segment = segments.first { $0.category == active.category }
+            if let outlined {
+                let segment = segments.first { $0.category == outlined }
                 if let segment {
                     wedge(segment, geometry: geometry, inner: band.inner, outer: band.outer)
                         .stroke(DS.Color.accent, lineWidth: DS.Stroke.emphasis)

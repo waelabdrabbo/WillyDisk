@@ -8,18 +8,21 @@ decisions. This is a handoff document, not a specification of frozen interfaces 
 
 - The current code is the Explorer trust pass (`f6c8ca5`), quick-scan presets and
   request exclusions (`c53d8b5`), the engraved-platter identity and macOS alignment
-  (`17a7e29`, `794cd6a`), the results and Home polish through `fdbc450`, and the
-  install-trust work at `d7155dc`; this docs handoff follows on top. Working tree
-  clean.
+  (`17a7e29`, `794cd6a`), the results and Home polish through `fdbc450`, the
+  install-trust work at `d7155dc`, the packaged circular mark at `55f5032`, and the
+  category breakdown and cleanup candidates at `9a69a3b`; this docs handoff follows
+  on top. Working tree clean.
 - Build: `swift build --disable-sandbox`.
-- Tests: 119 QATests + 51 DiskCoreTests, 0 failures, 1 skipped
+- Tests: 141 QATests + 51 DiskCoreTests, 0 failures, 1 skipped
   (`ScanBenchmarkTests` needs `WILLYDISK_BENCH_ROOT`).
 - CI: `.github/workflows/ci.yml` builds, tests, checks that the bundle reports
   `VERSION`, and uploads the offscreen renders on every push.
 - The app is a working single-window analyzer: choose a volume, folder, or quick
   preset, watch a progressive scan, read the sunburst and explorer, inspect
-  coverage, select rows with the mouse or keyboard, preview them with Quick Look,
-  move items to the Trash behind a guard and confirmation, and read About or Help.
+  coverage, see where the bytes sit by file category, review large/old/cache
+  candidates before trashing them, select rows with the mouse or keyboard, preview
+  them with Quick Look, move items to the Trash behind a guard and confirmation, and
+  read About or Help.
 
 ## Shipped — do not rebuild
 
@@ -32,6 +35,7 @@ decisions. This is a handoff document, not a specification of frozen interfaces 
 | Quick-scan presets, request exclusions, coverage disclosure | `c53d8b5` |
 | Engraved-platter identity, macOS alignment, Settings window | `17a7e29`, `794cd6a` |
 | Version from `VERSION`, About panel, in-app Help, CI | `d7155dc` |
+| Category breakdown, cleanup candidates through reclaim | `9a69a3b` |
 
 Details worth remembering:
 
@@ -67,6 +71,18 @@ Details worth remembering:
 - Help is a sheet on the main window (⌘?), not a window of its own, so the app keeps
   one window. It restates the scan, coverage, and reclaim rules in short form;
   `Scripts/render-screens.sh -S help` renders it so the copy can be reviewed.
+- The category breakdown reads `summary.categoryBreakdown`, which counts files by
+  logical size: directories carry no bytes, and hard links count once per link. Shares
+  are of the scan's own total, never of the categorised subset, and a share rounds to
+  “<1%” rather than 0% or to “99%” rather than 100%. Choosing a row filters the
+  explorer; the filter now applies in all three modes, including the ranked lists.
+- Cleanup candidates come from the finished tree the summary already carries, never
+  from a second filesystem pass. `CleanupPolicy` states the thresholds (500 MB and a
+  year for large-and-old, six months for downloads), keeps at most 100 per section, and
+  stops after 2,000,000 nodes; a truncated section and a stopped walk both say so.
+  Caches are recognised by path (`Library/Caches`, Xcode `DerivedData`), offered as one
+  folder with the subtree left unwalked, and the scan root is never suggested. Every
+  move goes through the reclaim confirmation; the analysis itself deletes nothing.
 - Explorer selection is held as URLs, not node values, so a live snapshot can replace
   the nodes underneath it. Entering a folder, changing mode, a breadcrumb jump,
   Rescan, and Home clear it; search and filtering do not. Each scan revision prunes
@@ -101,15 +117,18 @@ swift build --disable-sandbox
 swift test --disable-sandbox
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S both -o .build/renders/check
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S help -c -o .build/renders/check
+WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S categories -c -o .build/renders/check
+WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S cleanup -c -o .build/renders/check
 ```
 
-CI runs the build, the suite, the bundle version check, and both renders on every push.
+CI runs the build, the suite, the bundle version check, and all four renders on every push.
 
-Help is reachable because it is a view: `-S help` captures its content, not the sheet
-presentation. For any other sheet, the working practice is a temporary `@MainActor` QA
-test that hosts the view in `NSHostingView`, renders it with `cacheDisplay`, writes a
-PNG under `.build/renders/`, and is deleted before commit. Do not ship a renderer hook
-for a one-off visual check.
+Help, categories, and cleanup are reachable because they are views: `-S` captures their
+content, not the sheet presentation. Cleanup uses its own sample tree (sparse files with
+set ages), so its render shows real candidates without a second filesystem pass. For any
+other sheet, the working practice is a temporary `@MainActor` QA test that hosts the view
+in `NSHostingView`, renders it with `cacheDisplay`, writes a PNG under `.build/renders/`,
+and is deleted before commit. Do not ship a renderer hook for a one-off visual check.
 
 ## Remaining work, in recommended order
 
@@ -159,14 +178,21 @@ result drill to its folder.
 Acceptance: searching a deep path finds it; results are bounded and say so; typing
 does not block the main actor; clearing restores the previous scope.
 
-### 5. Category breakdown and cleanup suggestions
+### 5. Duplicate candidates
 
-- The data is already in `summary.categoryBreakdown`: add a chart and legend of the
-  sizes by category. The explorer's category menu filters already, so the chart only
-  has to show the split and offer that same filter.
-- Cleanup suggestions are heuristics: large and old, caches, duplicate candidates
-  (hash only on explicit user action), stale downloads. Never auto-delete; route
-  every action through the reclaim sheet.
+The cleanup sheet covers large-and-old files, caches, and stale downloads. Duplicates
+are still missing, and need the most care: same-size files are candidates, not
+duplicates, until their contents are read.
+
+- Pre-filter by size (at least 1 MB, at least two files), with bounded groups.
+- Make “Check contents” an explicit action that streams SHA-256 hashes off the main
+  actor, with progress and cancel.
+- Call a group identical only after the hashes match; never claim a saving, and route
+  every move through the reclaim confirmation.
+
+Acceptance: same-size different-content files are never called duplicates; a cancelled
+hash run confirms nothing; every suggested move is a real path the reclaim guard still
+checks.
 
 ### 6. Diagnostics, performance, and polish
 

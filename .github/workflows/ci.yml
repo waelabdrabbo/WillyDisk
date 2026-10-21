@@ -1,8 +1,8 @@
 name: CI
 
 # Every change must build, pass the suite, assemble a bundle whose version comes
-# from VERSION, and render the screens. The renders are uploaded so a visual
-# change can be reviewed without a Mac in front of you.
+# from VERSION, exercise the command-line scan, and render the screens. The renders
+# are uploaded so a visual change can be reviewed without a Mac in front of you.
 
 on:
   push:
@@ -50,6 +50,28 @@ jobs:
             exit 1
           fi
           echo "Bundle version: $actual"
+
+      - name: Command-line scan
+        run: |
+          set -euo pipefail
+          bin=".build/WillyDisk.app/Contents/MacOS/WillyDisk"
+          "$bin" scan Sources/DiskCLI --depth 1 --top 3 > /tmp/scan.txt
+          grep -q '^WillyDisk scan' /tmp/scan.txt
+          "$bin" scan Sources/DiskCLI --json | python3 -c '
+          import json, sys
+          record = json.load(sys.stdin)
+          assert record["schemaVersion"] == 1, record["schemaVersion"]
+          assert record["fileCount"] > 0, record["fileCount"]
+          assert record["rootPath"].endswith("Sources/DiskCLI"), record["rootPath"]
+          '
+          set +e
+          "$bin" scan --bogus >/dev/null 2>&1
+          status=$?
+          set -e
+          if [ "$status" -ne 2 ]; then
+            echo "::error::a usage error exited $status, expected 2"
+            exit 1
+          fi
 
       - name: Render the screens
         run: |

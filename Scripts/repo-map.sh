@@ -23,7 +23,7 @@ git ls-files
 echo
 echo "== size by area (text files) =="
 printf '%-24s %6s %8s\n' area files lines
-for d in Sources/DiskCore Sources/DiskUI Sources/WillyDiskApp Tests Scripts docs; do
+for d in Sources/DiskCore Sources/DiskCLI Sources/DiskUI Sources/WillyDiskApp Tests Scripts docs; do
   files=$(git ls-files "$d" | grep -E "$TEXT_RE" | wc -l | tr -d ' ')
   lines=$(git ls-files "$d" | grep -E "$TEXT_RE" | tr '\n' '\0' | xargs -0 wc -l 2>/dev/null | tail -1 | awk '{print $1}')
   printf '%-24s %6s %8s\n' "$d" "$files" "${lines:-0}"

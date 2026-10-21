@@ -185,7 +185,9 @@ public struct RecordedEntry: Codable, Sendable, Equatable, Identifiable {
         self.modifiedAt = modifiedAt
     }
 
-    init(_ node: ScanNode) {
+    /// Captures a node from a finished scan, standardized the same way the
+    /// record's other paths are.
+    public init(_ node: ScanNode) {
         self.init(
             path: node.url.standardizedFileURL.path,
             name: node.name,

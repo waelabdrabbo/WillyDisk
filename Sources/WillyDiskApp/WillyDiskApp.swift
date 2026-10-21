@@ -1,7 +1,23 @@
 import SwiftUI
+import DiskCLI
 import DiskUI
 
+/// The process entry point, which is either a command-line scan or the app.
+///
+/// The choice is made before SwiftUI is touched: `WillyDisk scan …` runs the
+/// same engine the app uses and never creates an `NSApplication`, a window, or a
+/// Dock icon. Any other invocation — including a bare launch from the Finder —
+/// starts the app exactly as before.
 @main
+enum WillyDiskEntry {
+    static func main() {
+        if ScanCLI.handles(CommandLine.arguments) {
+            exit(ScanCLI.run(arguments: CommandLine.arguments))
+        }
+        WillyDiskApp.main()
+    }
+}
+
 struct WillyDiskApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var appState = AppState()

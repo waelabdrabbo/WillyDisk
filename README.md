@@ -21,6 +21,9 @@ breakdown by file category. Everything happens on your machine.
   that cannot be read are counted and surfaced instead of being silently skipped.
 - **Cancellable.** A scan can be stopped at any point and still reports what it found.
 - **Export.** Results export to JSON or CSV.
+- **Command-line scan.** `WillyDisk scan <folder>` measures a folder with the same
+  engine the app uses, with no window. `--json` prints the versioned `ScanRecord` the
+  history feature stores.
 - **No third-party dependencies.** SwiftUI and AppKit only.
 
 ## Requirements
@@ -51,13 +54,31 @@ bash Scripts/render-screens.sh  # render the screens offscreen to PNGs in .build
 bash Scripts/repo-map.sh        # print a structural inventory of the repository
 ```
 
+## Command-line scan
+
+The same binary also scans without opening a window:
+
+```
+swift run WillyDisk scan ~/Downloads
+swift run WillyDisk scan ~/Downloads --json | jq .
+swift run WillyDisk scan ~/Downloads --depth 3 --top 20
+```
+
+`--depth` and `--top` decide how much of the report is printed; they never change what
+is scanned. `--json` prints the versioned `ScanRecord` instead of the text report. The
+command exits 0 when the scan finishes, 2 on a usage error, and 130 after an interrupt;
+`WillyDisk scan --help` lists every flag. The bundled
+`.build/WillyDisk.app/Contents/MacOS/WillyDisk` takes the same arguments.
+
 ## Architecture
 
-WillyDisk is a Swift Package with three targets:
+WillyDisk is a Swift Package with four targets:
 
 - **`DiskCore`** — pure logic, no UI: the value model and the scanning engine.
+- **`DiskCLI`** — the command-line front end over `DiskCore` (no UI dependency).
 - **`DiskUI`** — SwiftUI screens, components, and the design system.
-- **`WillyDiskApp`** — the `@main` executable, the window, and the wiring.
+- **`WillyDiskApp`** — the `@main` executable, the window, and the wiring; it routes a
+  `scan` invocation to `DiskCLI` before any UI is created.
 
 Filesystem work happens off the main actor, cancellation is a first-class outcome, and
 the engine's contract in `Sources/DiskCore/Scanning/Contracts.swift` is deliberately

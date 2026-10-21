@@ -1,6 +1,6 @@
 ---
 name: willydisk-verify
-description: "Verify a change to WillyDisk before calling it done: build, test, bundle, launch, and capture the UI offscreen. Use when a WillyDisk change needs end-to-end verification, when a UI change must be reviewed visually, when a build or test failure needs the right command, when the app's window chrome looks wrong, or when a screenshot looks stale against the source. Covers swift build, swift test --filter, Scripts/bundle-app.sh, Scripts/run.sh, Scripts/render-screens.sh, why a re-rendered PNG can still look old (viewers cache bitmaps by path), the SwiftPM SDK-stamp trap behind `swift run`, the xcrun vtool check, and the WILLYDISK_NO_SANDBOX flag an agent sandbox needs."
+description: "Verify a change to WillyDisk before calling it done: build, test, bundle, launch, and capture the UI offscreen. Use when a WillyDisk change needs end-to-end verification, when a UI change must be reviewed visually, when a build or test failure needs the right command, when the app's window chrome looks wrong, or when a screenshot looks stale against the source. Covers swift build, swift test --filter, Scripts/bundle-app.sh, Scripts/run.sh, Scripts/render-screens.sh, why a re-rendered PNG can still look old (viewers cache bitmaps by path), the command-line scan (`WillyDisk scan`), the SwiftPM SDK-stamp trap behind `swift run`, the xcrun vtool check, and the WILLYDISK_NO_SANDBOX flag an agent sandbox needs."
 ---
 
 # Verifying a WillyDisk change
@@ -16,9 +16,22 @@ swift test
 swift test --filter FileScanEngineTests
 ```
 
-`swift test` runs both targets: `DiskCoreTests` (engine behavior) and `QATests`
-(independent verification). A change to traversal, cancellation, or batching should keep
+`swift test` runs the test targets: `DiskCoreTests` (engine behavior), `DiskCLITests`
+(argument parsing, exit statuses, report determinism), and `QATests` (independent
+verification). A change to traversal, cancellation, or batching should keep
 `ProgressiveSnapshotTests` and `ScanBenchmarkTests` green.
+
+A command-line change also gets checked without a subprocess:
+
+```
+swift test --filter ScanCommandTests
+swift run WillyDisk scan <folder> --json | jq .schemaVersion   # 1
+swift run WillyDisk scan --bogus; echo $?                      # 2
+```
+
+For the bundled binary's dispatch, run `.build/WillyDisk.app/Contents/MacOS/WillyDisk
+scan <folder>` after bundling — it must print a report and exit 0, with no window. Send
+it SIGINT during a long scan: it must print `Scan cancelled.` and exit 130.
 
 ## 2. Bundle it
 

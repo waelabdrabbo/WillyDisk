@@ -19,7 +19,7 @@ contracts, shared-interface rules §7, non-negotiables §8).
 
 | Path | What it holds |
 |---|---|
-| `Package.swift` | products: executable `WillyDisk`, libraries `DiskCore` and `DiskUI` |
+| `Package.swift` | products: executable `WillyDisk`, libraries `DiskCore` and `DiskUI`; target `DiskCLI` |
 | `VERSION` | the only source of the marketing version; the bundle script stamps it |
 | `Resources/` | the macOS icon: `AppIcon.icns` and its 1024 `AppIcon-1024.png` |
 | `Sources/DiskUI/Resources/AppMark.png` | the circular in-app mark the UI and About show |
@@ -27,12 +27,14 @@ contracts, shared-interface rules §7, non-negotiables §8).
 | `Sources/DiskCore/History/` | `ScanRecord` (versioned DTO), `ScanHistoryStore`, `ScanComparison` |
 | `Sources/DiskCore/Scanning/Contracts.swift` | frozen `ScanRequest`, `ScanEvent`, `ScanProgress`, `ScanEngine`, `ScanIssueKind` |
 | `Sources/DiskCore/Scanning/` (the rest) | the scan engine and its filesystem plumbing |
+| `Sources/DiskCLI/` | the `WillyDisk scan` front end: parsing, text report, `ScanRecord` JSON |
 | `Sources/DiskUI/` | screens, components, design system |
-| `Sources/WillyDiskApp/` | `@main` executable, window, wiring |
+| `Sources/WillyDiskApp/` | `@main` executable, window, wiring, CLI/GUI dispatch |
 | `Tests/DiskCoreTests/` | engine tests |
+| `Tests/DiskCLITests/` | command-line parsing, report stability, exit statuses |
 | `Tests/QATests/` | independent verification that does not trust the engine's own tests |
 | `Scripts/` | build, bundle, launch, offscreen render, repo map |
-| `.github/workflows/ci.yml` | build, test, bundle version check, renders |
+| `.github/workflows/ci.yml` | build, test, bundle version check, CLI smoke, renders |
 | `docs/` | `ARCHITECTURE.md` |
 
 ## Where things are
@@ -72,10 +74,19 @@ shared, persisted set of choices the next scan and Rescan use), `CleanupAnalysis
 `ScanHistory` (the observable view of the record store).
 
 **`WillyDiskApp`.**
-`WillyDiskApp.swift` is `@main`, `AppState.swift` builds the single
-`ScanViewModel` with `FileScanEngine` and the shared options store, `ContentView.swift`
-hosts `ScanFlowView`, `AboutPanel.swift` presents the system About panel,
-`AppDelegate.swift` is the lifecycle delegate.
+`WillyDiskApp.swift` holds the `@main` entry (`WillyDiskEntry`) that routes `WillyDisk
+scan …` to `DiskCLI` before SwiftUI is touched, then the `App` itself. `AppState.swift`
+builds the single `ScanViewModel` with `FileScanEngine` and the shared options store,
+`ContentView.swift` hosts `ScanFlowView`, `AboutPanel.swift` presents the system About
+panel, `AppDelegate.swift` is the lifecycle delegate.
+
+**`DiskCLI` — the command line.**
+`ScanCommand.swift` parses `scan <folder> --depth --top --json` and holds the help text;
+`ScanCLI.swift` decides CLI vs app, drives `FileScanEngine`, and maps the terminal event
+to an exit status (SIGINT/SIGTERM call `ScanEngine.cancel()`); `ScanReport.swift` renders
+the deterministic text report and the `ScanRecord` JSON. It depends on `DiskCore` only,
+so a scan never loads AppKit or SwiftUI. `--depth` and `--top` change what is printed,
+never what is scanned or recorded.
 
 ## Commands
 
@@ -83,6 +94,7 @@ hosts `ScanFlowView`, `AboutPanel.swift` presents the system About panel,
 swift build                          # compile
 swift test                           # full suite
 swift test --filter FileScanEngineTests   # one test class
+swift run WillyDisk scan <folder> --json  # command-line scan: no window, no UI loaded
 bash Scripts/run.sh                  # build the bundle and launch it (the way to look at the UI)
 bash Scripts/bundle-app.sh           # assemble .build/WillyDisk.app; its version comes from VERSION
 bash Scripts/render-screens.sh       # offscreen PNGs (-S results|home|help|settings|categories|cleanup|duplicates|history|both), no window, no screen-recording permission

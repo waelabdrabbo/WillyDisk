@@ -21,24 +21,32 @@ Sources/
     Models/                 # frozen value model
     Scanning/               # scan engine implementations
     Scanning/Contracts.swift# frozen protocols/types
+  DiskCLI/                  # `WillyDisk scan` front end (DiskCore only)
   DiskUI/                   # SwiftUI + design system
     DesignSystem/
     Components/
     Screens/
-  WillyDiskApp/             # @main executable, window, wiring
+  WillyDiskApp/             # @main executable, window, wiring, CLI/GUI dispatch
 Tests/
   DiskCoreTests/            # engine tests
+  DiskCLITests/             # command-line parsing, report, exit statuses
   QATests/                  # independent verification
 Scripts/bundle-app.sh       # builds the .app bundle
 docs/                       # ARCHITECTURE.md
 ```
 
 `Package.swift` products: executable `WillyDisk`; libraries `DiskCore`, `DiskUI`.
+`DiskCLI` is a target, not a product: it is linked into the one executable, whose `@main`
+chooses between the command line and the app.
 
 Commands:
 
 - Build: `swift build`
 - Test: `swift test`
+- Scan from the command line (no window, no UI loaded):
+  `swift run WillyDisk scan <folder> [--depth N] [--top N] [--json]`.
+  The bundled binary takes the same arguments; the SDK stamp below only affects
+  window chrome, so it does not matter to a scan.
 - Run (dev): `bash Scripts/run.sh` → builds `.build/WillyDisk.app` and opens it.
   Do **not** use `swift run WillyDisk` to inspect the UI: a bare SwiftPM binary
   is stamped with the deployment target as its linked SDK and renders the legacy
@@ -277,6 +285,16 @@ carries the root node itself in `largestDirectories`.
   `AppState` as `NSApplication.appearance` — one carrier that every window, the
   app's chrome, the panels it presents, and the menu bar inherit, and whose
   changes SwiftUI's color scheme follows.
+- The command line is a second front end over the same engine, not a second scanner.
+  `DiskCLI` depends on `DiskCore` only. The executable's `@main` checks the process
+  arguments before SwiftUI is touched and routes `WillyDisk scan …` (and `--help`) to
+  `ScanCLI`, so no `NSApplication`, window, or Dock icon is created. The text report is
+  derived from the terminal `ScanSummary`; `--json` prints the versioned `ScanRecord`
+  (the history schema), with every list ordered size-first and path-second so equal
+  sizes print deterministically. `--depth` and `--top` are print widths: they never
+  narrow what was scanned or recorded. SIGINT/SIGTERM call `ScanEngine.cancel()`; a
+  cancelled run prints no report and exits 130. Exit statuses are 0 (finished), 1
+  (missing folder or unwritable report), 2 (usage), and 130 (cancelled).
 - Design tokens live in `DiskUI/DesignSystem/DesignSystem.swift` (spacing scale,
   corner radii, typography roles, semantic colors). UI never hard-codes magic numbers.
 - The disk chart is `SunburstView` — custom SwiftUI shapes with ring/angle

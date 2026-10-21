@@ -9,11 +9,11 @@ decisions. This is a handoff document, not a specification of frozen interfaces 
 - The current code is the Explorer trust pass (`f6c8ca5`), quick-scan presets and
   request exclusions (`c53d8b5`), the engraved-platter identity and macOS alignment
   (`17a7e29`, `794cd6a`), the results and Home polish through `fdbc450`, the
-  install-trust work at `d7155dc`, the packaged circular mark at `55f5032`, and the
-  category breakdown and cleanup candidates at `9a69a3b`; this docs handoff follows
-  on top. Working tree clean.
+  install-trust work at `d7155dc`, the packaged circular mark at `55f5032`, the
+  cleanup candidates at `9a69a3b`, and the Categories mode at `71bae92`; this docs
+  handoff follows on top. Working tree clean.
 - Build: `swift build --disable-sandbox`.
-- Tests: 141 QATests + 51 DiskCoreTests, 0 failures, 1 skipped
+- Tests: 144 QATests + 51 DiskCoreTests, 0 failures, 1 skipped
   (`ScanBenchmarkTests` needs `WILLYDISK_BENCH_ROOT`).
 - CI: `.github/workflows/ci.yml` builds, tests, checks that the bundle reports
   `VERSION`, and uploads the offscreen renders on every push.
@@ -35,7 +35,7 @@ decisions. This is a handoff document, not a specification of frozen interfaces 
 | Quick-scan presets, request exclusions, coverage disclosure | `c53d8b5` |
 | Engraved-platter identity, macOS alignment, Settings window | `17a7e29`, `794cd6a` |
 | Version from `VERSION`, About panel, in-app Help, CI | `d7155dc` |
-| Category breakdown, cleanup candidates through reclaim | `9a69a3b` |
+| Category breakdown (Categories mode), cleanup candidates through reclaim | `9a69a3b`, `71bae92` |
 
 Details worth remembering:
 
@@ -71,11 +71,13 @@ Details worth remembering:
 - Help is a sheet on the main window (⌘?), not a window of its own, so the app keeps
   one window. It restates the scan, coverage, and reclaim rules in short form;
   `Scripts/render-screens.sh -S help` renders it so the copy can be reviewed.
-- The category breakdown reads `summary.categoryBreakdown`, which counts files by
-  logical size: directories carry no bytes, and hard links count once per link. Shares
-  are of the scan's own total, never of the categorised subset, and a share rounds to
-  “<1%” rather than 0% or to “99%” rather than 100%. Choosing a row filters the
-  explorer; the filter now applies in all three modes, including the ranked lists.
+- The category breakdown is a fourth explorer mode, not a sheet: the chart pane draws
+  one ring of the scan's categories, and the explorer lists the same slices. It reads
+  `summary.categoryBreakdown`, which counts files by logical size — directories carry no
+  bytes, and hard links count once per link. Shares are of the scan's own total, never of
+  the categorised subset, and a share rounds to “<1%” rather than 0% or to “99%” rather
+  than 100%. Choosing a slice or a row switches to Top Files filtered to that category;
+  the filter applies in the ranked lists as well.
 - Cleanup candidates come from the finished tree the summary already carries, never
   from a second filesystem pass. `CleanupPolicy` states the thresholds (500 MB and a
   year for large-and-old, six months for downloads), keeps at most 100 per section, and
@@ -116,19 +118,20 @@ Details worth remembering:
 swift build --disable-sandbox
 swift test --disable-sandbox
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S both -o .build/renders/check
+WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S categories -o .build/renders/check
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S help -c -o .build/renders/check
-WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S categories -c -o .build/renders/check
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S cleanup -c -o .build/renders/check
 ```
 
 CI runs the build, the suite, the bundle version check, and all four renders on every push.
 
-Help, categories, and cleanup are reachable because they are views: `-S` captures their
-content, not the sheet presentation. Cleanup uses its own sample tree (sparse files with
-set ages), so its render shows real candidates without a second filesystem pass. For any
-other sheet, the working practice is a temporary `@MainActor` QA test that hosts the view
-in `NSHostingView`, renders it with `cacheDisplay`, writes a PNG under `.build/renders/`,
-and is deleted before commit. Do not ship a renderer hook for a one-off visual check.
+`-S categories` renders the real results screen in Categories mode, window and all.
+Help and cleanup are sheets, so `-S` captures their content. Cleanup uses its own sample
+tree (sparse files with set ages), so its render shows real candidates without a second
+filesystem pass. For any sheet without a screen state, the working practice is a
+temporary `@MainActor` QA test that hosts the view in `NSHostingView`, renders it with
+`cacheDisplay`, writes a PNG under `.build/renders/`, and is deleted before commit. Do
+not ship a renderer hook for a one-off visual check.
 
 ## Remaining work, in recommended order
 

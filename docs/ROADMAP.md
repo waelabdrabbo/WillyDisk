@@ -35,7 +35,7 @@ decisions. This is a handoff document, not a specification of frozen interfaces 
 | Quick-scan presets, request exclusions, coverage disclosure | `c53d8b5` |
 | Engraved-platter identity, macOS alignment, Settings window | `17a7e29`, `794cd6a` |
 | Version from `VERSION`, About panel, in-app Help, CI | `d7155dc` |
-| Category breakdown (Categories mode and its category detail), cleanup candidates through reclaim | `9a69a3b`, `71bae92`, `6266abc` |
+| Category breakdown (Categories mode and its category detail), cleanup candidates through reclaim | `9a69a3b`, `71bae92`, `6266abc`, `031dbda` |
 
 Details worth remembering:
 
@@ -77,13 +77,15 @@ Details worth remembering:
   bytes, and hard links count once per link. Shares are of the scan's own total, never of
   the categorised subset, and a share rounds to “<1%” rather than 0% or to “99%” rather
   than 100%.
-- Choosing a slice or a row opens that category in place: the mode stays Categories, the
-  ring keeps the slice outlined and names it in the centre, and the list becomes the
-  category's files. “All Categories” above the list closes it. The files come from a walk
-  over the finished tree, run off the main actor and capped at 100 with every match still
-  counted; a live scan uses the engine's ranked list and says it is the largest so far,
-  then reloads when the root node lands. There is no category menu and no category
-  filter: the mode is the only way in.
+- Choosing a slice or a row opens that category in place: the mode stays Categories and
+  the list becomes the category's files, charted as its own sunburst with one wedge per
+  listed file and hover and selection shared with the rows — the same chart/list pairing
+  This Folder has. While the walk is loading, the ring shows the category outlined, and
+  “All Categories” above the list closes it. The files come from a walk over the finished
+  tree, run off the main actor and capped at 100 with every match still counted; a live
+  scan uses the engine's ranked list and says it is the largest so far, then reloads when
+  the root node lands. There is no category menu and no category filter: the mode is the
+  only way in.
 - Cleanup candidates come from the finished tree the summary already carries, never
   from a second filesystem pass. `CleanupPolicy` states the thresholds (500 MB and a
   year for large-and-old, six months for downloads), keeps at most 100 per section, and

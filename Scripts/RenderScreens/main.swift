@@ -33,6 +33,8 @@ enum ScreenKind: String, CaseIterable {
     case results
     case home
     case help
+    case categories
+    case cleanup
 }
 
 struct Options {
@@ -80,8 +82,10 @@ func parse(_ arguments: [String]) -> Options {
             case "results": options.screens = [.results]
             case "home": options.screens = [.home]
             case "help": options.screens = [.help]
+            case "categories": options.screens = [.categories]
+            case "cleanup": options.screens = [.cleanup]
             case "both": options.screens = [.results, .home]
-            case let other: fail("--screen expects home, results, help or both, not \(other)")
+            case let other: fail("--screen expects home, results, help, categories, cleanup or both, not \(other)")
             }
         case "--fixture":
             options.fixture = URL(fileURLWithPath: next("--fixture"))
@@ -98,13 +102,14 @@ func parse(_ arguments: [String]) -> Options {
             options.rendersWindow = false
         case "--help", "-h":
             print("""
-            usage: render-screens --out DIR [--size WxH] [--appearance light|dark|both] [--screen home|results|help|both] [--fixture DIR] [--state finished|scanning] [--window|--content]
+            usage: render-screens --out DIR [--size WxH] [--appearance light|dark|both] [--screen home|results|help|categories|cleanup|both] [--fixture DIR] [--state finished|scanning] [--window|--content]
 
               --out        directory the PNGs are written to
               --size       render size in points (default 1000x720)
               --appearance which appearances to render (default both)
               --screen     which screens to render (default results); both is
-                           home and results, help is the help sheet's content
+                           home and results, help, categories, and cleanup are
+                           the sheets' contents (cleanup uses its own fixture)
               --fixture    scan this directory instead of the generated fixture
               --state      finished (default) or scanning, which captures the
                            screen while the scan is still running
@@ -149,17 +154,65 @@ func makeFixture(at root: URL) {
     }
 }
 
+/// Writes a tree the cleanup analysis has something to say about.
+///
+/// The files are sparse — `truncate` sets a logical size without writing the
+/// bytes — so the render costs nothing but st_size. Dates are set relative to the
+/// moment of the render so the default policy sees a large old file, an old
+/// download, and a cache folder.
+func makeCleanupFixture(at root: URL) {
+    let manager = FileManager.default
+    let now = Date()
+
+    func sparse(_ path: String, size: Int64, ageDays: Double) {
+        let url = root.appendingPathComponent(path)
+        try? manager.createDirectory(at: url.deletingLastPathComponent(),
+                                     withIntermediateDirectories: true)
+        manager.createFile(atPath: url.path, contents: nil)
+        if let handle = try? FileHandle(forWritingTo: url) {
+            try? handle.truncate(atOffset: UInt64(size))
+            try? handle.close()
+        }
+        try? manager.setAttributes(
+            [.modificationDate: now.addingTimeInterval(-ageDays * 86_400)],
+            ofItemAtPath: url.path
+        )
+    }
+
+    sparse("Documents/old-archive.dmg", size: 800_000_000, ageDays: 800)
+    sparse("Downloads/holiday.mov", size: 620_000_000, ageDays: 200)
+    sparse("Downloads/recent.zip", size: 40_000_000, ageDays: 2)
+    sparse("Library/Caches/com.example.app/blob.bin", size: 900_000_000, ageDays: 800)
+    sparse("Documents/notes.txt", size: 2_000, ageDays: 2)
+}
+
 // MARK: - Rendering
+
+/// The scanned root's own node, the way `ResultsView` finds it.
+func rootNode(in summary: ScanSummary) -> ScanNode? {
+    let path = summary.root.standardizedFileURL.path
+    return summary.largestDirectories.first {
+        $0.url.standardizedFileURL.path == path
+    }
+}
 
 @MainActor
 func render(_ options: Options) {
     // Help is static content: it needs no fixture and no scan, so a help-only
     // render is quick and cannot fail on the fixture.
     let needsScan = options.screens.contains { $0 != .help }
-    let fixture = options.fixture ?? options.out.appendingPathComponent("fixture")
+    // The cleanup sheet needs candidates the standard fixture does not have, so
+    // it renders from its own tree; the other screens keep the shared fixture.
+    let isCleanupRender = options.screens.contains(.cleanup)
+    let fixtureName = isCleanupRender ? "Sample Disk" : "fixture"
+    let fixture = options.fixture ?? options.out.appendingPathComponent(fixtureName)
     if needsScan, options.fixture == nil {
         try? FileManager.default.createDirectory(at: options.out, withIntermediateDirectories: true)
-        makeFixture(at: fixture)
+        if isCleanupRender {
+            makeCleanupFixture(at: fixture)
+        } else {
+            makeFixture(at: fixture)
+        }
     }
 
     let viewModel = ScanViewModel(engine: FileScanEngine())
@@ -209,6 +262,15 @@ func render(_ options: Options) {
         print("\(options.state.rawValue) \(fixture.path): \(viewModel.filesScanned) files, \(viewModel.displayedTotal) bytes")
     }
 
+    if options.screens.contains(.categories), viewModel.summary == nil {
+        fail("the scan produced no summary for the categories screen")
+    }
+    if options.screens.contains(.cleanup) {
+        guard let summary = viewModel.summary, rootNode(in: summary) != nil else {
+            fail("the scan produced no root node for the cleanup screen")
+        }
+    }
+
     try? FileManager.default.createDirectory(at: options.out, withIntermediateDirectories: true)
 
     for appearance in options.appearances {
@@ -223,6 +285,28 @@ func render(_ options: Options) {
                 case .results: ResultsView(viewModel: viewModel)
                 case .home: SourceSelectionView(viewModel: viewModel)
                 case .help: HelpView()
+                case .categories:
+                    if let summary = viewModel.summary {
+                        CategoryBreakdownSheet(
+                            breakdown: CategoryBreakdown(summary: summary),
+                            rootName: summary.root.lastPathComponent,
+                            scannedAt: summary.finishedAt,
+                            selected: nil,
+                            onSelect: { _ in },
+                            onClose: {}
+                        )
+                    }
+                case .cleanup:
+                    if let summary = viewModel.summary, let root = rootNode(in: summary) {
+                        CleanupSheet(
+                            root: root,
+                            rootName: root.name,
+                            scannedAt: summary.finishedAt,
+                            previewReport: CleanupAnalysis.analyze(root: root, now: Date()),
+                            onMove: { _ in },
+                            onClose: {}
+                        )
+                    }
                 }
             }
             .environment(\.colorScheme, appearance)

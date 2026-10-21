@@ -92,6 +92,22 @@ enum CountFormat {
     }
 }
 
+/// Share-of-a-whole labels for charts and breakdowns.
+public enum PercentFormat {
+    /// A whole percentage, never rounding a real slice to 0% or an incomplete
+    /// one to 100%: below one percent reads “<1%”, and only a true whole reads
+    /// “100%”.
+    public static func ofWhole(_ share: Double) -> String {
+        let fraction = min(max(share, 0), 1)
+        if fraction <= 0 { return "0%" }
+        if fraction >= 1 { return "100%" }
+        var percent = Int((fraction * 100).rounded())
+        if percent == 0 { return "<1%" }
+        if percent == 100 { percent = 99 }
+        return "\(percent)%"
+    }
+}
+
 public enum DateFormat {
     /// Short date + time, e.g. "Oct 13, 2026 at 2:41 PM".
     public static func short(_ date: Date) -> String {

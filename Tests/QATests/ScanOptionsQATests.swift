@@ -188,7 +188,7 @@ final class ScanOptionsQATests: XCTestCase {
             makeNode("/scan/c/zero", size: 0)
         ]
 
-        let ranked = ExplorerQuery.ranked(nodes, search: "")
+        let ranked = ExplorerQuery.ranked(nodes, search: "", category: nil)
         XCTAssertEqual(ranked.map(\.name), ["big.zip", "small.bin"])
     }
 
@@ -198,7 +198,7 @@ final class ScanOptionsQATests: XCTestCase {
             makeNode("/scan/b/other.bin", size: 300)
         ]
 
-        let matches = ExplorerQuery.ranked(nodes, search: "a/small")
+        let matches = ExplorerQuery.ranked(nodes, search: "a/small", category: nil)
         XCTAssertEqual(matches.map(\.name), ["small.bin"])
     }
 

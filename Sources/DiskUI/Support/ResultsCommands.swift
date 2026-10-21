@@ -13,6 +13,10 @@ public struct ResultsCommands {
     public var exportCSV: () -> Void
     public var canShowCoverage: Bool
     public var showCoverage: () -> Void
+    public var canShowCategories: Bool
+    public var showCategories: () -> Void
+    public var canShowCleanup: Bool
+    public var showCleanup: () -> Void
     public var focusSearch: () -> Void
 
     public init(
@@ -23,6 +27,10 @@ public struct ResultsCommands {
         exportCSV: @escaping () -> Void,
         canShowCoverage: Bool,
         showCoverage: @escaping () -> Void,
+        canShowCategories: Bool,
+        showCategories: @escaping () -> Void,
+        canShowCleanup: Bool,
+        showCleanup: @escaping () -> Void,
         focusSearch: @escaping () -> Void
     ) {
         self.canRescan = canRescan
@@ -32,6 +40,10 @@ public struct ResultsCommands {
         self.exportCSV = exportCSV
         self.canShowCoverage = canShowCoverage
         self.showCoverage = showCoverage
+        self.canShowCategories = canShowCategories
+        self.showCategories = showCategories
+        self.canShowCleanup = canShowCleanup
+        self.showCleanup = showCleanup
         self.focusSearch = focusSearch
     }
 }

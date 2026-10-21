@@ -68,6 +68,9 @@ public struct ResultsView: View {
     @State private var activeSheet: ResultsSheet?
     @State private var isCheckingReclaim = false
     @State private var isTrashing = false
+    /// A selection chosen in the cleanup sheet, held until that sheet has
+    /// finished dismissing so the confirmation can be presented on its own.
+    @State private var pendingReclaimNodes: [ScanNode] = []
     /// A token that makes a slow guard probe land only on the request that asked
     /// for it, never on a later selection the sheet is now about.
     @State private var reclaimRequestID = UUID()
@@ -184,7 +187,8 @@ public struct ResultsView: View {
                 nodes = ExplorerQuery.entries(in: currentChildren, search: searchText,
                                               category: filterCategory, sort: sortOrder)
             case .topFiles, .topFolders:
-                nodes = ExplorerQuery.ranked(topNodes, search: searchText)
+                nodes = ExplorerQuery.ranked(topNodes, search: searchText,
+                                             category: filterCategory)
             }
             return nodes.map {
                 ExplorerRow(node: $0, showsLocation: explorerMode != .folder)
@@ -238,7 +242,7 @@ public struct ResultsView: View {
     private var remainingRowCount: Int { max(visibleRows.count - visibleItemLimit, 0) }
 
     private var isFiltering: Bool {
-        explorerMode == .folder ? (!searchText.isEmpty || filterCategory != nil) : !searchText.isEmpty
+        !searchText.isEmpty || filterCategory != nil
     }
 
     /// The inputs that decide which rows are on screen. When any of them changes
@@ -361,7 +365,7 @@ public struct ResultsView: View {
             }
         }
         .animation(reduceMotion ? nil : .easeInOut(duration: 0.2), value: viewModel.reclaimNotice)
-        .sheet(item: $activeSheet) { sheet in
+        .sheet(item: $activeSheet, onDismiss: presentPendingReclaim) { sheet in
             switch sheet {
             case .reclaim:
                 ReclaimSheet(
@@ -375,6 +379,30 @@ public struct ResultsView: View {
             case .coverage:
                 if let summary {
                     CoverageSheet(summary: summary, isLive: viewModel.isScanning)
+                }
+            case .categories:
+                if let summary {
+                    CategoryBreakdownSheet(
+                        breakdown: CategoryBreakdown(summary: summary),
+                        rootName: rootNode(in: summary)?.name ?? summary.root.lastPathComponent,
+                        scannedAt: summary.finishedAt,
+                        selected: filterCategory,
+                        onSelect: { filterCategory = $0 },
+                        onClose: { activeSheet = nil }
+                    )
+                }
+            case .cleanup:
+                if let summary, let root = rootNode(in: summary) {
+                    CleanupSheet(
+                        root: root,
+                        rootName: root.name,
+                        scannedAt: summary.finishedAt,
+                        onMove: { nodes in
+                            pendingReclaimNodes = nodes
+                            activeSheet = nil
+                        },
+                        onClose: { activeSheet = nil }
+                    )
                 }
             }
         }
@@ -413,6 +441,22 @@ public struct ResultsView: View {
             }
 
             ToolbarItemGroup(placement: .primaryAction) {
+                Button {
+                    showCategories()
+                } label: {
+                    Label("Categories", systemImage: "chart.pie")
+                }
+                .help("How the bytes split by file category")
+                .disabled(summary == nil)
+
+                Button {
+                    showCleanup()
+                } label: {
+                    Label("Cleanup", systemImage: "sparkles")
+                }
+                .help("Large, old, and cache items worth reviewing")
+                .disabled(summary == nil || viewModel.isScanning)
+
                 Button {
                     showCoverage()
                 } label: {
@@ -835,6 +879,8 @@ public struct ResultsView: View {
                     ForEach(FileCategory.allCases, id: \.self) { category in
                         Button(category.displayName) { filterCategory = category }
                     }
+                    Divider()
+                    Button("Where the Bytes Are…") { showCategories() }
                 } label: {
                     Image(systemName: "line.3.horizontal.decrease.circle")
                 }
@@ -1216,12 +1262,36 @@ public struct ResultsView: View {
             exportCSV: { exportCSV() },
             canShowCoverage: summary != nil,
             showCoverage: { showCoverage() },
+            canShowCategories: summary != nil,
+            showCategories: { showCategories() },
+            canShowCleanup: summary != nil && !viewModel.isScanning,
+            showCleanup: { showCleanup() },
             focusSearch: { searchFocusRequest += 1 }
         )
     }
 
     private func showCoverage() {
         activeSheet = .coverage
+    }
+
+    private func showCategories() {
+        guard summary != nil else { return }
+        activeSheet = .categories
+    }
+
+    private func showCleanup() {
+        guard summary != nil, !viewModel.isScanning else { return }
+        activeSheet = .cleanup
+    }
+
+    /// Opens the reclaim confirmation for a selection the cleanup sheet made,
+    /// once that sheet has actually gone. Swapping one sheet for another in the
+    /// same update makes the second presentation unreliable.
+    private func presentPendingReclaim() {
+        guard !pendingReclaimNodes.isEmpty else { return }
+        let nodes = pendingReclaimNodes
+        pendingReclaimNodes = []
+        requestReclaim(nodes)
     }
 
     private func exportJSON() {
@@ -1746,6 +1816,8 @@ private struct RowHeightReader: ViewModifier {
 private enum ResultsSheet: String, Identifiable {
     case reclaim
     case coverage
+    case categories
+    case cleanup
 
     var id: String { rawValue }
 }

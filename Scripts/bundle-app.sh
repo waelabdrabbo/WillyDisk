@@ -137,8 +137,29 @@ cp "$BIN_PATH" "$STAGED_BIN"
 cp "$ICON_SRC" "$RESOURCES_DIR/AppIcon.icns"
 # The in-app mark lives in DiskUI's resource bundle; copying it here is what lets
 # the hero, Help, and About resolve it from `Bundle.main`'s resource path.
-cp -R "$UI_BUNDLE" "$RESOURCES_DIR/"
-if [ ! -f "$RESOURCES_DIR/WillyDisk_DiskUI.bundle/Contents/Resources/AppMark.png" ]; then
+#
+# The bundle's layout depends on the toolchain: an older SwiftPM writes a flat
+# bundle (Info.plist and resources at its root), while the current one writes
+# Contents/Resources. Foundation loads both, but an app bundle gets the macOS
+# layout either way, so convert the flat form while copying.
+UI_BUNDLE_DEST="$RESOURCES_DIR/WillyDisk_DiskUI.bundle"
+if [ -f "$UI_BUNDLE/Contents/Info.plist" ]; then
+    cp -R "$UI_BUNDLE" "$RESOURCES_DIR/"
+else
+    if [ ! -f "$UI_BUNDLE/Info.plist" ]; then
+        echo "error: unrecognized UI resource bundle layout at $UI_BUNDLE" >&2
+        exit 1
+    fi
+    mkdir -p "$UI_BUNDLE_DEST/Contents/Resources"
+    cp "$UI_BUNDLE/Info.plist" "$UI_BUNDLE_DEST/Contents/Info.plist"
+    for item in "$UI_BUNDLE"/*; do
+        if [ "$(basename "$item")" = "Info.plist" ]; then
+            continue
+        fi
+        cp -R "$item" "$UI_BUNDLE_DEST/Contents/Resources/"
+    done
+fi
+if [ ! -f "$UI_BUNDLE_DEST/Contents/Resources/AppMark.png" ]; then
     echo "error: the UI resource bundle does not carry AppMark.png" >&2
     exit 1
 fi

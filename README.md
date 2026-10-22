@@ -32,6 +32,36 @@ breakdown by file category. Everything happens on your machine.
 - Xcode 26 or later, for the macOS 26 SDK the UI builds against, even though the app
   runs on macOS 14.
 
+## Install
+
+Download the zip for your Mac from the
+[Releases page](https://github.com/waelabdrabbo/WillyDisk/releases) —
+`WillyDisk-<version>-arm64.zip` on Apple Silicon, `-x86_64.zip` on Intel
+(`uname -m` tells you which) — and check it against the published SHA-256:
+
+```
+shasum -a 256 -c WillyDisk-<version>-<arch>.zip.sha256
+```
+
+Unzip the download and move `WillyDisk.app` to `/Applications`.
+
+**The app is unsigned and not notarized.** There is no Apple Developer account behind
+it, so macOS refuses the download the first time it is opened. That is expected; no
+build here is approved by Apple. Approve it in System Settings → Privacy & Security →
+Open Anyway (Control-click → Open is not offered on macOS 15 and later), or remove the
+download flag:
+
+```
+xattr -dr com.apple.quarantine /Applications/WillyDisk.app
+```
+
+The checksum detects a corrupted or altered download; it is not proof that the build is
+trustworthy. Full Disk Access is optional: without it the app measures what it can read
+and reports what it could not.
+
+Building from source avoids the approval step entirely — a local build carries no
+quarantine flag.
+
 ## Build and run
 
 ```
@@ -51,6 +81,7 @@ Other scripts:
 
 ```
 bash Scripts/bundle-app.sh      # build .build/WillyDisk.app without launching it
+bash Scripts/package-release.sh # build the arm64 and Intel zips with their SHA-256s
 bash Scripts/render-screens.sh  # render the screens offscreen to PNGs in .build/renders
 bash Scripts/repo-map.sh        # print a structural inventory of the repository
 ```

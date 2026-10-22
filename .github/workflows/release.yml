@@ -1,0 +1,118 @@
+name: Release
+
+# Pushing a `v*` tag is the only way to publish. The tag must name the version in
+# VERSION, and the release page says plainly that the artifact is unsigned and
+# not notarized. There is no Developer ID certificate and no notarization step.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    # Same SDK requirement as CI: DiskUI is built against the macOS 26 SDK.
+    runs-on: macos-26
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+        with:
+          # Full history so the bundle's build number is the commit count.
+          fetch-depth: 0
+
+      - name: Toolchain
+        run: |
+          set -euo pipefail
+          swift --version
+          xcodebuild -version
+          sdk="$(xcrun --sdk macosx --show-sdk-version)"
+          echo "macOS SDK: $sdk"
+          major="${sdk%%.*}"
+          if [ "$major" -lt 26 ]; then
+            echo "::error::the macOS $sdk SDK is too old: DiskUI needs the macOS 26 SDK. Run this job on macos-26."
+            exit 1
+          fi
+
+      - name: Tag matches VERSION
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF_NAME#v}"
+          version="$(tr -d '[:space:]' < VERSION)"
+          if [ "$tag" != "$version" ]; then
+            echo "::error::tag '$GITHUB_REF_NAME' does not match VERSION '$version'; tag v$version instead."
+            exit 1
+          fi
+          echo "Releasing $version"
+
+      - name: Package the zips and checksums
+        env:
+          WILLYDISK_ARCHS: arm64 x86_64
+        run: bash Scripts/package-release.sh
+
+      - name: Verify the published checksums
+        run: |
+          set -euo pipefail
+          version="$(tr -d '[:space:]' < VERSION)"
+          cd .build/release
+          for checksum in "WillyDisk-$version"-*.zip.sha256; do
+            shasum -a 256 -c "$checksum"
+          done
+
+      - name: Fill in the release notes
+        run: |
+          set -euo pipefail
+          version="$(tr -d '[:space:]' < VERSION)"
+          arm64_digest="$(awk '{print $1}' ".build/release/WillyDisk-$version-arm64.zip.sha256")"
+          x86_64_digest="$(awk '{print $1}' ".build/release/WillyDisk-$version-x86_64.zip.sha256")"
+          sed \
+            -e "s|{{VERSION}}|$version|g" \
+            -e "s|{{TAG}}|$GITHUB_REF_NAME|g" \
+            -e "s|{{SHA256_ARM64}}|$arm64_digest|g" \
+            -e "s|{{SHA256_X86_64}}|$x86_64_digest|g" \
+            -e "s|{{REPO_URL}}|https://github.com/$GITHUB_REPOSITORY.git|g" \
+            -e "s|{{REPO_LINK}}|https://github.com/$GITHUB_REPOSITORY|g" \
+            .github/release-notes.md > "$RUNNER_TEMP/notes.md"
+          if grep -q '{{' "$RUNNER_TEMP/notes.md"; then
+            echo "::error::the release notes still carry an unfilled placeholder."
+            grep -n '{{' "$RUNNER_TEMP/notes.md"
+            exit 1
+          fi
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          tag="$GITHUB_REF_NAME"
+          version="$(tr -d '[:space:]' < VERSION)"
+          assets=(".build/release/WillyDisk-$version-arm64.zip"
+                  ".build/release/WillyDisk-$version-arm64.zip.sha256"
+                  ".build/release/WillyDisk-$version-x86_64.zip"
+                  ".build/release/WillyDisk-$version-x86_64.zip.sha256")
+          if gh release view "$tag" >/dev/null 2>&1; then
+            if [ "$(gh release view "$tag" --json isDraft --jq .isDraft)" != "true" ]; then
+              echo "::error::release $tag is already published; edit VERSION and push a new tag instead of rewriting it."
+              exit 1
+            fi
+            # A previous run stopped before publishing: replace the draft's
+            # assets and publish it rather than failing on the leftover.
+            echo "Resuming draft release $tag."
+            gh release upload "$tag" "${assets[@]}" --clobber
+            gh release edit "$tag" --notes-file "$RUNNER_TEMP/notes.md" --draft=false
+          else
+            gh release create "$tag" "${assets[@]}" \
+              --verify-tag \
+              --draft \
+              --title "WillyDisk ${tag#v}" \
+              --notes-file "$RUNNER_TEMP/notes.md"
+            gh release edit "$tag" --draft=false
+          fi
+          echo "Published $(gh release view "$tag" --json url --jq .url)"

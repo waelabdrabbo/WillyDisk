@@ -4,7 +4,12 @@
 #
 # Usage:   bash Scripts/bundle-app.sh            # release bundle
 #          CONFIGURATION=debug bash Scripts/bundle-app.sh
+#          WILLYDISK_ARCH=x86_64 bash Scripts/bundle-app.sh
 # Output:  .build/WillyDisk.app  (launch with: open .build/WillyDisk.app)
+#
+# WILLYDISK_ARCH cross-builds one slice and writes .build/WillyDisk-<arch>.app
+# under its own scratch path, so the release pipeline can assemble both an
+# arm64 and an x86_64 archive without the products overwriting each other.
 #
 # Inside an agent sandbox, where SwiftPM cannot nest its own sandbox:
 #          WILLYDISK_NO_SANDBOX=1 bash Scripts/bundle-app.sh
@@ -22,8 +27,20 @@ cd "$ROOT_DIR"
 
 CONFIGURATION="${CONFIGURATION:-release}"
 APP_NAME="WillyDisk"
-BIN_PATH="$ROOT_DIR/.build/$CONFIGURATION/$APP_NAME"
+REQUESTED_ARCH="${WILLYDISK_ARCH:-}"
+ARCH="${REQUESTED_ARCH:-$(uname -m)}"
+case "$ARCH" in
+    arm64|x86_64) ;;
+    *)
+        echo "error: WILLYDISK_ARCH must be arm64 or x86_64, not '$ARCH'." >&2
+        exit 1
+        ;;
+esac
 APP_BUNDLE="$ROOT_DIR/.build/$APP_NAME.app"
+if [ -n "$REQUESTED_ARCH" ]; then
+    APP_BUNDLE="$ROOT_DIR/.build/$APP_NAME-$ARCH.app"
+fi
+BIN_PATH="$ROOT_DIR/.build/$CONFIGURATION/$APP_NAME"
 ICON_SRC="$ROOT_DIR/Resources/AppIcon.icns"
 UI_BUNDLE="$ROOT_DIR/.build/$CONFIGURATION/WillyDisk_DiskUI.bundle"
 
@@ -76,12 +93,27 @@ if [ -n "$SDK_VERSION" ]; then
                     -Xlinker "$DEPLOYMENT_TARGET" -Xlinker "$SDK_VERSION")
 fi
 
-echo "Building $APP_NAME $APP_VERSION ($BUILD_NUMBER, $CONFIGURATION)…"
+echo "Building $APP_NAME $APP_VERSION ($BUILD_NUMBER, $CONFIGURATION, $ARCH)…"
 BUILD_FLAGS=()
 if [[ -n "${WILLYDISK_NO_SANDBOX:-}" ]]; then
     BUILD_FLAGS=(--disable-sandbox)
 fi
-swift build -c "$CONFIGURATION" ${BUILD_FLAGS[@]+"${BUILD_FLAGS[@]}"} "${LINK_SDK_FLAGS[@]}"
+ARCH_FLAGS=()
+if [ -n "$REQUESTED_ARCH" ]; then
+    ARCH_FLAGS=(--scratch-path "$ROOT_DIR/.build/bundle-$ARCH"
+                --triple "$ARCH-apple-macosx$DEPLOYMENT_TARGET")
+fi
+swift build -c "$CONFIGURATION" \
+    ${ARCH_FLAGS[@]+"${ARCH_FLAGS[@]}"} \
+    ${BUILD_FLAGS[@]+"${BUILD_FLAGS[@]}"} \
+    "${LINK_SDK_FLAGS[@]}"
+if [ -n "$REQUESTED_ARCH" ]; then
+    BIN_DIR="$(swift build -c "$CONFIGURATION" \
+        ${ARCH_FLAGS[@]+"${ARCH_FLAGS[@]}"} \
+        --show-bin-path 2>/dev/null | tail -1)"
+    BIN_PATH="$BIN_DIR/$APP_NAME"
+    UI_BUNDLE="$BIN_DIR/WillyDisk_DiskUI.bundle"
+fi
 
 CONTENTS_DIR="$APP_BUNDLE/Contents"
 MACOS_DIR="$CONTENTS_DIR/MacOS"
@@ -172,4 +204,8 @@ if command -v codesign >/dev/null 2>&1; then
 fi
 
 echo "Done: $APP_BUNDLE"
-echo "Launch with: open \"$APP_BUNDLE\""
+if [ "$ARCH" != "$(uname -m)" ]; then
+    echo "Built for $ARCH; run it on a $ARCH Mac (this host is $(uname -m))."
+else
+    echo "Launch with: open \"$APP_BUNDLE\""
+fi

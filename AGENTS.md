@@ -33,8 +33,8 @@ contracts, shared-interface rules §7, non-negotiables §8).
 | `Tests/DiskCoreTests/` | engine tests |
 | `Tests/DiskCLITests/` | command-line parsing, report stability, exit statuses |
 | `Tests/QATests/` | independent verification that does not trust the engine's own tests |
-| `Scripts/` | build, bundle, launch, offscreen render, repo map |
-| `.github/workflows/ci.yml` | build, test, bundle version check, CLI smoke, renders |
+| `Scripts/` | build, bundle, release packaging, launch, offscreen render, repo map |
+| `.github/workflows/` | `ci.yml`: build, test, bundle version check, CLI smoke, renders; `release.yml`: tagged unsigned zips (arm64, x86_64) and checksums |
 | `docs/` | `ARCHITECTURE.md` |
 
 ## Where things are
@@ -97,6 +97,7 @@ swift test --filter FileScanEngineTests   # one test class
 swift run WillyDisk scan <folder> --json  # command-line scan: no window, no UI loaded
 bash Scripts/run.sh                  # build the bundle and launch it (the way to look at the UI)
 bash Scripts/bundle-app.sh           # assemble .build/WillyDisk.app; its version comes from VERSION
+bash Scripts/package-release.sh      # build the arm64 and Intel zips with their SHA-256s
 bash Scripts/render-screens.sh       # offscreen PNGs (-S results|home|help|settings|categories|cleanup|duplicates|history|both), no window, no screen-recording permission
 bash Scripts/repo-map.sh             # one-screen structural inventory (--types adds declarations)
 ```

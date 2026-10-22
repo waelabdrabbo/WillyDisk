@@ -8,6 +8,9 @@ breakdown by file category. Everything happens on your machine.
 
 ## Features
 
+- **Stays current.** While the results are on screen, a change in the scanned folder
+  re-measures the root in the background. A long scan is not re-run automatically; it is
+  marked stale and offers Rescan.
 - **Live results.** The results screen renders progressive snapshots while a scan runs,
   then settles on the final summary. There is no separate "scanning" screen to wait on.
 - **Honest numbers.** Progress, sizes, and issue counts are reported only when they are

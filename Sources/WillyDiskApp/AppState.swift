@@ -25,7 +25,9 @@ final class AppState: ObservableObject {
         scanViewModel = ScanViewModel(
             engine: FileScanEngine(),
             optionsStore: scanOptions,
-            history: ScanHistory()
+            history: ScanHistory(),
+            watchPreferences: .shared,
+            watcher: ScanTreeWatcher()
         )
 
         // The stored appearance is in place before the first window exists, so a

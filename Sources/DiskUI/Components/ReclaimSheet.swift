@@ -284,18 +284,3 @@ struct ReclaimBanner: View {
         }
     }
 }
-
-/// The compact marker that the numbers came from an earlier scan.
-struct StaleResultsBadge: View {
-    let onRescan: () -> Void
-
-    var body: some View {
-        InlineActionButton(
-            "Results changed since this scan. Rescan.",
-            systemImage: "clock.arrow.circlepath",
-            tone: .warning,
-            action: onRescan
-        )
-        .help("The folder changed after this scan. Run Rescan to see the current numbers.")
-    }
-}

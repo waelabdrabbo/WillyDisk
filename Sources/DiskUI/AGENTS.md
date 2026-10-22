@@ -20,8 +20,9 @@ stream reports.
   `CleanupSheet` (large/old, cache, download, and duplicate candidates that go to the
   reclaim confirmation), `HistorySheet` (the recorded runs of a location, two compared),
   `AccessNoticeRow`, `FlowLayout`, `ScanOptionToggle` (one scan option, shared by the
-  source screen's sheet and Settings), `ControlStyles` (the shared row hover, inline and
-  icon actions, and warning notice).
+  source screen's sheet and Settings), `ResultsStatusBadges` (the single watching/updating
+  chip and the stale marker), `ControlStyles` (the shared row hover, inline and icon
+  actions, and warning notice).
 - `DesignSystem/` — `DesignSystem.swift` holds every token (`DS`), `ChartPalette.swift`
   the chart fills, `FileCategory+UI.swift` the category symbols and labels,
   `AppAppearance.swift` the stored system/light/dark preference the Settings window
@@ -38,7 +39,9 @@ stream reports.
   candidates), `DuplicateAnalysis` (the explicit SHA-256 content check and its
   cancellable controller), `ScanOptions` + `ScanOptionsStore` (the one shared,
   persisted set of choices the next scan and Rescan use), `ScanHistory` (the observable
-  view of the record store; finished scans are recorded through it, off the main actor).
+  view of the record store; finished scans are recorded through it, off the main actor),
+  `WatchPreferences` (the stored keep-current choice), and `TreeWatching` (the watcher
+  seam the tests substitute).
 
 ## Rules
 
@@ -52,6 +55,12 @@ stream reports.
   "Cancel" dismisses a modal task, and "Dismiss" hides a notice.
 - Liquid Glass is an enhancement only: gate macOS 26 APIs behind
   `if #available(macOS 26.0, *)`. Never call a newer API unguarded.
+- A watched change is an invalidation, not an edit. `ScanViewModel` names the changed
+  folder and marks the results stale; a refresh keeps the old summary on screen,
+  publishes no partial/progress/issue, and replaces it only with the terminal summary.
+  Refreshes are not recorded in History. A refresh is not a live scan: `isLiveScan` is
+  `isScanning && !isRefreshing`, and a stopped refresh leaves the old summary complete
+  and stale.
 - `.partial` snapshots are advisory — the engine may throttle or omit them — and are
   never terminal. Update in place; the terminal `.finished` replaces them. The scan
   root's entries arrive ready-made in `ScanSummary.rootChildren`, folders included

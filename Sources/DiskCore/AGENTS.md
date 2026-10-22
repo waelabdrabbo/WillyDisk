@@ -39,6 +39,16 @@ pruning: a newer release may know what it says. `ScanComparison` matches entries
 path and reports `new`/`grown`/`shrunk`/`unchanged`; totals and categories are exact,
 ranked entries are the top 100 of each run, and no difference is called a saving.
 
+## Watching (`Watching/`)
+
+One FSEvents stream per root, owned by `ScanTreeWatcher`; `ScanWatchScope` is the only
+place that decides whether an event path belongs to what a scan measured. Its rules
+mirror the request: canonical `realpath` root and exclusions, an exclusion at or above
+the root ignored, the same `stayOnVolume` device rule as the traversal, and
+`/System/Volumes/Data/…` mapped to `/…` when the root is `/`. The callback runs on a
+private serial queue; `start` and `stop` are safe from any thread. A watcher never edits
+the tree or a summary — it only reports that a re-measurement is due.
+
 ## Testing
 
 Engine tests live in `Tests/DiskCoreTests/`. Exercise permission denials and I/O faults
@@ -48,4 +58,6 @@ filesystem.
 traversal cost; keep them green when you touch traversal, cancellation, or batching.
 
 History storage and comparison are covered by `ScanHistoryTests` in
-`Tests/DiskCoreTests/`. Run one class: `swift test --filter FileScanEngineTests`.
+`Tests/DiskCoreTests/`. The watcher's filter is covered deterministically by
+`ScanWatchScopeTests`; `ScanTreeWatcherTests` drives one real FSEvents stream against a
+temporary tree. Run one class: `swift test --filter FileScanEngineTests`.

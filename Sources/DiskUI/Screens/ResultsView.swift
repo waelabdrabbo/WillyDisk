@@ -96,7 +96,9 @@ public struct ResultsView: View {
     private var summary: ScanSummary? { viewModel.liveSummary }
 
     /// Whether a scan is still running and the visible results will keep growing.
-    private var isLiveScan: Bool { viewModel.isScanning }
+    /// A quiet refresh is not a live scan: it measures in the background while
+    /// the screen keeps showing the previous summary.
+    private var isLiveScan: Bool { viewModel.isScanning && !viewModel.isRefreshing }
 
     /// The scanned root's own node, present once the traversal has finalized it.
     ///
@@ -460,6 +462,10 @@ public struct ResultsView: View {
             // ones that have gone do not, so no action is ever aimed at a row the
             // screen no longer has.
             pruneSelection()
+            pruneBreadcrumb()
+        }
+        .onChange(of: viewModel.isWatchingEnabled) { _, _ in
+            viewModel.watchPreferenceChanged()
         }
         .onChange(of: selection) { _, _ in
             // An open panel follows the selection; a closed one stays closed.
@@ -631,7 +637,7 @@ public struct ResultsView: View {
     /// known so far; the status strip carries the scan's own progress, which is
     /// the number that moves.
     private var focusedTotal: Int64 {
-        if let node = breadcrumb.last { return node.logicalSize }
+        if let node = resolvedFocus ?? breadcrumb.last { return node.logicalSize }
         if viewModel.isScanning {
             return currentChildren.reduce(Int64(0)) { $0 + max($1.logicalSize, 0) }
         }
@@ -1017,6 +1023,9 @@ public struct ResultsView: View {
                     .foregroundStyle(DS.Color.primaryText)
                     .lineLimit(1)
                     .truncationMode(.middle)
+                if viewModel.isUpdating || (viewModel.isWatching && !viewModel.resultsAreStale) {
+                    WatchStatusChip(isUpdating: viewModel.isUpdating)
+                }
                 Spacer(minLength: DS.Spacing.small)
                 Text(ByteFormat.string(focusedTotal))
                     .font(DS.Typography.metric)
@@ -1035,14 +1044,30 @@ public struct ResultsView: View {
                 provenanceMetadata
             }
             .lineLimit(1)
-            if viewModel.resultsAreStale {
-                StaleResultsBadge(onRescan: rescan)
+            if viewModel.resultsAreStale && !viewModel.isUpdating {
+                StaleResultsBadge(message: staleMessage, onRescan: rescan)
             }
             if viewModel.stoppedEarly { stoppedEarlyNote }
         }
         .padding(.horizontal, DS.Spacing.medium)
         .padding(.vertical, DS.Spacing.xSmall)
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// What the stale marker names. The watcher's folders are the ones that
+    /// actually changed; a move to the Trash has no folder list and keeps the
+    /// general wording.
+    private var staleMessage: String {
+        guard let first = viewModel.changedFolders.first else {
+            return "Results changed since this scan. Rescan."
+        }
+        if viewModel.changedFoldersWereTruncated {
+            return "Changed in Finder in \(viewModel.changedFolderCount)+ folders. Rescan."
+        }
+        if viewModel.changedFolderCount <= 1 {
+            return "Changed in Finder: “\(first.lastPathComponent)”. Rescan."
+        }
+        return "Changed in Finder in \(viewModel.changedFolderCount) folders. Rescan."
     }
 
     /// Counts for the list's scope: the folder's own entries while the chart and
@@ -1546,6 +1571,23 @@ public struct ResultsView: View {
     private func exportCSV() {
         guard let summary else { return }
         ReportExport.exportCSV(summary: summary)
+    }
+
+    /// Drops crumbs that no longer exist in the results on screen, and refreshes
+    /// the ones that do so a folder's size comes from the current tree. A live
+    /// scan's partial tree legitimately lacks folders that are still being
+    /// walked, so this waits for a settled summary.
+    private func pruneBreadcrumb() {
+        guard !isLiveScan, !breadcrumb.isEmpty else { return }
+        var level = rootNodes
+        var kept: [ScanNode] = []
+        for crumb in breadcrumb {
+            guard let match = level.first(where: { $0.url == crumb.url }) else { break }
+            kept.append(match)
+            level = match.children
+        }
+        guard kept.map(\.id) != breadcrumb.map(\.id) else { return }
+        breadcrumb = kept
     }
 
     private func rescan() {

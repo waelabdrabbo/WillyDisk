@@ -11,17 +11,23 @@ import AppKit
 public struct SettingsView: View {
     @AppStorage(AppAppearance.defaultsKey) private var appearance: AppAppearance = .system
     @State private var optionsStore: ScanOptionsStore
+    @State private var watchPreferences: WatchPreferences
     @State private var hoveredAppearance: AppAppearance?
     @FocusState private var listFocused: Bool
 
-    public init(optionsStore: ScanOptionsStore = .shared) {
+    public init(
+        optionsStore: ScanOptionsStore = .shared,
+        watchPreferences: WatchPreferences = .shared
+    ) {
         _optionsStore = State(initialValue: optionsStore)
+        _watchPreferences = State(initialValue: watchPreferences)
     }
 
     public var body: some View {
         Form {
             appearanceSection
             scanDefaultsSection
+            resultsSection
             exclusionsSection
         }
         .formStyle(.grouped)
@@ -151,6 +157,28 @@ public struct SettingsView: View {
                 .fixedSize(horizontal: false, vertical: true)
         } header: {
             Text("Scan Options")
+        }
+    }
+
+    // MARK: - Results
+
+    private var resultsSection: some View {
+        Section {
+            ScanOptionToggle(
+                title: "Keep results current",
+                detail: "Update the numbers when files change in the scanned folder. A long scan is offered a Rescan instead.",
+                isOn: Binding(
+                    get: { watchPreferences.keepsResultsCurrent },
+                    set: { watchPreferences.keepsResultsCurrent = $0 }
+                )
+            )
+
+            Text("The folder is watched only while its results are on screen.")
+                .font(DS.Typography.caption)
+                .foregroundStyle(DS.Color.secondaryText)
+                .fixedSize(horizontal: false, vertical: true)
+        } header: {
+            Text("Results")
         }
     }
 

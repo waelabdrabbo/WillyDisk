@@ -27,6 +27,7 @@ contracts, shared-interface rules §7, non-negotiables §8).
 | `Sources/DiskCore/History/` | `ScanRecord` (versioned DTO), `ScanHistoryStore`, `ScanComparison` |
 | `Sources/DiskCore/Scanning/Contracts.swift` | frozen `ScanRequest`, `ScanEvent`, `ScanProgress`, `ScanEngine`, `ScanIssueKind` |
 | `Sources/DiskCore/Scanning/` (the rest) | the scan engine and its filesystem plumbing |
+| `Sources/DiskCore/Watching/` | FSEvents watcher and the scope that filters events to the scanned tree |
 | `Sources/DiskCLI/` | the `WillyDisk scan` front end: parsing, text report, `ScanRecord` JSON |
 | `Sources/DiskUI/` | screens, components, design system |
 | `Sources/WillyDiskApp/` | `@main` executable, window, wiring, CLI/GUI dispatch |
@@ -50,10 +51,13 @@ onto `FileCategory`, `ScanErrorClassifier.swift` maps errno onto `ScanIssueKind`
 `History/` stores finished runs: `ScanRecord.swift` is the versioned record DTO (never
 the tree), `ScanHistoryStore.swift` the one-file-per-run store, and
 `ScanComparison.swift` the totals/category/entry comparison.
+`Watching/` holds `ScanTreeWatcher` (one FSEvents stream per root) and `ScanWatchScope`
+(the request's root, exclusions, and volume rule applied to event paths). A watcher only
+invalidates: it never edits a `ScanSummary`.
 
 **`DiskUI` — SwiftUI.**
 `ScanViewModel.swift` is the `@MainActor @Observable` state machine that consumes
-`AsyncStream<ScanEvent>`. `Screens/ScanFlowView.swift` routes phases,
+`AsyncStream<ScanEvent>` and keeps settled results current through the watcher. `Screens/ScanFlowView.swift` routes phases,
 `Screens/SourceSelectionView.swift` is screen A, `Screens/ResultsView.swift` is screen C
 (and the live in-progress state), `Screens/HelpView.swift` is the help sheet's content,
 `Screens/SettingsView.swift` is the preferences window. `Components/SunburstView.swift`
@@ -71,12 +75,14 @@ the stored system/light/dark appearance preference the Settings window edits.
 `NSSavePanel`), `AccessNoticeDismissal`, `ScanOptions` + `ScanOptionsStore` (the one
 shared, persisted set of choices the next scan and Rescan use), `CleanupAnalysis` +
 `DuplicateAnalysis` (bounded cleanup heuristics and the explicit SHA-256 content check),
-`ScanHistory` (the observable view of the record store).
+`ScanHistory` (the observable view of the record store), `WatchPreferences` (the stored
+keep-current toggle), and `TreeWatching` (the watcher seam tests substitute).
 
 **`WillyDiskApp`.**
 `WillyDiskApp.swift` holds the `@main` entry (`WillyDiskEntry`) that routes `WillyDisk
 scan …` to `DiskCLI` before SwiftUI is touched, then the `App` itself. `AppState.swift`
-builds the single `ScanViewModel` with `FileScanEngine` and the shared options store,
+builds the single `ScanViewModel` with `FileScanEngine`, the shared options store,
+history, the watch preferences, and the FSEvents watcher,
 `ContentView.swift` hosts `ScanFlowView`, `AboutPanel.swift` presents the system About
 panel, `AppDelegate.swift` is the lifecycle delegate.
 

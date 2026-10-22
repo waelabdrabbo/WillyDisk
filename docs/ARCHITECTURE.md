@@ -21,6 +21,7 @@ Sources/
     Models/                 # frozen value model
     Scanning/               # scan engine implementations
     Scanning/Contracts.swift# frozen protocols/types
+    Watching/               # FSEvents watcher + the scope that filters its events
   DiskCLI/                  # `WillyDisk scan` front end (DiskCore only)
   DiskUI/                   # SwiftUI + design system
     DesignSystem/
@@ -236,6 +237,19 @@ carries the root node itself in `largestDirectories`.
   rate a person can see, never once per snapshot. While the explorer is being
   scrolled the newest snapshot is held and taken when the scroll ends, so a
   redraw never lands under a moving list.
+- Settled results can watch their root through the `TreeWatching` seam.
+  `ScanTreeWatcher` owns one FSEvents stream over the root; `ScanWatchScope` is the
+  only thing that decides whether an event belongs to what the scan measured, and it
+  mirrors the request's own rules: canonical `realpath` root and exclusions, an
+  exclusion at or above the root ignored, the same `stayOnVolume` device rule as the
+  traversal, and `/System/Volumes/Data/…` mapped back to `/…` for a `/` scan. A batch
+  only invalidates: the view model names the changed folder, marks the results stale,
+  and — when the run was within `RefreshPolicy.budget` and the user has left watching
+  on — re-runs the same `ScanRequest` in place after a quiet period and cooldown. A
+  refresh publishes no `.partial`, no progress, and no issue, so the old summary stays
+  the only measurement on screen until the terminal one replaces it. An automatic
+  refresh is not written to History; History records the runs the user started. The
+  watcher stops on Home, on a new scan, on cancellation, and when the root disappears.
 - `SourceSelectionView` offers quick-scan presets (Home, Downloads, Applications,
   Caches, Derived Data, Trash) that start the same real scan as picking the folder
   by hand, and lists the next scan's excluded paths in its Scan Options popover.
@@ -246,7 +260,8 @@ carries the root node itself in `largestDirectories`.
   `ResultsView`, which renders the honest in-progress state until the terminal
   summary arrives. `WillyDiskApp` (`Sources/WillyDiskApp`) owns the window and
   injects the view model: `AppState` creates one
-  `ScanViewModel(engine: FileScanEngine())` and `ContentView` hosts
+  `ScanViewModel(engine: FileScanEngine(), …, watcher: ScanTreeWatcher())` and
+  `ContentView` hosts
   `ScanFlowView`, which switches between source selection and results on the view
   model's phase. There is no sidebar navigation — a single
   "Choose a Folder…" menu command (⌘O) opens a panel and starts a real scan.
@@ -335,8 +350,8 @@ carries the root node itself in `largestDirectories`.
 
 ## 8. Non-negotiables
 
-Off-main-thread scanning; working cancellation; graceful permission failures; no
-automatic deletion (confirmation + clear identification only); no fabricated
+Off-main-thread scanning; working cancellation; watchers that only invalidate a finished
+summary, never patch it; graceful permission failures; no automatic deletion (confirmation + clear identification only); no fabricated
 progress/statistics; no invented reconciliation between a folder scan and a
 volume's used space; no dead controls; no placeholder/mock data in the shipped app.
 

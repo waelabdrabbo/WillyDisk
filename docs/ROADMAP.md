@@ -13,10 +13,11 @@ decisions. This is a handoff document, not a specification of frozen interfaces 
   cleanup candidates at `9a69a3b`, the Categories mode at `71bae92`, the
   Settings work at `607ef77`, the duplicate content check at `3603321` with its own
   tab at `1ed5184`, scan history with its comparison sheet, the command-line
-  scan (`38f6e50`), and the unsigned GitHub release pipeline (`7bec1d0`); this docs
-  handoff follows it. Working tree clean at that handoff.
+  scan (`38f6e50`), the unsigned GitHub release pipeline (`7bec1d0`), and the
+  watched-tree refresh (`b8be044`); this docs handoff follows it. Working tree clean at
+  that handoff.
 - Build: `swift build --disable-sandbox`.
-- Tests: 168 QATests + 68 DiskCoreTests (1 skipped, `ScanBenchmarkTests` needs
+- Tests: 181 QATests + 83 DiskCoreTests (1 skipped, `ScanBenchmarkTests` needs
   `WILLYDISK_BENCH_ROOT`) + 16 DiskCLITests, 0 failures.
 - CI: `.github/workflows/ci.yml` builds, tests, checks that the bundle reports
   `VERSION`, runs the bundled binary's `scan` and its usage exit status, and uploads
@@ -35,7 +36,8 @@ decisions. This is a handoff document, not a specification of frozen interfaces 
   check possible duplicates by their contents before trashing them, compare the recorded
   runs of a location, select rows with the mouse or keyboard, preview them with Quick
   Look, move items to the Trash behind a guard and confirmation, change the scan defaults
-  and excluded paths in Settings, and read About or Help. The same binary also scans a
+  and excluded paths in Settings, keep settled results current when the scanned tree
+  changes, and read About or Help. The same binary also scans a
   folder from the command line, as text or as the record JSON, with no window.
 
 ## Shipped — do not rebuild
@@ -54,6 +56,7 @@ decisions. This is a handoff document, not a specification of frozen interfaces 
 | Duplicate candidates with an explicit SHA-256 content check, and their own tab | `3603321`, `1ed5184` |
 | Scan history: a versioned record per finished scan, and the comparison sheet | `5b07181` |
 | Command-line scan over the same engine, with the record DTO as JSON | `38f6e50` |
+| Watched results: FSEvents invalidation and a quiet root refresh | `b8be044` |
 | Unsigned GitHub releases: arm64 and x86_64 zips, checksums, tag workflow | `7bec1d0` |
 
 Details worth remembering:
@@ -152,6 +155,18 @@ Details worth remembering:
   absent from that list rather than certainly new. Entries that left the later list are
   counted, not called removals. Runs with different scan options say so: the difference
   may be what each walk included. Nothing in the comparison is called a saving.
+- Watched results are invalidated, never patched. A batch from the watcher marks the
+  results stale and names the folder; when the run on the slot took 10 s or less, the
+  same `ScanRequest` is re-run after 750 ms of quiet, at most once every 5 s, and the
+  new terminal summary replaces the old one only when it lands. No partial, progress,
+  or issue from that background walk reaches the screen: the old summary is the only
+  measurement on screen until the new one is complete. A slower run, a cooldown, the
+  Settings switch, or a root that disappeared leaves the stale badge and Rescan.
+  Refreshes update the screen, not History. The watcher is armed only while settled
+  results are on the results screen; it stops on Home, on a new scan, on cancellation,
+  and when the root is gone. One stream covers `/`; the scope applies the engine's
+  exclusions and `stayOnVolume` device rule, and maps `/System/Volumes/Data/…` back to
+  `/…` because that is how FSEvents names the startup disk's data volume.
 - History opens from the results toolbar (or Scan ▸ History…) for the location on the
   engine's slot, and compares two of its runs. The current run is recorded as it
   settles; the sheet picks the two newest by default and lets any two be chosen. Clear
@@ -250,23 +265,12 @@ does not block the main actor; clearing restores the previous scope.
   structural, not only measured: a per-directory node cap with small files folded into
   one expandable node, so a multi-million-file tree cannot grow the resident set without
   bound. That changes which files the explorer can open, so it needs its own design note.
-- Polish: coverage discoverability, general staleness detection (only reclaim marks
-  stale today), folder-level coverage disclosure, CSV accounting (JSON has it, CSV
+- Polish: coverage discoverability, staleness detection outside the watched tree (the
+  watcher covers Finder changes while results are on screen), folder-level coverage
+  disclosure, CSV accounting (JSON has it, CSV
   does not), pluralization, empty states, window sizing, accessibility audit.
 
-### 3. Watch the scanned tree
-
-FSEvents on the scan root while results are on screen, so a change made in Finder is
-reflected without Rescan. The shape is invalidation, not patching: a change marks the
-affected folder stale and re-scans it, because `ScanSummary` is a measurement of a moment
-and must never be edited in place.
-
-Acceptance: moving a file to the Trash in Finder updates that folder's totals within a
-few seconds and offers Rescan; events outside the root and under excluded paths are
-ignored; the watcher stops on cancellation, on leaving the screen, and on a new scan; a
-`/` scan does not install a watch per volume.
-
-### 4. Treemap as a second chart
+### 3. Treemap as a second chart
 
 Boxes instead of rings, same tree, same selection, hover and drill-down, chosen in
 Settings. The sunburst stays the identity; the treemap exists for dense folders where
@@ -276,7 +280,7 @@ Acceptance: layout runs off the main actor for a large folder; one selection mod
 drives both charts; reduce-motion and keyboard navigation behave as in the sunburst; both
 charts render in CI.
 
-### 5. Localization
+### 4. Localization
 
 Extract every user-visible string into a catalog keyed by the English source, then finish
 one language end to end before adding more. SwiftUI supplies script fallback and RTL
@@ -287,7 +291,7 @@ catches truncation; one RTL language (`ar`) renders results, coverage and cleanu
 clipping; plurals are resolved rather than concatenated; the render harness takes a
 `--locale`.
 
-### 6. Reclaim past the Trash
+### 5. Reclaim past the Trash
 
 Today the only removal path is Move to Trash, and Trash frees nothing until it is emptied.
 The fuller flow is permanent delete, a secure erase that overwrites before removing, and
@@ -306,7 +310,7 @@ of removal; a permanent delete cannot be reached without a typed or held confirm
 failed backup removes nothing; a cancelled job says what was and was not removed; no
 screen claims space was freed before it was.
 
-### 7. Remote and cloud scans
+### 6. Remote and cloud scans
 
 Scan a machine reachable over SSH, and cloud remotes, through the same explorer.
 `ScanEngine` is the seam: a second conformance that emits the same events, so the UI never
@@ -318,7 +322,7 @@ scan of it; a dropped connection ends in `.finished` with issues or `.cancelled`
 stream that hangs; credentials never reach the export DTO or a diagnostics bundle; nothing
 is scanned remotely without an explicit host choice.
 
-### 8. Self-update, and platforms beyond macOS
+### 7. Self-update, and platforms beyond macOS
 
 Self-update becomes worth shipping once a tagged release exists: the GitHub Release list is
 the feed, the published SHA-256 is the download check, and a relaunch follows. Windows and
@@ -340,12 +344,20 @@ the update screen does not call an unsigned download verified or trusted.
 - Snapshots are listed by name only. macOS exposes no snapshot size; do not estimate
   one.
 - Trash does not free space until it is emptied; result wording must say so.
-- A move marks results stale and offers Rescan; it does not edit the tree or start an
-  automatic full-disk rescan.
+- A move never edits the tree. It marks results stale and offers Rescan; when the screen
+  is watching and the run is within the refresh budget, the root is measured again as a
+  new scan and the terminal result replaces the old one. A long run is not repeated
+  automatically.
 - The app is a single window. Coverage, reclaim, cleanup, history, and Help are sheets
   on the main window.
-- History compares measurements, never claims savings. Only a finished scan is
-  recorded, and a stored run's options travel with it so a difference in what each
+- Watching invalidates; it never patches. A change is only a reason to measure the root
+  again — never an edit to a `ScanSummary`, a node, or a total. The old measurement stays
+  on screen until a new terminal summary replaces it.
+- Automatic refreshes update the screen, not History. History records the finished runs
+  the user started; a watch that keeps the screen current must not push them out of the
+  20-per-location record.
+- History compares measurements, never claims savings. Only a finished scan the user
+  started is recorded, and a stored run's options travel with it so a difference in what each
   walk included is disclosed rather than read as a change on disk.
 - No Apple Developer account, no Developer ID, no notarization. The bundle stays ad-hoc
   signed and every release artifact is plainly unsigned. Do not add signing or

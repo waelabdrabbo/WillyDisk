@@ -13,9 +13,9 @@ decisions. This is a handoff document, not a specification of frozen interfaces 
   cleanup candidates at `9a69a3b`, the Categories mode at `71bae92`, the
   Settings work at `607ef77`, the duplicate content check at `3603321` with its own
   tab at `1ed5184`, scan history with its comparison sheet, the command-line
-  scan (`38f6e50`), the unsigned GitHub release pipeline (`7bec1d0`), and the
-  watched-tree refresh (`b8be044`). Global search over the whole finished scan is
-  the newest change and is still uncommitted; this docs handoff covers it.
+  scan (`38f6e50`), the unsigned GitHub release pipeline (`7bec1d0`), the
+  watched-tree refresh (`b8be044`), and global search over the whole finished scan
+  (`e7d6fff`). This docs handoff follows it. Working tree clean at that handoff.
 - Build: `swift build --disable-sandbox`.
 - Tests: 199 QATests + 86 DiskCoreTests (1 skipped, `ScanBenchmarkTests` needs
   `WILLYDISK_BENCH_ROOT`) + 16 DiskCLITests, 0 failures.
@@ -58,7 +58,7 @@ decisions. This is a handoff document, not a specification of frozen interfaces 
 | Scan history: a versioned record per finished scan, and the comparison sheet | `5b07181` |
 | Command-line scan over the same engine, with the record DTO as JSON | `38f6e50` |
 | Watched results: FSEvents invalidation and a quiet root refresh | `b8be044` |
-| Global search over the whole scan: bounded, off the main actor, drill to folder | this change |
+| Global search over the whole scan: bounded, off the main actor, drill to folder | `e7d6fff` |
 | Unsigned GitHub releases: arm64 and x86_64 zips, checksums, tag workflow | `7bec1d0` |
 
 Details worth remembering:

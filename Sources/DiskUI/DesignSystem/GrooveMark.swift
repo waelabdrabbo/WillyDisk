@@ -7,6 +7,10 @@ import SwiftUI
 /// no platform body — into the target's resources, so the hero, the results
 /// screen, Help, and About all show the same artwork at any size. The macOS app
 /// icon is that drawing on the rounded-square body the platform expects.
+///
+/// `NSImage` is AppKit UI state, so the image is main-actor isolated rather than
+/// a global shared across threads.
+@MainActor
 public enum AppMarkImage {
     public static let shared: NSImage = {
         guard let url = Bundle.module.url(forResource: "AppMark", withExtension: "png"),

@@ -29,7 +29,8 @@ breakdown by file category. Everything happens on your machine.
 ## Requirements
 
 - macOS 14 or later to run.
-- A Swift 6 toolchain (Xcode 16 or later) to build.
+- Xcode 26 or later, for the macOS 26 SDK the UI builds against, even though the app
+  runs on macOS 14.
 
 ## Build and run
 

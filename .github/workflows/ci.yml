@@ -16,7 +16,11 @@ concurrency:
 
 jobs:
   build-test-render:
-    runs-on: macos-15
+    # DiskUI calls SwiftUI APIs introduced in the macOS 26 SDK behind
+    # `#available(macOS 26.0, *)`, so the SDK must be 26 or newer even though the
+    # deployment target is 14. The macos-15 image ships the 15.x SDK and cannot
+    # compile DiskUI.
+    runs-on: macos-26
     timeout-minutes: 45
 
     steps:
@@ -28,7 +32,23 @@ jobs:
           fetch-depth: 0
 
       - name: Toolchain
-        run: swift --version
+        run: |
+          set -euo pipefail
+          swift --version
+          xcodebuild -version
+          sdk="$(xcrun --sdk macosx --show-sdk-version)"
+          echo "macOS SDK: $sdk"
+          major="${sdk%%.*}"
+          case "$major" in
+            ''|*[!0-9]*)
+              echo "::error::could not read the macOS SDK version from '$sdk'"
+              exit 1
+              ;;
+          esac
+          if [ "$major" -lt 26 ]; then
+            echo "::error::the macOS $sdk SDK is too old: DiskUI needs the macOS 26 SDK. Run this job on macos-26."
+            exit 1
+          fi
 
       - name: Build
         run: swift build

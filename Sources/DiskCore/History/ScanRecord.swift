@@ -46,9 +46,9 @@ public struct ScanRecord: Codable, Sendable, Equatable, Identifiable {
 
     public let largestFiles: [RecordedEntry]
     public let largestDirectories: [RecordedEntry]
-    /// The engine's ranked-list capacity when this run was recorded. A list whose
-    /// count reaches it was truncated; a shorter one held every entry the scan
-    /// found.
+    /// The engine's ranked-list capacity when this run was recorded. A list that
+    /// reaches it while the run found more entries than that was truncated;
+    /// otherwise it held every entry the scan found.
     public let entryCapacity: Int
     public let accounting: RecordedAccounting
 

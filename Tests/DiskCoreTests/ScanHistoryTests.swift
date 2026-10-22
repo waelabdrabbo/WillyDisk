@@ -350,7 +350,11 @@ final class ScanHistoryTests: XCTestCase {
         XCTAssertEqual(ScanRecord.currentEntryCapacity, 100)
 
         let comparison = ScanComparison.between(
-            record(finishedDaysAgo: 2, files: fullList),
+            record(
+                finishedDaysAgo: 2,
+                fileCount: ScanRecord.currentEntryCapacity + 1,
+                files: fullList
+            ),
             record(files: [entry("file-0.bin", size: 1_000_000)])
         )
 
@@ -362,7 +366,7 @@ final class ScanHistoryTests: XCTestCase {
         // A run recorded when the engine kept ten entries was full at ten, so its
         // smallest size is the cut-off, even though this release keeps more.
         let tenEntries = (0..<10).map { entry("file-\($0).bin", size: Int64(10_000 - $0 * 100)) }
-        let smallCapacity = record(finishedDaysAgo: 2, files: tenEntries, entryCapacity: 10)
+        let smallCapacity = record(finishedDaysAgo: 2, fileCount: 11, files: tenEntries, entryCapacity: 10)
         let comparison = ScanComparison.between(
             smallCapacity,
             record(files: [entry("file-0.bin", size: 20_000)])
@@ -371,7 +375,7 @@ final class ScanHistoryTests: XCTestCase {
 
         // The same ten entries are a partial list for a capacity this release
         // never used, so they are not a cut-off.
-        let largeCapacity = record(finishedDaysAgo: 2, files: tenEntries, entryCapacity: 500)
+        let largeCapacity = record(finishedDaysAgo: 2, fileCount: 11, files: tenEntries, entryCapacity: 500)
         XCTAssertNil(ScanComparison.between(largeCapacity, record(files: tenEntries)).earlierFileCutOff)
     }
 
@@ -382,6 +386,59 @@ final class ScanHistoryTests: XCTestCase {
         )
         XCTAssertNil(comparison.earlierFileCutOff, "the list held every entry it found")
         XCTAssertEqual(comparison.files.first { $0.name == "b.bin" }?.change, .new)
+    }
+
+    func testLaterEntryAtOrBelowAFullEarlierCutOffIsNotNew() {
+        // The earlier run kept its ten largest files, down to 9,100 bytes. The
+        // file below is absent from that list, but at its cut-off size it could
+        // have been there without being recorded; losing the recorded entry lets
+        // it into the later list. That is not evidence it is new.
+        let earlierFiles = (0..<10).map { entry("file-\($0).bin", size: Int64(10_000 - $0 * 100)) }
+        let laterFiles = Array(earlierFiles.dropLast()) + [entry("below-cutoff.bin", size: 9_100)]
+
+        let comparison = ScanComparison.between(
+            record(finishedDaysAgo: 2, fileCount: 11, files: earlierFiles, entryCapacity: 10),
+            record(files: laterFiles, entryCapacity: 10)
+        )
+
+        XCTAssertEqual(comparison.earlierFileCutOff, 9_100)
+        XCTAssertNil(comparison.files.first { $0.name == "below-cutoff.bin" })
+        XCTAssertEqual(comparison.uncomparedFileCount, 1)
+        XCTAssertTrue(comparison.changedFiles.isEmpty, "an unrecorded earlier entry is not a change")
+        XCTAssertEqual(comparison.droppedFileCount, 1)
+    }
+
+    func testLaterEntryAboveAFullEarlierCutOffIsNew() {
+        let earlierFiles = (0..<10).map { entry("file-\($0).bin", size: Int64(10_000 - $0 * 100)) }
+        let laterFiles = Array(earlierFiles.dropLast()) + [entry("above-cutoff.bin", size: 9_101)]
+
+        let comparison = ScanComparison.between(
+            record(finishedDaysAgo: 2, fileCount: 11, files: earlierFiles, entryCapacity: 10),
+            record(files: laterFiles, entryCapacity: 10)
+        )
+
+        let appeared = comparison.files.first { $0.name == "above-cutoff.bin" }
+        XCTAssertEqual(appeared?.change, .new, "it outranks the earlier cut-off, so the earlier run would have listed it")
+        XCTAssertEqual(appeared?.delta, 9_101)
+        XCTAssertEqual(comparison.uncomparedFileCount, 0)
+        XCTAssertEqual(comparison.changedFiles.count, 1)
+    }
+
+    func testExactlyFullEarlierListStillHeldEveryEntry() {
+        // The run found exactly as many files as the list could hold, so a later
+        // entry absent from it is new even though it is smaller than every entry
+        // the earlier list recorded.
+        let earlierFiles = (0..<10).map { entry("file-\($0).bin", size: Int64(10_000 - $0 * 100)) }
+        let laterFiles = Array(earlierFiles.dropLast()) + [entry("appeared.bin", size: 5_000)]
+
+        let comparison = ScanComparison.between(
+            record(finishedDaysAgo: 2, fileCount: 10, files: earlierFiles, entryCapacity: 10),
+            record(files: laterFiles, entryCapacity: 10)
+        )
+
+        XCTAssertNil(comparison.earlierFileCutOff, "the earlier list held every file the run found")
+        XCTAssertEqual(comparison.files.first { $0.name == "appeared.bin" }?.change, .new)
+        XCTAssertEqual(comparison.uncomparedFileCount, 0)
     }
 
     func testUnchangedRunsHaveNoChanges() {

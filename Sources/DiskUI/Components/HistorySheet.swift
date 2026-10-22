@@ -279,6 +279,7 @@ public struct HistorySheet: View {
                         entries: folderChanges(comparison),
                         unchanged: folderUnchanged(comparison),
                         dropped: comparison.droppedDirectoryCount,
+                        uncompared: comparison.uncomparedDirectoryCount,
                         cutOff: comparison.earlierDirectoryCutOff
                     )
                     entriesSection(
@@ -286,6 +287,7 @@ public struct HistorySheet: View {
                         entries: comparison.changedFiles,
                         unchanged: comparison.files.count - comparison.changedFiles.count,
                         dropped: comparison.droppedFileCount,
+                        uncompared: comparison.uncomparedFileCount,
                         cutOff: comparison.earlierFileCutOff
                     )
                     categorySection(comparison)
@@ -479,6 +481,7 @@ public struct HistorySheet: View {
         entries: [ScanComparison.Entry],
         unchanged: Int,
         dropped: Int,
+        uncompared: Int,
         cutOff: Int64?
     ) -> some View {
         VStack(alignment: .leading, spacing: DS.Spacing.small) {
@@ -505,6 +508,14 @@ public struct HistorySheet: View {
                      : "\(dropped) entries from the earlier list are not in the later one.")
                     .font(DS.Typography.caption)
                     .foregroundStyle(DS.Color.secondaryText)
+            }
+            if uncompared > 0 {
+                Text(uncompared == 1
+                     ? "1 entry in the later list is at or below the earlier list's cut-off, so it is not compared."
+                     : "\(uncompared) entries in the later list are at or below the earlier list's cut-off, so they are not compared.")
+                    .font(DS.Typography.caption)
+                    .foregroundStyle(DS.Color.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
     }
@@ -561,7 +572,7 @@ public struct HistorySheet: View {
         guard entry.change == .new else { return entry.path }
         let earlierCapacity = comparison?.earlier.entryCapacity ?? ScanRecord.currentEntryCapacity
         if let cutOff {
-            return "\(entry.path) — not in the earlier run's top \(earlierCapacity), which held entries down to \(ByteFormat.string(cutOff)). It is new, or it was below that cut-off."
+            return "\(entry.path) — absent from the earlier run's top \(earlierCapacity), which held entries down to \(ByteFormat.string(cutOff)). It is larger than that cut-off, so it would have been listed had it existed."
         }
         return "\(entry.path) — absent from the earlier run's list, which held every entry it found."
     }
@@ -605,7 +616,7 @@ public struct HistorySheet: View {
     private func caveat(_ comparison: ScanComparison) -> some View {
         VStack(alignment: .leading, spacing: DS.Spacing.small) {
             Divider()
-            Text("Totals and categories are exact: a scan measures every entry it walked. Folders and files are \(entryCapacityPhrase), matched by path. An entry marked New is absent from the earlier list\(cutOffSentence(comparison.earlierDirectoryCutOff)); it is new, or it was smaller than that run's cut-off.")
+            Text("Totals and categories are exact: a scan measures every entry it walked. Folders and files are \(entryCapacityPhrase), matched by path. An entry is marked New only when the earlier run would have recorded it: it is absent from a list that held everything it found, or larger than a truncated list's cut-off. A later entry at or below that cut-off is not compared.")
                 .font(DS.Typography.caption)
                 .foregroundStyle(DS.Color.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)
@@ -614,11 +625,6 @@ public struct HistorySheet: View {
                 .foregroundStyle(DS.Color.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)
         }
-    }
-
-    private func cutOffSentence(_ cutOff: Int64?) -> String {
-        guard let cutOff else { return ", which held everything it found" }
-        return " (which held entries down to \(ByteFormat.string(cutOff)))"
     }
 
     // MARK: - Selection

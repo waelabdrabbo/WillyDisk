@@ -7,14 +7,18 @@ import Foundation
 ///
 /// The totals and the category breakdown are complete — every scan measures all
 /// of what it walked — so their differences are exact. The ranked lists are not:
-/// each run stores up to its `entryCapacity` entries, and an entry missing
-/// from one list is labelled `new` from the newer list's point of view, with the
-/// older list's cut-off reported alongside so the claim has its bound on screen.
+/// each run stores up to its `entryCapacity` entries. When the earlier run found
+/// more entries than its list could keep, a later entry at or below its cut-off
+/// cannot be told from one that was simply ranked lower then, so it is left out
+/// of the comparison rather than called new. An entry above the cut-off is new
+/// beyond doubt: the earlier run would have recorded it had it existed.
 public struct ScanComparison: Sendable, Equatable {
 
     /// How one recorded entry relates the later run to the earlier one.
     public enum Change: String, Sendable, Equatable, CaseIterable {
-        /// Present in the later run's list, absent from the earlier one.
+        /// Present in the later run and provably absent from the earlier one:
+        /// above the cut-off of a truncated earlier list, or absent from a list
+        /// that held every entry its run found.
         case new
         /// In both lists, larger in the later run.
         case grown
@@ -39,8 +43,8 @@ public struct ScanComparison: Sendable, Equatable {
         public let path: String
         public let name: String
         public let isDirectory: Bool
-        /// `nil` when the entry was not in the earlier run's list. That is not
-        /// proof it did not exist: see `change`.
+        /// `nil` when the entry was not in the earlier run's list. For a `new`
+        /// entry that absence is proof it was not there; see `change`.
         public let earlierSize: Int64?
         public let laterSize: Int64
         public let change: Change
@@ -66,9 +70,11 @@ public struct ScanComparison: Sendable, Equatable {
     public let earlier: ScanRecord
     public let later: ScanRecord
 
-    /// Entries from the later run's ranked folders, largest change first.
+    /// Entries from the later run's ranked folders that can be compared: in
+    /// both lists, or new beyond doubt. Largest change first.
     public let directories: [Entry]
-    /// Entries from the later run's ranked files, largest change first.
+    /// Entries from the later run's ranked files that can be compared: in both
+    /// lists, or new beyond doubt. Largest change first.
     public let files: [Entry]
     /// Every category either run measured, largest change first.
     public let categories: [CategoryChange]
@@ -80,9 +86,17 @@ public struct ScanComparison: Sendable, Equatable {
     public let droppedDirectoryCount: Int
     public let droppedFileCount: Int
 
-    /// The smallest sizes the earlier run's lists held when they were full — the
-    /// cut-off below which it recorded nothing. `nil` when that list was not
-    /// full, in which case an entry missing from it really was absent.
+    /// Later entries left out of the comparison because they were absent from a
+    /// truncated earlier list at or below its cut-off. The earlier run recorded
+    /// only its largest entries, so one of that size could have existed there
+    /// unrecorded; its absence is not evidence that it is new.
+    public let uncomparedDirectoryCount: Int
+    public let uncomparedFileCount: Int
+
+    /// The smallest sizes the earlier run's lists held when the run found more
+    /// entries than they could keep — the cut-off below which it recorded
+    /// nothing. `nil` when the list held every entry the run found, in which
+    /// case an entry missing from it really was absent.
     public let earlierDirectoryCutOff: Int64?
     public let earlierFileCutOff: Int64?
 
@@ -136,55 +150,99 @@ public struct ScanComparison: Sendable, Equatable {
 
         let earlierDirectories = Dictionary(uniqueKeysWithValues: earlier.largestDirectories.map { ($0.path, $0) })
         let earlierFiles = Dictionary(uniqueKeysWithValues: earlier.largestFiles.map { ($0.path, $0) })
+        let directoryCutOff = ScanComparison.cutOff(
+            of: earlier.largestDirectories,
+            capacity: earlier.entryCapacity,
+            totalCount: earlier.directoryCount
+        )
+        let fileCutOff = ScanComparison.cutOff(
+            of: earlier.largestFiles,
+            capacity: earlier.entryCapacity,
+            totalCount: earlier.fileCount
+        )
+        earlierDirectoryCutOff = directoryCutOff
+        earlierFileCutOff = fileCutOff
 
-        directories = ScanComparison.entries(later: later.largestDirectories, earlier: earlierDirectories)
-        files = ScanComparison.entries(later: later.largestFiles, earlier: earlierFiles)
+        let comparedDirectories = ScanComparison.entries(
+            later: later.largestDirectories,
+            earlier: earlierDirectories,
+            earlierCutOff: directoryCutOff
+        )
+        directories = comparedDirectories.entries
+        uncomparedDirectoryCount = comparedDirectories.uncompared
+
+        let comparedFiles = ScanComparison.entries(
+            later: later.largestFiles,
+            earlier: earlierFiles,
+            earlierCutOff: fileCutOff
+        )
+        files = comparedFiles.entries
+        uncomparedFileCount = comparedFiles.uncompared
 
         let laterPaths = Set(later.largestDirectories.map(\.path))
         let laterFilePaths = Set(later.largestFiles.map(\.path))
         droppedDirectoryCount = earlier.largestDirectories.filter { !laterPaths.contains($0.path) }.count
         droppedFileCount = earlier.largestFiles.filter { !laterFilePaths.contains($0.path) }.count
 
-        earlierDirectoryCutOff = ScanComparison.cutOff(of: earlier.largestDirectories, capacity: earlier.entryCapacity)
-        earlierFileCutOff = ScanComparison.cutOff(of: earlier.largestFiles, capacity: earlier.entryCapacity)
         categories = ScanComparison.categoryChanges(earlier: earlier, later: later)
     }
 
-    private static func entries(later: [RecordedEntry], earlier: [String: RecordedEntry]) -> [Entry] {
-        later.map { entry in
+    /// The entries the comparison can speak about, and how many it had to leave
+    /// out because the earlier list's cut-off cannot rule them in or out.
+    private static func entries(
+        later: [RecordedEntry],
+        earlier: [String: RecordedEntry],
+        earlierCutOff: Int64?
+    ) -> (entries: [Entry], uncompared: Int) {
+        var entries: [Entry] = []
+        var uncompared = 0
+        for entry in later {
             let previous = earlier[entry.path]?.logicalSize
-            let delta = entry.logicalSize - (previous ?? 0)
             let change: Change
-            if previous == nil {
-                change = .new
-            } else if delta > 0 {
-                change = .grown
-            } else if delta < 0 {
-                change = .shrunk
+            if let previous {
+                let delta = entry.logicalSize - previous
+                if delta > 0 {
+                    change = .grown
+                } else if delta < 0 {
+                    change = .shrunk
+                } else {
+                    change = .unchanged
+                }
+            } else if let earlierCutOff, entry.logicalSize <= earlierCutOff {
+                // The earlier list was full and this entry would have ranked at
+                // or below its smallest recorded size, so it could have been
+                // there without being recorded. Absence proves nothing.
+                uncompared += 1
+                continue
             } else {
-                change = .unchanged
+                change = .new
             }
-            return Entry(
+            entries.append(Entry(
                 path: entry.path,
                 name: entry.name,
                 isDirectory: entry.isDirectory,
                 earlierSize: previous,
                 laterSize: entry.logicalSize,
                 change: change
-            )
+            ))
         }
-        .sorted { lhs, rhs in
+        entries.sort { lhs, rhs in
             if lhs.delta.magnitude != rhs.delta.magnitude { return lhs.delta.magnitude > rhs.delta.magnitude }
             if lhs.laterSize != rhs.laterSize { return lhs.laterSize > rhs.laterSize }
             return lhs.name.localizedStandardCompare(rhs.name) == .orderedAscending
         }
+        return (entries, uncompared)
     }
 
-    /// The smallest size the list recorded when it was full, `nil` when it was
-    /// not: a shorter list held every entry the scan found, so an entry missing
-    /// from it really was absent.
-    private static func cutOff(of entries: [RecordedEntry], capacity: Int) -> Int64? {
-        guard entries.count >= capacity else { return nil }
+    /// The smallest size the list recorded when the run found more entries than
+    /// it could keep, `nil` when it held every entry the scan found: in that
+    /// case an entry missing from it really was absent.
+    private static func cutOff(
+        of entries: [RecordedEntry],
+        capacity: Int,
+        totalCount: Int
+    ) -> Int64? {
+        guard totalCount > capacity, entries.count >= capacity else { return nil }
         return entries.map(\.logicalSize).min()
     }
 

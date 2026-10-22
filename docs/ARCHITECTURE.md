@@ -289,8 +289,11 @@ carries the root node itself in `largestDirectories`.
   never deletes one by pruning. `HistorySheet` compares two runs of the location on the
   slot: totals, counts, and the category breakdown are exact; the ranked folders and
   files are the largest entries each run recorded (100 at the current engine capacity),
-  matched by path and labelled New, Grown, Shrunk, or Unchanged, with the earlier list's
-  cut-off stated when it was full. A record carries the capacity it was written with,
+  matched by path and labelled New, Grown, Shrunk, or Unchanged. A later entry is called
+  New only when the earlier run would have recorded it: it is absent from a list that
+  held everything it found, or larger than a truncated list's cut-off. An entry at or
+  below that cut-off is not compared, because it may simply have ranked lower then.
+  A record carries the capacity it was written with,
   so changing that number later does not misread older runs. Different scan options
   between the runs are disclosed, and nothing is called a saving — a smaller scan is a
   smaller measurement, and the Trash still has to be emptied.

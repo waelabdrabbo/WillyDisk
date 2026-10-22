@@ -37,7 +37,9 @@ store is synchronous filesystem work and belongs off the main actor. A file with
 unknown `schemaVersion` or unreadable bytes is skipped and counted, never deleted by
 pruning: a newer release may know what it says. `ScanComparison` matches entries by
 path and reports `new`/`grown`/`shrunk`/`unchanged`; totals and categories are exact,
-ranked entries are the top 100 of each run, and no difference is called a saving.
+ranked entries are the top 100 of each run, and an entry absent from a truncated earlier
+list is only `new` when it outranks that list's cut-off — at or below it the comparison
+leaves the entry out. No difference is called a saving.
 
 ## Watching (`Watching/`)
 

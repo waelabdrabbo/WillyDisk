@@ -12,18 +12,23 @@ decisions. This is a handoff document, not a specification of frozen interfaces 
   install-trust work at `d7155dc`, the packaged circular mark at `55f5032`, the
   cleanup candidates at `9a69a3b`, the Categories mode at `71bae92`, the
   Settings work at `607ef77`, the duplicate content check at `3603321` with its own
-  tab at `1ed5184`, scan history with its comparison sheet, and the command-line
-  scan (`38f6e50`); this docs handoff follows it. Working tree clean at that handoff.
+  tab at `1ed5184`, scan history with its comparison sheet, the command-line
+  scan (`38f6e50`), and the unsigned GitHub release pipeline (`7bec1d0`); this docs
+  handoff follows it. Working tree clean at that handoff.
 - Build: `swift build --disable-sandbox`.
 - Tests: 168 QATests + 68 DiskCoreTests (1 skipped, `ScanBenchmarkTests` needs
   `WILLYDISK_BENCH_ROOT`) + 16 DiskCLITests, 0 failures.
 - CI: `.github/workflows/ci.yml` builds, tests, checks that the bundle reports
   `VERSION`, runs the bundled binary's `scan` and its usage exit status, and uploads
-  the offscreen renders on every push.
-- Distribution: build from source. `Scripts/bundle-app.sh` ad-hoc signs the bundle, enough
-  for it to launch locally on Apple Silicon, and no download is published. There is no Apple
-  Developer account, so nothing is Developer ID signed or notarized; item 1 is the GitHub
-  release of an explicitly unsigned zip.
+  the offscreen renders on every push. `.github/workflows/release.yml` runs on a `v*`
+  tag: it checks the tag against `VERSION`, builds arm64 and x86_64, and publishes
+  both zips with their SHA-256s and the unsigned warning on the release page.
+- Distribution: `Scripts/package-release.sh` produces
+  `WillyDisk-<VERSION>-arm64.zip` and `WillyDisk-<VERSION>-x86_64.zip`, each with a
+  `.sha256`. The bundles are ad-hoc signed, which is what lets them run on Apple
+  Silicon, and they are unsigned in the Developer ID sense and not notarized. The
+  release notes and README state that plainly, with the one-time approval step and
+  the source-build alternative. No tag has been pushed yet.
 - The app is a working single-window analyzer: choose a volume, folder, or quick
   preset, watch a progressive scan, read the sunburst and explorer, inspect
   coverage, see where the bytes sit by file category, review large/old/cache candidates,
@@ -49,6 +54,7 @@ decisions. This is a handoff document, not a specification of frozen interfaces 
 | Duplicate candidates with an explicit SHA-256 content check, and their own tab | `3603321`, `1ed5184` |
 | Scan history: a versioned record per finished scan, and the comparison sheet | `5b07181` |
 | Command-line scan over the same engine, with the record DTO as JSON | `38f6e50` |
+| Unsigned GitHub releases: arm64 and x86_64 zips, checksums, tag workflow | `7bec1d0` |
 
 Details worth remembering:
 
@@ -198,10 +204,16 @@ WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S settings -c -s 
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S cleanup -c -o .build/renders/check
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S duplicates -c -o .build/renders/check
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S history -c -o .build/renders/check
+WILLYDISK_NO_SANDBOX=1 bash Scripts/package-release.sh
 ```
 
 CI runs the build, the suite, the bundle version check, a bundled `scan` plus its usage
-exit status, and all seven renders on every push.
+exit status, and all seven renders on every push. `Scripts/package-release.sh` builds both
+slices, expands each archive, and checks its architecture, version, and ad-hoc signature
+before writing the two SHA-256s; `.github/workflows/release.yml` runs that on a `v*` tag,
+re-checks both checksums, and publishes only when the tag matches `VERSION`. On an Apple
+Silicon host the script executes only the arm64 slice; the Intel slice is checked by
+`lipo` and `codesign`, so an Intel launch still needs an Intel Mac or Rosetta.
 
 `-S categories` renders the real results screen in Categories mode, window and all.
 Help, Settings, and the cleanup sheet are sheets or a preferences window, so `-S`
@@ -219,39 +231,7 @@ one-off visual check.
 
 ## Remaining work, in recommended order
 
-### 1. Unsigned releases on GitHub
-
-WillyDisk has no Apple Developer account, so there is no Developer ID certificate and no
-notarization, and there is no plan to add either. `Scripts/bundle-app.sh` already ad-hoc
-signs the bundle — that is what lets it run on Apple Silicon at all, not a trust decision —
-and Gatekeeper still refuses a copy that arrived with `com.apple.quarantine`. The
-distribution story is therefore: build from source, or download a plainly unsigned zip and
-approve it once.
-
-- Package the `.build/WillyDisk.app` that `Scripts/bundle-app.sh` produces with
-  `ditto -c -k --sequesterRsrc --keepParent` so the bundle's signature and resource forks
-  survive; `zip` alone can break a signed bundle. Name it `WillyDisk-<VERSION>.zip` and
-  publish its `shasum -a 256` next to it.
-- A tag-triggered CI job (`permissions: contents: write`, `GITHUB_TOKEN`, no third-party
-  release action) that fails when the tag disagrees with `VERSION`, builds from the tag,
-  and attaches the zip and checksum to a GitHub Release.
-- Install instructions in the README and on the release page itself, before the download:
-  the app is unsigned and not notarized, so macOS will refuse it; approve it in System
-  Settings → Privacy & Security → Open Anyway (the Control-click → Open shortcut is gone
-  on macOS 15 and later), or `xattr -dr com.apple.quarantine /Applications/WillyDisk.app`;
-  or clone the repository and `bash Scripts/run.sh`, which carries no quarantine flag.
-- Wording: never "signed", "notarized", "verified by Apple", or "safe". The SHA-256 is an
-  integrity check for a corrupted download, not authenticity, and the text should say so.
-- A DMG changes nothing for Gatekeeper and is optional; if a drag-to-Applications layout is
-  wanted, `hdiutil create` around the same `.app` is enough.
-
-Acceptance: a tag produces a release whose zip expands to a launchable, ad-hoc-signed
-`WillyDisk.app` reporting the version in `VERSION`; the published checksum matches; the
-install instructions and the unsigned warning are on the release page, not only in a
-linked document; a tag whose version disagrees with `VERSION` fails the job; no document
-claims a signature or notarization the project does not have.
-
-### 2. Global search
+### 1. Global search
 
 Search the whole finished scan, not just the current folder or the stored top 100.
 The UI has the root’s tree in the summary, but a multi-million-file tree needs a
@@ -261,7 +241,7 @@ result drill to its folder.
 Acceptance: searching a deep path finds it; results are bounded and say so; typing
 does not block the main actor; clearing restores the previous scope.
 
-### 3. Diagnostics, performance, and polish
+### 2. Diagnostics, performance, and polish
 
 - Export a diagnostics bundle (scan settings, timing, issue counts, version) with no
   user file contents.
@@ -274,7 +254,7 @@ does not block the main actor; clearing restores the previous scope.
   stale today), folder-level coverage disclosure, CSV accounting (JSON has it, CSV
   does not), pluralization, empty states, window sizing, accessibility audit.
 
-### 4. Watch the scanned tree
+### 3. Watch the scanned tree
 
 FSEvents on the scan root while results are on screen, so a change made in Finder is
 reflected without Rescan. The shape is invalidation, not patching: a change marks the
@@ -286,7 +266,7 @@ few seconds and offers Rescan; events outside the root and under excluded paths 
 ignored; the watcher stops on cancellation, on leaving the screen, and on a new scan; a
 `/` scan does not install a watch per volume.
 
-### 5. Treemap as a second chart
+### 4. Treemap as a second chart
 
 Boxes instead of rings, same tree, same selection, hover and drill-down, chosen in
 Settings. The sunburst stays the identity; the treemap exists for dense folders where
@@ -296,7 +276,7 @@ Acceptance: layout runs off the main actor for a large folder; one selection mod
 drives both charts; reduce-motion and keyboard navigation behave as in the sunburst; both
 charts render in CI.
 
-### 6. Localization
+### 5. Localization
 
 Extract every user-visible string into a catalog keyed by the English source, then finish
 one language end to end before adding more. SwiftUI supplies script fallback and RTL
@@ -307,7 +287,7 @@ catches truncation; one RTL language (`ar`) renders results, coverage and cleanu
 clipping; plurals are resolved rather than concatenated; the render harness takes a
 `--locale`.
 
-### 7. Reclaim past the Trash
+### 6. Reclaim past the Trash
 
 Today the only removal path is Move to Trash, and Trash frees nothing until it is emptied.
 The fuller flow is permanent delete, a secure erase that overwrites before removing, and
@@ -326,7 +306,7 @@ of removal; a permanent delete cannot be reached without a typed or held confirm
 failed backup removes nothing; a cancelled job says what was and was not removed; no
 screen claims space was freed before it was.
 
-### 8. Remote and cloud scans
+### 7. Remote and cloud scans
 
 Scan a machine reachable over SSH, and cloud remotes, through the same explorer.
 `ScanEngine` is the seam: a second conformance that emits the same events, so the UI never
@@ -338,12 +318,12 @@ scan of it; a dropped connection ends in `.finished` with issues or `.cancelled`
 stream that hangs; credentials never reach the export DTO or a diagnostics bundle; nothing
 is scanned remotely without an explicit host choice.
 
-### 9. Self-update, and platforms beyond macOS
+### 8. Self-update, and platforms beyond macOS
 
-Self-update is worth shipping only after item 1: the GitHub Release list is the feed, the
-published SHA-256 is the download check, and a relaunch follows. Windows and Linux are a
-larger step — a UI without AppKit, per-platform packaging, per-platform filesystem
-semantics — and wait until a downloadable macOS release has actually shipped.
+Self-update becomes worth shipping once a tagged release exists: the GitHub Release list is
+the feed, the published SHA-256 is the download check, and a relaunch follows. Windows and
+Linux are a larger step — a UI without AppKit, per-platform packaging, per-platform
+filesystem semantics — and wait until a tagged macOS release has actually shipped.
 
 Acceptance (self-update): a newer version is offered with its notes; the download is
 verified against the release's published SHA-256 before it replaces anything; a failed
@@ -371,7 +351,10 @@ the update screen does not call an unsigned download verified or trusted.
   signed and every release artifact is plainly unsigned. Do not add signing or
   notarization steps that need credentials, and never describe the app as signed,
   notarized, or Gatekeeper-approved. Building from source is the first-class install path;
-  the downloaded zip is offered with its checksum and one-time approval instructions.
+  the downloaded zips are offered with their checksums and one-time approval instructions.
+- Releases are two thin archives, arm64 and x86_64, not one universal build, and each
+  carries its own SHA-256. The release notes say which Mac gets which; do not fold them
+  into one download without a reason recorded here.
 - The interface stays native AppKit and SwiftUI, so VoiceOver, Quick Look, menus, text
   editing and window chrome are the system's. A custom-drawn canvas is not an acceptable
   substitute for a chart or a list.
@@ -379,9 +362,7 @@ the update screen does not call an unsigned download verified or trusted.
 ## Suggested opening prompt
 
 > Read `docs/ROADMAP.md`. Verify `HEAD` and run the build and tests. Implement item 1,
-> unsigned releases on GitHub: a `ditto` zip of `.build/WillyDisk.app`, a tag-triggered
-> CI job that checks the tag against `VERSION` and attaches the zip and its SHA-256 to a
-> GitHub Release, and install instructions that state plainly that the app is unsigned
-> and not notarized. Do not add Developer ID signing or notarization, and do not claim
-> any signature or Gatekeeper approval. Keep frozen contracts untouched, and do not
-> commit unless I ask.
+> global search: a bounded, debounced search over the whole finished scan, run off the
+> main actor and virtualized, with the containing path on every result and a way to
+> drill to that folder. Say when results are capped, and make clearing restore the
+> previous scope. Keep frozen contracts untouched, and do not commit unless I ask.

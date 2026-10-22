@@ -20,6 +20,10 @@ decisions. This is a handoff document, not a specification of frozen interfaces 
 - CI: `.github/workflows/ci.yml` builds, tests, checks that the bundle reports
   `VERSION`, runs the bundled binary's `scan` and its usage exit status, and uploads
   the offscreen renders on every push.
+- Distribution: build from source. `Scripts/bundle-app.sh` ad-hoc signs the bundle, enough
+  for it to launch locally on Apple Silicon, and no download is published. There is no Apple
+  Developer account, so nothing is Developer ID signed or notarized; item 1 is the GitHub
+  release of an explicitly unsigned zip.
 - The app is a working single-window analyzer: choose a volume, folder, or quick
   preset, watch a progressive scan, read the sunburst and explorer, inspect
   coverage, see where the bytes sit by file category, review large/old/cache candidates,
@@ -215,17 +219,37 @@ one-off visual check.
 
 ## Remaining work, in recommended order
 
-### 1. Developer ID signing, notarization, and a DMG
+### 1. Unsigned releases on GitHub
 
-The bundle is ad-hoc signed and does not ship as a notarized artifact. This needs an
-Apple Developer ID certificate and credentials, so it cannot be finished without them;
-write the scripts, document every input, and do not claim a notarized build until one
-verifies.
+WillyDisk has no Apple Developer account, so there is no Developer ID certificate and no
+notarization, and there is no plan to add either. `Scripts/bundle-app.sh` already ad-hoc
+signs the bundle — that is what lets it run on Apple Silicon at all, not a trust decision —
+and Gatekeeper still refuses a copy that arrived with `com.apple.quarantine`. The
+distribution story is therefore: build from source, or download a plainly unsigned zip and
+approve it once.
 
-- A DMG build script around `.build/WillyDisk.app`.
-- `codesign` with a Developer ID and `notarytool` submission, plus a check that the
-  stapled ticket validates.
-- CI publishing the DMG on a tag, only when the signing secrets are present.
+- Package the `.build/WillyDisk.app` that `Scripts/bundle-app.sh` produces with
+  `ditto -c -k --sequesterRsrc --keepParent` so the bundle's signature and resource forks
+  survive; `zip` alone can break a signed bundle. Name it `WillyDisk-<VERSION>.zip` and
+  publish its `shasum -a 256` next to it.
+- A tag-triggered CI job (`permissions: contents: write`, `GITHUB_TOKEN`, no third-party
+  release action) that fails when the tag disagrees with `VERSION`, builds from the tag,
+  and attaches the zip and checksum to a GitHub Release.
+- Install instructions in the README and on the release page itself, before the download:
+  the app is unsigned and not notarized, so macOS will refuse it; approve it in System
+  Settings → Privacy & Security → Open Anyway (the Control-click → Open shortcut is gone
+  on macOS 15 and later), or `xattr -dr com.apple.quarantine /Applications/WillyDisk.app`;
+  or clone the repository and `bash Scripts/run.sh`, which carries no quarantine flag.
+- Wording: never "signed", "notarized", "verified by Apple", or "safe". The SHA-256 is an
+  integrity check for a corrupted download, not authenticity, and the text should say so.
+- A DMG changes nothing for Gatekeeper and is optional; if a drag-to-Applications layout is
+  wanted, `hdiutil create` around the same `.app` is enough.
+
+Acceptance: a tag produces a release whose zip expands to a launchable, ad-hoc-signed
+`WillyDisk.app` reporting the version in `VERSION`; the published checksum matches; the
+install instructions and the unsigned warning are on the release page, not only in a
+linked document; a tag whose version disagrees with `VERSION` fails the job; no document
+claims a signature or notarization the project does not have.
 
 ### 2. Global search
 
@@ -316,14 +340,15 @@ is scanned remotely without an explicit host choice.
 
 ### 9. Self-update, and platforms beyond macOS
 
-Self-update is worth shipping only after item 1: a release feed, a verified download, and
-a relaunch. Windows and Linux are a larger step — a UI without AppKit, per-platform
-packaging, per-platform filesystem semantics — and wait until a signed macOS release
-actually ships.
+Self-update is worth shipping only after item 1: the GitHub Release list is the feed, the
+published SHA-256 is the download check, and a relaunch follows. Windows and Linux are a
+larger step — a UI without AppKit, per-platform packaging, per-platform filesystem
+semantics — and wait until a downloadable macOS release has actually shipped.
 
 Acceptance (self-update): a newer version is offered with its notes; the download is
-verified before it replaces anything; a failed check or download changes nothing and says
-why; the app never updates without consent.
+verified against the release's published SHA-256 before it replaces anything; a failed
+check or download changes nothing and says why; the app never updates without consent;
+the update screen does not call an unsigned download verified or trusted.
 
 ## Decisions to preserve
 
@@ -342,15 +367,21 @@ why; the app never updates without consent.
 - History compares measurements, never claims savings. Only a finished scan is
   recorded, and a stored run's options travel with it so a difference in what each
   walk included is disclosed rather than read as a change on disk.
+- No Apple Developer account, no Developer ID, no notarization. The bundle stays ad-hoc
+  signed and every release artifact is plainly unsigned. Do not add signing or
+  notarization steps that need credentials, and never describe the app as signed,
+  notarized, or Gatekeeper-approved. Building from source is the first-class install path;
+  the downloaded zip is offered with its checksum and one-time approval instructions.
 - The interface stays native AppKit and SwiftUI, so VoiceOver, Quick Look, menus, text
   editing and window chrome are the system's. A custom-drawn canvas is not an acceptable
   substitute for a chart or a list.
 
 ## Suggested opening prompt
 
-> Read `docs/ROADMAP.md`. Verify `HEAD` and run the build and tests. Implement the
-> Developer ID signing, notarization, and DMG work: write the scripts and document
-> every input, keep the ad-hoc bundle path working without credentials, and do not
-> claim a notarized build until one verifies. If the certificate and `notarytool`
-> credentials are unavailable, stop after the scripts and documentation and say what
-> is missing. Keep frozen contracts untouched, then commit.
+> Read `docs/ROADMAP.md`. Verify `HEAD` and run the build and tests. Implement item 1,
+> unsigned releases on GitHub: a `ditto` zip of `.build/WillyDisk.app`, a tag-triggered
+> CI job that checks the tag against `VERSION` and attaches the zip and its SHA-256 to a
+> GitHub Release, and install instructions that state plainly that the app is unsigned
+> and not notarized. Do not add Developer ID signing or notarization, and do not claim
+> any signature or Gatekeeper approval. Keep frozen contracts untouched, and do not
+> commit unless I ask.

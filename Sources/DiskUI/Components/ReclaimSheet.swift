@@ -221,7 +221,8 @@ struct ReclaimSheet: View {
     }
 }
 
-/// What the results screen says after a trash request, kept until dismissed.
+/// What the results screen says after a trash request, until the banner
+/// dismisses it.
 public struct ReclaimNotice: Equatable, Sendable {
     let tone: ReclaimBanner.Tone
     let message: String
@@ -231,7 +232,10 @@ public struct ReclaimNotice: Equatable, Sendable {
 /// The line after a trash action that keeps the results honest.
 ///
 /// It never says the space was reclaimed: it says what moved and when the space
-/// comes back, offers the Trash and a fresh scan, and stays until dismissed.
+/// comes back, offers the Trash and a fresh scan, and dismisses itself after a
+/// short read. The notice is an opaque panel lifted off the results, so the list
+/// underneath never reads through it; it holds open while the pointer is over it,
+/// so its actions stay reachable while they are in use.
 struct ReclaimBanner: View {
     enum Tone: Equatable, Sendable { case success, failure }
 
@@ -241,6 +245,9 @@ struct ReclaimBanner: View {
     let onShowTrash: () -> Void
     let onRescan: () -> Void
     let onDismiss: () -> Void
+
+    @Environment(\.colorSchemeContrast) private var contrast
+    @State private var isHovered = false
 
     private var icon: String {
         switch tone {
@@ -256,18 +263,32 @@ struct ReclaimBanner: View {
         }
     }
 
+    private var shape: RoundedRectangle {
+        RoundedRectangle(cornerRadius: DS.Radius.panel, style: .continuous)
+    }
+
+    /// A new notice, or the pointer moving on or off the banner, starts a fresh
+    /// hold for the auto-dismiss.
+    private struct DismissalKey: Equatable {
+        let message: String
+        let isHovered: Bool
+    }
+
     var body: some View {
         HStack(spacing: DS.Spacing.medium) {
             Image(systemName: icon)
                 .font(DS.Icon.small)
                 .foregroundStyle(tint)
+                .accessibilityHidden(true)
             Text(message)
                 .font(DS.Typography.callout)
                 .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: DS.Spacing.small)
             if showsShowTrash {
                 Button("Show Trash", action: onShowTrash)
+                    .buttonStyle(.bordered)
                     .controlSize(.small)
+                    .accessibilityHint("Opens the Trash in Finder")
             }
             Button("Rescan", action: onRescan)
                 .controlSize(.small)
@@ -276,11 +297,30 @@ struct ReclaimBanner: View {
         }
         .padding(.horizontal, DS.Spacing.large)
         .padding(.vertical, DS.Spacing.small)
-        .background(tint.opacity(0.10))
-        .overlay(alignment: .top) {
-            Rectangle()
-                .fill(DS.Color.separator)
-                .frame(height: DS.Spacing.hairline)
+        .background {
+            // The tone is a wash over an opaque platter, never a substitute for
+            // it: the results underneath stay out of the notice.
+            shape.fill(DS.Color.enamel)
+            shape.fill(tint.opacity(DS.Opacity.noticeWash))
+        }
+        .overlay {
+            // The notice is told apart by its surface and lift. Increased
+            // contrast is the one case that adds an outline.
+            if contrast == .increased {
+                shape.strokeBorder(DS.Color.separator, lineWidth: DS.Stroke.emphasis)
+            }
+        }
+        .shadow(
+            color: DS.Color.shadow.opacity(DS.Shadow.floatingOpacity),
+            radius: DS.Shadow.floatingRadius,
+            y: DS.Shadow.floatingOffset
+        )
+        .onHover { isHovered = $0 }
+        .task(id: DismissalKey(message: message, isHovered: isHovered)) {
+            guard !isHovered else { return }
+            try? await Task.sleep(for: DS.Timing.notice)
+            guard !Task.isCancelled else { return }
+            onDismiss()
         }
     }
 }

@@ -128,6 +128,9 @@ public enum DS {
         /// Tint painted behind a content panel so it separates from the window
         /// without becoming a floating control.
         public static let contentPanel: Double = 0.04
+        /// The tone a notice takes over its opaque surface, so success and
+        /// failure read at a glance without letting the screen show through.
+        public static let noticeWash: Double = 0.10
         /// Opaque stand-in when Reduce Transparency is on, and the macOS 14
         /// fallback. `controlBackground` alone is the window color and would
         /// leave the control invisible.
@@ -147,6 +150,25 @@ public enum DS {
         /// hover/focus emphasis so a selection stays legible where it crosses the
         /// chart's own separators.
         public static let selection: CGFloat = 2.5
+    }
+
+    // MARK: - Elevation
+
+    /// The lift under a surface that floats over content. A notice is the app's
+    /// only floating band; everything else is inset into the window.
+    public enum Shadow {
+        public static let floatingRadius: CGFloat = 12
+        public static let floatingOffset: CGFloat = 3
+        public static let floatingOpacity: Double = 0.16
+    }
+
+    // MARK: - Timing
+
+    public enum Timing {
+        /// How long a notice holds before it dismisses itself. The countdown
+        /// pauses while the pointer is over the notice, so its actions stay
+        /// reachable for as long as they are being used.
+        public static let notice: Swift.Duration = .seconds(8)
     }
 
     // MARK: - Sunburst chart geometry
@@ -323,6 +345,9 @@ public enum DS {
         public static let separator: SwiftUI.Color = rule
         public static let windowBackground: SwiftUI.Color = SwiftUI.Color(nsColor: .windowBackgroundColor)
         public static let controlBackground: SwiftUI.Color = SwiftUI.Color(nsColor: .controlBackgroundColor)
+        /// The shadow under a floating surface. Black in both appearances: a
+        /// shadow is an absence of light, not an ink tone.
+        public static let shadow: SwiftUI.Color = .black
         public static let success: SwiftUI.Color = signal
         public static let warning: SwiftUI.Color = madder
         public static let danger: SwiftUI.Color = madder

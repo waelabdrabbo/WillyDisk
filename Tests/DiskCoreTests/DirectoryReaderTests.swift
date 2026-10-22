@@ -151,7 +151,8 @@ final class DirectoryReaderTests: XCTestCase {
     /// absent object type or size would misclassify the entry or report a
     /// fabricated zero. Such an entry is re-read directly instead.
     func testAttributesAreCompleteRequiresEveryFieldTheScanReads() {
-        let allCommon = UInt32(0x8000_0000 | 0x1 | 0x2 | 0x8 | 0x400 | 0x0004_0000 | 0x0200_0000)
+        let allCommon: UInt32 =
+            0x8000_0000 | 0x1 | 0x2 | 0x8 | 0x400 | 0x0004_0000 | 0x0200_0000
         let fileSizes = UInt32(0x1 | 0x4 | 0x200)
         let vreg = UInt32(1), vdir = UInt32(2), vlnk = UInt32(5)
 

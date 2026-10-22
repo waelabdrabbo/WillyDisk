@@ -79,7 +79,7 @@ It opens no window and needs no Screen Recording permission.
 | `-o DIR` | output directory | `.build/renders` |
 | `-s WxH` | render size in points | `1000x720`, the app's default window |
 | `-a light\|dark\|both` | appearances | `both` |
-| `-S results\|home\|help\|settings\|categories\|cleanup\|duplicates\|both` | screens: results, source selection, help sheet content, Settings content, the cleanup sheet's Old and Duplicates tabs, results in Categories mode; `both` is home and results | `results` |
+| `-S results\|home\|search\|help\|settings\|categories\|cleanup\|duplicates\|history\|both` | screens: results, source selection, results with a whole-scan search open, help sheet content, Settings content, the cleanup sheet's Old and Duplicates tabs, results in Categories mode, the history comparison; `both` is home and results | `results` |
 | `-t DIR` | scan this directory instead of the fixture | generated fixture |
 | `-c` | capture the content alone, without the window | the window |
 

@@ -28,18 +28,22 @@ enum SortOrder: String, CaseIterable, Identifiable {
 
 /// The entries the results screen lists for one folder.
 ///
-/// Search and ordering live here rather than in the view so the chart and the
-/// explorer share one definition of what is on screen.
+/// Ordering lives here rather than in the view so the chart and the explorer
+/// share one definition of what is on screen. Search is not an entry filter: the
+/// field searches the whole scan (`ScanSearch`), so this only decides what a
+/// folder and the engine's ranked lists present.
 enum ExplorerQuery {
-    static func entries(
-        in children: [ScanNode],
-        search: String,
-        sort: SortOrder
-    ) -> [ScanNode] {
-        var nodes = children.filter(\.isPresentable)
-        if !search.isEmpty {
-            nodes = nodes.filter { $0.name.localizedCaseInsensitiveContains(search) }
-        }
+    /// The presentable entries of a folder, in the list's order.
+    static func entries(in children: [ScanNode], sort: SortOrder) -> [ScanNode] {
+        ordered(children.filter(\.isPresentable), sort: sort)
+    }
+
+    /// The explorer's order applied to entries already chosen for the list.
+    ///
+    /// A folder's list, a ranked list, and a search's matches are chosen
+    /// differently but read the same way, so the ordering lives here once.
+    static func ordered(_ nodes: [ScanNode], sort: SortOrder) -> [ScanNode] {
+        var nodes = nodes
         switch sort {
         case .size:
             nodes.sort { $0.logicalSize > $1.logicalSize }
@@ -55,19 +59,10 @@ enum ExplorerQuery {
 
     /// The largest items from a list the engine already ranked.
     ///
-    /// The results screen shows the engine's top 100 files and folders, which come
-    /// sorted by size. Search runs over that list rather than the whole scan: the
-    /// screen says it is searching the top items, and the summary keeps only the
-    /// ranked lists, not every file for the UI to search.
-    static func ranked(_ nodes: [ScanNode], search: String) -> [ScanNode] {
-        var result = nodes.filter(\.isPresentable)
-        if !search.isEmpty {
-            result = result.filter {
-                $0.name.localizedCaseInsensitiveContains(search)
-                    || $0.url.path.localizedCaseInsensitiveContains(search)
-            }
-        }
-        result.sort { $0.logicalSize > $1.logicalSize }
-        return result
+    /// The results screen shows the engine's top 100 files and folders, which
+    /// come sorted by size; the ranked lists keep that order and drop the entries
+    /// with nothing to draw.
+    static func ranked(_ nodes: [ScanNode]) -> [ScanNode] {
+        nodes.filter(\.isPresentable).sorted { $0.logicalSize > $1.logicalSize }
     }
 }

@@ -14,10 +14,10 @@ decisions. This is a handoff document, not a specification of frozen interfaces 
   Settings work at `607ef77`, the duplicate content check at `3603321` with its own
   tab at `1ed5184`, scan history with its comparison sheet, the command-line
   scan (`38f6e50`), the unsigned GitHub release pipeline (`7bec1d0`), and the
-  watched-tree refresh (`b8be044`); this docs handoff follows it. Working tree clean at
-  that handoff.
+  watched-tree refresh (`b8be044`). Global search over the whole finished scan is
+  the newest change and is still uncommitted; this docs handoff covers it.
 - Build: `swift build --disable-sandbox`.
-- Tests: 181 QATests + 83 DiskCoreTests (1 skipped, `ScanBenchmarkTests` needs
+- Tests: 199 QATests + 86 DiskCoreTests (1 skipped, `ScanBenchmarkTests` needs
   `WILLYDISK_BENCH_ROOT`) + 16 DiskCLITests, 0 failures.
 - CI: `.github/workflows/ci.yml` builds, tests, checks that the bundle reports
   `VERSION`, runs the bundled binary's `scan` and its usage exit status, and uploads
@@ -31,7 +31,8 @@ decisions. This is a handoff document, not a specification of frozen interfaces 
   release notes and README state that plainly, with the one-time approval step and
   the source-build alternative. No tag has been pushed yet.
 - The app is a working single-window analyzer: choose a volume, folder, or quick
-  preset, watch a progressive scan, read the sunburst and explorer, inspect
+  preset, watch a progressive scan, read the sunburst and explorer, search the whole
+  scan by name and drill from a result to its folder, inspect
   coverage, see where the bytes sit by file category, review large/old/cache candidates,
   check possible duplicates by their contents before trashing them, compare the recorded
   runs of a location, select rows with the mouse or keyboard, preview them with Quick
@@ -57,6 +58,7 @@ decisions. This is a handoff document, not a specification of frozen interfaces 
 | Scan history: a versioned record per finished scan, and the comparison sheet | `5b07181` |
 | Command-line scan over the same engine, with the record DTO as JSON | `38f6e50` |
 | Watched results: FSEvents invalidation and a quiet root refresh | `b8be044` |
+| Global search over the whole scan: bounded, off the main actor, drill to folder | this change |
 | Unsigned GitHub releases: arm64 and x86_64 zips, checksums, tag workflow | `7bec1d0` |
 
 Details worth remembering:
@@ -167,6 +169,24 @@ Details worth remembering:
   and when the root is gone. One stream covers `/`; the scope applies the engine's
   exclusions and `stayOnVolume` device rule, and maps `/System/Volumes/Data/…` back to
   `/…` because that is how FSEvents names the startup disk's data volume.
+- Search covers the whole tree the scan carries, from every explorer mode, not the folder
+  or the ranked list on screen. The field's query replaces the list's scope only: the mode,
+  the breadcrumb, and the sort are untouched, so clearing the field restores exactly the
+  list that was there.
+  The walk runs off the main actor behind a 250 ms quiet period, cancels on the next
+  keystroke, and matches names case- and diacritic-insensitively; a query containing `/`
+  is a path query and also matches each entry's full path, which is how `Photos/2024`
+  finds what lives there without a one-letter query returning every path on the disk. It
+  keeps the largest 200 matches, counts every one, and stops after 2,000,000 entries,
+  saying on the summary line what it is showing and whether the walk stopped. Each row
+  names the folder that holds it; Show in Folder (and Return on a folder result) clears
+  the search and re-roots the explorer there, with the result selected. The chart pane is
+  not a chart of the matches — the sunburst's wedges partition one folder's bytes, and a
+  matched file inside a matched folder would be counted twice — so it says what the
+  search found and that clearing the field brings the folder chart back. A live scan is
+  searched as it stands and the search re-runs when the terminal summary lands, as it
+  does after a quiet refresh; the live summary line says “so far”. Search never records
+  history and never edits the tree.
 - History opens from the results toolbar (or Scan ▸ History…) for the location on the
   engine's slot, and compares two of its runs. The current run is recorded as it
   settles; the sheet picks the two newest by default and lets any two be chosen. Clear
@@ -214,6 +234,7 @@ swift run --disable-sandbox WillyDisk scan . --depth 1 --top 5
 swift run --disable-sandbox WillyDisk scan . --json | jq -e '.schemaVersion == 1'
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S both -o .build/renders/check
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S categories -o .build/renders/check
+WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S search -o .build/renders/check
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S help -c -o .build/renders/check
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S settings -c -s 460x760 -o .build/renders/check
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S cleanup -c -o .build/renders/check
@@ -223,7 +244,7 @@ WILLYDISK_NO_SANDBOX=1 bash Scripts/package-release.sh
 ```
 
 CI runs the build, the suite, the bundle version check, a bundled `scan` plus its usage
-exit status, and all seven renders on every push. `Scripts/package-release.sh` builds both
+exit status, and all eight renders on every push. `Scripts/package-release.sh` builds both
 slices, expands each archive, and checks its architecture, version, and ad-hoc signature
 before writing the two SHA-256s; `.github/workflows/release.yml` runs that on a `v*` tag,
 re-checks both checksums, and publishes only when the tag matches `VERSION`. On an Apple
@@ -231,7 +252,10 @@ Silicon host the script executes only the arm64 slice; the Intel slice is checke
 `lipo` and `codesign`, so an Intel launch still needs an Intel Mac or Rosetta.
 
 `-S categories` renders the real results screen in Categories mode, window and all.
-Help, Settings, and the cleanup sheet are sheets or a preferences window, so `-S`
+`-S search` renders the same screen with a whole-scan search open (`p` over the fixture,
+which every folder there has a match for), so the match list, the containing paths, the
+summary line, and the chart's search state are reviewable. Help, Settings, and the
+cleanup sheet are sheets or a preferences window, so `-S`
 captures their content. Settings renders with its own non-default sample options and two
 exclusions, so the switches and the list are both reviewable; cleanup and duplicates are
 the cleanup sheet's two tabs. They use one sample tree (sparse files with set ages, two
@@ -246,17 +270,7 @@ one-off visual check.
 
 ## Remaining work, in recommended order
 
-### 1. Global search
-
-Search the whole finished scan, not just the current folder or the stored top 100.
-The UI has the root’s tree in the summary, but a multi-million-file tree needs a
-bounded, debounced search and virtualized results. Show the containing path and let a
-result drill to its folder.
-
-Acceptance: searching a deep path finds it; results are bounded and say so; typing
-does not block the main actor; clearing restores the previous scope.
-
-### 2. Diagnostics, performance, and polish
+### 1. Diagnostics, performance, and polish
 
 - Export a diagnostics bundle (scan settings, timing, issue counts, version) with no
   user file contents.
@@ -270,7 +284,7 @@ does not block the main actor; clearing restores the previous scope.
   disclosure, CSV accounting (JSON has it, CSV
   does not), pluralization, empty states, window sizing, accessibility audit.
 
-### 3. Treemap as a second chart
+### 2. Treemap as a second chart
 
 Boxes instead of rings, same tree, same selection, hover and drill-down, chosen in
 Settings. The sunburst stays the identity; the treemap exists for dense folders where
@@ -280,7 +294,7 @@ Acceptance: layout runs off the main actor for a large folder; one selection mod
 drives both charts; reduce-motion and keyboard navigation behave as in the sunburst; both
 charts render in CI.
 
-### 4. Localization
+### 3. Localization
 
 Extract every user-visible string into a catalog keyed by the English source, then finish
 one language end to end before adding more. SwiftUI supplies script fallback and RTL
@@ -291,7 +305,7 @@ catches truncation; one RTL language (`ar`) renders results, coverage and cleanu
 clipping; plurals are resolved rather than concatenated; the render harness takes a
 `--locale`.
 
-### 5. Reclaim past the Trash
+### 4. Reclaim past the Trash
 
 Today the only removal path is Move to Trash, and Trash frees nothing until it is emptied.
 The fuller flow is permanent delete, a secure erase that overwrites before removing, and
@@ -310,7 +324,7 @@ of removal; a permanent delete cannot be reached without a typed or held confirm
 failed backup removes nothing; a cancelled job says what was and was not removed; no
 screen claims space was freed before it was.
 
-### 6. Remote and cloud scans
+### 5. Remote and cloud scans
 
 Scan a machine reachable over SSH, and cloud remotes, through the same explorer.
 `ScanEngine` is the seam: a second conformance that emits the same events, so the UI never
@@ -322,7 +336,7 @@ scan of it; a dropped connection ends in `.finished` with issues or `.cancelled`
 stream that hangs; credentials never reach the export DTO or a diagnostics bundle; nothing
 is scanned remotely without an explicit host choice.
 
-### 7. Self-update, and platforms beyond macOS
+### 6. Self-update, and platforms beyond macOS
 
 Self-update becomes worth shipping once a tagged release exists: the GitHub Release list is
 the feed, the published SHA-256 is the download check, and a relaunch follows. Windows and
@@ -359,6 +373,11 @@ the update screen does not call an unsigned download verified or trusted.
 - History compares measurements, never claims savings. Only a finished scan the user
   started is recorded, and a stored run's options travel with it so a difference in what each
   walk included is disclosed rather than read as a change on disk.
+- Search results are a list, not a chart. A sunburst's wedges partition one folder's
+  bytes; a search's matches overlap (a matched file can sit inside a matched folder), so
+  drawing them would sum the same bytes twice and state a whole the app cannot explain.
+  The chart pane says the chart maps one folder at a time and comes back when the field is
+  cleared.
 - No Apple Developer account, no Developer ID, no notarization. The bundle stays ad-hoc
   signed and every release artifact is plainly unsigned. Do not add signing or
   notarization steps that need credentials, and never describe the app as signed,
@@ -374,7 +393,6 @@ the update screen does not call an unsigned download verified or trusted.
 ## Suggested opening prompt
 
 > Read `docs/ROADMAP.md`. Verify `HEAD` and run the build and tests. Implement item 1,
-> global search: a bounded, debounced search over the whole finished scan, run off the
-> main actor and virtualized, with the containing path on every result and a way to
-> drill to that folder. Say when results are capped, and make clearing restore the
-> previous scope. Keep frozen contracts untouched, and do not commit unless I ask.
+> the diagnostics bundle: scan settings, timing, issue counts, and the app version, with
+> no user file contents, written the way report export is. Keep frozen contracts
+> untouched, and do not commit unless I ask.

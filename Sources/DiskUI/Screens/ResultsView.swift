@@ -29,6 +29,19 @@ public struct ResultsView: View {
     // Explorer controls
     @State private var searchText = ""
     @State private var searchFocusRequest = 0
+    /// What the last whole-scan search found. The list presents it instead of the
+    /// folder while the field has a query; clearing the field is what puts the
+    /// folder back.
+    @State private var searchResults: ScanSearchResults?
+    /// The search in flight, held so the next keystroke can cancel its walk.
+    @State private var searchRun: Task<ScanSearchResults?, Never>?
+    @State private var isSearching = false
+    /// Bumped when a search lands, so the rows rebuild once for a new result set
+    /// rather than once per redraw.
+    @State private var searchRevision = 0
+    /// The selection a search drill carries across the mode switch that shows its
+    /// folder; the mode-change handler applies it after clearing the old one.
+    @State private var drillSelection: URL?
     @State private var sortOrder: SortOrder = .size
     /// Which list the explorer shows: the folder in the chart, the engine's
     /// largest files and folders, or the scan cut by file category.
@@ -83,9 +96,14 @@ public struct ResultsView: View {
     /// for it, never on a later selection the sheet is now about.
     @State private var reclaimRequestID = UUID()
 
-    public init(viewModel: ScanViewModel = ScanViewModel(), initialMode: ExplorerMode = .folder) {
+    public init(
+        viewModel: ScanViewModel = ScanViewModel(),
+        initialMode: ExplorerMode = .folder,
+        initialSearch: String = ""
+    ) {
         _viewModel = State(initialValue: viewModel)
         _explorerMode = State(initialValue: initialMode)
+        _searchText = State(initialValue: initialSearch)
     }
 
     // MARK: - Derived data
@@ -160,6 +178,80 @@ public struct ResultsView: View {
             return CategoryBreakdown(categoryBreakdown: [:], totalLogicalSize: 0)
         }
         return CategoryBreakdown(summary: summary)
+    }
+
+    // MARK: - Whole-scan search
+
+    /// The query the search field holds, without surrounding whitespace. A field
+    /// holding only spaces is not a search.
+    private var searchQuery: String {
+        searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// Whether the list is a search's results rather than a folder or a ranked
+    /// list. The mode and the breadcrumb are untouched by a search, so clearing
+    /// the field restores the scope that was on screen before it.
+    private var isSearchActive: Bool { !searchQuery.isEmpty }
+
+    /// The entries a search walks: the finished root's folder tree, or, while a
+    /// scan is still walking, the root's entries as known so far. The root itself
+    /// is the scope, not a result, so it is never searched.
+    private var searchForest: [ScanNode] {
+        guard let summary else { return [] }
+        if let root = rootNode(in: summary) { return root.children }
+        return summary.rootChildren
+    }
+
+    /// The matches in the list's current order.
+    ///
+    /// Search holds the largest matches and counts every one; the list applies
+    /// the same ordering as a folder, so the sort control means the same thing in
+    /// both scopes.
+    private var searchRows: [ExplorerRow] {
+        guard let results = searchResults else { return [] }
+        return ExplorerQuery.ordered(results.matches, sort: sortOrder).map {
+            ExplorerRow(node: $0, location: .containingFolder)
+        }
+    }
+
+    /// Starts the search for what the field now holds.
+    ///
+    /// The walk happens off the main actor and behind a short quiet period, so a
+    /// keystroke neither blocks the screen nor starts a walk that the next
+    /// keystroke immediately replaces. Every new query cancels the one before it,
+    /// and the walk checks cancellation between nodes.
+    private func startSearch(_ text: String, debounce: Bool = true) {
+        searchRun?.cancel()
+        searchRun = nil
+
+        let query = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty, summary != nil else {
+            isSearching = false
+            searchResults = nil
+            return
+        }
+
+        isSearching = true
+        let forest = searchForest
+        let task: Task<ScanSearchResults?, Never> = Task.detached(priority: .userInitiated) {
+            if debounce {
+                try? await Task.sleep(for: .milliseconds(250))
+                guard !Task.isCancelled else { return nil }
+            }
+            return ScanSearch.results(
+                for: query,
+                searching: forest,
+                isCancelled: { Task.isCancelled }
+            )
+        }
+        searchRun = task
+        Task { @MainActor in
+            let results = await task.value
+            guard !task.isCancelled, searchText == text else { return }
+            searchResults = results
+            searchRevision &+= 1
+            isSearching = false
+        }
     }
 
     /// Opens a category in place, or closes it when it is already open. The mode
@@ -250,43 +342,53 @@ public struct ResultsView: View {
     /// while they hold. Hovering or selecting a row changes none of those inputs,
     /// so it never re-derives the list.
     private var visibleRows: [ExplorerRow] {
-        // The category detail is the bounded list of the files the walk returned,
-        // so it is built directly rather than through the folder cache.
-        if explorerMode == .categories {
-            return (categoryFiles?.files ?? []).map {
-                ExplorerRow(node: $0, showsLocation: true)
-            }
-        }
         let key = ExplorerRowsKey(
             revision: viewModel.resultsRevision,
             breadcrumb: breadcrumb.map(\.id),
             search: searchText,
+            // A new search result set has the same query as the one it replaces,
+            // so the revision is what makes the rows rebuild exactly once.
+            searchResults: isSearchActive ? searchRevision : -1,
             sort: sortOrder,
             mode: explorerMode,
             maxChildren: chartChildLimit
         )
-        return rowsCache.rows(for: key) {
-            let nodes: [ScanNode]
-            switch explorerMode {
-            case .folder:
-                nodes = ExplorerQuery.entries(in: currentChildren, search: searchText,
-                                              sort: sortOrder)
-            case .topFiles, .topFolders:
-                nodes = ExplorerQuery.ranked(topNodes, search: searchText)
-            case .categories:
-                nodes = []
+        switch ExplorerListSource.resolve(isSearchActive: isSearchActive, mode: explorerMode) {
+        case .searchMatches:
+            return rowsCache.rows(for: key) { searchRows }
+        case .categoryFiles:
+            // The category detail is the bounded list of the files the walk
+            // returned, so it is built directly rather than through the cache.
+            return (categoryFiles?.files ?? []).map {
+                ExplorerRow(node: $0, location: .itemPath)
             }
-            return nodes.map {
-                ExplorerRow(node: $0, showsLocation: explorerMode != .folder)
+        case .nodeList:
+            return rowsCache.rows(for: key) {
+                let nodes: [ScanNode]
+                switch explorerMode {
+                case .folder:
+                    nodes = ExplorerQuery.entries(in: currentChildren, sort: sortOrder)
+                case .topFiles, .topFolders:
+                    nodes = ExplorerQuery.ranked(topNodes)
+                case .categories:
+                    nodes = []
+                }
+                return nodes.map {
+                    ExplorerRow(node: $0, location: explorerMode != .folder ? .itemPath : .none)
+                }
             }
         }
     }
 
     /// The rows the current scope can select: every entry in the folder, the
-    /// engine's ranked lists, or the open category's files. Filtering narrows what
-    /// the list draws, not what a selection may hold, so typing in the search
-    /// field does not throw away a choice made before the typing started.
+    /// engine's ranked lists, the open category's files, or the whole scan's
+    /// matches while a search is active. Filtering narrows what the list draws,
+    /// not what a selection may hold, so typing in the search field does not
+    /// throw away a choice made before the typing started.
     private var scopeNodes: [ScanNode] {
+        if isSearchActive {
+            return searchResults?.matches ?? []
+        }
         switch explorerMode {
         case .folder:
             return currentChildren
@@ -318,13 +420,20 @@ public struct ResultsView: View {
     /// list's keyboard cursor only visits rendered rows.
     private var rowOrder: [URL] { visibleRows.map(\.url) }
 
+    /// How many rows the list draws. A folder pages so a huge directory never
+    /// builds every row at once; a search's result set is already bounded, so it
+    /// is shown whole and stays virtualized by the list itself.
+    private var rowLimit: Int {
+        isSearchActive ? visibleRows.count : visibleItemLimit
+    }
+
     private var displayedRows: [ExplorerRow] {
-        Array(visibleRows.prefix(visibleItemLimit))
+        Array(visibleRows.prefix(rowLimit))
     }
 
     private var displayedRowOrder: [URL] { displayedRows.map(\.url) }
     private var hasMoreRows: Bool {
-        visibleRows.count > visibleItemLimit
+        visibleRows.count > rowLimit
     }
 
     /// Where the spindle hole leads: up one folder, or back to all categories.
@@ -354,11 +463,7 @@ public struct ResultsView: View {
             return DS.Sunburst.maxChildrenPerNode
         }
     }
-    private var remainingRowCount: Int { max(visibleRows.count - visibleItemLimit, 0) }
-
-    private var isFiltering: Bool {
-        !searchText.isEmpty
-    }
+    private var remainingRowCount: Int { max(visibleRows.count - rowLimit, 0) }
 
     /// The inputs that decide which rows are on screen. When any of them changes
     /// the list is reshuffled, so a hover is dropped rather than left pointing
@@ -375,6 +480,14 @@ public struct ResultsView: View {
 
     /// Honest copy for an empty explorer list, in the same two situations.
     private var listEmptyMessage: String {
+        if isSearchActive {
+            if isSearching || searchResults == nil {
+                return "Searching every file and folder…"
+            }
+            return isLiveScan
+                ? "No matches so far for “\(searchQuery)”"
+                : "No matches for “\(searchQuery)”"
+        }
         if explorerMode == .categories {
             if let category = drilledCategory {
                 return isLiveScan
@@ -384,12 +497,10 @@ public struct ResultsView: View {
             return "No categories"
         }
         if explorerMode != .folder {
-            if isFiltering { return "No matches in the top items" }
             if isLiveScan { return "Waiting for the first items…" }
             return explorerMode == .topFiles ? "No files to rank" : "No folders to rank"
         }
-        if isLiveScan && !isFiltering { return "Waiting for the first items…" }
-        if isFiltering { return "No matches" }
+        if isLiveScan { return "Waiting for the first items…" }
         // The folder holds entries, but none of them has bytes to list.
         if !currentChildren.isEmpty { return "Nothing here has a size" }
         return "This folder is empty"
@@ -429,12 +540,28 @@ public struct ResultsView: View {
             hover.url = nil
             visibleItemLimit = DS.Size.explorerPageSize
         }
+        .onChange(of: searchText) { _, text in
+            // A search replaces the list's scope without changing the mode or the
+            // folder, so clearing the field is all it takes to restore them.
+            startSearch(text)
+        }
+        .onChange(of: searchRevision) { _, _ in
+            // A new match set can retire rows a hover or a selection was about.
+            hover.url = nil
+            pruneSelection()
+        }
         .onChange(of: explorerMode) { _, newMode in
             // The list's scope changed, so a selection, a hover, and a search
             // that were about the old list would otherwise point at rows that are
             // no longer on screen.
             hover.url = nil
             clearSelection()
+            // A drill from a search result is the one mode change that brings its
+            // own selection with it.
+            if let url = drillSelection {
+                selection.selectOnly(url)
+            }
+            drillSelection = nil
             searchText = ""
             hoveredCategory = nil
             closeCategory()
@@ -463,6 +590,12 @@ public struct ResultsView: View {
             // screen no longer has.
             pruneSelection()
             pruneBreadcrumb()
+            // A quiet refresh replaces the settled tree a search ran over. A live
+            // scan's partials arrive far too often to restart a whole-tree walk
+            // for each one, so the search re-runs when the walk is done.
+            if isSearchActive && !isLiveScan {
+                startSearch(searchText)
+            }
         }
         .onChange(of: viewModel.isWatchingEnabled) { _, _ in
             viewModel.watchPreferenceChanged()
@@ -478,11 +611,21 @@ public struct ResultsView: View {
             // A list that leaves the screen mid-scroll sends no further phase,
             // and a held snapshot must not stay held for the next scan.
             viewModel.setResultsScrolling(false)
+            // A whole-tree walk is worth stopping with the screen that asked for
+            // it, even though it is off the main actor.
+            searchRun?.cancel()
+            searchRun = nil
         }
         .task(id: viewModel.scanRun) {
             // Re-run for every scan and on Rescan: grant Full Disk Access in
             // System Settings, hit Rescan, and the notice must disappear.
             fullDiskAccessGranted = await FullDiskAccessProbe.isGranted()
+        }
+        .task {
+            // A screen opened with a query already in the field searches at once
+            // rather than waiting out the debounce meant for typing.
+            guard !searchText.isEmpty else { return }
+            startSearch(searchText, debounce: false)
         }
         .overlay(alignment: .bottom) {
             if let notice = viewModel.reclaimNotice {
@@ -714,7 +857,9 @@ public struct ResultsView: View {
 
     private var chartPane: some View {
         VStack(spacing: 0) {
-            if explorerMode == .categories {
+            if isSearchActive {
+                searchChart
+            } else if explorerMode == .categories {
                 if let category = drilledCategory, let files = categoryFiles, !files.files.isEmpty {
                     // The category's node is its files, so the chart is the same
                     // sunburst the folder view uses: one wedge per listed file,
@@ -766,6 +911,44 @@ public struct ResultsView: View {
         }
     }
 
+    /// The chart pane while a search is active.
+    ///
+    /// A sunburst maps one folder's children, whose sizes partition their parent.
+    /// A search's matches do not partition anything — a matched file can sit
+    /// inside a matched folder — so drawing them would sum overlapping bytes into
+    /// a whole the app cannot explain. The pane says what the search found and
+    /// where the chart comes back from instead.
+    private var searchChart: some View {
+        VStack(spacing: DS.Spacing.small) {
+            WillyDiskMark(size: 44)
+            Text(searchChartTitle)
+                .font(DS.Typography.callout)
+                .foregroundStyle(DS.Color.primaryText)
+                .multilineTextAlignment(.center)
+            Text("The chart maps one folder at a time. Clear the search to return to “\(folderTitle)”.")
+                .font(DS.Typography.caption)
+                .foregroundStyle(DS.Color.secondaryText)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: DS.Size.scanStatusWidth)
+        }
+        .padding(DS.Spacing.large)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .accessibilityElement(children: .combine)
+    }
+
+    private var searchChartTitle: String {
+        guard let results = searchResults else {
+            return "Searching every file and folder…"
+        }
+        if isSearching { return "Searching…" }
+        if results.matchCount == 0 {
+            return isLiveScan ? "No matches so far" : "No matches for “\(searchQuery)”"
+        }
+        return results.isTruncated
+            ? "Showing the largest \(results.matches.count) of \(CountFormat.matches(results.matchCount))"
+            : CountFormat.matches(results.matchCount) + " for “\(searchQuery)”"
+    }
+
     /// What the chart pane shows before there is anything to draw, which is a
     /// live scan's first moments or a scan that found nothing.
     private var emptyChart: some View {
@@ -800,7 +983,15 @@ public struct ResultsView: View {
         VStack(spacing: 0) {
             compactHeader
             explorerModeBar
-            if explorerMode == .categories {
+            // The search field is on every list. Its query searches the scan, not
+            // the list, so a match set takes over whichever mode was showing until
+            // the field is cleared.
+            explorerToolbar
+            if isSearchActive {
+                searchSummaryBar
+                contentsList
+                    .frame(maxHeight: .infinity)
+            } else if explorerMode == .categories {
                 if let category = drilledCategory {
                     categoryDetailHeader(category)
 
@@ -821,8 +1012,6 @@ public struct ResultsView: View {
                     .frame(maxHeight: .infinity)
                 }
             } else {
-                explorerToolbar
-
                 contentsList
                     // The list is the flexible band: it gives up height to the
                     // detail pane and the access notice at the inspector's foot.
@@ -850,9 +1039,9 @@ public struct ResultsView: View {
         .padding(.top, DS.Spacing.small)
     }
 
-    /// What the category list is, in one line. The search, sort, and category
-    /// filter controls belong to the node lists and are not shown here: there is
-    /// nothing to search among nine categories.
+    /// What the category list is, in one line. The sort control belongs to the
+    /// node lists and is not shown here; the search field is, because it searches
+    /// the scan rather than the nine categories.
     private var categoryModeCaption: some View {
         Text("Share of this scan's logical size. Choose a category to see its largest files.")
             .font(DS.Typography.caption)
@@ -1138,6 +1327,10 @@ public struct ResultsView: View {
                 focusRequest: searchFocusRequest
             )
             .frame(maxWidth: .infinity)
+            // The sort control is a folder list's, so it is absent from the
+            // other modes. Reserving its height on the field keeps the toolbar —
+            // and everything under it — in one place as the mode changes.
+            .frame(minHeight: DS.Size.iconButton)
 
             if explorerMode == .folder {
                 Menu {
@@ -1172,11 +1365,51 @@ public struct ResultsView: View {
     }
 
     private var searchPrompt: String {
-        switch explorerMode {
-        case .folder, .categories: "Search"
-        case .topFiles: "Search top files"
-        case .topFolders: "Search top folders"
+        "Search this scan"
+    }
+
+    /// What the search found, in the explorer's own line.
+    ///
+    /// The list is bounded by design, so the line says how many matches there are
+    /// and how much of them the list holds; a walk that stopped at the node cap
+    /// says so rather than presenting a partial count as the whole answer.
+    private var searchSummaryBar: some View {
+        HStack(spacing: DS.Spacing.small) {
+            if isSearching || searchResults == nil {
+                ProgressView()
+                    .controlSize(.small)
+                    .accessibilityHidden(true)
+            }
+            Text(searchSummaryText)
+                .font(DS.Typography.caption)
+                .foregroundStyle(DS.Color.secondaryText)
+                .lineLimit(1)
+                .truncationMode(.tail)
+            Spacer(minLength: 0)
         }
+        .padding(.horizontal, DS.Spacing.medium)
+        .padding(.bottom, DS.Spacing.small)
+        .accessibilityElement(children: .combine)
+    }
+
+    private var searchSummaryText: String {
+        guard let results = searchResults else {
+            return "Searching every file and folder…"
+        }
+        if isSearching { return "Searching…" }
+        if results.matchCount == 0 {
+            return isLiveScan ? "No matches so far" : "No matches"
+        }
+        var text = results.isTruncated
+            ? "Showing the largest \(results.matches.count) of \(CountFormat.matches(results.matchCount))"
+            : CountFormat.matches(results.matchCount)
+        if results.stoppedAtLimit {
+            text += " · searched the first \(CountFormat.items(results.visitedCount))"
+        }
+        if isLiveScan {
+            text += " so far"
+        }
+        return text
     }
 
     private var contentsList: some View {
@@ -1212,6 +1445,9 @@ public struct ResultsView: View {
             onReveal: { node in
                 revealInFinder(contextTargets(for: node))
             },
+            onShowInFolder: isSearchActive ? { node in
+                showInFolder(node)
+            } : nil,
             onReclaim: { node in
                 requestReclaim(contextTargets(for: node))
             },
@@ -1273,6 +1509,18 @@ public struct ResultsView: View {
             if !node.isAccessible {
                 detailRow("Access", node.errorMessage ?? "Inaccessible")
                     .foregroundStyle(DS.Color.warning)
+            }
+
+            if isSearchActive {
+                Button {
+                    showInFolder(node)
+                } label: {
+                    Label("Show in Folder", systemImage: "folder")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .help("Leave the search and show the folder that holds this item")
             }
 
             if node.isDirectory {
@@ -1413,10 +1661,16 @@ public struct ResultsView: View {
     }
 
     /// Double-click, Return and the detail pane's Browse button: folders are
-    /// entered, files open in their default application.
+    /// entered, files open in their default application. A search's folder is not
+    /// a child of the folder the explorer was showing, so it is opened the same
+    /// way a search result drills to it.
     private func activate(_ node: ScanNode) {
         if node.isDirectory {
-            enter(node)
+            if isSearchActive {
+                openSearchResult(node)
+            } else {
+                enter(node)
+            }
         } else {
             NSWorkspace.shared.open(node.url)
         }
@@ -1429,12 +1683,69 @@ public struct ResultsView: View {
         explorerMode = .folder
     }
 
+    /// Drills from a search result to the folder that holds it, selects it there,
+    /// and clears the search so the explorer is back on a folder.
+    private func showInFolder(_ node: ScanNode) {
+        guard let chain = folderChain(holding: node.url.deletingLastPathComponent()) else {
+            return
+        }
+        drill(to: chain, selecting: node.url)
+    }
+
+    /// Opens a folder result: the explorer lists that folder's own entries.
+    private func openSearchResult(_ node: ScanNode) {
+        guard node.isDirectory else {
+            showInFolder(node)
+            return
+        }
+        guard let chain = folderChain(holding: node.url) else {
+            showInFolder(node)
+            return
+        }
+        drill(to: chain, selecting: nil)
+    }
+
+    /// The folder chain from the scanned root down to `folder`, if the tree on
+    /// screen holds it. A search result comes out of context, so the chain is what
+    /// puts the explorer back at the folder that holds it; a result the current
+    /// tree does not hold — one from a snapshot the screen has moved past —
+    /// resolves to nothing rather than to a wrong folder.
+    private func folderChain(holding folder: URL) -> [ScanNode]? {
+        guard let summary, let root = rootNode(in: summary) else { return nil }
+        return ExplorerPath.chain(to: folder, from: root)
+    }
+
+    /// Re-roots the explorer on a folder and clears the search. The list is
+    /// paged, so a match below its first page is selected — and shown in the
+    /// detail pane — without building every row above it.
+    private func drill(to chain: [ScanNode], selecting url: URL?) {
+        hover.url = nil
+        // Clearing the field is what restores the folder scope the search
+        // replaced; the mode and the breadcrumb only change for the drill itself.
+        searchText = ""
+        breadcrumb = chain
+        if explorerMode == .folder {
+            clearSelection()
+            if let url { selection.selectOnly(url) }
+        } else {
+            // Switching to the folder list clears the selection on its way in, so
+            // the drill's own selection waits for that to happen.
+            drillSelection = url
+            explorerMode = .folder
+        }
+        listFocused = true
+        visibleItemLimit = DS.Size.explorerPageSize
+    }
+
     /// Re-roots the chart at an ancestor. `depth` is how many crumbs are kept,
     /// so zero returns to the scanned location.
     private func goToBreadcrumb(depth: Int) {
         guard depth < breadcrumb.count else { return }
         hover.url = nil
         clearSelection()
+        // Choosing a folder is a scope choice, so the search opens the way for it
+        // rather than leaving the list on results that span every folder.
+        searchText = ""
         breadcrumb = Array(breadcrumb.prefix(depth))
     }
 
@@ -1831,6 +2142,9 @@ private struct ContentsList: View {
     let onShowMore: () -> Void
     let onQuickLook: (ScanNode?) -> Void
     let onReveal: (ScanNode) -> Void
+    /// Offered only while the list is a whole-scan search's results, where the
+    /// row is out of the folder the explorer is showing.
+    let onShowInFolder: ((ScanNode) -> Void)?
     let onReclaim: (ScanNode) -> Void
     let onEscape: () -> Void
     let onScrollActivity: (Bool) -> Void
@@ -1880,6 +2194,12 @@ private struct ContentsList: View {
                             )
                             .id(row.url)
                             .contextMenu {
+                                if let onShowInFolder, targets == 1 {
+                                    Button("Show in Folder") {
+                                        onShowInFolder(row.node)
+                                    }
+                                    Divider()
+                                }
                                 Button(targets == 1 ? "Quick Look" : "Quick Look \(targets) Items") {
                                     onQuickLook(row.node)
                                 }
@@ -2129,6 +2449,22 @@ public enum ExplorerMode: String, CaseIterable, Identifiable {
     }
 }
 
+/// Which list the explorer draws.
+///
+/// A whole-scan search outranks the mode it was typed in: the query covers the
+/// scan rather than the rows below the field, so Categories gives its category
+/// list up for the matches like the other modes do.
+enum ExplorerListSource: Equatable {
+    case searchMatches
+    case categoryFiles
+    case nodeList
+
+    static func resolve(isSearchActive: Bool, mode: ExplorerMode) -> Self {
+        if isSearchActive { return .searchMatches }
+        return mode == .categories ? .categoryFiles : .nodeList
+    }
+}
+
 /// The explorer inputs that decide which rows are on screen.
 private struct ExplorerRowKey: Equatable {
     var search: String
@@ -2145,6 +2481,9 @@ private struct ExplorerRowsKey: Equatable {
     var revision: Int
     var breadcrumb: [UUID]
     var search: String
+    /// The whole-scan result set the rows were built from, or -1 when the list is
+    /// a folder's entries or a ranked list.
+    var searchResults: Int
     var sort: SortOrder
     var mode: ExplorerMode
     var maxChildren: Int
@@ -2168,6 +2507,17 @@ private final class ExplorerRowsCache {
         self.rows = fresh
         return fresh
     }
+}
+
+/// What a row says under the name.
+///
+/// A folder's rows describe their contents, a ranked list says where each entry
+/// is, and a search's rows name the folder that holds them, because a match can
+/// be anywhere in the tree.
+private enum ExplorerRowLocation {
+    case none
+    case itemPath
+    case containingFolder
 }
 
 /// One explorer row, resolved from a node once per list change.
@@ -2194,7 +2544,7 @@ private struct ExplorerRow: Equatable {
     let subtitleIsPath: Bool
     let sizeText: String
 
-    init(node: ScanNode, showsLocation: Bool = false) {
+    init(node: ScanNode, location: ExplorerRowLocation = .none) {
         self.node = node
         url = node.url
         name = node.name
@@ -2202,13 +2552,16 @@ private struct ExplorerRow: Equatable {
         isSymlink = node.isSymlink
         isAccessible = node.isAccessible
         isHiddenName = node.name.hasPrefix(".")
-        subtitleIsPath = showsLocation
-        if showsLocation {
+        subtitleIsPath = location != .none
+        switch location {
+        case .none:
+            subtitle = node.isDirectory
+                ? "\(CountFormat.files(node.fileCount)) in \(CountFormat.folders(node.directoryCount))"
+                : node.category.displayName
+        case .itemPath:
             subtitle = PathFormat.abbreviated(node.url.path)
-        } else if node.isDirectory {
-            subtitle = "\(CountFormat.files(node.fileCount)) in \(CountFormat.folders(node.directoryCount))"
-        } else {
-            subtitle = node.category.displayName
+        case .containingFolder:
+            subtitle = PathFormat.abbreviated(node.url.deletingLastPathComponent().path)
         }
         sizeText = ByteFormat.string(node.logicalSize)
     }

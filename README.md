@@ -18,6 +18,9 @@ breakdown by file category. Everything happens on your machine.
   than inventing one.
 - **Interactive sunburst.** Click into a directory to drill down. The chart and the
   explorer are driven by the same tree, so they never disagree about what a folder holds.
+- **Whole-scan search.** Find any name in the finished scan, not only the folder on
+  screen. Each result names the folder that holds it, and Show in Folder drills there.
+  The list is bounded, and it says how many matches it is showing.
 - **Category breakdown.** Storage grouped by file kind, by both logical size and on-disk
   allocated size.
 - **Permission-aware.** Full Disk Access is detected and explained in place. Directories

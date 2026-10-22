@@ -94,7 +94,7 @@ final class CategoryBreakdownQATests: XCTestCase {
         let images = makeNode("/scan/big.jpg", size: 900, category: .images)
         let document = makeNode("/scan/report.pdf", size: 800, category: .documents)
 
-        let all = ExplorerQuery.ranked([document, images], search: "")
+        let all = ExplorerQuery.ranked([document, images])
         XCTAssertEqual(all.map(\.url), [images.url, document.url])
     }
 

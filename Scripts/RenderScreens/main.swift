@@ -32,6 +32,7 @@ enum RenderState: String {
 enum ScreenKind: String, CaseIterable {
     case results
     case home
+    case search
     case help
     case settings
     case categories
@@ -84,6 +85,7 @@ func parse(_ arguments: [String]) -> Options {
             switch next("--screen") {
             case "results": options.screens = [.results]
             case "home": options.screens = [.home]
+            case "search": options.screens = [.search]
             case "help": options.screens = [.help]
             case "settings": options.screens = [.settings]
             case "categories": options.screens = [.categories]
@@ -91,7 +93,7 @@ func parse(_ arguments: [String]) -> Options {
             case "duplicates": options.screens = [.duplicates]
             case "history": options.screens = [.history]
             case "both": options.screens = [.results, .home]
-            case let other: fail("--screen expects home, results, help, settings, categories, cleanup, duplicates, history or both, not \(other)")
+            case let other: fail("--screen expects home, results, search, help, settings, categories, cleanup, duplicates, history or both, not \(other)")
             }
         case "--fixture":
             options.fixture = URL(fileURLWithPath: next("--fixture"))
@@ -108,17 +110,18 @@ func parse(_ arguments: [String]) -> Options {
             options.rendersWindow = false
         case "--help", "-h":
             print("""
-            usage: render-screens --out DIR [--size WxH] [--appearance light|dark|both] [--screen home|results|help|settings|categories|cleanup|duplicates|history|both] [--fixture DIR] [--state finished|scanning] [--window|--content]
+            usage: render-screens --out DIR [--size WxH] [--appearance light|dark|both] [--screen home|results|search|help|settings|categories|cleanup|duplicates|history|both] [--fixture DIR] [--state finished|scanning] [--window|--content]
 
               --out        directory the PNGs are written to
               --size       render size in points (default 1000x720)
               --appearance which appearances to render (default both)
               --screen     which screens to render (default results); both is
-                           home and results, categories is the results screen in
-                           Categories mode, help and settings are the sheet and
-                           preferences contents, cleanup and duplicates are the
-                           cleanup sheet's two tabs (they use their own fixture),
-                           history is the scan-history comparison
+                           home and results, search is the results screen with a
+                           whole-scan search open, categories is the results
+                           screen in Categories mode, help and settings are the
+                           sheet and preferences contents, cleanup and duplicates
+                           are the cleanup sheet's two tabs (they use their own
+                           fixture), history is the scan-history comparison
               --fixture    scan this directory instead of the generated fixture
               --state      finished (default) or scanning, which captures the
                            screen while the scan is still running
@@ -454,6 +457,11 @@ func render(_ options: Options) {
                     }
                 case .categories:
                     ResultsView(viewModel: viewModel, initialMode: .categories)
+                case .search:
+                    // A query every folder of the fixture has something for, so
+                    // the render shows the match list, their containing paths, and
+                    // the chart pane's search state.
+                    ResultsView(viewModel: viewModel, initialSearch: "p")
                 case .history:
                     if let historyModel, let summary = viewModel.summary {
                         HistorySheet(

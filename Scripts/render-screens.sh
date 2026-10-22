@@ -8,16 +8,17 @@
 # locked session and inside an agent sandbox.
 #
 # Usage:
-#   Scripts/render-screens.sh [-o OUT_DIR] [-s WxH] [-a light|dark|both] [-S results|home|help|settings|categories|cleanup|duplicates|history|both] [-t FIXTURE_DIR] [-T STATE]
+#   Scripts/render-screens.sh [-o OUT_DIR] [-s WxH] [-a light|dark|both] [-S results|home|search|help|settings|categories|cleanup|duplicates|history|both] [-t FIXTURE_DIR] [-T STATE]
 #
 #   -o  output directory                     (default .build/renders)
 #   -s  render size in points                (default 1000x720)
 #   -a  appearances to render                (default both)
 #   -S  screens to render                    (default results; both is home and
-#       results; categories is the results screen in Categories mode; help and
-#       settings are the sheet and preferences contents; cleanup and duplicates
-#       are the cleanup sheet's two tabs, and both scan the same sample tree;
-#       history is the scan-history comparison over three sample runs)
+#       results; search is the results screen with a whole-scan search open;
+#       categories is the results screen in Categories mode; help and settings
+#       are the sheet and preferences contents; cleanup and duplicates are the
+#       cleanup sheet's two tabs, and both scan the same sample tree; history is
+#       the scan-history comparison over three sample runs)
 #   -t  scan this directory instead of the generated fixture
 #   -T  finished (default), scanning, or stopped — the screen a cancelled scan
 #       leaves behind. scanning and stopped both need a directory large enough
@@ -49,7 +50,7 @@ while getopts "o:s:a:S:t:T:ch" opt; do
     t) FIXTURE=(--fixture "$OPTARG") ;;
     T) STATE="$OPTARG" ;;
     c) MODE=(--content) ;;
-    h) sed -n '2,24p' "$0"; exit 0 ;;
+    h) sed -n '2,25p' "$0"; exit 0 ;;
     *) exit 2 ;;
   esac
 done

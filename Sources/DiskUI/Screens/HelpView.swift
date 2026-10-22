@@ -116,7 +116,7 @@ private extension HelpView {
             symbol: "chart.pie",
             paragraphs: [
                 "The sunburst maps the folder you are in. Click a folder wedge to enter it; click a file wedge to select the file, and click the centre to go up one folder.",
-                "Choose This Folder, Top Files, Top Folders, or Categories. Search (⌘F) filters the list on screen; Categories shows the same scan split by file category, and choosing a category there lists its largest files without leaving the mode. Show More pages through a long list.",
+                "Choose This Folder, Top Files, Top Folders, or Categories. Search (⌘F) finds any name in the whole scan, not only the folder on screen; include a / to match a path instead. Each result says which folder holds it, right-click one for Show in Folder, and clearing the field returns to the list you were in. Categories shows the same scan split by file category, and choosing a category there lists its largest files without leaving the mode. Show More pages through a long list.",
                 "While these results are on screen, the scanned folder is watched: a change made in Finder updates the numbers without Rescan. A long scan is not repeated automatically — the results are marked stale and Rescan is offered.",
                 "The ⓘ button opens Coverage: what the scan counted, what it skipped, and the volume's own figures side by side.",
             ]

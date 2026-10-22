@@ -29,7 +29,9 @@ stream reports.
   edits, `GrooveMark.swift` the packaged circular mark
   (`Resources/AppMark.png`) that the hero, the chart placeholder, Help, and About draw
   from — it is an image, not a shape drawn in code.
-- `Support/` — non-view helpers: `ExplorerQuery` (sorting/filtering), `Formatters`,
+- `Support/` — non-view helpers: `ExplorerQuery` (sorting/filtering), `ScanSearch`
+  (the bounded whole-scan name search, run off the main actor) + `ExplorerPath` (the
+  folder chain a search result drills to), `Formatters`,
   `LocationName` (a location's display name), `VolumeInfo`, `RecentLocations`,
   `FullDiskAccess` + `FullDiskAccessProbe`, `ScanIssuesPresentation`,
   `ScanSlotPresentation`, `ReportExport` (JSON/CSV through `NSSavePanel`),
@@ -66,6 +68,8 @@ stream reports.
   root's entries arrive ready-made in `ScanSummary.rootChildren`, folders included
   while their subtrees are still being walked: never assemble them from the capped
   lists by matching paths.
+- Search is a list scope, not a chart: the sunburst's wedges partition one folder's
+  bytes, and a search's matches overlap. The chart pane says so while a query is open.
 - `Screens/ResultsView.swift` and `Components/SunburstView.swift` are large. Grep for
   the view or modifier you need instead of reading them whole.
 
@@ -82,16 +86,18 @@ WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S home -o .build/
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S help -c -o .build/renders/<change>
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S settings -c -s 460x760 -o .build/renders/<change>
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S categories -o .build/renders/<change>
+WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S search -o .build/renders/<change>
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S cleanup -c -o .build/renders/<change>
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S duplicates -c -o .build/renders/<change>
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S history -c -o .build/renders/<change>
 ```
 
-`-S` picks the screen: `results` (default), `home` (source selection), `categories`
-(the results screen in Categories mode), `help` and `settings` (the sheet and
-preferences contents), `cleanup` and `duplicates` (the cleanup sheet's two tabs; they
-scan the same sample tree), `history` (the comparison sheet over that scan plus two
-older sample runs), or `both` (home and results).
+`-S` picks the screen: `results` (default), `home` (source selection), `search` (the
+results screen with a whole-scan query open), `categories` (the results screen in
+Categories mode), `help` and `settings` (the sheet and preferences contents), `cleanup`
+and `duplicates` (the cleanup sheet's two tabs; they scan the same sample tree),
+`history` (the comparison sheet over that scan plus two older sample runs), or `both`
+(home and results).
 
 The `-o` matters: renders are named after their size and appearance, so reusing a
 directory reuses the path, and a viewer that already loaded it keeps showing the cached

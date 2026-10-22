@@ -86,6 +86,7 @@ enum CountFormat {
     static func files(_ count: Int) -> String { unit(count, "file", "files") }
     static func folders(_ count: Int) -> String { unit(count, "folder", "folders") }
     static func items(_ count: Int) -> String { unit(count, "item", "items") }
+    static func matches(_ count: Int) -> String { unit(count, "match", "matches") }
 
     private static func unit(_ count: Int, _ singular: String, _ plural: String) -> String {
         "\(count.formatted()) \(count == 1 ? singular : plural)"

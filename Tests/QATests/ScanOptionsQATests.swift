@@ -251,18 +251,8 @@ final class ScanOptionsQATests: XCTestCase {
             makeNode("/scan/c/zero", size: 0)
         ]
 
-        let ranked = ExplorerQuery.ranked(nodes, search: "")
+        let ranked = ExplorerQuery.ranked(nodes)
         XCTAssertEqual(ranked.map(\.name), ["big.zip", "small.bin"])
-    }
-
-    func testRankedListSearchMatchesThePathAsWellAsTheName() {
-        let nodes = [
-            makeNode("/scan/a/small.bin", size: 10),
-            makeNode("/scan/b/other.bin", size: 300)
-        ]
-
-        let matches = ExplorerQuery.ranked(nodes, search: "a/small")
-        XCTAssertEqual(matches.map(\.name), ["small.bin"])
     }
 
     // MARK: - Row paths

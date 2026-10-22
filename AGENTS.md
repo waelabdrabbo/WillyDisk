@@ -68,9 +68,10 @@ views.
 `DesignSystem/DesignSystem.swift` holds every token (`DS`), `ChartPalette.swift` the
 chart fills, `FileCategory+UI.swift` the category symbols and labels, `AppAppearance.swift`
 the stored system/light/dark appearance preference the Settings window edits.
-`Support/` holds non-view helpers: `ExplorerQuery` (sorting/filtering), `Formatters`,
-`LocationName` (a location's display name), `VolumeInfo` (mounted volumes),
-`RecentLocations`, `FullDiskAccess` + `FullDiskAccessProbe` (TCC),
+`Support/` holds non-view helpers: `ExplorerQuery` (sorting/filtering), `ScanSearch`
+(the bounded whole-scan name search) + `ExplorerPath` (the folder chain a result drills
+to), `Formatters`, `LocationName` (a location's display name), `VolumeInfo` (mounted
+volumes), `RecentLocations`, `FullDiskAccess` + `FullDiskAccessProbe` (TCC),
 `ScanIssuesPresentation`, `ScanSlotPresentation`, `ReportExport` (JSON/CSV via
 `NSSavePanel`), `AccessNoticeDismissal`, `ScanOptions` + `ScanOptionsStore` (the one
 shared, persisted set of choices the next scan and Rescan use), `CleanupAnalysis` +
@@ -104,7 +105,7 @@ swift run WillyDisk scan <folder> --json  # command-line scan: no window, no UI 
 bash Scripts/run.sh                  # build the bundle and launch it (the way to look at the UI)
 bash Scripts/bundle-app.sh           # assemble .build/WillyDisk.app; its version comes from VERSION
 bash Scripts/package-release.sh      # build the arm64 and Intel zips with their SHA-256s
-bash Scripts/render-screens.sh       # offscreen PNGs (-S results|home|help|settings|categories|cleanup|duplicates|history|both), no window, no screen-recording permission
+bash Scripts/render-screens.sh       # offscreen PNGs (-S results|home|search|help|settings|categories|cleanup|duplicates|history|both), no window, no screen-recording permission
 bash Scripts/repo-map.sh             # one-screen structural inventory (--types adds declarations)
 ```
 

@@ -3,10 +3,10 @@ import SwiftUI
 
 /// A native search field for the explorer.
 ///
-/// The Results screen scopes search to the list, so the field lives in the
-/// inspector rather than in the window toolbar. AppKit supplies the standard
-/// search field behavior: placeholder, clear button, Escape-to-clear, and
-/// VoiceOver text-field semantics.
+/// The search covers the whole scan, so the field lives in the inspector rather
+/// than in the window toolbar, beside the list it replaces. AppKit supplies the
+/// standard search field behavior: placeholder, clear button, Escape-to-clear,
+/// and VoiceOver text-field semantics.
 struct SearchField: NSViewRepresentable {
     @Binding var text: String
     let prompt: String
@@ -27,7 +27,7 @@ struct SearchField: NSViewRepresentable {
         field.sendsSearchStringImmediately = true
         field.sendsWholeSearchString = false
         field.delegate = context.coordinator
-        field.setAccessibilityLabel("Search results")
+        field.setAccessibilityLabel("Search this scan")
         return field
     }
 

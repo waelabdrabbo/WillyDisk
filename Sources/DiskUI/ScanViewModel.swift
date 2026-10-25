@@ -501,7 +501,9 @@ public final class ScanViewModel {
         let generation = scanGeneration
         discardHeldPartial()
         lastPartialAppliedAt = nil
+        Self.retire(summary)
         summary = nil
+        Self.retire(partialSummary)
         partialSummary = nil
         progress = nil
         issues = []
@@ -574,7 +576,9 @@ public final class ScanViewModel {
         scanGeneration &+= 1
         discardHeldPartial()
         lastPartialAppliedAt = nil
+        Self.retire(summary)
         summary = nil
+        Self.retire(partialSummary)
         partialSummary = nil
         progress = nil
         issues = []
@@ -740,6 +744,7 @@ public final class ScanViewModel {
     private func prepareLiveTree(for summary: ScanSummary) {
         liveTreeTask?.cancel()
         cancelPendingUpdate()
+        Self.retire(liveTree)
         liveTree = nil
         updater = nil
         isBuildingLiveTree = true
@@ -751,7 +756,12 @@ public final class ScanViewModel {
             let tree = await Task.detached(priority: .userInitiated) {
                 LiveTree(scanning: summary)
             }.value
-            guard !Task.isCancelled, let self, self.scanGeneration == generation else { return }
+            guard !Task.isCancelled, let self, self.scanGeneration == generation else {
+                // The scan this tree describes was replaced while it was being
+                // built; free it where freeing it cannot stall the window.
+                Self.retire(tree)
+                return
+            }
             self.install(tree: tree, policy: policy)
         }
     }
@@ -790,6 +800,7 @@ public final class ScanViewModel {
         liveTreeTask?.cancel()
         liveTreeTask = nil
         cancelPendingUpdate()
+        Self.retire(liveTree)
         liveTree = nil
         updater = nil
         isBuildingLiveTree = false
@@ -817,6 +828,7 @@ public final class ScanViewModel {
             case .finished(let s):
                 discardHeldPartial()
                 summary = s
+                Self.retire(partialSummary)
                 partialSummary = nil
                 progress = nil
                 phase = .finished
@@ -833,6 +845,7 @@ public final class ScanViewModel {
             case .cancelled(let partial):
                 discardHeldPartial()
                 if let partial { summary = partial }
+                Self.retire(partialSummary)
                 partialSummary = nil
                 progress = nil
                 phase = .cancelled
@@ -848,7 +861,10 @@ public final class ScanViewModel {
         guard generation == scanGeneration, phase == .scanning else { return }
         // A snapshot the cadence was still holding is the newest the engine
         // produced, so it is what the screen settles on.
-        if let held = heldPartial { partialSummary = held }
+        if let held = heldPartial {
+            Self.retire(partialSummary)
+            partialSummary = held
+        }
         discardHeldPartial()
         summary = partialSummary
         partialSummary = nil
@@ -882,6 +898,7 @@ public final class ScanViewModel {
     /// remainder of it, and the newest snapshot is the one that counts: the ones
     /// it replaces were only ever an earlier reading of the same scan.
     private func hold(_ snapshot: ScanSummary, generation: Int) {
+        Self.retire(heldPartial)
         heldPartial = snapshot
         // The screen is moving: the newest snapshot waits for it to stop rather
         // than landing in the middle of the scroll.
@@ -927,6 +944,7 @@ public final class ScanViewModel {
         guard let snapshot = heldPartial else { return }
         heldPartial = nil
         lastPartialAppliedAt = ContinuousClock().now
+        Self.retire(partialSummary)
         partialSummary = snapshot
         resultsRevision &+= 1
     }
@@ -936,6 +954,23 @@ public final class ScanViewModel {
     private func discardHeldPartial() {
         heldPartialTask?.cancel()
         heldPartialTask = nil
+        Self.retire(heldPartial)
         heldPartial = nil
+    }
+
+    // MARK: - Releasing a replaced measurement
+
+    /// Frees a measurement the screen no longer shows away from the main actor.
+    ///
+    /// A finished `ScanSummary` carries the scanned root's whole tree as nested
+    /// `ScanNode` values, so freeing one walks every entry the scan measured.
+    /// On the main actor that walk is a visible pause wherever a scan is replaced
+    /// — starting the next scan would land it on the click. The value is kept
+    /// alive by a detached task and released when that task ends.
+    private nonisolated static func retire<T: Sendable>(_ value: T?) {
+        guard let value else { return }
+        _ = Task.detached(priority: .utility) {
+            withExtendedLifetime(value) {}
+        }
     }
 }

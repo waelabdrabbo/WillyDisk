@@ -29,6 +29,25 @@ final class ScanViewModelQATests: XCTestCase {
         func end() { continuation.finish() }
     }
 
+    /// The same scripted events, plus the tree an engine that measures during
+    /// the walk would hand over.
+    private final class ScriptedLiveEngine: ScanEngine, LiveTreeScanning, @unchecked Sendable {
+        let stream: AsyncStream<ScanEvent>
+        private let continuation: AsyncStream<ScanEvent>.Continuation
+        private let tree: LiveTree?
+
+        init(tree: LiveTree? = nil) {
+            (stream, continuation) = AsyncStream<ScanEvent>.makeStream()
+            self.tree = tree
+        }
+
+        func scan(_ request: ScanRequest) -> AsyncStream<ScanEvent> { stream }
+        func scan(_ request: ScanRequest, buildingLiveTree: Bool) -> AsyncStream<ScanEvent> { stream }
+        func takeLiveTree() async -> LiveTree? { tree }
+        func cancel() async {}
+        func emit(_ event: ScanEvent) { continuation.yield(event) }
+    }
+
     private func makeSummary(root: URL, logical: Int64, fileCount: Int = 1) -> ScanSummary {
         ScanSummary(
             root: root,
@@ -288,5 +307,120 @@ final class ScanViewModelQATests: XCTestCase {
 
         XCTAssertEqual(vm.phase, .idle)
         XCTAssertNil(vm.liveSummary, "a discarded scan leaves nothing behind, held snapshot included")
+    }
+
+    // MARK: - Starting over after a big measurement
+
+    /// A finished summary keeps the scanned root's whole tree as nested
+    /// `ScanNode` values. Freeing it is work proportional to the scan, and the
+    /// window must not pay for it when the next scan starts.
+    func testStartingAScanDoesNotFreeThePreviousScansTreeOnTheMainActor() async {
+        let root = URL(fileURLWithPath: "/qa/superseded")
+
+        // A tree handed over by the walk keeps this test to the release itself;
+        // converting the summary would be a separate, deliberately detached cost.
+        let engine = ScriptedLiveEngine(tree: LiveTree(rootName: "superseded", rootURL: root))
+        let vm = ScanViewModel(engine: engine)
+        vm.start(root: root)
+        engine.emit(.started(root: root))
+        engine.emit(.finished(makeMeasuredSummary(root: root, folders: 200, filesPerFolder: 2_000)))
+
+        let settled = await waitUntil { vm.phase == .finished && vm.liveTree != nil }
+        XCTAssertTrue(settled, "the big scan should settle before the next one starts")
+
+        let started = ContinuousClock().now
+        vm.start(root: URL(fileURLWithPath: "/qa/next"))
+        let elapsed = ContinuousClock().now - started
+        let seconds = Double(elapsed.components.seconds) + Double(elapsed.components.attoseconds) / 1e18
+
+        XCTAssertLessThan(
+            seconds, 0.03,
+            "starting a scan must not walk the superseded measurement's tree on the main actor"
+        )
+    }
+
+    /// A finished summary whose root carries a tree of `folders` folders, each
+    /// holding `filesPerFolder` files. Kept in its own scope so the only
+    /// reference left when the next scan starts is the view model's.
+    private func makeMeasuredSummary(root: URL, folders: Int, filesPerFolder: Int) -> ScanSummary {
+        let measured = makeMeasuredTree(root: root, folders: folders, filesPerFolder: filesPerFolder)
+        return ScanSummary(
+            root: root,
+            totalLogicalSize: measured.logicalSize,
+            totalAllocatedSize: measured.allocatedSize,
+            fileCount: measured.fileCount,
+            directoryCount: measured.directoryCount,
+            inaccessibleCount: 0,
+            errorCount: 0,
+            permissionDeniedCount: 0,
+            surfacedIssueCount: 0,
+            startedAt: Date(timeIntervalSince1970: 0),
+            finishedAt: Date(timeIntervalSince1970: 1),
+            categoryBreakdown: [.documents: measured.logicalSize],
+            largestFiles: [],
+            largestDirectories: [measured],
+            rootChildren: []
+        )
+    }
+
+    /// A finished tree of `folders` folders, each holding `filesPerFolder` files.
+    private func makeMeasuredTree(root: URL, folders: Int, filesPerFolder: Int) -> ScanNode {
+        var children: [ScanNode] = []
+        children.reserveCapacity(folders)
+        for folder in 0..<folders {
+            var files: [ScanNode] = []
+            files.reserveCapacity(filesPerFolder)
+            for file in 0..<filesPerFolder {
+                let name = "f\(file).dat"
+                files.append(ScanNode(
+                    id: UUID(),
+                    url: root.appendingPathComponent("folder\(folder)/\(name)"),
+                    name: name,
+                    isDirectory: false,
+                    isSymlink: false,
+                    category: .documents,
+                    logicalSize: 1,
+                    allocatedSize: 1,
+                    fileCount: 1,
+                    directoryCount: 0,
+                    modifiedAt: nil,
+                    isAccessible: true,
+                    errorMessage: nil,
+                    children: []
+                ))
+            }
+            children.append(ScanNode(
+                id: UUID(),
+                url: root.appendingPathComponent("folder\(folder)", isDirectory: true),
+                name: "folder\(folder)",
+                isDirectory: true,
+                isSymlink: false,
+                category: .other,
+                logicalSize: Int64(filesPerFolder),
+                allocatedSize: Int64(filesPerFolder),
+                fileCount: filesPerFolder,
+                directoryCount: 1,
+                modifiedAt: nil,
+                isAccessible: true,
+                errorMessage: nil,
+                children: files
+            ))
+        }
+        return ScanNode(
+            id: UUID(),
+            url: root,
+            name: root.lastPathComponent,
+            isDirectory: true,
+            isSymlink: false,
+            category: .other,
+            logicalSize: Int64(folders * filesPerFolder),
+            allocatedSize: Int64(folders * filesPerFolder),
+            fileCount: folders * filesPerFolder,
+            directoryCount: folders + 1,
+            modifiedAt: nil,
+            isAccessible: true,
+            errorMessage: nil,
+            children: children
+        )
     }
 }

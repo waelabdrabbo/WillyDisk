@@ -81,6 +81,11 @@ stream reports.
   screen that cannot follow — a scan that could not become a tree, or the watch
   switched off — and an applied batch clears it. Nothing is re-measured, so there is no
   refresh budget and `isLiveScan` is just `isScanning`.
+- A finished `ScanSummary` carries the scanned root's whole tree as nested `ScanNode`
+  values, so dropping one costs time proportional to the scan. Never release a
+  superseded summary, snapshot, or live tree on the main actor: `ScanViewModel.retire`
+  hands it to a detached task, which is what keeps starting the next scan from
+  stalling on the previous one's teardown.
 - `.partial` snapshots are advisory — the engine may throttle or omit them — and are
   never terminal. Update in place; the terminal `.finished` replaces them. The scan
   root's entries arrive ready-made in `ScanSummary.rootChildren`, folders included

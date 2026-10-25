@@ -2,6 +2,54 @@ import SwiftUI
 import DiskCore
 import DiskLocalization
 
+/// The one hovered cleanup row.
+///
+/// The rows observe this reference rather than the sheet holding the URL as view
+/// state, so a pointer crossing one row re-renders the rows and leaves the
+/// sheet's header, tabs and footer where they are. A scroll suspends the hover:
+/// rows passing under a still pointer do not light as they go by, and the row
+/// under the pointer is named again when the content settles.
+@MainActor
+@Observable
+final class CleanupHover {
+    var url: URL?
+
+    private(set) var isSuspended = false
+
+    /// Clears the hover when the content it named is replaced.
+    func reset() {
+        isSuspended = false
+        url = nil
+    }
+
+    func setSuspended(_ suspended: Bool) {
+        guard suspended != isSuspended else { return }
+        isSuspended = suspended
+        if suspended { url = nil }
+    }
+
+    func set(_ url: URL, _ hovering: Bool) {
+        guard !isSuspended else { return }
+        if hovering {
+            if self.url != url { self.url = url }
+        } else if self.url == url {
+            self.url = nil
+        }
+    }
+}
+
+/// The cleanup row under the pointer once a scroll settles.
+///
+/// Cleanup rows are not uniform, so each reports its own frame in the scroll
+/// content's coordinate space; the content offset turns the pointer's place in
+/// the viewport into a place in that content.
+enum CleanupHoverTarget {
+    static func row(in frames: [URL: CGRect], pointer: CGPoint, contentOffset: CGFloat) -> URL? {
+        let point = CGPoint(x: pointer.x, y: pointer.y + contentOffset)
+        return frames.first { $0.value.contains(point) }?.key
+    }
+}
+
 /// The two views of the cleanup report.
 public enum CleanupTab: String, CaseIterable, Identifiable, Sendable {
     case old
@@ -37,7 +85,8 @@ public struct CleanupSheet: View {
     @State private var report: CleanupReport?
     @State private var isAnalyzing: Bool
     @State private var selected: Set<URL> = []
-    @State private var hoveredCandidate: URL?
+    @State private var hover = CleanupHover()
+    @State private var scrollMetrics = CleanupScrollMetrics()
     @State private var analysisTask: Task<CleanupReport?, Never>?
     @State private var duplicateCheck: DuplicateCheck
     @State private var tab: CleanupTab
@@ -102,7 +151,12 @@ public struct CleanupSheet: View {
         .frame(width: 720, height: 640)
         .background(DS.Color.windowBackground)
         .tint(DS.Color.signal)
+        .environment(hover)
         .task { await analyzeIfNeeded() }
+        .onChange(of: tab) { _, _ in
+            hover.reset()
+            scrollMetrics.contentOffset = 0
+        }
         .onDisappear {
             analysisTask?.cancel()
             duplicateCheck.cancel()
@@ -263,8 +317,13 @@ public struct CleanupSheet: View {
                 }
                 .padding(DS.Spacing.xxLarge)
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .coordinateSpace(name: CleanupScrollSpace.content)
+                .onPreferenceChange(CleanupRowFramesKey.self) { frames in
+                    scrollMetrics.rowFrames = frames
+                }
             }
             .frame(maxHeight: 400)
+            .modifier(CleanupScrollHover(hover: hover, metrics: scrollMetrics))
         }
     }
 
@@ -300,8 +359,13 @@ public struct CleanupSheet: View {
                 }
                 .padding(DS.Spacing.xxLarge)
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .coordinateSpace(name: CleanupScrollSpace.content)
+                .onPreferenceChange(CleanupRowFramesKey.self) { frames in
+                    scrollMetrics.rowFrames = frames
+                }
             }
             .frame(maxHeight: 400)
+            .modifier(CleanupScrollHover(hover: hover, metrics: scrollMetrics))
         }
     }
 
@@ -342,7 +406,11 @@ public struct CleanupSheet: View {
 
             VStack(spacing: DS.Spacing.xSmall) {
                 ForEach(group.candidates) { candidate in
-                    row(candidate)
+                    CleanupCandidateRow(
+                        candidate: candidate,
+                        isSelected: selected.contains(candidate.url),
+                        onToggle: { toggle(candidate.url) }
+                    )
                 }
             }
         }
@@ -546,7 +614,11 @@ public struct CleanupSheet: View {
 
             VStack(spacing: DS.Spacing.xSmall) {
                 ForEach(group.candidates) { candidate in
-                    row(candidate)
+                    CleanupCandidateRow(
+                        candidate: candidate,
+                        isSelected: selected.contains(candidate.url),
+                        onToggle: { toggle(candidate.url) }
+                    )
                 }
             }
         }
@@ -587,67 +659,12 @@ public struct CleanupSheet: View {
         }
     }
 
-    private func row(_ candidate: CleanupCandidate) -> some View {
-        let isSelected = selected.contains(candidate.url)
-        return Button {
-            if isSelected {
-                selected.remove(candidate.url)
-            } else {
-                selected.insert(candidate.url)
-            }
-        } label: {
-            HStack(spacing: DS.Spacing.small) {
-                Image(systemName: isSelected ? "checkmark.square.fill" : "square")
-                    .font(DS.Typography.callout)
-                    .foregroundStyle(isSelected ? DS.Color.accent : DS.Color.secondaryText)
-                    .accessibilityHidden(true)
-                Image(systemName: candidate.isDirectory ? "folder.fill" : "doc.fill")
-                    .font(DS.Typography.caption)
-                    .foregroundStyle(DS.Color.graphite)
-                    .accessibilityHidden(true)
-                VStack(alignment: .leading, spacing: DS.Spacing.hairline) {
-                    Text(candidate.name)
-                        .font(DS.Typography.callout)
-                        .foregroundStyle(DS.Color.primaryText)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                    Text(PathFormat.abbreviated(candidate.url.path, maxLength: 72))
-                        .font(DS.Typography.caption)
-                        .foregroundStyle(DS.Color.mutedText)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                }
-                Spacer(minLength: DS.Spacing.small)
-                if candidate.isDirectory {
-                    Text(CountFormat.files(candidate.fileCount))
-                        .font(DS.Typography.caption)
-                        .foregroundStyle(DS.Color.secondaryText)
-                } else if let modified = candidate.modifiedAt {
-                    Text(DateFormat.dateOnly(modified))
-                        .font(DS.Typography.caption)
-                        .foregroundStyle(DS.Color.secondaryText)
-                }
-                Text(ByteFormat.string(candidate.logicalSize))
-                    .font(DS.Typography.figures)
-                    .foregroundStyle(DS.Color.secondaryText)
-                    .frame(minWidth: 64, alignment: .trailing)
-            }
-            .padding(.horizontal, DS.Spacing.small)
-            .padding(.vertical, DS.Spacing.xSmall)
-            .dsHoverableRow(isHovered: hoveredCandidate == candidate.url, radius: DS.Radius.medium)
-            .contentShape(Rectangle())
+    private func toggle(_ url: URL) {
+        if selected.contains(url) {
+            selected.remove(url)
+        } else {
+            selected.insert(url)
         }
-        .buttonStyle(.plain)
-        .onHover { inside in
-            if inside {
-                hoveredCandidate = candidate.url
-            } else if hoveredCandidate == candidate.url {
-                hoveredCandidate = nil
-            }
-        }
-        .accessibilityLabel(L10n.format("%@, %@", candidate.name, ByteFormat.string(candidate.logicalSize)))
-        .accessibilityHint(L10n.string(candidate.isDirectory ? "A folder; moves everything inside it" : "A file"))
-        .accessibilityAddTraits(isSelected ? [.isSelected] : [])
     }
 
     // MARK: - Footer
@@ -753,5 +770,136 @@ public struct CleanupSheet: View {
             return L10n.format("%lld months", max(1, days / 30))
         }
         return L10n.format("%lld days", max(1, days))
+    }
+}
+
+/// The coordinate space of a cleanup tab's scroll content.
+private enum CleanupScrollSpace {
+    static let content = "cleanup-content"
+}
+
+/// What restoring a cleanup row's hover needs: the pointer, the content offset,
+/// and each row's place in the scroll content.
+///
+/// Held in a reference box rather than view state: the offset changes on every
+/// frame of a scroll and is read once, when the scroll settles.
+private final class CleanupScrollMetrics {
+    var pointer: CGPoint?
+    var contentOffset: CGFloat = 0
+    var rowFrames: [URL: CGRect] = [:]
+}
+
+/// Each candidate row's place in the scroll content, keyed by its URL.
+private struct CleanupRowFramesKey: PreferenceKey {
+    static let defaultValue: [URL: CGRect] = [:]
+
+    static func reduce(value: inout [URL: CGRect], nextValue: () -> [URL: CGRect]) {
+        value.merge(nextValue(), uniquingKeysWith: { $1 })
+    }
+}
+
+/// The explorer's hover rule on a cleanup scroll view: no row lights while the
+/// content moves, and the row under the pointer is named again when it settles.
+private struct CleanupScrollHover: ViewModifier {
+    let hover: CleanupHover
+    let metrics: CleanupScrollMetrics
+
+    func body(content: Content) -> some View {
+        content
+            .modifier(ScrollActivityReporter(onChange: { scrolling in
+                hover.setSuspended(scrolling)
+                if !scrolling { restore() }
+            }))
+            .modifier(ScrollOffsetReader { offset in
+                metrics.contentOffset = offset
+            })
+            .onContinuousHover { phase in
+                switch phase {
+                case .active(let point): metrics.pointer = point
+                case .ended: metrics.pointer = nil
+                }
+            }
+    }
+
+    private func restore() {
+        guard let pointer = metrics.pointer,
+              let url = CleanupHoverTarget.row(
+                  in: metrics.rowFrames,
+                  pointer: pointer,
+                  contentOffset: metrics.contentOffset
+              ) else { return }
+        hover.set(url, true)
+    }
+}
+
+/// One cleanup candidate.
+///
+/// The row reads the shared hover itself, so the pointer crossing it re-renders
+/// the rows rather than the sheet, and publishes its place in the scroll content
+/// so the hover can return to it when a scroll settles.
+private struct CleanupCandidateRow: View {
+    let candidate: CleanupCandidate
+    let isSelected: Bool
+    let onToggle: () -> Void
+
+    @Environment(CleanupHover.self) private var hover
+
+    var body: some View {
+        let isHovered = hover.url == candidate.url
+        Button(action: onToggle) {
+            HStack(spacing: DS.Spacing.small) {
+                Image(systemName: isSelected ? "checkmark.square.fill" : "square")
+                    .font(DS.Typography.callout)
+                    .foregroundStyle(isSelected ? DS.Color.accent : DS.Color.secondaryText)
+                    .accessibilityHidden(true)
+                Image(systemName: candidate.isDirectory ? "folder.fill" : "doc.fill")
+                    .font(DS.Typography.caption)
+                    .foregroundStyle(DS.Color.graphite)
+                    .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: DS.Spacing.hairline) {
+                    Text(candidate.name)
+                        .font(DS.Typography.callout)
+                        .foregroundStyle(DS.Color.primaryText)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                    Text(PathFormat.abbreviated(candidate.url.path, maxLength: 72))
+                        .font(DS.Typography.caption)
+                        .foregroundStyle(DS.Color.mutedText)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                }
+                Spacer(minLength: DS.Spacing.small)
+                if candidate.isDirectory {
+                    Text(CountFormat.files(candidate.fileCount))
+                        .font(DS.Typography.caption)
+                        .foregroundStyle(DS.Color.secondaryText)
+                } else if let modified = candidate.modifiedAt {
+                    Text(DateFormat.dateOnly(modified))
+                        .font(DS.Typography.caption)
+                        .foregroundStyle(DS.Color.secondaryText)
+                }
+                Text(ByteFormat.string(candidate.logicalSize))
+                    .font(DS.Typography.figures)
+                    .foregroundStyle(DS.Color.secondaryText)
+                    .frame(minWidth: 64, alignment: .trailing)
+            }
+            .padding(.horizontal, DS.Spacing.small)
+            .padding(.vertical, DS.Spacing.xSmall)
+            .dsHoverableRow(isHovered: isHovered, radius: DS.Radius.medium)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .onHover { inside in hover.set(candidate.url, inside) }
+        .background {
+            GeometryReader { proxy in
+                Color.clear.preference(
+                    key: CleanupRowFramesKey.self,
+                    value: [candidate.url: proxy.frame(in: .named(CleanupScrollSpace.content))]
+                )
+            }
+        }
+        .accessibilityLabel(L10n.format("%@, %@", candidate.name, ByteFormat.string(candidate.logicalSize)))
+        .accessibilityHint(L10n.string(candidate.isDirectory ? "A folder; moves everything inside it" : "A file"))
+        .accessibilityAddTraits(isSelected ? [.isSelected] : [])
     }
 }

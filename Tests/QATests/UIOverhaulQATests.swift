@@ -513,6 +513,61 @@ final class UIOverhaulQATests: XCTestCase {
                      "a pointer above the first row names nothing")
     }
 
+    /// The cleanup sheet's rows publish one hover, the row still on the pointer
+    /// clears it, and a scroll suspends it until the content settles.
+    func testCleanupHoverIsClaimedByARowAndSuspendedWhileScrolling() {
+        let hover = CleanupHover()
+        let first = URL(fileURLWithPath: "/qa/cleanup-first")
+        let second = URL(fileURLWithPath: "/qa/cleanup-second")
+
+        XCTAssertNil(hover.url, "nothing is hovered before the pointer arrives")
+        hover.set(first, true)
+        XCTAssertEqual(hover.url, first)
+
+        hover.set(second, true)
+        hover.set(first, false)
+        XCTAssertEqual(hover.url, second, "leaving the old row does not clear the new one")
+        hover.set(second, false)
+        XCTAssertNil(hover.url)
+
+        hover.set(first, true)
+        hover.setSuspended(true)
+        XCTAssertNil(hover.url, "starting a scroll drops the row that was lit")
+        hover.set(second, true)
+        XCTAssertNil(hover.url, "a row passing under the pointer claims nothing while scrolling")
+        hover.setSuspended(false)
+        hover.set(second, true)
+        XCTAssertEqual(hover.url, second, "hover resumes when the content settles")
+    }
+
+    /// Cleanup rows are not uniform, so the restored row is the one whose
+    /// content-space frame holds the pointer plus the scroll offset.
+    func testCleanupHoverRestoreNamesTheRowUnderThePointer() {
+        let first = URL(fileURLWithPath: "/qa/cleanup-first")
+        let second = URL(fileURLWithPath: "/qa/cleanup-second")
+        let frames: [URL: CGRect] = [
+            first: CGRect(x: 0, y: 0, width: 500, height: 40),
+            second: CGRect(x: 0, y: 48, width: 500, height: 40),
+        ]
+
+        XCTAssertEqual(
+            CleanupHoverTarget.row(in: frames, pointer: CGPoint(x: 10, y: 10), contentOffset: 0),
+            first
+        )
+        XCTAssertEqual(
+            CleanupHoverTarget.row(in: frames, pointer: CGPoint(x: 10, y: 10), contentOffset: 40),
+            second
+        )
+        XCTAssertNil(
+            CleanupHoverTarget.row(in: frames, pointer: CGPoint(x: 10, y: 45), contentOffset: 0),
+            "the gap between rows names nothing"
+        )
+        XCTAssertNil(
+            CleanupHoverTarget.row(in: frames, pointer: CGPoint(x: 700, y: 10), contentOffset: 0),
+            "a pointer outside every row names nothing"
+        )
+    }
+
     // MARK: - Live results: the model the results screen renders
 
     /// A scripted engine, so the view model's live/growing state can be asserted

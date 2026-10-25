@@ -21,7 +21,8 @@ stream reports.
   reclaim confirmation), `HistorySheet` (the recorded runs of a location, two compared),
   `AccessNoticeRow`, `FlowLayout`, `ScanOptionToggle` (one scan option, shared by the
   source screen's sheet and Settings), `ResultsStatusBadges` (the stale marker),
-  `ControlStyles` (the shared row hover, inline and icon actions, and warning notice).
+  `ControlStyles` (the shared row hover, inline and icon actions, and warning notice),
+  `ScrollTracking` (the scroll-phase and content-offset reporters the row lists share).
 - `DesignSystem/` — `DesignSystem.swift` holds every token (`DS`), `ChartPalette.swift`
   the chart fills, `FileCategory+UI.swift` the category symbols and labels,
   `AppAppearance.swift` the stored system/light/dark preference the Settings window

@@ -2512,7 +2512,7 @@ private struct ContentsList: View {
                 // the highlight the moment the list settles.
                 if !scrolling { restoreHover() }
             }))
-            .modifier(ScrollMetricsReader(metrics: metrics))
+            .modifier(ScrollOffsetReader { metrics.contentOffset = $0 })
             .onContinuousHover { phase in
                 switch phase {
                 case .active(let point): metrics.pointer = point
@@ -2633,41 +2633,6 @@ private struct ContentsList: View {
             return .handled
         }
         return .ignored
-    }
-}
-
-/// Reports the list's scroll activity to the view model.
-///
-/// A snapshot applied mid-scroll rebuilds the chart and the list under the
-/// user's hand, so the model holds progressive snapshots while the list moves.
-/// `ScrollPhase` arrives with macOS 15; on macOS 14 the list simply keeps its
-/// earlier cadence.
-private struct ScrollActivityReporter: ViewModifier {
-    let onChange: (Bool) -> Void
-
-    func body(content: Content) -> some View {
-        if #available(macOS 15.0, *) {
-            content.onScrollPhaseChange { _, phase in
-                onChange(phase.isScrolling)
-            }
-        } else {
-            content
-        }
-    }
-}
-
-/// Reports the content offset into the metrics box without touching view state.
-private struct ScrollMetricsReader: ViewModifier {
-    let metrics: ScrollHoverMetrics
-
-    func body(content: Content) -> some View {
-        if #available(macOS 15.0, *) {
-            content.onScrollGeometryChange(for: CGFloat.self) { $0.contentOffset.y } action: { _, offset in
-                metrics.contentOffset = offset
-            }
-        } else {
-            content
-        }
     }
 }
 

@@ -1,6 +1,7 @@
 import SwiftUI
 import AppKit
 import DiskCore
+import DiskLocalization
 
 /// Screen C — analysis results, and the live state while a scan runs.
 ///
@@ -445,11 +446,11 @@ public struct ResultsView: View {
     }
 
     private var chartCenterHint: String {
-        if explorerMode == .categories { return "Show all categories" }
-        guard !breadcrumb.isEmpty else { return "The scanned location" }
+        if explorerMode == .categories { return L10n.string("Show all categories") }
+        guard !breadcrumb.isEmpty else { return L10n.string("The scanned location") }
         return breadcrumb.count == 1
-            ? "Return to the scanned location"
-            : "Go up to \(breadcrumb[breadcrumb.count - 2].name)"
+            ? L10n.string("Return to the scanned location")
+            : L10n.format("Go up to %@", breadcrumb[breadcrumb.count - 2].name)
     }
 
     /// The explorer's page is also the chart's density: a page of 15 items shows
@@ -475,35 +476,37 @@ public struct ResultsView: View {
     /// Honest copy for an empty chart — an empty result set means something
     /// different while a scan is still filling in than after it has settled.
     private var chartEmptyMessage: String {
-        isLiveScan ? "Reading the first folders…" : "This folder has nothing big enough to draw."
+        isLiveScan ? L10n.string("Reading the first folders…") : L10n.string("This folder has nothing big enough to draw.")
     }
 
     /// Honest copy for an empty explorer list, in the same two situations.
     private var listEmptyMessage: String {
         if isSearchActive {
             if isSearching || searchResults == nil {
-                return "Searching every file and folder…"
+                return L10n.string("Searching every file and folder…")
             }
-            return isLiveScan
-                ? "No matches so far for “\(searchQuery)”"
-                : "No matches for “\(searchQuery)”"
+            return L10n.format(
+                isLiveScan ? "No matches so far for “%@”" : "No matches for “%@”",
+                searchQuery
+            )
         }
         if explorerMode == .categories {
             if let category = drilledCategory {
-                return isLiveScan
-                    ? "No \(category.displayName) files yet"
-                    : "No \(category.displayName) files in this scan"
+                return L10n.format(
+                    isLiveScan ? "No %@ files yet" : "No %@ files in this scan",
+                    category.displayName
+                )
             }
-            return "No categories"
+            return L10n.string("No categories")
         }
         if explorerMode != .folder {
-            if isLiveScan { return "Waiting for the first items…" }
-            return explorerMode == .topFiles ? "No files to rank" : "No folders to rank"
+            if isLiveScan { return L10n.string("Waiting for the first items…") }
+            return L10n.string(explorerMode == .topFiles ? "No files to rank" : "No folders to rank")
         }
-        if isLiveScan { return "Waiting for the first items…" }
+        if isLiveScan { return L10n.string("Waiting for the first items…") }
         // The folder holds entries, but none of them has bytes to list.
-        if !currentChildren.isEmpty { return "Nothing here has a size" }
-        return "This folder is empty"
+        if !currentChildren.isEmpty { return L10n.string("Nothing here has a size") }
+        return L10n.string("This folder is empty")
     }
 
     // MARK: - Access notice
@@ -528,7 +531,7 @@ public struct ResultsView: View {
             if summary != nil || viewModel.isScanning {
                 content
             } else {
-                ContentUnavailableView("No results", systemImage: "chart.pie", description: Text("Run a scan to see storage analysis."))
+                ContentUnavailableView(L10n.string("No results"), systemImage: "chart.pie", description: Text(L10n.string("Run a scan to see storage analysis.")))
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -690,11 +693,11 @@ public struct ResultsView: View {
                 Button {
                     goHome()
                 } label: {
-                    Label("Home", systemImage: "house")
+                    Label(L10n.string("Home"), systemImage: "house")
                 }
-                .help("Return to source selection")
-                .accessibilityLabel("Home")
-                .accessibilityHint("Shows source selection; a scan that is running keeps running")
+                .help(L10n.string("Return to source selection"))
+                .accessibilityLabel(L10n.string("Home"))
+                .accessibilityHint(L10n.string("Shows source selection; a scan that is running keeps running"))
             }
             // The trail sits immediately after Home. With no title in the window
             // chrome it is the only place that names the folder on screen; it stays
@@ -715,44 +718,44 @@ public struct ResultsView: View {
                 Button {
                     showHistory()
                 } label: {
-                    Label("History", systemImage: "clock.arrow.circlepath")
+                    Label(L10n.string("History"), systemImage: "clock.arrow.circlepath")
                 }
-                .help("Compare this location's recorded scans")
+                .help(L10n.string("Compare this location's recorded scans"))
                 .disabled(summary == nil || viewModel.history == nil)
 
                 Button {
                     showCleanup()
                 } label: {
-                    Label("Cleanup", systemImage: "sparkles")
+                    Label(L10n.string("Cleanup"), systemImage: "sparkles")
                 }
-                .help("Large, old, and cache items worth reviewing")
+                .help(L10n.string("Large, old, and cache items worth reviewing"))
                 .disabled(summary == nil || viewModel.isScanning)
 
                 Button {
                     showCoverage()
                 } label: {
-                    Label("Coverage", systemImage: "info.circle")
+                    Label(L10n.string("Coverage"), systemImage: "info.circle")
                 }
-                .help("What this scan counted, and what it did not")
+                .help(L10n.string("What this scan counted, and what it did not"))
                 .disabled(summary == nil)
 
                 Button {
                     rescan()
                 } label: {
-                    Label("Rescan", systemImage: "arrow.counterclockwise")
+                    Label(L10n.string("Rescan"), systemImage: "arrow.counterclockwise")
                 }
-                .help(viewModel.isScanning
+                .help(L10n.string(viewModel.isScanning
                       ? "A scan is already running — cancel it first to start again"
-                      : "Scan the current location again")
+                      : "Scan the current location again"))
                 .disabled(viewModel.isScanning)
 
                 Menu {
-                    Button("Export as JSON…") { exportJSON() }
-                    Button("Export as CSV…") { exportCSV() }
+                    Button(L10n.string("Export as JSON…")) { exportJSON() }
+                    Button(L10n.string("Export as CSV…")) { exportCSV() }
                 } label: {
-                    Label("Export", systemImage: "square.and.arrow.up")
+                    Label(L10n.string("Export"), systemImage: "square.and.arrow.up")
                 }
-                .help("Export the analysis report")
+                .help(L10n.string("Export the analysis report"))
                 .disabled(summary == nil)
             }
         }
@@ -770,7 +773,7 @@ public struct ResultsView: View {
     /// location, otherwise the app name. The explorer header names it; the toolbar
     /// trail is the navigation path.
     private var folderTitle: String {
-        breadcrumb.last?.name ?? scannedRootName ?? "WillyDisk"
+        breadcrumb.last?.name ?? scannedRootName ?? L10n.string("WillyDisk")
     }
 
     /// The size the header states: the focused folder's, not the whole scan's.
@@ -883,7 +886,7 @@ public struct ResultsView: View {
                     // chart: the categories, with the open one outlined.
                     CategoryRingView(
                         breakdown: categoryBreakdown,
-                        centerLabel: scannedRootName ?? "This scan",
+                        centerLabel: scannedRootName ?? L10n.string("This scan"),
                         selected: drilledCategory,
                         hovered: $hoveredCategory,
                         onSelect: selectCategory
@@ -895,7 +898,7 @@ public struct ResultsView: View {
             } else {
                 SunburstView(
                     nodes: currentChildren,
-                    centerLabel: breadcrumb.last?.name ?? scannedRootName ?? "Root",
+                    centerLabel: breadcrumb.last?.name ?? scannedRootName ?? L10n.string("Root"),
                     selectedNodeURL: selectedNodes.count == 1 ? selectedNodes[0].url : nil,
                     maxChildren: chartChildLimit,
                     hoveredURL: $hover.url,
@@ -925,7 +928,7 @@ public struct ResultsView: View {
                 .font(DS.Typography.callout)
                 .foregroundStyle(DS.Color.primaryText)
                 .multilineTextAlignment(.center)
-            Text("The chart maps one folder at a time. Clear the search to return to “\(folderTitle)”.")
+            Text(L10n.format("The chart maps one folder at a time. Clear the search to return to “%@”.", folderTitle))
                 .font(DS.Typography.caption)
                 .foregroundStyle(DS.Color.secondaryText)
                 .multilineTextAlignment(.center)
@@ -938,15 +941,17 @@ public struct ResultsView: View {
 
     private var searchChartTitle: String {
         guard let results = searchResults else {
-            return "Searching every file and folder…"
+            return L10n.string("Searching every file and folder…")
         }
-        if isSearching { return "Searching…" }
+        if isSearching { return L10n.string("Searching…") }
         if results.matchCount == 0 {
-            return isLiveScan ? "No matches so far" : "No matches for “\(searchQuery)”"
+            return isLiveScan
+                ? L10n.string("No matches so far")
+                : L10n.format("No matches for “%@”", searchQuery)
         }
         return results.isTruncated
-            ? "Showing the largest \(results.matches.count) of \(CountFormat.matches(results.matchCount))"
-            : CountFormat.matches(results.matchCount) + " for “\(searchQuery)”"
+            ? L10n.format("Showing the largest %lld of %@", results.matches.count, CountFormat.matches(results.matchCount))
+            : L10n.format("%@ for “%@”", CountFormat.matches(results.matchCount), searchQuery)
     }
 
     /// What the chart pane shows before there is anything to draw, which is a
@@ -966,9 +971,10 @@ public struct ResultsView: View {
     private func categoryEmptyChart(_ category: FileCategory) -> some View {
         VStack(spacing: DS.Spacing.small) {
             WillyDiskMark(size: 44)
-            Text(isLiveScan
-                 ? "No \(category.displayName) files yet"
-                 : "No \(category.displayName) files to draw")
+            Text(L10n.format(
+                isLiveScan ? "No %@ files yet" : "No %@ files to draw",
+                category.displayName
+            ))
                 .font(DS.Typography.callout)
                 .foregroundStyle(DS.Color.secondaryText)
                 .multilineTextAlignment(.center)
@@ -1043,7 +1049,7 @@ public struct ResultsView: View {
     /// node lists and is not shown here; the search field is, because it searches
     /// the scan rather than the nine categories.
     private var categoryModeCaption: some View {
-        Text("Share of this scan's logical size. Choose a category to see its largest files.")
+        Text(L10n.string("Share of this scan's logical size. Choose a category to see its largest files."))
             .font(DS.Typography.caption)
             .foregroundStyle(DS.Color.secondaryText)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -1054,12 +1060,12 @@ public struct ResultsView: View {
     /// The way back out of a category, and what its list is showing.
     private func categoryDetailHeader(_ category: FileCategory) -> some View {
         HStack(spacing: DS.Spacing.xSmall) {
-            InlineActionButton("All Categories", systemImage: "chevron.left") {
+            InlineActionButton(L10n.string("All Categories"), systemImage: "chevron.left") {
                 closeCategory()
             }
-            .help("Show every category")
-            .accessibilityLabel("All Categories")
-            .accessibilityHint("Closes this category and shows the whole breakdown")
+            .help(L10n.string("Show every category"))
+            .accessibilityLabel(L10n.string("All Categories"))
+            .accessibilityHint(L10n.string("Closes this category and shows the whole breakdown"))
 
             Text(category.displayName)
                 .font(DS.Typography.caption)
@@ -1073,7 +1079,7 @@ public struct ResultsView: View {
                     .foregroundStyle(DS.Color.secondaryText)
                     .lineLimit(1)
                     .help(files.isTruncated
-                          ? "Showing the largest \(files.files.count) of \(CountFormat.files(files.matchCount))"
+                          ? L10n.format("Showing the largest %lld of %@", files.files.count, CountFormat.files(files.matchCount))
                           : CountFormat.files(files.matchCount))
             }
         }
@@ -1084,21 +1090,21 @@ public struct ResultsView: View {
     private func categorySummary(_ files: CategoryFiles) -> String {
         let size = ByteFormat.string(files.totalLogicalSize)
         if isLiveScan {
-            return "\(size) · largest \(files.files.count) so far"
+            return L10n.format("%@ · largest %lld so far", size, files.files.count)
         }
         if files.stoppedAtLimit {
-            return "\(size) · sample of \(CountFormat.files(files.matchCount))"
+            return L10n.format("%@ · sample of %@", size, CountFormat.files(files.matchCount))
         }
         if files.isTruncated {
-            return "\(size) · largest \(files.files.count) of \(files.matchCount)"
+            return L10n.format("%@ · largest %lld of %lld", size, files.files.count, files.matchCount)
         }
-        return "\(size) · \(CountFormat.files(files.matchCount))"
+        return L10n.format("%@ · %@", size, CountFormat.files(files.matchCount))
     }
 
     private func categoryFilesLoading(_ category: FileCategory) -> some View {
         VStack(spacing: DS.Spacing.small) {
             ProgressView()
-            Text("Reading the \(category.displayName) files…")
+            Text(L10n.format("Reading the %@ files…", category.displayName))
                 .font(DS.Typography.callout)
                 .foregroundStyle(DS.Color.secondaryText)
         }
@@ -1109,13 +1115,13 @@ public struct ResultsView: View {
     /// The switch between the folder in the chart and the two largest lists.
     private var explorerModeBar: some View {
         HStack(spacing: 0) {
-            Picker("Explorer view", selection: $explorerMode) {
+            Picker(L10n.string("Explorer view"), selection: $explorerMode) {
                 ForEach(ExplorerMode.allCases) { mode in
                     Text(mode.label).tag(mode)
                 }
             }
             .dsSegmentedSwitch()
-            .accessibilityLabel("Explorer view")
+            .accessibilityLabel(L10n.string("Explorer view"))
             Spacer(minLength: 0)
         }
         .padding(.horizontal, DS.Spacing.medium)
@@ -1133,7 +1139,7 @@ public struct ResultsView: View {
     private var breadcrumbTrail: some View {
         HStack(spacing: DS.Spacing.small) {
             crumb(
-                scannedRootName ?? "Scanned Folder",
+                scannedRootName ?? L10n.string("Scanned Folder"),
                 isCurrent: breadcrumb.isEmpty,
                 action: { goToBreadcrumb(depth: 0) }
             )
@@ -1156,7 +1162,7 @@ public struct ResultsView: View {
         .padding(.trailing, DS.Spacing.small)
         .frame(maxWidth: DS.Size.toolbarBreadcrumbMaxWidth)
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("Folder path")
+        .accessibilityLabel(L10n.string("Folder path"))
     }
 
     @ViewBuilder
@@ -1193,7 +1199,7 @@ public struct ResultsView: View {
             }
             .buttonStyle(.plain)
             .onHover { isHovered = $0 }
-            .help("Show “\(name)”")
+            .help(L10n.format("Show “%@”", name))
         }
     }
 
@@ -1248,15 +1254,15 @@ public struct ResultsView: View {
     /// general wording.
     private var staleMessage: String {
         guard let first = viewModel.changedFolders.first else {
-            return "Results changed since this scan. Rescan."
+            return L10n.string("Results changed since this scan. Rescan.")
         }
         if viewModel.changedFoldersWereTruncated {
-            return "Changed in Finder in \(viewModel.changedFolderCount)+ folders. Rescan."
+            return L10n.format("Changed in Finder in %lld+ folders. Rescan.", viewModel.changedFolderCount)
         }
         if viewModel.changedFolderCount <= 1 {
-            return "Changed in Finder: “\(first.lastPathComponent)”. Rescan."
+            return L10n.format("Changed in Finder: “%@”. Rescan.", first.lastPathComponent)
         }
-        return "Changed in Finder in \(viewModel.changedFolderCount) folders. Rescan."
+        return L10n.format("Changed in Finder in %lld folders. Rescan.", viewModel.changedFolderCount)
     }
 
     /// Counts for the list's scope: the folder's own entries while the chart and
@@ -1264,12 +1270,20 @@ public struct ResultsView: View {
     /// of the largest lists.
     private var countsText: String {
         if explorerMode == .folder {
-            return "\(CountFormat.files(summary?.fileCount ?? 0)) across \(CountFormat.items(presentableChildren.count))"
+            return L10n.format(
+                "%@ across %@",
+                CountFormat.files(summary?.fileCount ?? 0),
+                CountFormat.items(presentableChildren.count)
+            )
         }
         guard let s = summary else { return CountFormat.files(0) }
         // The scan root is a folder in the summary, but it is the scan itself and
         // never one of its own subfolders, so the largest-list counts leave it out.
-        return "\(CountFormat.files(s.fileCount)) in \(CountFormat.folders(max(0, s.directoryCount - 1)))"
+        return L10n.format(
+            "%@ in %@",
+            CountFormat.files(s.fileCount),
+            CountFormat.folders(max(0, s.directoryCount - 1))
+        )
     }
 
     /// When the results were gathered and how long the scan took, so the numbers
@@ -1293,8 +1307,11 @@ public struct ResultsView: View {
             .font(DS.Typography.caption)
             .monospacedDigit()
             .foregroundStyle(DS.Color.secondaryText)
-            .lineLimit(1)
-            .truncationMode(.tail)
+            // A translated date and duration can outgrow the inspector's
+            // column; two lines keep the whole stamp readable rather than
+            // ending it with an ellipsis.
+            .lineLimit(2)
+            .fixedSize(horizontal: false, vertical: true)
             .help(full)
             .accessibilityLabel(full)
     }
@@ -1311,7 +1328,7 @@ public struct ResultsView: View {
                 .font(DS.Icon.detail)
                 .foregroundStyle(DS.Color.warning)
                 .accessibilityHidden(true)
-            Text("Stopped early — these results are partial")
+            Text(L10n.string("Stopped early — these results are partial"))
                 .font(DS.Typography.caption)
                 .foregroundStyle(DS.Color.warning)
         }
@@ -1356,8 +1373,8 @@ public struct ResultsView: View {
                 .menuStyle(.borderlessButton)
                 .fixedSize()
                 .frame(minHeight: DS.Size.iconButton)
-                .help("Sort by \(sortOrder.label)")
-                .accessibilityLabel("Sort")
+                .help(L10n.format("Sort by %@", sortOrder.label))
+                .accessibilityLabel(L10n.string("Sort"))
                 .accessibilityValue(sortOrder.label)
             }
         }
@@ -1365,7 +1382,7 @@ public struct ResultsView: View {
     }
 
     private var searchPrompt: String {
-        "Search this scan"
+        L10n.string("Search this scan")
     }
 
     /// What the search found, in the explorer's own line.
@@ -1394,20 +1411,24 @@ public struct ResultsView: View {
 
     private var searchSummaryText: String {
         guard let results = searchResults else {
-            return "Searching every file and folder…"
+            return L10n.string("Searching every file and folder…")
         }
-        if isSearching { return "Searching…" }
+        if isSearching { return L10n.string("Searching…") }
         if results.matchCount == 0 {
-            return isLiveScan ? "No matches so far" : "No matches"
+            return L10n.string(isLiveScan ? "No matches so far" : "No matches")
         }
         var text = results.isTruncated
-            ? "Showing the largest \(results.matches.count) of \(CountFormat.matches(results.matchCount))"
+            ? L10n.format("Showing the largest %lld of %@", results.matches.count, CountFormat.matches(results.matchCount))
             : CountFormat.matches(results.matchCount)
         if results.stoppedAtLimit {
-            text += " · searched the first \(CountFormat.items(results.visitedCount))"
+            text = L10n.format(
+                "%@ · searched the first %@",
+                text,
+                CountFormat.items(results.visitedCount)
+            )
         }
         if isLiveScan {
-            text += " so far"
+            text = L10n.format("%@ so far", text)
         }
         return text
     }
@@ -1490,24 +1511,24 @@ public struct ResultsView: View {
                 detailHeaderActions([node])
             }
 
-            detailRow("Path", node.url.path)
-            detailRow("Kind", node.isDirectory ? "Folder" : node.category.displayName)
-            detailRow("Size", ByteFormat.exact(node.logicalSize))
-            detailRow("On disk", ByteFormat.exact(node.allocatedSize))
+            detailRow(L10n.string("Path"), node.url.path)
+            detailRow(L10n.string("Kind"), node.isDirectory ? L10n.string("Folder") : node.category.displayName)
+            detailRow(L10n.string("Size"), ByteFormat.exact(node.logicalSize))
+            detailRow(L10n.string("On disk"), ByteFormat.exact(node.allocatedSize))
             if node.name.hasPrefix(".") {
-                detailRow("Visibility", "Hidden")
+                detailRow(L10n.string("Visibility"), L10n.string("Hidden"))
             }
             if node.isDirectory {
-                detailRow("Contents", "\(CountFormat.files(node.fileCount)) in \(CountFormat.folders(node.directoryCount))")
+                detailRow(L10n.string("Contents"), L10n.format("%@ in %@", CountFormat.files(node.fileCount), CountFormat.folders(node.directoryCount)))
             }
             if let modified = node.modifiedAt {
-                detailRow("Modified", DateFormat.short(modified))
+                detailRow(L10n.string("Modified"), DateFormat.short(modified))
             }
             if node.isSymlink {
-                detailRow("Type", "Symbolic link")
+                detailRow(L10n.string("Type"), L10n.string("Symbolic link"))
             }
             if !node.isAccessible {
-                detailRow("Access", node.errorMessage ?? "Inaccessible")
+                detailRow(L10n.string("Access"), node.errorMessage ?? L10n.string("Inaccessible"))
                     .foregroundStyle(DS.Color.warning)
             }
 
@@ -1515,19 +1536,19 @@ public struct ResultsView: View {
                 Button {
                     showInFolder(node)
                 } label: {
-                    Label("Show in Folder", systemImage: "folder")
+                    Label(L10n.string("Show in Folder"), systemImage: "folder")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
-                .help("Leave the search and show the folder that holds this item")
+                .help(L10n.string("Leave the search and show the folder that holds this item"))
             }
 
             if node.isDirectory {
                 Button {
                     activate(node)
                 } label: {
-                    Label("Browse This Folder", systemImage: "folder")
+                    Label(L10n.string("Browse This Folder"), systemImage: "folder")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.bordered)
@@ -1537,7 +1558,7 @@ public struct ResultsView: View {
             Button(role: .destructive) {
                 requestReclaim([node])
             } label: {
-                Label("Move to Trash…", systemImage: "trash")
+                Label(L10n.string("Move to Trash…"), systemImage: "trash")
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.bordered)
@@ -1552,11 +1573,11 @@ public struct ResultsView: View {
         let allocated = nodes.reduce(Int64(0)) { $0 + $1.allocatedSize }
         let kind: String
         if nodes.allSatisfy({ $0.isDirectory }) {
-            kind = "Folders"
+            kind = L10n.string("Folders")
         } else if nodes.allSatisfy({ !$0.isDirectory }) {
-            kind = "Files"
+            kind = L10n.string("Files")
         } else {
-            kind = "Files and folders"
+            kind = L10n.string("Files and folders")
         }
         let parents = Set(nodes.map { $0.url.deletingLastPathComponent() })
         let commonParent = parents.count == 1 ? parents.first : nil
@@ -1565,20 +1586,20 @@ public struct ResultsView: View {
             HStack(spacing: DS.Spacing.small) {
                 Image(systemName: "square.stack.fill")
                     .foregroundStyle(DS.Color.accent)
-                Text("\(nodes.count) Items Selected")
+                Text(L10n.format("%lld Items Selected", nodes.count))
                     .font(DS.Typography.headline)
                 Spacer()
                 detailHeaderActions(nodes)
             }
 
-            detailRow("Kind", kind)
-            detailRow("Size", ByteFormat.exact(logical))
-            detailRow("On disk", ByteFormat.exact(allocated))
+            detailRow(L10n.string("Kind"), kind)
+            detailRow(L10n.string("Size"), ByteFormat.exact(logical))
+            detailRow(L10n.string("On disk"), ByteFormat.exact(allocated))
             if let commonParent {
-                detailRow("Location", PathFormat.abbreviated(commonParent.path))
+                detailRow(L10n.string("Location"), PathFormat.abbreviated(commonParent.path))
             }
 
-            Text("Actions apply to the whole selection.")
+            Text(L10n.string("Actions apply to the whole selection."))
                 .font(DS.Typography.caption)
                 .foregroundStyle(DS.Color.secondaryText)
                 .padding(.top, DS.Spacing.xSmall)
@@ -1586,7 +1607,7 @@ public struct ResultsView: View {
             Button(role: .destructive) {
                 requestReclaim(nodes)
             } label: {
-                Label("Move \(nodes.count) Items to Trash…", systemImage: "trash")
+                Label(L10n.format("Move %@ to Trash…", CountFormat.items(nodes.count)), systemImage: "trash")
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.bordered)
@@ -1604,13 +1625,13 @@ public struct ResultsView: View {
     /// is something selected to describe, so dismissing it is deselecting.
     private func detailHeaderActions(_ nodes: [ScanNode]) -> some View {
         HStack(spacing: DS.Spacing.small) {
-            detailAction("eye", "Quick Look") {
+            detailAction("eye", L10n.string("Quick Look")) {
                 quickLook.toggle(nodes.map(\.url))
             }
-            detailAction("arrow.up.forward.square", "Reveal in Finder") {
+            detailAction("arrow.up.forward.square", L10n.string("Reveal in Finder")) {
                 revealInFinder(nodes)
             }
-            detailAction("xmark", "Close Details") {
+            detailAction("xmark", L10n.string("Close Details")) {
                 clearSelection()
             }
         }
@@ -2034,7 +2055,7 @@ private struct LiveScanStatusBanner: View {
     var body: some View {
         HStack(spacing: DS.Spacing.medium) {
             indicator
-            Text("\(CountFormat.files(viewModel.filesScanned)), \(ByteFormat.string(viewModel.displayedTotal))")
+            Text(L10n.format("%@, %@", CountFormat.files(viewModel.filesScanned), ByteFormat.string(viewModel.displayedTotal)))
                 .font(DS.Typography.caption)
                 .monospacedDigit()
                 .foregroundStyle(DS.Color.secondaryText)
@@ -2064,17 +2085,17 @@ private struct LiveScanStatusBanner: View {
                     .foregroundStyle(DS.Color.primaryText)
             }
             .accessibilityElement(children: .combine)
-            .accessibilityLabel("Scan \(percentText(fraction)) complete")
+            .accessibilityLabel(L10n.format("Scan %@ complete", percentText(fraction)))
         } else {
             HStack(spacing: DS.Spacing.small) {
                 ProgressView()
                     .controlSize(.small)
-                Text("Reading files…")
+                Text(L10n.string("Reading files…"))
                     .font(DS.Typography.caption)
                     .foregroundStyle(DS.Color.secondaryText)
             }
             .accessibilityElement(children: .combine)
-            .accessibilityLabel("Scanning, progress not yet measurable")
+            .accessibilityLabel(L10n.string("Scanning, progress not yet measurable"))
         }
     }
 
@@ -2087,7 +2108,7 @@ private struct LiveScanStatusBanner: View {
     /// toolbar.
     private var cancelButton: some View {
         Button(role: .cancel, action: onCancel) {
-            Label("Cancel Scan", systemImage: "stop.fill")
+            Label(L10n.string("Cancel Scan"), systemImage: "stop.fill")
                 .font(DS.Typography.caption)
                 .foregroundStyle(DS.Color.primaryText)
                 .padding(.horizontal, DS.Spacing.small)
@@ -2098,11 +2119,11 @@ private struct LiveScanStatusBanner: View {
                 .contentShape(Capsule())
         }
         .buttonStyle(.plain)
-        .help("Stop the scan; the results gathered so far are kept")
+        .help(L10n.string("Stop the scan; the results gathered so far are kept"))
     }
 
     private func percentText(_ fraction: Double) -> String {
-        "\(Int((min(max(fraction, 0), 1) * 100).rounded()))%"
+        L10n.format("%lld%%", Int((min(max(fraction, 0), 1) * 100).rounded()))
     }
 }
 
@@ -2195,20 +2216,26 @@ private struct ContentsList: View {
                             .id(row.url)
                             .contextMenu {
                                 if let onShowInFolder, targets == 1 {
-                                    Button("Show in Folder") {
+                                    Button(L10n.string("Show in Folder")) {
                                         onShowInFolder(row.node)
                                     }
                                     Divider()
                                 }
-                                Button(targets == 1 ? "Quick Look" : "Quick Look \(targets) Items") {
+                                Button(targets == 1
+                                       ? L10n.string("Quick Look")
+                                       : L10n.format("Quick Look %@", CountFormat.items(targets))) {
                                     onQuickLook(row.node)
                                 }
-                                Button(targets == 1 ? "Reveal in Finder" : "Reveal \(targets) Items in Finder") {
+                                Button(targets == 1
+                                       ? L10n.string("Reveal in Finder")
+                                       : L10n.format("Reveal %@ in Finder", CountFormat.items(targets))) {
                                     onReveal(row.node)
                                 }
                                 Divider()
                                 Button(
-                                    targets == 1 ? "Move to Trash…" : "Move \(targets) Items to Trash…",
+                                    targets == 1
+                                        ? L10n.string("Move to Trash…")
+                                        : L10n.format("Move %@ to Trash…", CountFormat.items(targets)),
                                     role: .destructive
                                 ) {
                                     onReclaim(row.node)
@@ -2218,15 +2245,15 @@ private struct ContentsList: View {
 
                         if hasMoreRows {
                             InlineActionButton(
-                                "Show More",
+                                L10n.string("Show More"),
                                 systemImage: "chevron.down",
                                 fillsWidth: true,
                                 action: onShowMore
                             )
                             .padding(.vertical, DS.Spacing.xSmall)
-                            .help("Show the next \(min(DS.Size.explorerPageSize, remainingCount)) items")
-                            .accessibilityLabel("Show more items")
-                            .accessibilityHint("Shows the next \(min(DS.Size.explorerPageSize, remainingCount)) items")
+                            .help(L10n.format("Show the next %lld items", min(DS.Size.explorerPageSize, remainingCount)))
+                            .accessibilityLabel(L10n.string("Show more items"))
+                            .accessibilityHint(L10n.format("Shows the next %lld items", min(DS.Size.explorerPageSize, remainingCount)))
                         }
                     }
                 }
@@ -2288,8 +2315,8 @@ private struct ContentsList: View {
                 }
             }
             .accessibilityElement(children: .contain)
-            .accessibilityLabel("Files and folders")
-            .accessibilityHint("Use the arrow keys to move through the list, Space to preview, and Return to open.")
+            .accessibilityLabel(L10n.string("Files and folders"))
+            .accessibilityHint(L10n.string("Use the arrow keys to move through the list, Space to preview, and Return to open."))
         }
     }
 
@@ -2441,10 +2468,10 @@ public enum ExplorerMode: String, CaseIterable, Identifiable {
 
     var label: String {
         switch self {
-        case .folder: "This Folder"
-        case .topFiles: "Top Files"
-        case .topFolders: "Top Folders"
-        case .categories: "Categories"
+        case .folder: L10n.string("This Folder")
+        case .topFiles: L10n.string("Top Files")
+        case .topFolders: L10n.string("Top Folders")
+        case .categories: L10n.string("Categories")
         }
     }
 }
@@ -2556,7 +2583,7 @@ private struct ExplorerRow: Equatable {
         switch location {
         case .none:
             subtitle = node.isDirectory
-                ? "\(CountFormat.files(node.fileCount)) in \(CountFormat.folders(node.directoryCount))"
+                ? L10n.format("%@ in %@", CountFormat.files(node.fileCount), CountFormat.folders(node.directoryCount))
                 : node.category.displayName
         case .itemPath:
             subtitle = PathFormat.abbreviated(node.url.path)
@@ -2649,7 +2676,13 @@ private struct NodeRow: View, Equatable {
         .buttonStyle(.plain)
         .focusable(false)
         .onHover(perform: onHover)
-        .accessibilityLabel("\(row.name)\(row.isHiddenName ? ", hidden item" : ""), \(row.subtitle), \(row.sizeText)")
+        .accessibilityLabel(L10n.format(
+            "%@%@, %@, %@",
+            row.name,
+            row.isHiddenName ? L10n.string(", hidden item") : "",
+            row.subtitle,
+            row.sizeText
+        ))
         .accessibilityAddTraits(isSelected ? [.isSelected] : [])
     }
 

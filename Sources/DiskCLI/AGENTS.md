@@ -2,7 +2,8 @@
 
 The `WillyDisk scan` front end. It is a **consumer** of `ScanEngine`, not a second
 scanner: traversal, accounting, exclusions, and cancellation are all `DiskCore`'s. This
-target depends on `DiskCore` only, so it never imports `DiskUI`, AppKit, or SwiftUI.
+target depends on `DiskCore` and the Foundation-only `DiskLocalization`, so it never
+imports `DiskUI`, AppKit, or SwiftUI.
 
 ## Where things are
 
@@ -30,3 +31,8 @@ target depends on `DiskCore` only, so it never imports `DiskUI`, AppKit, or Swif
   not part of what the folder measured.
 - Do not add scan options here that the app's `ScanRequest` cannot express; the
   frozen contract is `Sources/DiskCore/Scanning/Contracts.swift`.
+- The report, help, and errors follow the user's language through `L10n`, so the labels
+  are not a stable English interface; `--json` is. The report's label column is as wide
+  as the widest translated label, and `ScanCommandTests` pins the source language so its
+  assertions do not depend on the host's locale. The JSON's keys and category raw values
+  are never localized.

@@ -1,5 +1,6 @@
 import SwiftUI
 import DiskCore
+import DiskLocalization
 
 /// Routes the app's two screens.
 ///
@@ -67,12 +68,12 @@ public struct ScanFlowView: View {
                 .font(DS.Typography.callout)
                 .foregroundStyle(DS.Color.primaryText)
             Spacer(minLength: DS.Spacing.medium)
-            Button("Dismiss") {
+            Button(L10n.string("Dismiss")) {
                 viewModel.dismissBlockedStartNotice()
             }
             .buttonStyle(.bordered)
             .controlSize(.small)
-            .accessibilityHint("Hides this message")
+            .accessibilityHint(L10n.string("Hides this message"))
         }
         .padding(.horizontal, DS.Spacing.large)
         .padding(.vertical, DS.Spacing.medium)
@@ -86,14 +87,14 @@ public struct ScanFlowView: View {
             Image(systemName: "exclamationmark.triangle")
                 .font(DS.Icon.large)
                 .foregroundStyle(DS.Color.warning)
-            Text("Scanning Unavailable")
+            Text(L10n.string("Scanning Unavailable"))
                 .font(DS.Typography.title)
             Text(message)
                 .font(DS.Typography.body)
                 .foregroundStyle(DS.Color.secondaryText)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 360)
-            Button("Start Over") {
+            Button(L10n.string("Start Over")) {
                 viewModel.reset()
             }
             .buttonStyle(.borderedProminent)

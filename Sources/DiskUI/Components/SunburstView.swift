@@ -1,5 +1,6 @@
 import SwiftUI
 import DiskCore
+import DiskLocalization
 
 /// An interactive sunburst chart of a directory's contents.
 ///
@@ -53,7 +54,7 @@ public struct SunburstView: View {
         maxChildren: Int = DS.Sunburst.maxChildrenPerNode,
         hoveredURL: Binding<URL?> = .constant(nil),
         onCenterTap: (() -> Void)? = nil,
-        centerHint: String = "Go up one level",
+        centerHint: String = L10n.string("Go up one level"),
         onSelect: @escaping (ScanNode) -> Void
     ) {
         self.nodes = nodes
@@ -83,7 +84,7 @@ public struct SunburstView: View {
                 publish(url(for: hoveredID ?? newID, in: layout.segments))
             }
             .accessibilityElement(children: .contain)
-            .accessibilityLabel("Storage sunburst")
+            .accessibilityLabel(L10n.string("Storage sunburst"))
     }
 
     private var totalSize: Int64 { nodes.reduce(Int64(0)) { $0 + max($1.logicalSize, 0) } }
@@ -94,9 +95,9 @@ public struct SunburstView: View {
             let side = min(geo.size.width, geo.size.height)
             ZStack {
                 if segments.isEmpty {
-                    placeholder(message: "Nothing here is big enough to draw.")
+                    placeholder(message: L10n.string("Nothing here is big enough to draw."))
                 } else if side < DS.Sunburst.minimumSize {
-                    placeholder(message: "Enlarge this pane to see the chart",
+                    placeholder(message: L10n.string("Enlarge this pane to see the chart"),
                                 icon: "arrow.up.left.and.arrow.down.right")
                 } else {
                     chart(side: side, segments: segments, revision: revision)
@@ -275,14 +276,14 @@ public struct SunburstView: View {
             }
             .animation(reduceMotion ? nil : .snappy(duration: 0.16), value: centerHovered)
             .help(centerHint)
-            .accessibilityLabel("\(title), \(detail)")
+            .accessibilityLabel(L10n.format("%@, %@", title, detail))
             .accessibilityHint(centerHint)
             .position(center)
         } else {
             disc
                 .position(center)
                 .accessibilityElement(children: .combine)
-                .accessibilityLabel("\(title), \(detail)")
+                .accessibilityLabel(L10n.format("%@, %@", title, detail))
         }
     }
 
@@ -302,7 +303,7 @@ public struct SunburstView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Storage sunburst, \(message)")
+        .accessibilityLabel(L10n.format("Storage sunburst, %@", message))
     }
 }
 
@@ -324,7 +325,7 @@ struct SunburstSegment: Identifiable, Equatable {
 
     var label: String {
         if let node { return node.name }
-        return "\(remainderCount) smaller \(remainderCount == 1 ? "item" : "items")"
+        return L10n.format("%lld smaller items", remainderCount)
     }
 }
 
@@ -793,9 +794,9 @@ private struct SunburstWedgeView: View, Equatable {
                 .contentShape(shape)
                 .focusEffectDisabled()
                 .focused(focusedID, equals: id)
-                .help("\(label) — \(ByteFormat.string(size))")
-                .accessibilityLabel("\(label), \(ByteFormat.string(size))")
-                .accessibilityHint(node.isDirectory ? "Show this folder's contents" : "Show this file's details")
+                .help(L10n.format("%@ — %@", label, ByteFormat.string(size)))
+                .accessibilityLabel(L10n.format("%@, %@", label, ByteFormat.string(size)))
+                .accessibilityHint(L10n.string(node.isDirectory ? "Show this folder's contents" : "Show this file's details"))
                 .accessibilityAddTraits(node.isDirectory ? [] : .isStaticText)
                 .accessibilityAddTraits(isSelected ? .isSelected : [])
             } else {
@@ -804,7 +805,7 @@ private struct SunburstWedgeView: View, Equatable {
                 // rather than hidden.
                 content
                     .accessibilityElement()
-                    .accessibilityLabel("\(label), \(ByteFormat.string(size))")
+                    .accessibilityLabel(L10n.format("%@, %@", label, ByteFormat.string(size)))
                     .accessibilityAddTraits(.isStaticText)
             }
         }

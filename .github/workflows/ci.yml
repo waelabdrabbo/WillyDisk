@@ -50,6 +50,12 @@ jobs:
             exit 1
           fi
 
+      - name: Localization resources are current
+        run: |
+          set -euo pipefail
+          python3 Scripts/pseudolanguage.py --check
+          bash Scripts/localize.sh --check
+
       - name: Build
         run: swift build
 
@@ -104,6 +110,16 @@ jobs:
           bash Scripts/render-screens.sh -a both -S cleanup -c -o .build/renders/ci
           bash Scripts/render-screens.sh -a both -S duplicates -c -o .build/renders/ci
           bash Scripts/render-screens.sh -a both -S history -c -o .build/renders/ci
+          # The translated interface and the doubled-length pseudolanguage:
+          # Arabic is the finished right-to-left language, en-XA is the review
+          # pass that makes truncation visible.
+          bash Scripts/render-screens.sh -a both -S results -l ar -o .build/renders/ci
+          bash Scripts/render-screens.sh -a light -S home -l ar -o .build/renders/ci
+          bash Scripts/render-screens.sh -a both -S coverage -c -l ar -o .build/renders/ci
+          bash Scripts/render-screens.sh -a both -S cleanup -c -l ar -o .build/renders/ci
+          bash Scripts/render-screens.sh -a both -S settings -c -s 460x760 -l ar -o .build/renders/ci
+          bash Scripts/render-screens.sh -a light -S results -l en-XA -o .build/renders/ci
+          bash Scripts/render-screens.sh -a light -S coverage -c -l en-XA -o .build/renders/ci
 
       - name: Upload renders
         if: always()

@@ -1,5 +1,6 @@
 import SwiftUI
 import DiskCore
+import DiskLocalization
 
 /// Compares the recorded runs of one scanned location.
 ///
@@ -40,12 +41,12 @@ public struct HistorySheet: View {
     /// named without one instead of borrowing the wrong figure.
     private var entryCapacityPhrase: String {
         guard let comparison else {
-            return "each run's largest \(ScanRecord.currentEntryCapacity)"
+            return L10n.format("each run's largest %lld", ScanRecord.currentEntryCapacity)
         }
         guard comparison.earlier.entryCapacity == comparison.later.entryCapacity else {
-            return "the largest entries each run recorded"
+            return L10n.string("the largest entries each run recorded")
         }
-        return "each run's largest \(comparison.later.entryCapacity)"
+        return L10n.format("each run's largest %lld", comparison.later.entryCapacity)
     }
 
     public var body: some View {
@@ -66,16 +67,16 @@ public struct HistorySheet: View {
         .onChange(of: history.snapshot.records.map(\.id)) { _, _ in
             ensureSelection()
         }
-        .confirmationDialog("Clear scan history?", isPresented: $isConfirmingClear) {
-            Button("Clear History", role: .destructive) {
+        .confirmationDialog(L10n.string("Clear scan history?"), isPresented: $isConfirmingClear) {
+            Button(L10n.string("Clear History"), role: .destructive) {
                 Task {
                     await history.clear()
                     selected = []
                 }
             }
-            Button("Cancel", role: .cancel) {}
+            Button(L10n.string("Cancel"), role: .cancel) {}
         } message: {
-            Text("Every recorded run, for every location, is removed. Your files are not touched.")
+            Text(L10n.string("Every recorded run, for every location, is removed. Your files are not touched."))
         }
     }
 
@@ -89,7 +90,7 @@ public struct HistorySheet: View {
                 .frame(width: 32)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: DS.Spacing.xxSmall) {
-                Text("Scan History")
+                Text(L10n.string("Scan History"))
                     .font(DS.Typography.title2)
                 Text(rootName)
                     .font(DS.Typography.callout)
@@ -108,23 +109,25 @@ public struct HistorySheet: View {
 
     private var subtitle: String {
         guard !records.isEmpty else {
-            return "A scan is recorded when it finishes. Cancelled scans are not: their totals cover only part of the folder."
+            return L10n.string("A scan is recorded when it finishes. Cancelled scans are not: their totals cover only part of the folder.")
         }
-        let runs = records.count == 1 ? "1 recorded run" : "\(records.count) recorded runs"
-        return "\(runs). Choose two to compare. Records stay on this Mac."
+        return L10n.format(
+            "%@. Choose two to compare. Records stay on this Mac.",
+            L10n.format("%lld recorded runs", records.count)
+        )
     }
 
     private var footer: some View {
         HStack(spacing: DS.Spacing.medium) {
             VStack(alignment: .leading, spacing: DS.Spacing.xxSmall) {
                 if comparison != nil {
-                    Text("Totals are exact. Folders and files are \(entryCapacityPhrase), matched by path. No saving is claimed.")
+                    Text(L10n.format("Totals are exact. Folders and files are %@, matched by path. No saving is claimed.", entryCapacityPhrase))
                         .font(DS.Typography.caption)
                         .foregroundStyle(DS.Color.secondaryText)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 if let failure = history.writeFailure {
-                    Text("History could not be written: \(failure)")
+                    Text(L10n.format("History could not be written: %@", failure))
                         .font(DS.Typography.caption)
                         .foregroundStyle(DS.Color.warning)
                         .fixedSize(horizontal: false, vertical: true)
@@ -135,16 +138,16 @@ public struct HistorySheet: View {
                 }
             }
             Spacer(minLength: 0)
-            Button("Clear History…") {
+            Button(L10n.string("Clear History…")) {
                 isConfirmingClear = true
             }
             .disabled(records.isEmpty)
-            .help("Removes every recorded run. Your files are not touched.")
+            .help(L10n.string("Removes every recorded run. Your files are not touched."))
 
             Button {
                 dismiss()
             } label: {
-                Text("Done")
+                Text(L10n.string("Done"))
                     .frame(minWidth: DS.Size.actionMinWidth)
             }
             .keyboardShortcut(.defaultAction)
@@ -154,9 +157,10 @@ public struct HistorySheet: View {
     }
 
     private var skippedNote: String {
-        let count = history.snapshot.skippedCount
-        let subject = count == 1 ? "1 stored file could not be read" : "\(count) stored files could not be read"
-        return "\(subject) and are not shown."
+        return L10n.format(
+            "%@ and are not shown.",
+            L10n.format("%lld stored files could not be read", history.snapshot.skippedCount)
+        )
     }
 
     // MARK: - Content
@@ -182,7 +186,7 @@ public struct HistorySheet: View {
     private var loading: some View {
         VStack(spacing: DS.Spacing.medium) {
             ProgressView()
-            Text("Reading the scan history…")
+            Text(L10n.string("Reading the scan history…"))
                 .font(DS.Typography.callout)
                 .foregroundStyle(DS.Color.secondaryText)
         }
@@ -195,9 +199,9 @@ public struct HistorySheet: View {
                 .font(DS.Icon.large)
                 .foregroundStyle(DS.Color.secondaryText)
                 .accessibilityHidden(true)
-            Text("No recorded runs")
+            Text(L10n.string("No recorded runs"))
                 .font(DS.Typography.title2)
-            Text("Scan this location again and its runs will be listed here, side by side.")
+            Text(L10n.string("Scan this location again and its runs will be listed here, side by side."))
                 .font(DS.Typography.body)
                 .foregroundStyle(DS.Color.secondaryText)
                 .multilineTextAlignment(.center)
@@ -211,7 +215,7 @@ public struct HistorySheet: View {
 
     private var runsList: some View {
         VStack(alignment: .leading, spacing: DS.Spacing.small) {
-            SectionLabel("Runs", rule: true)
+            SectionLabel(L10n.string("Runs"), rule: true)
             ScrollView {
                 LazyVStack(spacing: DS.Spacing.xxSmall) {
                     ForEach(records) { record in
@@ -253,13 +257,23 @@ public struct HistorySheet: View {
             )
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("Run from \(DateFormat.short(record.finishedAt))")
-        .accessibilityValue("\(ByteFormat.string(record.totalLogicalSize)), \(CountFormat.files(record.fileCount)). \(isSelected ? "Selected for comparison" : "Not selected")")
-        .help(isSelected ? "Click to remove this run from the comparison" : "Click to compare this run")
+        .accessibilityLabel(L10n.format("Run from %@", DateFormat.short(record.finishedAt)))
+        .accessibilityValue(L10n.format(
+            "%@, %@. %@",
+            ByteFormat.string(record.totalLogicalSize),
+            CountFormat.files(record.fileCount),
+            L10n.string(isSelected ? "Selected for comparison" : "Not selected")
+        ))
+        .help(L10n.string(isSelected ? "Click to remove this run from the comparison" : "Click to compare this run"))
     }
 
     private func runDetail(_ record: ScanRecord) -> String {
-        "\(ByteFormat.string(record.totalLogicalSize)) · \(CountFormat.files(record.fileCount)) · \(DateFormat.duration(record.duration))"
+        L10n.format(
+            "%@ · %@ · %@",
+            ByteFormat.string(record.totalLogicalSize),
+            CountFormat.files(record.fileCount),
+            DateFormat.duration(record.duration)
+        )
     }
 
     // MARK: - Comparison
@@ -275,7 +289,7 @@ public struct HistorySheet: View {
                     }
                     metricStrip(comparison)
                     entriesSection(
-                        "Folders that changed",
+                        L10n.string("Folders that changed"),
                         entries: folderChanges(comparison),
                         unchanged: folderUnchanged(comparison),
                         dropped: comparison.droppedDirectoryCount,
@@ -283,7 +297,7 @@ public struct HistorySheet: View {
                         cutOff: comparison.earlierDirectoryCutOff
                     )
                     entriesSection(
-                        "Files that changed",
+                        L10n.string("Files that changed"),
                         entries: comparison.changedFiles,
                         unchanged: comparison.files.count - comparison.changedFiles.count,
                         dropped: comparison.droppedFileCount,
@@ -307,11 +321,11 @@ public struct HistorySheet: View {
                 .font(DS.Icon.large)
                 .foregroundStyle(DS.Color.secondaryText)
                 .accessibilityHidden(true)
-            Text(records.count == 1 ? "One run recorded" : "Choose two runs")
+            Text(L10n.string(records.count == 1 ? "One run recorded" : "Choose two runs"))
                 .font(DS.Typography.title2)
-            Text(records.count == 1
+            Text(L10n.string(records.count == 1
                  ? "A comparison needs two runs of this location. Scan it again and it will be compared here."
-                 : "Select two runs in the list to see what grew, what shrank, and what appeared.")
+                 : "Select two runs in the list to see what grew, what shrank, and what appeared."))
                 .font(DS.Typography.body)
                 .foregroundStyle(DS.Color.secondaryText)
                 .multilineTextAlignment(.center)
@@ -323,10 +337,15 @@ public struct HistorySheet: View {
 
     private func comparisonHeader(_ comparison: ScanComparison) -> some View {
         VStack(alignment: .leading, spacing: DS.Spacing.xxSmall) {
-            Text("\(DateFormat.short(comparison.earlier.finishedAt))  →  \(DateFormat.short(comparison.later.finishedAt))")
+            Text(L10n.format("%@  →  %@", DateFormat.short(comparison.earlier.finishedAt), DateFormat.short(comparison.later.finishedAt)))
                 .font(DS.Typography.headline)
                 .foregroundStyle(DS.Color.primaryText)
-            Text("\(apart(comparison)) apart. The earlier run took \(DateFormat.duration(comparison.earlier.duration)), the later run \(DateFormat.duration(comparison.later.duration)).")
+            Text(L10n.format(
+                "%@ apart. The earlier run took %@, the later run %@.",
+                apart(comparison),
+                DateFormat.duration(comparison.earlier.duration),
+                DateFormat.duration(comparison.later.duration)
+            ))
                 .font(DS.Typography.caption)
                 .foregroundStyle(DS.Color.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)
@@ -335,11 +354,10 @@ public struct HistorySheet: View {
 
     private func apart(_ comparison: ScanComparison) -> String {
         let interval = comparison.later.finishedAt.timeIntervalSince(comparison.earlier.finishedAt)
-        if interval < 60 { return "Under a minute" }
-        if interval < 3_600 { return "\(Int(interval / 60)) minutes" }
-        if interval < 86_400 { return "\(Int(interval / 3_600)) hours" }
-        let days = Int(interval / 86_400)
-        return days == 1 ? "A day" : "\(days) days"
+        if interval < 60 { return L10n.string("Under a minute") }
+        if interval < 3_600 { return L10n.format("%lld minutes", Int(interval / 60)) }
+        if interval < 86_400 { return L10n.format("%lld hours", Int(interval / 3_600)) }
+        return L10n.format("%lld days", Int(interval / 86_400))
     }
 
     private var optionsWarning: some View {
@@ -347,7 +365,7 @@ public struct HistorySheet: View {
             Image(systemName: "exclamationmark.triangle.fill")
                 .foregroundStyle(DS.Color.warning)
                 .accessibilityHidden(true)
-            Text("These runs used different scan options. Some of the difference may be what each walk included — hidden items, other volumes, or excluded paths — rather than a change on disk.")
+            Text(L10n.string("These runs used different scan options. Some of the difference may be what each walk included — hidden items, other volumes, or excluded paths — rather than a change on disk."))
                 .font(DS.Typography.caption)
                 .foregroundStyle(DS.Color.primaryText)
                 .fixedSize(horizontal: false, vertical: true)
@@ -364,28 +382,28 @@ public struct HistorySheet: View {
     private func metricStrip(_ comparison: ScanComparison) -> some View {
         HStack(alignment: .top, spacing: DS.Spacing.large) {
             metricTile(
-                "Size",
+                L10n.string("Size"),
                 earlier: ByteFormat.string(comparison.earlier.totalLogicalSize),
                 later: ByteFormat.string(comparison.later.totalLogicalSize),
                 delta: ByteFormat.string(abs(comparison.totalLogicalDelta)),
                 direction: comparison.totalLogicalDelta
             )
             metricTile(
-                "Allocated",
+                L10n.string("Allocated"),
                 earlier: ByteFormat.string(comparison.earlier.totalAllocatedSize),
                 later: ByteFormat.string(comparison.later.totalAllocatedSize),
                 delta: ByteFormat.string(abs(comparison.totalAllocatedDelta)),
                 direction: comparison.totalAllocatedDelta
             )
             metricTile(
-                "Files",
+                L10n.string("Files"),
                 earlier: comparison.earlier.fileCount.formatted(),
                 later: comparison.later.fileCount.formatted(),
                 delta: abs(comparison.fileCountDelta).formatted(),
                 direction: Int64(comparison.fileCountDelta)
             )
             metricTile(
-                "Folders",
+                L10n.string("Folders"),
                 earlier: comparison.earlier.directoryCount.formatted(),
                 later: comparison.later.directoryCount.formatted(),
                 delta: abs(comparison.directoryCountDelta).formatted(),
@@ -406,7 +424,7 @@ public struct HistorySheet: View {
             Text(label)
                 .font(DS.Typography.caption)
                 .foregroundStyle(DS.Color.secondaryText)
-            Text("\(earlier) → \(later)")
+            Text(L10n.format("%@ → %@", earlier, later))
                 .font(DS.Typography.metadataFigures)
                 .foregroundStyle(DS.Color.primaryText)
                 .lineLimit(1)
@@ -417,15 +435,15 @@ public struct HistorySheet: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(label): \(earlier) earlier, \(later) later, \(changeText(delta, direction: direction))")
+        .accessibilityLabel(L10n.format("%@: %@ earlier, %@ later, %@", label, earlier, later, changeText(delta, direction: direction)))
     }
 
     private var columnHeader: some View {
         HStack(spacing: DS.Spacing.medium) {
             Spacer(minLength: DS.Spacing.small)
-            Text("Earlier").frame(width: 84, alignment: .trailing)
-            Text("Later").frame(width: 84, alignment: .trailing)
-            Text("Change").frame(width: 104, alignment: .trailing)
+            Text(L10n.string("Earlier")).frame(width: 84, alignment: .trailing)
+            Text(L10n.string("Later")).frame(width: 84, alignment: .trailing)
+            Text(L10n.string("Change")).frame(width: 104, alignment: .trailing)
         }
         .font(DS.Typography.caption)
         .foregroundStyle(DS.Color.secondaryText)
@@ -433,15 +451,15 @@ public struct HistorySheet: View {
     }
 
     private func changeText(_ delta: String, direction: Int64) -> String {
-        if direction == 0 { return "No change" }
-        return direction > 0 ? "+\(delta)" : "−\(delta)"
+        if direction == 0 { return L10n.string("No change") }
+        return L10n.format(direction > 0 ? "+%@" : "−%@", delta)
     }
 
     // MARK: - Categories
 
     private func categorySection(_ comparison: ScanComparison) -> some View {
         VStack(alignment: .leading, spacing: DS.Spacing.small) {
-            SectionLabel("By category", rule: true)
+            SectionLabel(L10n.string("By category"), rule: true)
             columnHeader
             ForEach(comparison.categories) { change in
                 HStack(spacing: DS.Spacing.medium) {
@@ -465,11 +483,13 @@ public struct HistorySheet: View {
                 }
                 .font(DS.Typography.metadataFigures)
                 .accessibilityElement(children: .combine)
-                .accessibilityLabel(
-            "\(change.category.displayName): \(ByteFormat.string(change.earlier)) earlier, "
-                + "\(ByteFormat.string(change.later)) later, "
-                + changeText(ByteFormat.string(abs(change.delta)), direction: change.delta)
-        )
+                .accessibilityLabel(L10n.format(
+                    "%@: %@ earlier, %@ later, %@",
+                    change.category.displayName,
+                    ByteFormat.string(change.earlier),
+                    ByteFormat.string(change.later),
+                    changeText(ByteFormat.string(abs(change.delta)), direction: change.delta)
+                ))
             }
         }
     }
@@ -488,8 +508,8 @@ public struct HistorySheet: View {
             SectionLabel(title, rule: true)
             if entries.isEmpty {
                 Text(unchanged > 0
-                     ? "Nothing changed: all \(unchanged) entries in both lists are the same size."
-                     : "No entry changed.")
+                     ? L10n.format("Nothing changed: all %@ in both lists are the same size.", CountFormat.entries(unchanged))
+                     : L10n.string("No entry changed."))
                     .font(DS.Typography.callout)
                     .foregroundStyle(DS.Color.secondaryText)
             } else {
@@ -498,21 +518,23 @@ public struct HistorySheet: View {
                 }
             }
             if unchanged > 0, !entries.isEmpty {
-                Text(unchanged == 1 ? "1 entry is unchanged." : "\(unchanged) entries are unchanged.")
+                Text(L10n.format("%lld entries are unchanged.", unchanged))
                     .font(DS.Typography.caption)
                     .foregroundStyle(DS.Color.secondaryText)
             }
             if dropped > 0 {
-                Text(dropped == 1
-                     ? "1 entry from the earlier list is not in the later one."
-                     : "\(dropped) entries from the earlier list are not in the later one.")
+                Text(L10n.format(
+                    "%lld entries from the earlier list are not in the later one.",
+                    dropped
+                ))
                     .font(DS.Typography.caption)
                     .foregroundStyle(DS.Color.secondaryText)
             }
             if uncompared > 0 {
-                Text(uncompared == 1
-                     ? "1 entry in the later list is at or below the earlier list's cut-off, so it is not compared."
-                     : "\(uncompared) entries in the later list are at or below the earlier list's cut-off, so they are not compared.")
+                Text(L10n.format(
+                    "%lld entries in the later list are at or below the earlier list's cut-off, so they are not compared.",
+                    uncompared
+                ))
                     .font(DS.Typography.caption)
                     .foregroundStyle(DS.Color.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)
@@ -562,24 +584,46 @@ public struct HistorySheet: View {
         }
         .help(entryHelp(entry, cutOff: cutOff))
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(
-            "\(entry.change.label) \(entry.name), \(sizeTransition(entry)), "
-                + changeText(ByteFormat.string(abs(entry.delta)), direction: entry.delta)
-        )
+        .accessibilityLabel(L10n.format(
+            "%@ %@, %@, %@",
+            changeLabel(entry.change),
+            entry.name,
+            sizeTransition(entry),
+            changeText(ByteFormat.string(abs(entry.delta)), direction: entry.delta)
+        ))
     }
 
     private func entryHelp(_ entry: ScanComparison.Entry, cutOff: Int64?) -> String {
         guard entry.change == .new else { return entry.path }
         let earlierCapacity = comparison?.earlier.entryCapacity ?? ScanRecord.currentEntryCapacity
         if let cutOff {
-            return "\(entry.path) — absent from the earlier run's top \(earlierCapacity), which held entries down to \(ByteFormat.string(cutOff)). It is larger than that cut-off, so it would have been listed had it existed."
+            return L10n.format(
+                "%@ — absent from the earlier run's top %lld, which held entries down to %@. It is larger than that cut-off, so it would have been listed had it existed.",
+                entry.path,
+                earlierCapacity,
+                ByteFormat.string(cutOff)
+            )
         }
-        return "\(entry.path) — absent from the earlier run's list, which held every entry it found."
+        return L10n.format(
+            "%@ — absent from the earlier run's list, which held every entry it found.",
+            entry.path
+        )
     }
 
     private func sizeTransition(_ entry: ScanComparison.Entry) -> String {
         guard let earlier = entry.earlierSize else { return ByteFormat.string(entry.laterSize) }
-        return "\(ByteFormat.string(earlier)) → \(ByteFormat.string(entry.laterSize))"
+        return L10n.format("%@ → %@", ByteFormat.string(earlier), ByteFormat.string(entry.laterSize))
+    }
+
+    /// The English label on `ScanComparison.Change` is a data value; the chip
+    /// spells it in the interface language here.
+    private func changeLabel(_ change: ScanComparison.Change) -> String {
+        switch change {
+        case .new: L10n.string("New")
+        case .grown: L10n.string("Grown")
+        case .shrunk: L10n.string("Shrunk")
+        case .unchanged: L10n.string("Unchanged")
+        }
     }
 
     private func changeChip(_ change: ScanComparison.Change) -> some View {
@@ -588,7 +632,7 @@ public struct HistorySheet: View {
         case .grown, .shrunk: DS.Color.primaryText
         case .unchanged: DS.Color.mutedText
         }
-        return Text(change.label)
+        return Text(changeLabel(change))
             .font(DS.Typography.caption.weight(.semibold))
             .foregroundStyle(tint)
             .padding(.horizontal, DS.Spacing.small)
@@ -616,11 +660,11 @@ public struct HistorySheet: View {
     private func caveat(_ comparison: ScanComparison) -> some View {
         VStack(alignment: .leading, spacing: DS.Spacing.small) {
             Divider()
-            Text("Totals and categories are exact: a scan measures every entry it walked. Folders and files are \(entryCapacityPhrase), matched by path. An entry is marked New only when the earlier run would have recorded it: it is absent from a list that held everything it found, or larger than a truncated list's cut-off. A later entry at or below that cut-off is not compared.")
+            Text(L10n.format("Totals and categories are exact: a scan measures every entry it walked. Folders and files are %@, matched by path. An entry is marked New only when the earlier run would have recorded it: it is absent from a list that held everything it found, or larger than a truncated list's cut-off. A later entry at or below that cut-off is not compared.", entryCapacityPhrase))
                 .font(DS.Typography.caption)
                 .foregroundStyle(DS.Color.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)
-            Text("Nothing here is a saving. A smaller scan means less was measured; space returns when the Trash is emptied.")
+            Text(L10n.string("Nothing here is a saving. A smaller scan means less was measured; space returns when the Trash is emptied."))
                 .font(DS.Typography.caption)
                 .foregroundStyle(DS.Color.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)

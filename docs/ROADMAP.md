@@ -14,11 +14,11 @@ decisions. This is a handoff document, not a specification of frozen interfaces 
   Settings work at `607ef77`, the duplicate content check at `3603321` with its own
   tab at `1ed5184`, scan history with its comparison sheet, the command-line
   scan (`38f6e50`), the unsigned GitHub release pipeline (`7bec1d0`), the
-  watched-tree refresh (`b8be044`), and global search over the whole finished scan
-  (`e7d6fff`). This docs handoff follows it. Working tree clean at that handoff.
+  watched-tree refresh (`b8be044`), global search over the whole finished scan
+  (`e7d6fff`), and the localization pass. This docs handoff follows it.
 - Build: `swift build --disable-sandbox`.
-- Tests: 199 QATests + 86 DiskCoreTests (1 skipped, `ScanBenchmarkTests` needs
-  `WILLYDISK_BENCH_ROOT`) + 16 DiskCLITests, 0 failures.
+- Tests: 216 QATests + 86 DiskCoreTests (1 skipped, `ScanBenchmarkTests` needs
+  `WILLYDISK_BENCH_ROOT`) + 17 DiskCLITests, 0 failures.
 - CI: `.github/workflows/ci.yml` builds, tests, checks that the bundle reports
   `VERSION`, runs the bundled binary's `scan` and its usage exit status, and uploads
   the offscreen renders on every push. `.github/workflows/release.yml` runs on a `v*`
@@ -60,6 +60,7 @@ decisions. This is a handoff document, not a specification of frozen interfaces 
 | Watched results: FSEvents invalidation and a quiet root refresh | `b8be044` |
 | Global search over the whole scan: bounded, off the main actor, drill to folder | `e7d6fff` |
 | Unsigned GitHub releases: arm64 and x86_64 zips, checksums, tag workflow | `7bec1d0` |
+| String catalog, Arabic (right to left), pseudolanguage, renderer `--locale` | this pass |
 
 Details worth remembering:
 
@@ -210,6 +211,32 @@ Details worth remembering:
   current folder is text. Home returns to source selection; the trail covers stepping
   up, and the chart's spindle hole is the same move in the chart — up one folder, or back
   to all categories when one is open. There is no toolbar Back action.
+- Every user-visible string is looked up through `L10n`
+  (`Sources/DiskLocalization/L10n.swift`) in one catalog,
+  `Sources/DiskLocalization/Localizable.xcstrings`, keyed by the English source with
+  `%@`/`%lld` placeholders. SwiftPM cannot compile that catalog without asking
+  `xcstringstool` to derive Swift symbols, and format-only keys cannot all be symbols, so
+  `Scripts/localize.sh` compiles it into committed `en.lproj`, `ar.lproj`, and
+  `en-XA.lproj` resources; `--check` fails when they are stale. The app bundle copies
+  the resource bundle and declares `CFBundleLocalizations` `en`/`ar`; the renderer links
+  the same target, so a render and the app read one table. Arabic is the finished
+  language, including all six plural categories; `en-XA` is generated, not written, and
+  is the doubled-length pass for spotting truncation, regenerated from the English
+  values by `Scripts/pseudolanguage.py`. The CLI's text and errors are
+  localized too, and its report aligns each value under the widest translated label;
+  the `ScanRecord` JSON stays machine data and is never localized. The app resolves the
+  right-to-left direction from the chosen language, so `ar` mirrors the results,
+  coverage, cleanup, settings, and Help without a separate layout. A guard test fails
+  when a user-visible literal bypasses the catalog, when a source key is missing, or
+  when a catalog key has no call site.
+- Settings ▸ Language offers System, English, and العربية. The choice is stored under
+  `appLanguage`, applied before SwiftUI builds the first window, and re-pins `L10n` when
+  it changes, so the interface text and its reading direction change without relaunch;
+  System clears the override and follows the macOS language, including a per-app choice.
+  Each language is written in its own script, so a reader can find their language
+  whatever the current one is. The rows reuse the Appearance section's full-row radio
+  and arrow-key handling. The in-app choice changes WillyDisk's own windows and sheets;
+  macOS panels and the CLI keep following the system language.
 
 ## Ground rules
 
@@ -232,6 +259,8 @@ swift build --disable-sandbox
 swift test --disable-sandbox
 swift run --disable-sandbox WillyDisk scan . --depth 1 --top 5
 swift run --disable-sandbox WillyDisk scan . --json | jq -e '.schemaVersion == 1'
+python3 Scripts/pseudolanguage.py --check
+bash Scripts/localize.sh --check
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S both -o .build/renders/check
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S categories -o .build/renders/check
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S search -o .build/renders/check
@@ -240,17 +269,29 @@ WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S settings -c -s 
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S cleanup -c -o .build/renders/check
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S duplicates -c -o .build/renders/check
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S history -c -o .build/renders/check
+WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S results -l ar -o .build/renders/check
+WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S coverage -c -l ar -o .build/renders/check
+WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S cleanup -c -l ar -o .build/renders/check
+WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S settings -c -s 460x760 -l ar -o .build/renders/check
+WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a light -S results -l en-XA -o .build/renders/check
 WILLYDISK_NO_SANDBOX=1 bash Scripts/package-release.sh
 ```
 
-CI runs the build, the suite, the bundle version check, a bundled `scan` plus its usage
-exit status, and all eight renders on every push. `Scripts/package-release.sh` builds both
+CI runs the localization freshness check, the build, the suite, the bundle version
+check, a bundled `scan` plus its usage exit status, and the renders — including Arabic
+results, home, coverage, cleanup, and settings, and the pseudolanguage results and
+coverage — on every push. `Scripts/package-release.sh` builds both
 slices, expands each archive, and checks its architecture, version, and ad-hoc signature
 before writing the two SHA-256s; `.github/workflows/release.yml` runs that on a `v*` tag,
 re-checks both checksums, and publishes only when the tag matches `VERSION`. On an Apple
 Silicon host the script executes only the arm64 slice; the Intel slice is checked by
 `lipo` and `codesign`, so an Intel launch still needs an Intel Mac or Rosetta.
 
+`-l ar` renders the finished Arabic translation and mirrors the layout; `-l en-XA`
+renders the doubled-length pseudolanguage, which is how truncation shows up in review.
+The locale is part of each PNG's name, so an English and an Arabic render of the same
+size never overwrite each other. `-S coverage` renders the coverage sheet, which is a
+sheet and therefore needs `-c`.
 `-S categories` renders the real results screen in Categories mode, window and all.
 `-S search` renders the same screen with a whole-scan search open (`p` over the fixture,
 which every folder there has a match for), so the match list, the containing paths, the
@@ -282,7 +323,7 @@ one-off visual check.
 - Polish: coverage discoverability, staleness detection outside the watched tree (the
   watcher covers Finder changes while results are on screen), folder-level coverage
   disclosure, CSV accounting (JSON has it, CSV
-  does not), pluralization, empty states, window sizing, accessibility audit.
+  does not), empty states, window sizing, accessibility audit.
 
 ### 2. Treemap as a second chart
 
@@ -294,18 +335,7 @@ Acceptance: layout runs off the main actor for a large folder; one selection mod
 drives both charts; reduce-motion and keyboard navigation behave as in the sunburst; both
 charts render in CI.
 
-### 3. Localization
-
-Extract every user-visible string into a catalog keyed by the English source, then finish
-one language end to end before adding more. SwiftUI supplies script fallback and RTL
-layout; the work is string discipline, not font plumbing.
-
-Acceptance: no user-visible literal outside the catalog; a pseudolanguage render pass
-catches truncation; one RTL language (`ar`) renders results, coverage and cleanup without
-clipping; plurals are resolved rather than concatenated; the render harness takes a
-`--locale`.
-
-### 4. Reclaim past the Trash
+### 3. Reclaim past the Trash
 
 Today the only removal path is Move to Trash, and Trash frees nothing until it is emptied.
 The fuller flow is permanent delete, a secure erase that overwrites before removing, and
@@ -324,7 +354,7 @@ of removal; a permanent delete cannot be reached without a typed or held confirm
 failed backup removes nothing; a cancelled job says what was and was not removed; no
 screen claims space was freed before it was.
 
-### 5. Remote and cloud scans
+### 4. Remote and cloud scans
 
 Scan a machine reachable over SSH, and cloud remotes, through the same explorer.
 `ScanEngine` is the seam: a second conformance that emits the same events, so the UI never
@@ -336,7 +366,7 @@ scan of it; a dropped connection ends in `.finished` with issues or `.cancelled`
 stream that hangs; credentials never reach the export DTO or a diagnostics bundle; nothing
 is scanned remotely without an explicit host choice.
 
-### 6. Self-update, and platforms beyond macOS
+### 5. Self-update, and platforms beyond macOS
 
 Self-update becomes worth shipping once a tagged release exists: the GitHub Release list is
 the feed, the published SHA-256 is the download check, and a relaunch follows. Windows and
@@ -389,6 +419,18 @@ the update screen does not call an unsigned download verified or trusted.
 - The interface stays native AppKit and SwiftUI, so VoiceOver, Quick Look, menus, text
   editing and window chrome are the system's. A custom-drawn canvas is not an acceptable
   substitute for a chart or a list.
+- One catalog is the only source of user-visible text. English is the source and the
+  fallback; a key is the English sentence with its placeholders, never a symbolic name.
+  Arabic is the finished language and carries Arabic's plural categories; `en-XA` is a
+  generated pseudolanguage for truncation review, not a language to ship. A count is one
+  catalog entry with plural variations, never a number concatenated with a noun in code.
+- The compiled `.lproj` tables are generated by `Scripts/localize.sh` and committed,
+  because SwiftPM's catalog path insists on deriving Swift symbols that format-only keys
+  cannot provide. Edit the catalog, run the script, and let the CI freshness check defend
+  the agreement. The app ships the resource bundle and declares its languages; the
+  pseudolanguage is removed from the app bundle.
+- The command line's report and help are localized, but the `ScanRecord` JSON is not:
+  keys, category raw values, and schema fields are an interface, not prose.
 
 ## Suggested opening prompt
 

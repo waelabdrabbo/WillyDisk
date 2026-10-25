@@ -1,6 +1,7 @@
 import Foundation
 import Darwin
 import DiskCore
+import DiskLocalization
 
 /// The volume a path lives on, read from the mount table rather than guessed
 /// from the path's shape. `statfs` is the same source Finder and `df` use, and it
@@ -88,35 +89,35 @@ public enum ReclaimRefusal: Equatable, Sendable {
 
     var title: String {
         switch self {
-        case .scanning: "A scan is running"
-        case .scanRoot: "This is the folder being scanned"
-        case .scanRootAncestor: "This folder holds the folder being scanned"
-        case .volumeRoot: "This is the top of a volume"
-        case .homeFolder: "This is your home folder"
-        case .protectedPath: "This is a protected system location"
-        case .readOnlyVolume: "This volume is read-only"
-        case .missing: "This item is no longer there"
+        case .scanning: L10n.string("A scan is running")
+        case .scanRoot: L10n.string("This is the folder being scanned")
+        case .scanRootAncestor: L10n.string("This folder holds the folder being scanned")
+        case .volumeRoot: L10n.string("This is the top of a volume")
+        case .homeFolder: L10n.string("This is your home folder")
+        case .protectedPath: L10n.string("This is a protected system location")
+        case .readOnlyVolume: L10n.string("This volume is read-only")
+        case .missing: L10n.string("This item is no longer there")
         }
     }
 
     var explanation: String {
         switch self {
         case .scanning:
-            "Stop the scan, or wait for it to finish, before moving items to the Trash."
+            L10n.string("Stop the scan, or wait for it to finish, before moving items to the Trash.")
         case .scanRoot:
-            "The scan is measuring this folder. Choose a file or a folder inside it instead."
+            L10n.string("The scan is measuring this folder. Choose a file or a folder inside it instead.")
         case .scanRootAncestor:
-            "Moving it would take the scan with it. Choose an item inside the scanned folder instead."
+            L10n.string("Moving it would take the scan with it. Choose an item inside the scanned folder instead.")
         case .volumeRoot:
-            "Moving a whole volume to the Trash would take everything on it. WillyDisk only moves items inside a volume."
+            L10n.string("Moving a whole volume to the Trash would take everything on it. WillyDisk only moves items inside a volume.")
         case .homeFolder:
-            "WillyDisk does not move your home folder as a whole. Choose a file or a folder inside it instead."
+            L10n.string("WillyDisk does not move your home folder as a whole. Choose a file or a folder inside it instead.")
         case .protectedPath:
-            "WillyDisk does not move system locations. Choose an item inside the scanned folder instead."
+            L10n.string("WillyDisk does not move system locations. Choose an item inside the scanned folder instead.")
         case .readOnlyVolume:
-            "The system does not allow changes on this volume."
+            L10n.string("The system does not allow changes on this volume.")
         case .missing:
-            "It may have been moved or deleted since the scan."
+            L10n.string("It may have been moved or deleted since the scan.")
         }
     }
 }

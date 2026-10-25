@@ -1,6 +1,7 @@
 import Foundation
 import Observation
 import DiskCore
+import DiskLocalization
 
 /// A non-fatal issue encountered during a scan. Scanning continues after these.
 public struct ScanIssue: Identifiable, Sendable, Hashable {
@@ -143,7 +144,7 @@ public final class ScanViewModel {
         guard let root = currentRoot else {
             let notice = ReclaimNotice(
                 tone: .failure,
-                message: "There is no finished scan to check this item against. Run a scan, then try again.",
+                message: L10n.string("There is no finished scan to check this item against. Run a scan, then try again."),
                 showsShowTrash: false
             )
             reclaimNotice = notice
@@ -160,14 +161,14 @@ public final class ScanViewModel {
             var context = await ReclaimContextProbe.context(for: candidate.url, scanRoot: root)
             context.isScanning = isScanning
             if let refusal = ReclaimPolicy.refusal(for: candidate.url, in: context) {
-                failures.append("\(candidate.name): \(refusal.title)")
+                failures.append(L10n.format("%@: %@", candidate.name, refusal.title))
                 continue
             }
             switch await reclaimController.trash(candidate.url) {
             case .trashed:
                 moved.append(candidate)
             case .failed(let reason):
-                failures.append("\(candidate.name): \(reason)")
+                failures.append(L10n.format("%@: %@", candidate.name, reason))
             }
         }
 
@@ -202,31 +203,36 @@ public final class ScanViewModel {
     private func makeReclaimNotice(moved: [ReclaimCandidate], failures: [String]) -> ReclaimNotice {
         let size = ByteFormat.string(moved.reduce(0) { $0 + $1.allocatedSize })
         if moved.isEmpty {
-            let reason = failures.first ?? "The item is still in place."
+            let reason = failures.first ?? L10n.string("The item is still in place.")
             return ReclaimNotice(
                 tone: .failure,
-                message: "Couldn’t move to the Trash. \(reason)",
+                message: L10n.format("Couldn’t move to the Trash. %@", reason),
                 showsShowTrash: false
             )
         }
 
         let movedSubject: String
         if moved.count == 1 {
-            movedSubject = "“\(moved[0].name)” (\(size))"
+            movedSubject = L10n.format("“%@” (%@)", moved[0].name, size)
         } else {
-            movedSubject = "\(moved.count) items (\(size))"
+            movedSubject = L10n.format("%@ (%@)", CountFormat.items(moved.count), size)
         }
 
         if failures.isEmpty {
             return ReclaimNotice(
                 tone: .success,
-                message: "Moved \(movedSubject) to the Trash. Space is freed when you empty the Trash.",
+                message: L10n.format("Moved %@ to the Trash. Space is freed when you empty the Trash.", movedSubject),
                 showsShowTrash: true
             )
         }
         return ReclaimNotice(
             tone: .failure,
-            message: "Moved \(movedSubject) to the Trash; \(failures.count) could not be moved. \(failures[0])",
+            message: L10n.format(
+                "Moved %@ to the Trash; %@. %@",
+                movedSubject,
+                L10n.format("%lld could not be moved", failures.count),
+                failures[0]
+            ),
             showsShowTrash: true
         )
     }
@@ -468,7 +474,7 @@ public final class ScanViewModel {
         // selection screen disables its own start actions for the same reason,
         // and this is the guard for the paths that go around them.
         guard !isScanning else {
-            blockedStartNotice = "A scan is already running. Stop it, or wait for it to finish, before starting another."
+            blockedStartNotice = L10n.string("A scan is already running. Stop it, or wait for it to finish, before starting another.")
             return
         }
 
@@ -476,7 +482,7 @@ public final class ScanViewModel {
         blockedStartNotice = nil
 
         guard let engine else {
-            phase = .failed("The scanning engine is not connected yet.")
+            phase = .failed(L10n.string("The scanning engine is not connected yet."))
             return
         }
 

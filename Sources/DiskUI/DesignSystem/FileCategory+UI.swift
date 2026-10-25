@@ -1,5 +1,6 @@
 import SwiftUI
 import DiskCore
+import DiskLocalization
 
 /// UI presentation mapping for the frozen `FileCategory` model.
 ///
@@ -10,15 +11,15 @@ extension FileCategory {
     /// Human-readable name for labels and accessibility.
     public var displayName: String {
         switch self {
-        case .applications: "Applications"
-        case .documents: "Documents"
-        case .images: "Images"
-        case .video: "Video"
-        case .audio: "Audio"
-        case .archives: "Archives"
-        case .code: "Code"
-        case .system: "System"
-        case .other: "Other"
+        case .applications: L10n.string("Applications")
+        case .documents: L10n.string("Documents")
+        case .images: L10n.string("Images")
+        case .video: L10n.string("Video")
+        case .audio: L10n.string("Audio")
+        case .archives: L10n.string("Archives")
+        case .code: L10n.string("Code")
+        case .system: L10n.string("System")
+        case .other: L10n.string("Other")
         }
     }
 

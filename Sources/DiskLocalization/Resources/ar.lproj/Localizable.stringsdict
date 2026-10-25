@@ -1,0 +1,822 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>%lld Items Selected</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@value@</string>
+		<key>value</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>few</key>
+			<string>تم تحديد %lld عناصر</string>
+			<key>many</key>
+			<string>تم تحديد %lld عنصرًا</string>
+			<key>one</key>
+			<string>تم تحديد عنصر واحد</string>
+			<key>other</key>
+			<string>تم تحديد %lld عنصر</string>
+			<key>two</key>
+			<string>تم تحديد عنصرين</string>
+			<key>zero</key>
+			<string>لم يُحدَّد أي عنصر</string>
+		</dict>
+	</dict>
+	<key>%lld days</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@value@</string>
+		<key>value</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>few</key>
+			<string>%lld أيام</string>
+			<key>many</key>
+			<string>%lld يومًا</string>
+			<key>one</key>
+			<string>يوم واحد</string>
+			<key>other</key>
+			<string>%lld يوم</string>
+			<key>two</key>
+			<string>يومان</string>
+			<key>zero</key>
+			<string>لا أيام</string>
+		</dict>
+	</dict>
+	<key>%lld entries</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@value@</string>
+		<key>value</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>few</key>
+			<string>%lld عناصر</string>
+			<key>many</key>
+			<string>%lld عنصرًا</string>
+			<key>one</key>
+			<string>عنصر واحد</string>
+			<key>other</key>
+			<string>%lld عنصر</string>
+			<key>two</key>
+			<string>عنصران</string>
+			<key>zero</key>
+			<string>لا عناصر</string>
+		</dict>
+	</dict>
+	<key>%lld entries are unchanged.</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@value@</string>
+		<key>value</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>few</key>
+			<string>%lld عناصر غير متغيرة.</string>
+			<key>many</key>
+			<string>%lld عنصرًا غير متغير.</string>
+			<key>one</key>
+			<string>عنصر واحد غير متغير.</string>
+			<key>other</key>
+			<string>%lld عنصر غير متغير.</string>
+			<key>two</key>
+			<string>عنصران غير متغيرين.</string>
+			<key>zero</key>
+			<string>لا عناصر غير متغيرة.</string>
+		</dict>
+	</dict>
+	<key>%lld entries from the earlier list are not in the later one.</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@value@</string>
+		<key>value</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>few</key>
+			<string>%lld عناصر من القائمة الأقدم ليست في القائمة الأحدث.</string>
+			<key>many</key>
+			<string>%lld عنصرًا من القائمة الأقدم ليس في القائمة الأحدث.</string>
+			<key>one</key>
+			<string>عنصر واحد من القائمة الأقدم ليس في القائمة الأحدث.</string>
+			<key>other</key>
+			<string>%lld عنصر من القائمة الأقدم ليس في القائمة الأحدث.</string>
+			<key>two</key>
+			<string>عنصران من القائمة الأقدم ليسا في القائمة الأحدث.</string>
+			<key>zero</key>
+			<string>لا عناصر من القائمة الأقدم خارج القائمة الأحدث.</string>
+		</dict>
+	</dict>
+	<key>%lld entries in the later list are at or below the earlier list's cut-off, so they are not compared.</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@value@</string>
+		<key>value</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>few</key>
+			<string>%lld عناصر في القائمة الأحدث عند حد القطع أو دونه، لذا لا تُقارن.</string>
+			<key>many</key>
+			<string>%lld عنصرًا في القائمة الأحدث عند حد القطع أو دونه، لذا لا يُقارن.</string>
+			<key>one</key>
+			<string>عنصر واحد في القائمة الأحدث عند حد القطع أو دونه، لذا لا يُقارن.</string>
+			<key>other</key>
+			<string>%lld عنصر في القائمة الأحدث عند حد القطع أو دونه، لذا لا يُقارن.</string>
+			<key>two</key>
+			<string>عنصران في القائمة الأحدث عند حد القطع أو دونه، لذا لا يُقارنان.</string>
+			<key>zero</key>
+			<string>لا عناصر في القائمة الأحدث عند حد القطع أو دونه، لذا لا تُقارن.</string>
+		</dict>
+	</dict>
+	<key>%lld files</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@value@</string>
+		<key>value</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>few</key>
+			<string>%lld ملفات</string>
+			<key>many</key>
+			<string>%lld ملفًا</string>
+			<key>one</key>
+			<string>ملف واحد</string>
+			<key>other</key>
+			<string>%lld ملف</string>
+			<key>two</key>
+			<string>ملفان</string>
+			<key>zero</key>
+			<string>لا ملفات</string>
+		</dict>
+	</dict>
+	<key>%lld folders</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@value@</string>
+		<key>value</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>few</key>
+			<string>%lld مجلدات</string>
+			<key>many</key>
+			<string>%lld مجلدًا</string>
+			<key>one</key>
+			<string>مجلد واحد</string>
+			<key>other</key>
+			<string>%lld مجلد</string>
+			<key>two</key>
+			<string>مجلدان</string>
+			<key>zero</key>
+			<string>لا مجلدات</string>
+		</dict>
+	</dict>
+	<key>%lld hours</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@value@</string>
+		<key>value</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>few</key>
+			<string>%lld ساعات</string>
+			<key>many</key>
+			<string>%lld ساعة</string>
+			<key>one</key>
+			<string>ساعة واحدة</string>
+			<key>other</key>
+			<string>%lld ساعة</string>
+			<key>two</key>
+			<string>ساعتان</string>
+			<key>zero</key>
+			<string>لا ساعات</string>
+		</dict>
+	</dict>
+	<key>%lld issues</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@value@</string>
+		<key>value</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>few</key>
+			<string>%lld مشكلات</string>
+			<key>many</key>
+			<string>%lld مشكلة</string>
+			<key>one</key>
+			<string>مشكلة واحدة</string>
+			<key>other</key>
+			<string>%lld مشكلة</string>
+			<key>two</key>
+			<string>مشكلتان</string>
+			<key>zero</key>
+			<string>لا مشكلات</string>
+		</dict>
+	</dict>
+	<key>%lld issues so far</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@value@</string>
+		<key>value</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>few</key>
+			<string>%lld مشكلات حتى الآن</string>
+			<key>many</key>
+			<string>%lld مشكلة حتى الآن</string>
+			<key>one</key>
+			<string>مشكلة واحدة حتى الآن</string>
+			<key>other</key>
+			<string>%lld مشكلة حتى الآن</string>
+			<key>two</key>
+			<string>مشكلتان حتى الآن</string>
+			<key>zero</key>
+			<string>لا مشكلات حتى الآن</string>
+		</dict>
+	</dict>
+	<key>%lld items</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@value@</string>
+		<key>value</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>few</key>
+			<string>%lld عناصر</string>
+			<key>many</key>
+			<string>%lld عنصرًا</string>
+			<key>one</key>
+			<string>عنصر واحد</string>
+			<key>other</key>
+			<string>%lld عنصر</string>
+			<key>two</key>
+			<string>عنصران</string>
+			<key>zero</key>
+			<string>لا عناصر</string>
+		</dict>
+	</dict>
+	<key>%lld levels</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@value@</string>
+		<key>value</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>few</key>
+			<string>%lld مستويات</string>
+			<key>many</key>
+			<string>%lld مستوى</string>
+			<key>one</key>
+			<string>مستوى واحد</string>
+			<key>other</key>
+			<string>%lld مستوى</string>
+			<key>two</key>
+			<string>مستويان</string>
+			<key>zero</key>
+			<string>لا مستويات</string>
+		</dict>
+	</dict>
+	<key>%lld locations</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@value@</string>
+		<key>value</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>few</key>
+			<string>%lld مواقع</string>
+			<key>many</key>
+			<string>%lld موقعًا</string>
+			<key>one</key>
+			<string>موقع واحد</string>
+			<key>other</key>
+			<string>%lld موقع</string>
+			<key>two</key>
+			<string>موقعان</string>
+			<key>zero</key>
+			<string>لا مواقع</string>
+		</dict>
+	</dict>
+	<key>%lld locations restricted</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@value@</string>
+		<key>value</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>few</key>
+			<string>%lld مواقع مقيّدة</string>
+			<key>many</key>
+			<string>%lld موقعًا مقيّدًا</string>
+			<key>one</key>
+			<string>موقع واحد مقيّد</string>
+			<key>other</key>
+			<string>%lld موقع مقيّد</string>
+			<key>two</key>
+			<string>موقعان مقيّدان</string>
+			<key>zero</key>
+			<string>لا مواقع مقيّدة</string>
+		</dict>
+	</dict>
+	<key>%lld locations restricted so far</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@value@</string>
+		<key>value</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>few</key>
+			<string>%lld مواقع مقيّدة حتى الآن</string>
+			<key>many</key>
+			<string>%lld موقعًا مقيّدًا حتى الآن</string>
+			<key>one</key>
+			<string>موقع واحد مقيّد حتى الآن</string>
+			<key>other</key>
+			<string>%lld موقع مقيّد حتى الآن</string>
+			<key>two</key>
+			<string>موقعان مقيّدان حتى الآن</string>
+			<key>zero</key>
+			<string>لا مواقع مقيّدة حتى الآن</string>
+		</dict>
+	</dict>
+	<key>%lld matches</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@value@</string>
+		<key>value</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>few</key>
+			<string>%lld نتائج مطابقة</string>
+			<key>many</key>
+			<string>%lld نتيجة مطابقة</string>
+			<key>one</key>
+			<string>نتيجة مطابقة واحدة</string>
+			<key>other</key>
+			<string>%lld نتيجة مطابقة</string>
+			<key>two</key>
+			<string>نتيجتان مطابقتان</string>
+			<key>zero</key>
+			<string>لا نتائج مطابقة</string>
+		</dict>
+	</dict>
+	<key>%lld minutes</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@value@</string>
+		<key>value</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>few</key>
+			<string>%lld دقائق</string>
+			<key>many</key>
+			<string>%lld دقيقة</string>
+			<key>one</key>
+			<string>دقيقة واحدة</string>
+			<key>other</key>
+			<string>%lld دقيقة</string>
+			<key>two</key>
+			<string>دقيقتان</string>
+			<key>zero</key>
+			<string>لا دقائق</string>
+		</dict>
+	</dict>
+	<key>%lld months</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@value@</string>
+		<key>value</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>few</key>
+			<string>%lld أشهر</string>
+			<key>many</key>
+			<string>%lld شهرًا</string>
+			<key>one</key>
+			<string>شهر واحد</string>
+			<key>other</key>
+			<string>%lld شهر</string>
+			<key>two</key>
+			<string>شهران</string>
+			<key>zero</key>
+			<string>لا أشهر</string>
+		</dict>
+	</dict>
+	<key>%lld more folders</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@value@</string>
+		<key>value</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>few</key>
+			<string>%lld مجلدات إضافية</string>
+			<key>many</key>
+			<string>%lld مجلدًا إضافيًا</string>
+			<key>one</key>
+			<string>مجلد واحد إضافي</string>
+			<key>other</key>
+			<string>%lld مجلد إضافي</string>
+			<key>two</key>
+			<string>مجلدان إضافيان</string>
+			<key>zero</key>
+			<string>لا مجلدات إضافية</string>
+		</dict>
+	</dict>
+	<key>%lld recorded runs</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@value@</string>
+		<key>value</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>few</key>
+			<string>%lld تشغيلات مسجلة</string>
+			<key>many</key>
+			<string>%lld تشغيلًا مسجلًا</string>
+			<key>one</key>
+			<string>تشغيل واحد مسجل</string>
+			<key>other</key>
+			<string>%lld تشغيل مسجل</string>
+			<key>two</key>
+			<string>تشغيلان مسجلان</string>
+			<key>zero</key>
+			<string>لا تشغيلات مسجلة</string>
+		</dict>
+	</dict>
+	<key>%lld runs</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@value@</string>
+		<key>value</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>few</key>
+			<string>%lld تشغيلات</string>
+			<key>many</key>
+			<string>%lld تشغيلًا</string>
+			<key>one</key>
+			<string>تشغيل واحد</string>
+			<key>other</key>
+			<string>%lld تشغيل</string>
+			<key>two</key>
+			<string>تشغيلان</string>
+			<key>zero</key>
+			<string>لا تشغيلات</string>
+		</dict>
+	</dict>
+	<key>%lld size groups</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@value@</string>
+		<key>value</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>few</key>
+			<string>%lld مجموعات أحجام</string>
+			<key>many</key>
+			<string>%lld مجموعة حجم</string>
+			<key>one</key>
+			<string>مجموعة حجم واحدة</string>
+			<key>other</key>
+			<string>%lld مجموعة حجم</string>
+			<key>two</key>
+			<string>مجموعتا حجم</string>
+			<key>zero</key>
+			<string>لا مجموعات أحجام</string>
+		</dict>
+	</dict>
+	<key>%lld smaller items</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@value@</string>
+		<key>value</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>few</key>
+			<string>%lld عناصر أصغر</string>
+			<key>many</key>
+			<string>%lld عنصرًا أصغر</string>
+			<key>one</key>
+			<string>عنصر واحد أصغر</string>
+			<key>other</key>
+			<string>%lld عنصر أصغر</string>
+			<key>two</key>
+			<string>عنصران أصغر</string>
+			<key>zero</key>
+			<string>لا عناصر أصغر</string>
+		</dict>
+	</dict>
+	<key>%lld special files</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@value@</string>
+		<key>value</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>few</key>
+			<string>%lld ملفات خاصة</string>
+			<key>many</key>
+			<string>%lld ملفًا خاصًا</string>
+			<key>one</key>
+			<string>ملف خاص واحد</string>
+			<key>other</key>
+			<string>%lld ملف خاص</string>
+			<key>two</key>
+			<string>ملفان خاصان</string>
+			<key>zero</key>
+			<string>لا ملفات خاصة</string>
+		</dict>
+	</dict>
+	<key>%lld stored files could not be read</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@value@</string>
+		<key>value</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>few</key>
+			<string>تعذّرت قراءة %lld ملفات مخزّنة</string>
+			<key>many</key>
+			<string>تعذّرت قراءة %lld ملفًا مخزّنًا</string>
+			<key>one</key>
+			<string>تعذّرت قراءة ملف مخزّن واحد</string>
+			<key>other</key>
+			<string>تعذّرت قراءة %lld ملف مخزّن</string>
+			<key>two</key>
+			<string>تعذّرت قراءة ملفين مخزّنين</string>
+			<key>zero</key>
+			<string>تعذّرت قراءة %lld ملف مخزّن</string>
+		</dict>
+	</dict>
+	<key>%lld symbolic links</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@value@</string>
+		<key>value</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>few</key>
+			<string>%lld روابط رمزية</string>
+			<key>many</key>
+			<string>%lld رابطًا رمزيًا</string>
+			<key>one</key>
+			<string>رابط رمزي واحد</string>
+			<key>other</key>
+			<string>%lld رابط رمزي</string>
+			<key>two</key>
+			<string>رابطان رمزيان</string>
+			<key>zero</key>
+			<string>لا روابط رمزية</string>
+		</dict>
+	</dict>
+	<key>%lld volumes</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@value@</string>
+		<key>value</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>few</key>
+			<string>%lld وحدات تخزين</string>
+			<key>many</key>
+			<string>%lld وحدة تخزين</string>
+			<key>one</key>
+			<string>وحدة تخزين واحدة</string>
+			<key>other</key>
+			<string>%lld وحدة تخزين</string>
+			<key>two</key>
+			<string>وحدتا تخزين</string>
+			<key>zero</key>
+			<string>لا وحدات تخزين</string>
+		</dict>
+	</dict>
+	<key>%lld years</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@value@</string>
+		<key>value</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>few</key>
+			<string>%lld سنوات</string>
+			<key>many</key>
+			<string>%lld سنة</string>
+			<key>one</key>
+			<string>سنة واحدة</string>
+			<key>other</key>
+			<string>%lld سنة</string>
+			<key>two</key>
+			<string>سنتان</string>
+			<key>zero</key>
+			<string>لا سنوات</string>
+		</dict>
+	</dict>
+	<key>Changed in Finder in %lld folders. Rescan.</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@value@</string>
+		<key>value</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>few</key>
+			<string>تغيّر في Finder %lld مجلدات. أعد الفحص.</string>
+			<key>many</key>
+			<string>تغيّر في Finder %lld مجلدًا. أعد الفحص.</string>
+			<key>one</key>
+			<string>تغيّر في Finder مجلد واحد. أعد الفحص.</string>
+			<key>other</key>
+			<string>تغيّر في Finder %lld مجلد. أعد الفحص.</string>
+			<key>two</key>
+			<string>تغيّر في Finder مجلدان. أعد الفحص.</string>
+			<key>zero</key>
+			<string>لم يتغيّر شيء في Finder. أعد الفحص.</string>
+		</dict>
+	</dict>
+	<key>Changed in Finder in %lld+ folders. Rescan.</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@value@</string>
+		<key>value</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>few</key>
+			<string>تغيّر في Finder %lld مجلدات أو أكثر. أعد الفحص.</string>
+			<key>many</key>
+			<string>تغيّر في Finder %lld مجلدًا أو أكثر. أعد الفحص.</string>
+			<key>one</key>
+			<string>تغيّر في Finder مجلد واحد أو أكثر. أعد الفحص.</string>
+			<key>other</key>
+			<string>تغيّر في Finder %lld مجلد أو أكثر. أعد الفحص.</string>
+			<key>two</key>
+			<string>تغيّر في Finder مجلدان أو أكثر. أعد الفحص.</string>
+			<key>zero</key>
+			<string>لم يتغيّر شيء في Finder. أعد الفحص.</string>
+		</dict>
+	</dict>
+	<key>Each size group keeps at most %lld files; the rest are not compared.</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@value@</string>
+		<key>value</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>few</key>
+			<string>تحتفظ كل مجموعة حجم بما لا يزيد على %lld ملفات؛ ولا تُقارن البقية.</string>
+			<key>many</key>
+			<string>تحتفظ كل مجموعة حجم بما لا يزيد على %lld ملفًا؛ ولا تُقارن البقية.</string>
+			<key>one</key>
+			<string>تحتفظ كل مجموعة حجم بملف واحد على الأكثر؛ ولا تُقارن البقية.</string>
+			<key>other</key>
+			<string>تحتفظ كل مجموعة حجم بما لا يزيد على %lld ملف؛ ولا تُقارن البقية.</string>
+			<key>two</key>
+			<string>تحتفظ كل مجموعة حجم بملفين على الأكثر؛ ولا تُقارن البقية.</string>
+			<key>zero</key>
+			<string>لا تحتفظ أي مجموعة حجم بملفات؛ ولا تُقارن البقية.</string>
+		</dict>
+	</dict>
+	<key>Show the next %lld items</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@value@</string>
+		<key>value</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>few</key>
+			<string>إظهار العناصر %lld التالية</string>
+			<key>many</key>
+			<string>إظهار %lld عنصرًا تاليًا</string>
+			<key>one</key>
+			<string>إظهار العنصر التالي</string>
+			<key>other</key>
+			<string>إظهار %lld عنصر تالٍ</string>
+			<key>two</key>
+			<string>إظهار العنصرين التاليين</string>
+			<key>zero</key>
+			<string>إظهار العناصر التالية</string>
+		</dict>
+	</dict>
+	<key>Shows the next %lld items</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@value@</string>
+		<key>value</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>few</key>
+			<string>يعرض العناصر %lld التالية</string>
+			<key>many</key>
+			<string>يعرض %lld عنصرًا تاليًا</string>
+			<key>one</key>
+			<string>يعرض العنصر التالي</string>
+			<key>other</key>
+			<string>يعرض %lld عنصر تالٍ</string>
+			<key>two</key>
+			<string>يعرض العنصرين التاليين</string>
+			<key>zero</key>
+			<string>يعرض العناصر التالية</string>
+		</dict>
+	</dict>
+</dict>
+</plist>

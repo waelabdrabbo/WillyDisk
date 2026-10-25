@@ -2,6 +2,7 @@ import Foundation
 import AppKit
 import UniformTypeIdentifiers
 import DiskCore
+import DiskLocalization
 
 /// Report export (JSON + CSV) via `NSSavePanel`. Writes a real file to a
 /// user-chosen location.
@@ -79,11 +80,11 @@ public enum ReportExport {
         encoder.dateEncodingStrategy = .iso8601
         guard let data = try? encoder.encode(makeReport(summary)),
               let text = String(data: data, encoding: .utf8) else { return }
-        presentSavePanel(content: text, defaultName: "WillyDisk Report.json", contentType: .json)
+        presentSavePanel(content: text, defaultName: L10n.string("WillyDisk Report.json"), contentType: .json)
     }
 
     public static func exportCSV(summary: ScanSummary) {
-        presentSavePanel(content: makeCSV(summary), defaultName: "WillyDisk Report.csv", contentType: .commaSeparatedText)
+        presentSavePanel(content: makeCSV(summary), defaultName: L10n.string("WillyDisk Report.csv"), contentType: .commaSeparatedText)
     }
 
     // MARK: - Report building
@@ -126,7 +127,11 @@ public enum ReportExport {
     }
 
     private static func makeCSV(_ summary: ScanSummary) -> String {
-        let header = ["Type", "Name", "Path", "Category", "Logical Size", "Allocated Size", "Files", "Folders", "Modified"]
+        let header = [
+            L10n.string("Type"), L10n.string("Name"), L10n.string("Path"),
+            L10n.string("Category"), L10n.string("Logical Size"), L10n.string("Allocated Size"),
+            L10n.string("Files"), L10n.string("Folders"), L10n.string("Modified"),
+        ]
         var lines: [[String]] = [header]
 
         func append(_ node: ScanNode, _ type: String) {
@@ -143,8 +148,8 @@ public enum ReportExport {
             ])
         }
 
-        for node in summary.largestFiles { append(node, "File") }
-        for node in summary.largestDirectories { append(node, "Directory") }
+        for node in summary.largestFiles { append(node, L10n.string("File")) }
+        for node in summary.largestDirectories { append(node, L10n.string("Directory")) }
 
         return lines.map { $0.map(csv).joined(separator: ",") }.joined(separator: "\n")
     }
@@ -167,7 +172,7 @@ public enum ReportExport {
         panel.nameFieldStringValue = defaultName
         panel.allowedContentTypes = [contentType]
         panel.canCreateDirectories = true
-        panel.title = "Export Report"
+        panel.title = L10n.string("Export Report")
         if panel.runModal() == .OK, let url = panel.url {
             do {
                 try content.write(to: url, atomically: true, encoding: .utf8)
@@ -180,8 +185,8 @@ public enum ReportExport {
     private static func presentWriteError(_ error: Error, url: URL) {
         let alert = NSAlert()
         alert.alertStyle = .warning
-        alert.messageText = "Export failed"
-        alert.informativeText = "Could not write the report to \(url.lastPathComponent): \(error.localizedDescription)"
+        alert.messageText = L10n.string("Export failed")
+        alert.informativeText = L10n.format("Could not write the report to %@: %@", url.lastPathComponent, error.localizedDescription)
         alert.runModal()
     }
 }

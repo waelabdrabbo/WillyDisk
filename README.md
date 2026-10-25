@@ -25,6 +25,10 @@ breakdown by file category. Everything happens on your machine.
   allocated size.
 - **Permission-aware.** Full Disk Access is detected and explained in place. Directories
   that cannot be read are counted and surfaced instead of being silently skipped.
+- **Localized.** The interface has a complete English and right-to-left Arabic
+  translation, with resolved plurals, and Settings can switch between System, English,
+  and العربية without relaunch. The command line's text follows the system language; its
+  `--json` record stays machine-readable and untranslated.
 - **Cancellable.** A scan can be stopped at any point and still reports what it found.
 - **Export.** Results export to JSON or CSV.
 - **Command-line scan.** `WillyDisk scan <folder>` measures a folder with the same

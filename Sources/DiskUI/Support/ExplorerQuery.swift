@@ -1,5 +1,6 @@
 import Foundation
 import DiskCore
+import DiskLocalization
 
 extension ScanNode {
     /// Whether the size panes can present this entry.
@@ -18,10 +19,10 @@ enum SortOrder: String, CaseIterable, Identifiable {
 
     var label: String {
         switch self {
-        case .size: "Size"
-        case .name: "Name"
-        case .date: "Date"
-        case .items: "Items"
+        case .size: L10n.string("Size")
+        case .name: L10n.string("Name")
+        case .date: L10n.string("Date")
+        case .items: L10n.string("Items")
         }
     }
 }

@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import DiskLocalization
 
 /// The choices a scan is started with.
 ///
@@ -39,11 +40,14 @@ public struct ScanOptions: Equatable, Sendable {
 
     /// One sentence naming the choices, for a caption beside the scan action.
     public var summary: String {
-        let hidden = includeHidden ? "Hidden items included" : "Hidden items skipped"
-        let volumes = stayOnVolume ? "stays on this volume" : "may cross volumes"
-        let links = followSymlinks ? "follows symbolic links" : "symbolic links not followed"
-        let exclusions = excludedPaths.isEmpty ? "" : ", \(excludedPaths.count) excluded"
-        return "\(hidden), \(volumes), \(links)\(exclusions)"
+        let hidden = L10n.string(includeHidden ? "Hidden items included" : "Hidden items skipped")
+        let volumes = L10n.string(stayOnVolume ? "stays on this volume" : "may cross volumes")
+        let links = L10n.string(followSymlinks ? "follows symbolic links" : "symbolic links not followed")
+        guard !excludedPaths.isEmpty else {
+            return L10n.format("%@, %@, %@", hidden, volumes, links)
+        }
+        let exclusions = L10n.format("%lld excluded", excludedPaths.count)
+        return L10n.format("%@, %@, %@; %@", hidden, volumes, links, exclusions)
     }
 }
 

@@ -1,4 +1,5 @@
 import SwiftUI
+import DiskLocalization
 
 /// The app's quick reference: what each control does, and what the numbers mean.
 ///
@@ -41,9 +42,9 @@ public struct HelpView: View {
         HStack(alignment: .top, spacing: DS.Spacing.medium) {
             WillyDiskMark(size: 30)
             VStack(alignment: .leading, spacing: DS.Spacing.xxSmall) {
-                Text("WillyDisk Help")
+                Text(L10n.string("WillyDisk Help"))
                     .font(DS.Typography.title2)
-                Text("Scans, results, history, cleanup, coverage, and the Trash.")
+                Text(L10n.string("Scans, results, history, cleanup, coverage, and the Trash."))
                     .font(DS.Typography.callout)
                     .foregroundStyle(DS.Color.secondaryText)
             }
@@ -54,12 +55,12 @@ public struct HelpView: View {
 
     private var footer: some View {
         HStack {
-            Text("Scans run on this Mac; nothing is uploaded.")
+            Text(L10n.string("Scans run on this Mac; nothing is uploaded."))
                 .font(DS.Typography.caption)
                 .foregroundStyle(DS.Color.secondaryText)
             Spacer()
             Button(action: onClose) {
-                Text("Done")
+                Text(L10n.string("Done"))
                     .frame(minWidth: DS.Size.actionMinWidth)
             }
             .keyboardShortcut(.defaultAction)
@@ -99,84 +100,84 @@ private struct HelpTopic: Identifiable {
 }
 
 private extension HelpView {
-    static let topics: [HelpTopic] = [
+    static var topics: [HelpTopic] { [
         HelpTopic(
             id: "scan",
-            title: "Start a scan",
+            title: L10n.string("Start a scan"),
             symbol: "externaldrive",
             paragraphs: [
-                "Choose a volume, a recent scan, or a preset on the Home screen, or use Choose a Folder… (⌘O) to scan anywhere else. Every route starts the same scan with the same options.",
-                "Scan Options picks what the walk includes: hidden items, other volumes, symbolic links, and excluded paths. The caption beside Scan repeats the choice, and Rescan (⌘R) repeats it exactly.",
-                "Cancel Scan (⌘.) stops the walk and keeps the totals gathered so far, marked as stopped early.",
+                L10n.string("Choose a volume, a recent scan, or a preset on the Home screen, or use Choose a Folder… (⌘O) to scan anywhere else. Every route starts the same scan with the same options."),
+                L10n.string("Scan Options picks what the walk includes: hidden items, other volumes, symbolic links, and excluded paths. The caption beside Scan repeats the choice, and Rescan (⌘R) repeats it exactly."),
+                L10n.string("Cancel Scan (⌘.) stops the walk and keeps the totals gathered so far, marked as stopped early."),
             ]
         ),
         HelpTopic(
             id: "results",
-            title: "Read the results",
+            title: L10n.string("Read the results"),
             symbol: "chart.pie",
             paragraphs: [
-                "The sunburst maps the folder you are in. Click a folder wedge to enter it; click a file wedge to select the file, and click the centre to go up one folder.",
-                "Choose This Folder, Top Files, Top Folders, or Categories. Search (⌘F) finds any name in the whole scan, not only the folder on screen; include a / to match a path instead. Each result says which folder holds it, right-click one for Show in Folder, and clearing the field returns to the list you were in. Categories shows the same scan split by file category, and choosing a category there lists its largest files without leaving the mode. Show More pages through a long list.",
-                "While these results are on screen, the scanned folder is watched: a change made in Finder updates the numbers without Rescan. A long scan is not repeated automatically — the results are marked stale and Rescan is offered.",
-                "The ⓘ button opens Coverage: what the scan counted, what it skipped, and the volume's own figures side by side.",
+                L10n.string("The sunburst maps the folder you are in. Click a folder wedge to enter it; click a file wedge to select the file, and click the centre to go up one folder."),
+                L10n.string("Choose This Folder, Top Files, Top Folders, or Categories. Search (⌘F) finds any name in the whole scan, not only the folder on screen; include a / to match a path instead. Each result says which folder holds it, right-click one for Show in Folder, and clearing the field returns to the list you were in. Categories shows the same scan split by file category, and choosing a category there lists its largest files without leaving the mode. Show More pages through a long list."),
+                L10n.string("While these results are on screen, the scanned folder is watched: a change made in Finder updates the numbers without Rescan. A long scan is not repeated automatically — the results are marked stale and Rescan is offered."),
+                L10n.string("The ⓘ button opens Coverage: what the scan counted, what it skipped, and the volume's own figures side by side."),
             ]
         ),
         HelpTopic(
             id: "select",
-            title: "Select and act",
+            title: L10n.string("Select and act"),
             symbol: "cursorarrow.click",
             paragraphs: [
-                "Click a row to select it, ⌘-click to add or remove one, and Shift-click to extend. The arrow keys move, Shift extends, Home and End jump.",
-                "Space previews the selection with Quick Look, Return opens a folder or a file, and Escape clears the selection.",
-                "Right-click a row, or use the detail pane, to reveal it in Finder or move it to the Trash. A move asks first and refuses the scan root, volume roots, your home folder, and protected system locations. The space returns when the Trash is emptied, not when the item is moved.",
+                L10n.string("Click a row to select it, ⌘-click to add or remove one, and Shift-click to extend. The arrow keys move, Shift extends, Home and End jump."),
+                L10n.string("Space previews the selection with Quick Look, Return opens a folder or a file, and Escape clears the selection."),
+                L10n.string("Right-click a row, or use the detail pane, to reveal it in Finder or move it to the Trash. A move asks first and refuses the scan root, volume roots, your home folder, and protected system locations. The space returns when the Trash is emptied, not when the item is moved."),
             ]
         ),
         HelpTopic(
             id: "cleanup",
-            title: "Review cleanup candidates",
+            title: L10n.string("Review cleanup candidates"),
             symbol: "sparkles",
             paragraphs: [
-                "Cleanup reads the finished scan for large and old files, cache folders, old downloads, and possible duplicates. Looking costs nothing; nothing moves until you confirm.",
-                "A possible duplicate is only a same-size candidate. Check Contents reads the files and compares SHA-256 digests; only matching contents are listed as identical, and cancelling the check confirms nothing.",
-                "Select copies, then Move to Trash…, and the usual confirmation checks every path. The space returns when the Trash is emptied, and moving one hard link frees nothing while another link remains.",
+                L10n.string("Cleanup reads the finished scan for large and old files, cache folders, old downloads, and possible duplicates. Looking costs nothing; nothing moves until you confirm."),
+                L10n.string("A possible duplicate is only a same-size candidate. Check Contents reads the files and compares SHA-256 digests; only matching contents are listed as identical, and cancelling the check confirms nothing."),
+                L10n.string("Select copies, then Move to Trash…, and the usual confirmation checks every path. The space returns when the Trash is emptied, and moving one hard link frees nothing while another link remains."),
             ]
         ),
         HelpTopic(
             id: "coverage",
-            title: "What coverage leaves out",
+            title: L10n.string("What coverage leaves out"),
             symbol: "info.circle",
             paragraphs: [
-                "Hard links are not deduplicated: each link counts, and the extra is disclosed. Dataless files are counted at logical size, with local bytes reported separately.",
-                "Skipped symbolic links, other volumes, special files, and the items your exclusions removed are listed. Nothing that was not read is given an estimated size.",
-                "The startup disk is a volume group, so a scan of / is not reconciled against the disk's capacity.",
+                L10n.string("Hard links are not deduplicated: each link counts, and the extra is disclosed. Dataless files are counted at logical size, with local bytes reported separately."),
+                L10n.string("Skipped symbolic links, other volumes, special files, and the items your exclusions removed are listed. Nothing that was not read is given an estimated size."),
+                L10n.string("The startup disk is a volume group, so a scan of / is not reconciled against the disk's capacity."),
             ]
         ),
         HelpTopic(
             id: "exclusions",
-            title: "Leave paths out",
+            title: L10n.string("Leave paths out"),
             symbol: "eye.slash",
             paragraphs: [
-                "Add Path… in Scan Options leaves paths out of the next scan. A nested exclusion is skipped without being entered; an exclusion at or above the scan root is ignored.",
-                "Coverage reports how many items your exclusions skipped, so a narrower total is never a silent one.",
+                L10n.string("Add Path… in Scan Options leaves paths out of the next scan. A nested exclusion is skipped without being entered; an exclusion at or above the scan root is ignored."),
+                L10n.string("Coverage reports how many items your exclusions skipped, so a narrower total is never a silent one."),
             ]
         ),
         HelpTopic(
             id: "history",
-            title: "Compare two scans",
+            title: L10n.string("Compare two scans"),
             symbol: "clock.arrow.circlepath",
             paragraphs: [
-                "History lists the runs recorded for the location you scanned. Choose two to see what grew, what shrank, and what appeared. Totals and categories are exact; folders and files are each run's largest 100, matched by path, and a New entry may simply have been below the earlier run's cut-off.",
-                "Only finished scans are recorded: a cancelled scan covers part of the folder, so it is not offered as a run to compare. Records stay on this Mac and hold paths and totals, never file contents. Clear History… removes them all.",
+                L10n.string("History lists the runs recorded for the location you scanned. Choose two to see what grew, what shrank, and what appeared. Totals and categories are exact; folders and files are each run's largest 100, matched by path, and a New entry may simply have been below the earlier run's cut-off."),
+                L10n.string("Only finished scans are recorded: a cancelled scan covers part of the folder, so it is not offered as a run to compare. Records stay on this Mac and hold paths and totals, never file contents. Clear History… removes them all."),
             ]
         ),
         HelpTopic(
             id: "export",
-            title: "Export and privacy",
+            title: L10n.string("Export and privacy"),
             symbol: "lock",
             paragraphs: [
-                "File ▸ Export writes a JSON report with the accounting disclosures, or a CSV of the ranked items.",
-                "Scans run on this Mac and nothing is uploaded. Nothing is deleted automatically; Move to Trash is the only removal, and it asks first.",
+                L10n.string("File ▸ Export writes a JSON report with the accounting disclosures, or a CSV of the ranked items."),
+                L10n.string("Scans run on this Mac and nothing is uploaded. Nothing is deleted automatically; Move to Trash is the only removal, and it asks first."),
             ]
         ),
-    ]
+    ] }
 }

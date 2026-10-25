@@ -1,5 +1,6 @@
 import SwiftUI
 import DiskCore
+import DiskLocalization
 
 /// One item the confirmation sheet is about, captured from the scan node so the
 /// sheet does not have to reach back into a tree that may have changed.
@@ -47,18 +48,18 @@ struct ReclaimSheet: View {
 
     private var title: String {
         if candidates.count == 1 {
-            return "Move “\(candidates[0].name)” to the Trash?"
+            return L10n.format("Move “%@” to the Trash?", candidates[0].name)
         }
-        return "Move \(candidates.count) items to the Trash?"
+        return L10n.format("Move %@ to the Trash?", CountFormat.items(candidates.count))
     }
 
     private var hasSymlink: Bool { candidates.contains { $0.isSymlink } }
 
     private var statusText: String {
         if candidates.count == 1 {
-            return isChecking ? "Checking this item…" : "Moving to the Trash…"
+            return L10n.string(isChecking ? "Checking this item…" : "Moving to the Trash…")
         }
-        return isChecking ? "Checking these items…" : "Moving these items to the Trash…"
+        return L10n.string(isChecking ? "Checking these items…" : "Moving these items to the Trash…")
     }
 
     /// True when the tree measures more bytes than the items currently occupy.
@@ -79,9 +80,9 @@ struct ReclaimSheet: View {
                 VStack(alignment: .leading, spacing: DS.Spacing.xSmall) {
                     Text(title)
                         .font(DS.Typography.title2)
-                    Text(candidates.count == 1
+                    Text(L10n.string(candidates.count == 1
                          ? "You can put it back from the Trash until you empty it."
-                         : "You can put them back from the Trash until you empty it.")
+                         : "You can put them back from the Trash until you empty it."))
                         .font(DS.Typography.callout)
                         .foregroundStyle(DS.Color.secondaryText)
                 }
@@ -90,20 +91,20 @@ struct ReclaimSheet: View {
             candidateList
 
             VStack(alignment: .leading, spacing: DS.Spacing.xSmall) {
-                detailLine("On disk", ByteFormat.exact(candidates.totalAllocatedSize))
-                detailLine("Size", ByteFormat.exact(candidates.totalLogicalSize))
-                Text("Moving to the Trash does not free space until the Trash is emptied.")
+                detailLine(L10n.string("On disk"), ByteFormat.exact(candidates.totalAllocatedSize))
+                detailLine(L10n.string("Size"), ByteFormat.exact(candidates.totalLogicalSize))
+                Text(L10n.string("Moving to the Trash does not free space until the Trash is emptied."))
                     .font(DS.Typography.caption)
                     .foregroundStyle(DS.Color.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)
                 if hasSymlink {
-                    Text("Symbolic links are moved themselves; the items they point to stay where they are.")
+                    Text(L10n.string("Symbolic links are moved themselves; the items they point to stay where they are."))
                         .font(DS.Typography.caption)
                         .foregroundStyle(DS.Color.secondaryText)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 if hasThinStorage {
-                    Text("Part of this item is not stored on disk right now; moving it may free less space than its reported size.")
+                    Text(L10n.string("Part of this item is not stored on disk right now; moving it may free less space than its reported size."))
                         .font(DS.Typography.caption)
                         .foregroundStyle(DS.Color.secondaryText)
                         .fixedSize(horizontal: false, vertical: true)
@@ -133,14 +134,14 @@ struct ReclaimSheet: View {
                 }
                 Spacer(minLength: DS.Spacing.small)
                 Button(role: .cancel, action: onCancel) {
-                    Text("Cancel")
+                    Text(L10n.string("Cancel"))
                         .frame(minWidth: DS.Size.secondaryActionMinWidth)
                 }
                 .buttonStyle(.bordered)
                 .keyboardShortcut(.cancelAction)
                 .disabled(isWorking)
                 Button(role: .destructive, action: onConfirm) {
-                    Text("Move to Trash")
+                    Text(L10n.string("Move to Trash"))
                         .frame(minWidth: DS.Size.actionMinWidth)
                 }
                 .buttonStyle(.bordered)
@@ -187,7 +188,7 @@ struct ReclaimSheet: View {
                             .lineLimit(1)
                             .truncationMode(.middle)
                         if candidate.isDirectory {
-                            Text("\(CountFormat.files(candidate.fileCount)) in \(CountFormat.folders(candidate.directoryCount))")
+                            Text(L10n.format("%@ in %@", CountFormat.files(candidate.fileCount), CountFormat.folders(candidate.directoryCount)))
                                 .font(DS.Typography.caption)
                                 .foregroundStyle(DS.Color.secondaryText)
                         }
@@ -285,15 +286,15 @@ struct ReclaimBanner: View {
                 .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: DS.Spacing.small)
             if showsShowTrash {
-                Button("Show Trash", action: onShowTrash)
+                Button(L10n.string("Show Trash"), action: onShowTrash)
                     .buttonStyle(.bordered)
                     .controlSize(.small)
-                    .accessibilityHint("Opens the Trash in Finder")
+                    .accessibilityHint(L10n.string("Opens the Trash in Finder"))
             }
-            Button("Rescan", action: onRescan)
+            Button(L10n.string("Rescan"), action: onRescan)
                 .controlSize(.small)
                 .buttonStyle(.borderedProminent)
-            IconActionButton(symbol: "xmark", help: "Dismiss", surface: .inline, action: onDismiss)
+            IconActionButton(symbol: "xmark", help: L10n.string("Dismiss"), surface: .inline, action: onDismiss)
         }
         .padding(.horizontal, DS.Spacing.large)
         .padding(.vertical, DS.Spacing.small)

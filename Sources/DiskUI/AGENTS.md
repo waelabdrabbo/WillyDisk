@@ -26,7 +26,8 @@ stream reports.
 - `DesignSystem/` — `DesignSystem.swift` holds every token (`DS`), `ChartPalette.swift`
   the chart fills, `FileCategory+UI.swift` the category symbols and labels,
   `AppAppearance.swift` the stored system/light/dark preference the Settings window
-  edits, `GrooveMark.swift` the packaged circular mark
+  edits, `AppLanguage.swift` the stored System/English/العربية interface-language
+  choice, `GrooveMark.swift` the packaged circular mark
   (`Resources/AppMark.png`) that the hero, the chart placeholder, Help, and About draw
   from — it is an image, not a shape drawn in code.
 - `Support/` — non-view helpers: `ExplorerQuery` (sorting/filtering), `ScanSearch`
@@ -48,6 +49,13 @@ stream reports.
 ## Rules
 
 - Take spacing, corner radii, type, and colors from `DS`. No magic numbers in views.
+- Every user-visible string comes from `L10n` (`DiskLocalization`), never from a literal
+  in a view. Use `L10n.string` for text and `L10n.format` for a value; a count noun is a
+  catalog plural entry, not `count == 1 ? … : …` in code. Add the English, Arabic, and
+  `en-XA` values to the catalog, then run `bash Scripts/localize.sh`.
+- Leading and trailing are logical: layout mirrors when the interface language is
+  right-to-left. Do not pin a pane to `.left` or `.right`; review `-l ar` and
+  `-l en-XA` renders, which is where longer translations and truncation show up.
 - A pointer hover must not re-derive what it did not change. The chart's wedges are
   drawn once and the emphasis is a shade and an outline over them; the hover the list
   and the chart share is `ChartHover` in `Screens/ResultsView.swift`, so a hover
@@ -86,7 +94,10 @@ WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S home -o .build/
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S help -c -o .build/renders/<change>
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S settings -c -s 460x760 -o .build/renders/<change>
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S categories -o .build/renders/<change>
+WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S coverage -c -o .build/renders/<change>
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S search -o .build/renders/<change>
+WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S results -l ar -o .build/renders/<change>
+WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a light -S results -l en-XA -o .build/renders/<change>
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S cleanup -c -o .build/renders/<change>
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S duplicates -c -o .build/renders/<change>
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S history -c -o .build/renders/<change>
@@ -94,10 +105,12 @@ WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S history -c -o .
 
 `-S` picks the screen: `results` (default), `home` (source selection), `search` (the
 results screen with a whole-scan query open), `categories` (the results screen in
-Categories mode), `help` and `settings` (the sheet and preferences contents), `cleanup`
-and `duplicates` (the cleanup sheet's two tabs; they scan the same sample tree),
-`history` (the comparison sheet over that scan plus two older sample runs), or `both`
-(home and results).
+Categories mode), `coverage` (the coverage sheet), `help` and `settings` (the sheet and
+preferences contents), `cleanup` and `duplicates` (the cleanup sheet's two tabs; they
+scan the same sample tree), `history` (the comparison sheet over that scan plus two older
+sample runs), or `both` (home and results). `-l` picks the interface language: `en`
+(default), `ar` for the finished right-to-left translation, or `en-XA` for the
+doubled-length pseudolanguage. The locale is part of the PNG's name.
 
 The `-o` matters: renders are named after their size and appearance, so reusing a
 directory reuses the path, and a viewer that already loaded it keeps showing the cached

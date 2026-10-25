@@ -1,4 +1,5 @@
 import Foundation
+import DiskLocalization
 
 /// A one-click location from the source screen.
 ///
@@ -11,6 +12,10 @@ public struct ScanPreset: Identifiable, Equatable, Sendable {
     public let url: URL
     /// Whether the location exists on this Mac right now.
     public var isAvailable: Bool
+
+    /// The name the source screen shows for this preset. `name` is the catalog
+    /// key, so the struct itself stays language-agnostic.
+    public var displayName: String { L10n.string(name) }
 
     public init(id: String, name: String, symbolName: String, url: URL, isAvailable: Bool = true) {
         self.id = id

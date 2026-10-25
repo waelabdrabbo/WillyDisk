@@ -1,5 +1,6 @@
 import SwiftUI
 import DiskCore
+import DiskLocalization
 
 /// The two views of the cleanup report.
 public enum CleanupTab: String, CaseIterable, Identifiable, Sendable {
@@ -10,8 +11,8 @@ public enum CleanupTab: String, CaseIterable, Identifiable, Sendable {
 
     public var title: String {
         switch self {
-        case .old: "Old"
-        case .duplicates: "Duplicates"
+        case .old: L10n.string("Old")
+        case .duplicates: L10n.string("Duplicates")
         }
     }
 }
@@ -116,14 +117,14 @@ public struct CleanupSheet: View {
                 .frame(width: 32)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: DS.Spacing.xxSmall) {
-                Text("Cleanup candidates")
+                Text(L10n.string("Cleanup candidates"))
                     .font(DS.Typography.title2)
                 Text(rootName)
                     .font(DS.Typography.callout)
                     .foregroundStyle(DS.Color.secondaryText)
                     .lineLimit(1)
                     .truncationMode(.middle)
-                Text("From the scan of \(DateFormat.short(scannedAt)). Nothing moves until you confirm.")
+                Text(L10n.format("From the scan of %@. Nothing moves until you confirm.", DateFormat.short(scannedAt)))
                     .font(DS.Typography.caption)
                     .foregroundStyle(DS.Color.secondaryText)
             }
@@ -135,15 +136,19 @@ public struct CleanupSheet: View {
     private var analyzing: some View {
         VStack(spacing: DS.Spacing.medium) {
             ProgressView()
-            Text("Reading the scanned tree…")
+            Text(L10n.string("Reading the scanned tree…"))
                 .font(DS.Typography.callout)
                 .foregroundStyle(DS.Color.primaryText)
-            Text("Looking for files of at least \(ByteFormat.string(policy.largeFileMinimum)) that have not changed in \(ageLabel(policy.largeFileAge)), cache folders, old downloads, and files that share a size.")
+            Text(L10n.format(
+                "Looking for files of at least %@ that have not changed in %@, cache folders, old downloads, and files that share a size.",
+                ByteFormat.string(policy.largeFileMinimum),
+                ageLabel(policy.largeFileAge)
+            ))
                 .font(DS.Typography.caption)
                 .foregroundStyle(DS.Color.secondaryText)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 460)
-            Button("Cancel") {
+            Button(L10n.string("Cancel")) {
                 analysisTask?.cancel()
                 onClose()
             }
@@ -163,9 +168,15 @@ public struct CleanupSheet: View {
                 .font(DS.Icon.medium)
                 .foregroundStyle(DS.Color.secondaryText)
                 .accessibilityHidden(true)
-            Text("Nothing to review")
+            Text(L10n.string("Nothing to review"))
                 .font(DS.Typography.headline)
-            Text("No file is both at least \(ByteFormat.string(policy.largeFileMinimum)) and unchanged for \(ageLabel(policy.largeFileAge)), no Caches or Derived Data folder is inside this scan, no download is older than \(ageLabel(policy.downloadAge)), and no two files of at least \(ByteFormat.string(policy.duplicateMinimum)) share a size.")
+            Text(L10n.format(
+                "No file is both at least %@ and unchanged for %@, no Caches or Derived Data folder is inside this scan, no download is older than %@, and no two files of at least %@ share a size.",
+                ByteFormat.string(policy.largeFileMinimum),
+                ageLabel(policy.largeFileAge),
+                ageLabel(policy.downloadAge),
+                ByteFormat.string(policy.duplicateMinimum)
+            ))
                 .font(DS.Typography.callout)
                 .foregroundStyle(DS.Color.secondaryText)
                 .multilineTextAlignment(.center)
@@ -200,13 +211,13 @@ public struct CleanupSheet: View {
     /// explorer uses, so "choose one view" has one control across the app.
     private var tabBar: some View {
         HStack(spacing: 0) {
-            Picker("Cleanup view", selection: $tab) {
+            Picker(L10n.string("Cleanup view"), selection: $tab) {
                 ForEach(CleanupTab.allCases) { option in
                     Text(option.title).tag(option)
                 }
             }
             .dsSegmentedSwitch()
-            .accessibilityLabel("Cleanup view")
+            .accessibilityLabel(L10n.string("Cleanup view"))
             Spacer(minLength: 0)
         }
     }
@@ -220,9 +231,14 @@ public struct CleanupSheet: View {
                     .font(DS.Icon.medium)
                     .foregroundStyle(DS.Color.secondaryText)
                     .accessibilityHidden(true)
-                Text("Nothing to review here")
+                Text(L10n.string("Nothing to review here"))
                     .font(DS.Typography.headline)
-                Text("No file is both at least \(ByteFormat.string(policy.largeFileMinimum)) and unchanged for \(ageLabel(policy.largeFileAge)), no Caches or Derived Data folder is inside this scan, and no download is older than \(ageLabel(policy.downloadAge)).")
+                Text(L10n.format(
+                    "No file is both at least %@ and unchanged for %@, no Caches or Derived Data folder is inside this scan, and no download is older than %@.",
+                    ByteFormat.string(policy.largeFileMinimum),
+                    ageLabel(policy.largeFileAge),
+                    ageLabel(policy.downloadAge)
+                ))
                     .font(DS.Typography.callout)
                     .foregroundStyle(DS.Color.secondaryText)
                     .multilineTextAlignment(.center)
@@ -259,9 +275,12 @@ public struct CleanupSheet: View {
                     .font(DS.Icon.medium)
                     .foregroundStyle(DS.Color.secondaryText)
                     .accessibilityHidden(true)
-                Text("No possible duplicates")
+                Text(L10n.string("No possible duplicates"))
                     .font(DS.Typography.headline)
-                Text("No two files of at least \(ByteFormat.string(policy.duplicateMinimum)) share a size in this scan.")
+                Text(L10n.format(
+                    "No two files of at least %@ share a size in this scan.",
+                    ByteFormat.string(policy.duplicateMinimum)
+                ))
                     .font(DS.Typography.callout)
                     .foregroundStyle(DS.Color.secondaryText)
                     .multilineTextAlignment(.center)
@@ -287,8 +306,10 @@ public struct CleanupSheet: View {
     @ViewBuilder
     private func stoppedNotice(_ report: CleanupReport) -> some View {
         if report.stoppedAtLimit {
-            Label("Stopped after \(report.visitedCount.formatted()) items, so this is a sample of the scan rather than all of it.",
-                  systemImage: "exclamationmark.triangle")
+            Label(L10n.format(
+                "Stopped after %@, so this is a sample of the scan rather than all of it.",
+                CountFormat.items(report.visitedCount)
+            ), systemImage: "exclamationmark.triangle")
                 .font(DS.Typography.caption)
                 .foregroundStyle(DS.Color.warning)
                 .fixedSize(horizontal: false, vertical: true)
@@ -306,7 +327,7 @@ public struct CleanupSheet: View {
                     .foregroundStyle(DS.Color.secondaryText)
                 Spacer(minLength: DS.Spacing.small)
                 if group.candidates.count > 1 {
-                    InlineActionButton(allSelected(in: group) ? "Deselect All" : "Select All") {
+                    InlineActionButton(L10n.string(allSelected(in: group) ? "Deselect All" : "Select All")) {
                         toggleAll(in: group)
                     }
                 }
@@ -328,9 +349,14 @@ public struct CleanupSheet: View {
     private func groupSummary(_ group: CleanupGroup) -> String {
         let size = ByteFormat.string(group.totalLogicalSize)
         if group.isTruncated {
-            return "\(size) across \(CountFormat.items(group.matchCount)) — showing the largest \(group.candidates.count)"
+            return L10n.format(
+                "%@ across %@ — showing the largest %lld",
+                size,
+                CountFormat.items(group.matchCount),
+                group.candidates.count
+            )
         }
-        return "\(size) · \(CountFormat.items(group.matchCount))"
+        return L10n.format("%@ · %@", size, CountFormat.items(group.matchCount))
     }
 
     // MARK: - Duplicates
@@ -349,13 +375,19 @@ public struct CleanupSheet: View {
                 Spacer(minLength: DS.Spacing.small)
             }
 
-            Text("Files of at least \(ByteFormat.string(policy.duplicateMinimum)) that share a size with another file. Same size is not a duplicate: Check Contents reads their bytes and compares SHA-256 digests.")
+            Text(L10n.format(
+                "Files of at least %@ that share a size with another file. Same size is not a duplicate: Check Contents reads their bytes and compares SHA-256 digests.",
+                ByteFormat.string(policy.duplicateMinimum)
+            ))
                 .font(DS.Typography.caption)
                 .foregroundStyle(DS.Color.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)
 
             if report.duplicateGroups.contains(where: { $0.isTruncated }) {
-                Text("Each size group keeps at most \(policy.maxDuplicateFilesPerGroup) files; the rest are not compared.")
+                Text(L10n.format(
+                    "Each size group keeps at most %lld files; the rest are not compared.",
+                    policy.maxDuplicateFilesPerGroup
+                ))
                     .font(DS.Typography.caption)
                     .foregroundStyle(DS.Color.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)
@@ -363,7 +395,7 @@ public struct CleanupSheet: View {
 
             duplicateCheckBody(report)
 
-            Text("Hard links stay separate paths here; moving one does not free space until every link is gone.")
+            Text(L10n.string("Hard links stay separate paths here; moving one does not free space until every link is gone."))
                 .font(DS.Typography.caption)
                 .foregroundStyle(DS.Color.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)
@@ -372,9 +404,9 @@ public struct CleanupSheet: View {
 
     private var duplicateSectionTitle: String {
         switch duplicateCheck.state {
-        case .idle: "Possible duplicates"
-        case .checking: "Checking contents"
-        case .checked(let result): result.isEmpty ? "Checked contents" : "Identical contents"
+        case .idle: L10n.string("Possible duplicates")
+        case .checking: L10n.string("Checking contents")
+        case .checked(let result): L10n.string(result.isEmpty ? "Checked contents" : "Identical contents")
         }
     }
 
@@ -382,28 +414,31 @@ public struct CleanupSheet: View {
         let groups = sizeGroupLabel(report.duplicateGroupCount)
         let files = CountFormat.files(report.duplicateCandidateCount)
         guard report.duplicateGroupCount > report.duplicateGroups.count else {
-            return "\(groups) · \(files)"
+            return L10n.format("%@ · %@", groups, files)
         }
-        return "\(groups) · showing the largest \(report.duplicateGroups.count)"
+        return L10n.format("%@ · showing the largest %lld", groups, report.duplicateGroups.count)
     }
 
     private func sizeGroupLabel(_ count: Int) -> String {
-        "\(count.formatted()) size \(count == 1 ? "group" : "groups")"
+        L10n.format("%lld size groups", count)
     }
 
     @ViewBuilder
     private func duplicateCheckBody(_ report: CleanupReport) -> some View {
         switch duplicateCheck.state {
         case .idle:
-            Text("\(CountFormat.files(report.duplicateCandidateCount)) share a size with another file in this scan. Their contents have not been compared.")
+            Text(L10n.format(
+                "%@ share a size with another file in this scan. Their contents have not been compared.",
+                CountFormat.files(report.duplicateCandidateCount)
+            ))
                 .font(DS.Typography.caption)
                 .foregroundStyle(DS.Color.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)
-            Button("Check Contents") {
+            Button(L10n.string("Check Contents")) {
                 duplicateCheck.start(report.duplicateGroups)
             }
             .controlSize(.small)
-            .accessibilityHint("Reads these files and compares their contents")
+            .accessibilityHint(L10n.string("Reads these files and compares their contents"))
         case .checking(let progress):
             duplicateProgress(progress)
         case .checked(let result):
@@ -416,11 +451,18 @@ public struct CleanupSheet: View {
             ProgressView(value: progress.fraction)
                 .frame(maxWidth: 320)
             HStack(spacing: DS.Spacing.small) {
-                Text("Comparing contents… \(Int((progress.fraction * 100).rounded()))%")
-                Text("\(progress.completedFiles) of \(progress.totalFiles) files")
+                Text(L10n.format(
+                    "Comparing contents… %lld%%",
+                    Int((progress.fraction * 100).rounded())
+                ))
+                Text(L10n.format(
+                    "%@ of %@",
+                    progress.completedFiles.formatted(),
+                    CountFormat.files(progress.totalFiles)
+                ))
                     .foregroundStyle(DS.Color.secondaryText)
                 Spacer(minLength: DS.Spacing.small)
-                Button("Cancel") {
+                Button(L10n.string("Cancel")) {
                     duplicateCheck.cancel()
                 }
                 .controlSize(.small)
@@ -428,24 +470,32 @@ public struct CleanupSheet: View {
             .font(DS.Typography.caption)
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Comparing file contents")
-        .accessibilityValue("\(Int((progress.fraction * 100).rounded())) percent")
+        .accessibilityLabel(L10n.string("Comparing file contents"))
+        .accessibilityValue(L10n.format("%lld percent", Int((progress.fraction * 100).rounded())))
     }
 
     @ViewBuilder
     private func duplicateResults(_ result: DuplicateReport) -> some View {
         if result.isEmpty {
             VStack(alignment: .leading, spacing: DS.Spacing.xSmall) {
-                Label("No identical contents found", systemImage: "checkmark.circle")
+                Label(L10n.string("No identical contents found"), systemImage: "checkmark.circle")
                     .font(DS.Typography.callout)
-                Text("Compared \(CountFormat.files(result.comparedFileCount)) of \(CountFormat.files(result.candidateFileCount)). The files that were read have different contents; the same size alone is not a duplicate.")
+                Text(L10n.format(
+                    "Compared %@ of %@. The files that were read have different contents; the same size alone is not a duplicate.",
+                    CountFormat.files(result.comparedFileCount),
+                    CountFormat.files(result.candidateFileCount)
+                ))
                     .font(DS.Typography.caption)
                     .foregroundStyle(DS.Color.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)
                 unreadableNote(result)
             }
         } else {
-            Text("Compared \(CountFormat.files(result.comparedFileCount)) of \(CountFormat.files(result.candidateFileCount)). The confirmed groups below have identical contents.")
+            Text(L10n.format(
+                "Compared %@ of %@. The confirmed groups below have identical contents.",
+                CountFormat.files(result.comparedFileCount),
+                CountFormat.files(result.candidateFileCount)
+            ))
                 .font(DS.Typography.caption)
                 .foregroundStyle(DS.Color.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)
@@ -459,7 +509,10 @@ public struct CleanupSheet: View {
     @ViewBuilder
     private func unreadableNote(_ result: DuplicateReport) -> some View {
         if result.unreadableFileCount > 0 {
-            Text("\(CountFormat.files(result.unreadableFileCount)) could not be read and are not called duplicates.")
+            Text(L10n.format(
+                "%@ could not be read and are not called duplicates.",
+                CountFormat.files(result.unreadableFileCount)
+            ))
                 .font(DS.Typography.caption)
                 .foregroundStyle(DS.Color.warning)
                 .fixedSize(horizontal: false, vertical: true)
@@ -472,19 +525,19 @@ public struct CleanupSheet: View {
     private func duplicateContentGroup(_ group: DuplicateContentGroup) -> some View {
         VStack(alignment: .leading, spacing: DS.Spacing.xSmall) {
             HStack(alignment: .firstTextBaseline, spacing: DS.Spacing.small) {
-                Text("\(CountFormat.files(group.candidates.count)) with identical contents")
+                Text(L10n.format("%@ with identical contents", CountFormat.files(group.candidates.count)))
                     .font(DS.Typography.callout.weight(.medium))
-                Text("\(ByteFormat.string(group.logicalSize)) each")
+                Text(L10n.format("%@ each", ByteFormat.string(group.logicalSize)))
                     .font(DS.Typography.caption)
                     .foregroundStyle(DS.Color.secondaryText)
                 Spacer(minLength: DS.Spacing.small)
-                InlineActionButton(extrasSelected(in: group) ? "Clear Copies" : "Select All But One") {
+                InlineActionButton(L10n.string(extrasSelected(in: group) ? "Clear Copies" : "Select All But One")) {
                     toggleExtras(in: group)
                 }
-                .help("Selects every copy except the first, so one copy stays in place")
+                .help(L10n.string("Selects every copy except the first, so one copy stays in place"))
             }
 
-            Text("Select All But One leaves the first copy in place. Space returns only when the Trash is emptied.")
+            Text(L10n.string("Select All But One leaves the first copy in place. Space returns only when the Trash is emptied."))
                 .font(DS.Typography.caption)
                 .foregroundStyle(DS.Color.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)
@@ -517,11 +570,18 @@ public struct CleanupSheet: View {
     private func explanation(for kind: CleanupKind) -> String {
         switch kind {
         case .largeAndOld:
-            return "Files of at least \(ByteFormat.string(policy.largeFileMinimum)) that have not been modified in \(ageLabel(policy.largeFileAge))."
+            return L10n.format(
+                "Files of at least %@ that have not been modified in %@.",
+                ByteFormat.string(policy.largeFileMinimum),
+                ageLabel(policy.largeFileAge)
+            )
         case .caches:
-            return "Folders named Caches directly inside a Library, and Xcode's Derived Data, offered whole. The apps that made them rebuild them; moving one can cost a rebuild until they do."
+            return L10n.string("Folders named Caches directly inside a Library, and Xcode's Derived Data, offered whole. The apps that made them rebuild them; moving one can cost a rebuild until they do.")
         case .downloads:
-            return "Files in a folder named Downloads that have not been modified in \(ageLabel(policy.downloadAge))."
+            return L10n.format(
+                "Files in a folder named Downloads that have not been modified in %@.",
+                ageLabel(policy.downloadAge)
+            )
         }
     }
 
@@ -583,8 +643,8 @@ public struct CleanupSheet: View {
                 hoveredCandidate = nil
             }
         }
-        .accessibilityLabel("\(candidate.name), \(ByteFormat.string(candidate.logicalSize))")
-        .accessibilityHint(candidate.isDirectory ? "A folder; moves everything inside it" : "A file")
+        .accessibilityLabel(L10n.format("%@, %@", candidate.name, ByteFormat.string(candidate.logicalSize)))
+        .accessibilityHint(L10n.string(candidate.isDirectory ? "A folder; moves everything inside it" : "A file"))
         .accessibilityAddTraits(isSelected ? [.isSelected] : [])
     }
 
@@ -592,7 +652,7 @@ public struct CleanupSheet: View {
 
     private var footer: some View {
         VStack(alignment: .leading, spacing: DS.Spacing.small) {
-            Text("Candidates are places to look, not a recommendation. A move goes through the same confirmation as everywhere else, and the space returns when the Trash is emptied.")
+            Text(L10n.string("Candidates are places to look, not a recommendation. A move goes through the same confirmation as everywhere else, and the space returns when the Trash is emptied."))
                 .font(DS.Typography.caption)
                 .foregroundStyle(DS.Color.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)
@@ -607,14 +667,14 @@ public struct CleanupSheet: View {
                 Button {
                     onMove(selectedNodes)
                 } label: {
-                    Text("Move to Trash…")
+                    Text(L10n.string("Move to Trash…"))
                         .frame(minWidth: DS.Size.actionMinWidth)
                 }
                 .disabled(selected.isEmpty)
-                .accessibilityHint("Opens the confirmation for the selected items")
+                .accessibilityHint(L10n.string("Opens the confirmation for the selected items"))
 
                 Button(action: onClose) {
-                    Text("Done")
+                    Text(L10n.string("Done"))
                         .frame(minWidth: DS.Size.secondaryActionMinWidth)
                 }
                 .keyboardShortcut(.defaultAction)
@@ -625,9 +685,13 @@ public struct CleanupSheet: View {
     }
 
     private var selectionSummary: String {
-        guard !selected.isEmpty else { return "Nothing selected" }
+        guard !selected.isEmpty else { return L10n.string("Nothing selected") }
         let bytes = selectedNodes.reduce(Int64(0)) { $0 + $1.logicalSize }
-        return "\(CountFormat.items(selected.count)) selected · \(ByteFormat.string(bytes))"
+        return L10n.format(
+            "%@ selected · %@",
+            CountFormat.items(selected.count),
+            ByteFormat.string(bytes)
+        )
     }
 
     private var selectedNodes: [ScanNode] {
@@ -681,13 +745,11 @@ public struct CleanupSheet: View {
     private func ageLabel(_ interval: TimeInterval) -> String {
         let days = Int(interval / 86_400)
         if days >= 360 {
-            let years = max(1, days / 365)
-            return years == 1 ? "a year" : "\(years) years"
+            return L10n.format("%lld years", max(1, days / 365))
         }
         if days >= 30 {
-            let months = max(1, days / 30)
-            return months == 1 ? "a month" : "\(months) months"
+            return L10n.format("%lld months", max(1, days / 30))
         }
-        return days == 1 ? "a day" : "\(max(1, days)) days"
+        return L10n.format("%lld days", max(1, days))
     }
 }

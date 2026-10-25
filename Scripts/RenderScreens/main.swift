@@ -2,6 +2,7 @@ import SwiftUI
 import AppKit
 import DiskCore
 import DiskUI
+import DiskLocalization
 
 /// Offscreen renderer for WillyDisk's screens.
 ///
@@ -36,6 +37,7 @@ enum ScreenKind: String, CaseIterable {
     case help
     case settings
     case categories
+    case coverage
     case cleanup
     case duplicates
     case history
@@ -43,6 +45,7 @@ enum ScreenKind: String, CaseIterable {
 
 struct Options {
     var out = URL(fileURLWithPath: ".build/renders")
+    var locale = "en"
     var size = CGSize(width: 1000, height: 720)
     var appearances: [ColorScheme] = [.light, .dark]
     var screens: [ScreenKind] = [.results]
@@ -89,12 +92,19 @@ func parse(_ arguments: [String]) -> Options {
             case "help": options.screens = [.help]
             case "settings": options.screens = [.settings]
             case "categories": options.screens = [.categories]
+            case "coverage": options.screens = [.coverage]
             case "cleanup": options.screens = [.cleanup]
             case "duplicates": options.screens = [.duplicates]
             case "history": options.screens = [.history]
             case "both": options.screens = [.results, .home]
-            case let other: fail("--screen expects home, results, search, help, settings, categories, cleanup, duplicates, history or both, not \(other)")
+            case let other: fail("--screen expects home, results, search, help, settings, categories, coverage, cleanup, duplicates, history or both, not \(other)")
             }
+        case "--locale":
+            let language = next("--locale")
+            guard L10n.availableLanguages.contains(language) else {
+                fail("--locale expects one of \(L10n.availableLanguages.joined(separator: ", ")), not \(language)")
+            }
+            options.locale = language
         case "--fixture":
             options.fixture = URL(fileURLWithPath: next("--fixture"))
         case "--state":
@@ -110,7 +120,7 @@ func parse(_ arguments: [String]) -> Options {
             options.rendersWindow = false
         case "--help", "-h":
             print("""
-            usage: render-screens --out DIR [--size WxH] [--appearance light|dark|both] [--screen home|results|search|help|settings|categories|cleanup|duplicates|history|both] [--fixture DIR] [--state finished|scanning] [--window|--content]
+            usage: render-screens --out DIR [--size WxH] [--appearance light|dark|both] [--screen home|results|search|help|settings|categories|coverage|cleanup|duplicates|history|both] [--fixture DIR] [--state finished|scanning] [--locale en|ar|en-XA] [--window|--content]
 
               --out        directory the PNGs are written to
               --size       render size in points (default 1000x720)
@@ -118,13 +128,17 @@ func parse(_ arguments: [String]) -> Options {
               --screen     which screens to render (default results); both is
                            home and results, search is the results screen with a
                            whole-scan search open, categories is the results
-                           screen in Categories mode, help and settings are the
-                           sheet and preferences contents, cleanup and duplicates
-                           are the cleanup sheet's two tabs (they use their own
-                           fixture), history is the scan-history comparison
+                           screen in Categories mode, coverage is the coverage
+                           sheet, help and settings are the sheet and preferences
+                           contents, cleanup and duplicates are the cleanup
+                           sheet's two tabs (they use their own fixture), history
+                           is the scan-history comparison
               --fixture    scan this directory instead of the generated fixture
               --state      finished (default) or scanning, which captures the
                            screen while the scan is still running
+              --locale     interface language (default en); ar is the finished
+                           right-to-left translation, en-XA the doubled-length
+                           pseudolanguage
               --window     capture the whole window, toolbar included (default)
               --content    capture the screen alone, with no window around it
             """)
@@ -334,6 +348,22 @@ func makeSettingsStore(fixture: URL) -> ScanOptionsStore {
     return store
 }
 
+/// Pins the process to one interface language before a view or a formatter
+/// reads it. `L10n` resolves the `.lproj` itself; the defaults make the system
+/// formatters — dates, sizes, numbers — follow the same language.
+func applyLocale(_ locale: String) {
+    UserDefaults.standard.set([locale], forKey: "AppleLanguages")
+    UserDefaults.standard.set(locale, forKey: "AppleLocale")
+    L10n.overrideLanguage(locale)
+    // The Settings render shows the language picker; seed its preference so the
+    // rendered language is the one selected, in this throwaway defaults domain.
+    if let choice = AppLanguage.allCases.first(where: { $0.catalogLanguage == locale }) {
+        UserDefaults.standard.set(choice.rawValue, forKey: AppLanguage.defaultsKey)
+    } else {
+        UserDefaults.standard.set(AppLanguage.system.rawValue, forKey: AppLanguage.defaultsKey)
+    }
+}
+
 @MainActor
 func render(_ options: Options) {
     // Help and Settings are static content: they need no scan, so those renders
@@ -457,6 +487,30 @@ func render(_ options: Options) {
                     }
                 case .categories:
                     ResultsView(viewModel: viewModel, initialMode: .categories)
+                case .coverage:
+                    if let summary = viewModel.summary {
+                        CoverageSheet(
+                            summary: summary,
+                            isLive: false,
+                            volume: VolumeFacts(
+                                mountURL: fixture,
+                                name: "Sample Disk",
+                                totalCapacity: 4_000_000_000_000,
+                                availableCapacity: 1_200_000_000_000,
+                                availableForImportantUsage: 1_350_000_000_000,
+                                isReadOnly: false
+                            ),
+                            snapshots: LocalSnapshots(
+                                volumeName: "Sample Disk",
+                                names: [
+                                    "com.apple.TimeMachine.2026-10-12-101500.local",
+                                    "com.apple.TimeMachine.2026-10-13-101500.local",
+                                    "com.apple.TimeMachine.2026-10-14-101500.local",
+                                    "com.apple.TimeMachine.2026-10-15-101500.local",
+                                ]
+                            )
+                        )
+                    }
                 case .search:
                     // A query every folder of the fixture has something for, so
                     // the render shows the match list, their containing paths, and
@@ -488,9 +542,10 @@ func render(_ options: Options) {
                 }
             }
             .environment(\.colorScheme, appearance)
+            .environment(\.layoutDirection, L10n.isRightToLeft ? .rightToLeft : .leftToRight)
 
             let url = options.out.appendingPathComponent(
-                "\(kind.rawValue)-\(options.rendersWindow ? "window" : "content")-\(name)-\(Int(options.size.width))x\(Int(options.size.height)).png")
+                "\(kind.rawValue)-\(options.rendersWindow ? "window" : "content")-\(name)-\(options.locale)-\(Int(options.size.width))x\(Int(options.size.height)).png")
             let image = options.rendersWindow
                 ? renderWindow(screen, size: options.size, appearance: appearance)
                 : renderContent(screen, size: options.size)
@@ -552,6 +607,8 @@ func renderContent<V: View>(_ screen: V, size: CGSize) -> NSBitmapImageRep? {
     return rep
 }
 
+let options = parse(Array(CommandLine.arguments.dropFirst()))
+applyLocale(options.locale)
 let app = NSApplication.shared
 app.setActivationPolicy(.prohibited)
-MainActor.assumeIsolated { render(parse(Array(CommandLine.arguments.dropFirst()))) }
+MainActor.assumeIsolated { render(options) }

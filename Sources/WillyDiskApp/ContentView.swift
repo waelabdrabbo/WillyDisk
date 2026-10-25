@@ -1,5 +1,6 @@
 import SwiftUI
 import DiskUI
+import DiskLocalization
 
 /// Hosts the phase-driven scan flow (source selection → results).
 ///
@@ -19,15 +20,24 @@ import DiskUI
 struct ContentView: View {
     @EnvironmentObject private var appState: AppState
     @AppStorage(AppAppearance.defaultsKey) private var appearance: AppAppearance = .system
+    @AppStorage(AppLanguage.defaultsKey) private var language: AppLanguage = .system
 
     var body: some View {
         ScanFlowView(viewModel: appState.scanViewModel)
             // One ink for every control state: the app's signal, set once here so
             // no screen has to remember it.
             .tint(DS.Color.signal)
+            // The interface language decides the reading direction of every
+            // screen and sheet. A change is a new identity for the flow, so
+            // every label that was built in the old language is rebuilt.
+            .environment(\.layoutDirection, L10n.isRightToLeft ? .rightToLeft : .leftToRight)
+            .environment(\.locale, L10n.locale)
+            .id(language)
             .onChange(of: appearance) { _, choice in appState.applyAppearance(choice) }
+            .onChange(of: language) { _, choice in choice.apply() }
             .sheet(isPresented: $appState.isShowingHelp) {
                 HelpView { appState.isShowingHelp = false }
+                    .id(language)
             }
     }
 }

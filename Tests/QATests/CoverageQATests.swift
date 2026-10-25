@@ -1,12 +1,24 @@
 import XCTest
 import Foundation
 import DiskCore
+import DiskLocalization
 @testable import DiskUI
 
 /// The coverage sheet's words are the product's promise about what it knows.
 /// These tests pin the promises that are easy to break: no invented
 /// reconciliation, every skip named, and an unavailable answer said out loud.
 final class CoverageQATests: XCTestCase {
+
+    override func setUp() {
+        super.setUp()
+        // Wording assertions are written in the source language.
+        L10n.overrideLanguage("en")
+    }
+
+    override func tearDown() {
+        L10n.overrideLanguage(nil)
+        super.tearDown()
+    }
     private func makeSummary(
         root: String = "/Users/me/Projects",
         accounting: ScanAccounting = .zero,

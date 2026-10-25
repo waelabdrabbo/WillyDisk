@@ -2,6 +2,7 @@ import XCTest
 import Foundation
 @testable import DiskCLI
 import DiskCore
+import DiskLocalization
 
 /// The command line as a script meets it: the arguments it accepts, the exit
 /// statuses it reports, the report it prints, and the record it writes.
@@ -11,12 +12,14 @@ final class ScanCommandTests: XCTestCase {
 
     override func setUpWithError() throws {
         try super.setUpWithError()
+        L10n.overrideLanguage("en")
         root = FileManager.default.temporaryDirectory
             .appendingPathComponent("WillyDiskCLITests-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
     }
 
     override func tearDownWithError() throws {
+        L10n.overrideLanguage(nil)
         if let root {
             try? FileManager.default.removeItem(at: root)
         }
@@ -165,6 +168,24 @@ final class ScanCommandTests: XCTestCase {
             "top 2 must disclose the hidden folder:\n\(shallow.text)"
         )
         XCTAssertFalse(folderSection(of: shallow.text).contains("beta"))
+    }
+
+    func testArabicReportUsesLocalizedLabelsAndKeepsItsColumns() async throws {
+        try makeFixture()
+        L10n.overrideLanguage("ar")
+        defer { L10n.overrideLanguage("en") }
+
+        let report = try await scanText(depth: 1, top: 2)
+        XCTAssertEqual(report.code, 0, report.stderr)
+        XCTAssertTrue(report.text.contains("أكبر الملفات"), report.text)
+        XCTAssertTrue(report.text.contains("المجلدات ("), report.text)
+        XCTAssertTrue(report.text.contains("على القرص"), report.text)
+
+        // The value column follows the widest label, so a translated label never
+        // runs into its value.
+        let volumeLine = report.text.components(separatedBy: "\n").first { $0.contains("على القرص") }
+        XCTAssertNotNil(volumeLine)
+        XCTAssertTrue(volumeLine?.contains("  ") == true)
     }
 
     func testTextReportNamesTheRootOnceInTheFolderTree() async throws {

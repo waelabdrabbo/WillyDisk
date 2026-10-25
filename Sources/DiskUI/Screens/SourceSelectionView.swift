@@ -2,6 +2,7 @@ import SwiftUI
 import AppKit
 import UniformTypeIdentifiers
 import DiskCore
+import DiskLocalization
 
 /// Screen A — source selection, and the home for a scan running in the
 /// background.
@@ -109,11 +110,11 @@ public struct SourceSelectionView: View {
         HStack(alignment: .center, spacing: DS.Spacing.large) {
             WillyDiskMark(size: 56)
             VStack(alignment: .leading, spacing: DS.Spacing.xxSmall) {
-                Text("WillyDisk")
+                Text(L10n.string("WillyDisk"))
                     .font(DS.Typography.largeTitle)
                     .tracking(DS.Typography.displayTracking)
                     .foregroundStyle(DS.Color.primaryText)
-                Text("Choose a folder. See what it weighs.")
+                Text(L10n.string("Choose a folder. See what it weighs."))
                     .font(DS.Typography.body)
                     .foregroundStyle(DS.Color.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)
@@ -136,7 +137,7 @@ public struct SourceSelectionView: View {
     /// not as a kit of tiles.
     private var presetsSection: some View {
         VStack(alignment: .leading, spacing: DS.Spacing.small) {
-            sectionHeader("Quick scans")
+            sectionHeader(L10n.string("Quick scans"))
             if !presets.isEmpty {
                 LazyVGrid(columns: presetColumns, spacing: 0) {
                     ForEach(Array(presets.enumerated()), id: \.element.id) { index, preset in
@@ -176,10 +177,10 @@ public struct SourceSelectionView: View {
                     .alignmentGuide(.presetNameMiddle) { $0[VerticalAlignment.center] }
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: DS.Spacing.hairline) {
-                    Text(preset.name)
+                    Text(preset.displayName)
                         .font(DS.Typography.body)
                         .foregroundStyle(DS.Color.primaryText)
-                    Text(preset.isAvailable ? PathFormat.abbreviated(preset.url.path) : "Not on this Mac")
+                    Text(preset.isAvailable ? PathFormat.abbreviated(preset.url.path) : L10n.string("Not on this Mac"))
                         .font(DS.Typography.caption)
                         .foregroundStyle(DS.Color.secondaryText)
                         .lineLimit(1)
@@ -220,12 +221,12 @@ public struct SourceSelectionView: View {
             }
         }
         .help(preset.isAvailable
-            ? "Scan \(preset.name) at \(preset.url.path)"
-            : "\(preset.name) is not on this Mac")
-        .accessibilityLabel("Scan \(preset.name)")
+            ? L10n.format("Scan %@ at %@", preset.displayName, preset.url.path)
+            : L10n.format("%@ is not on this Mac", preset.displayName))
+        .accessibilityLabel(L10n.format("Scan %@", preset.displayName))
         .accessibilityHint(preset.isAvailable
             ? preset.url.path
-            : "This location is not on this Mac")
+            : L10n.string("This location is not on this Mac"))
     }
 
     /// The mounted drives as an open list: each row sits on the window and a
@@ -234,7 +235,7 @@ public struct SourceSelectionView: View {
     private var volumesSection: some View {
         if !volumes.isEmpty {
             VStack(alignment: .leading, spacing: DS.Spacing.xSmall) {
-                sectionHeader("Volumes")
+                sectionHeader(L10n.string("Volumes"))
                 VStack(spacing: 0) {
                     ForEach(Array(volumes.enumerated()), id: \.element.id) { index, volume in
                         volumeRow(volume)
@@ -276,7 +277,7 @@ public struct SourceSelectionView: View {
                     .stroke(DS.Color.signal,
                             style: StrokeStyle(lineWidth: DS.Size.capacityArcWidth, lineCap: .butt))
                     .rotationEffect(.degrees(DS.Size.capacityArcRotation))
-                Text("\(Int((used * 100).rounded()))%")
+                Text(L10n.format("%lld%%", Int((used * 100).rounded())))
                     .font(DS.Typography.gaugeFigures)
                     .foregroundStyle(DS.Color.primaryText)
             }
@@ -306,7 +307,7 @@ public struct SourceSelectionView: View {
                     HStack(spacing: DS.Spacing.medium) {
                         if let total = volume.totalCapacity {
                             let used = volume.usedCapacity ?? 0
-                            Text("\(ByteFormat.string(used)) used of \(ByteFormat.string(total))")
+                            Text(L10n.format("%@ used of %@", ByteFormat.string(used), ByteFormat.string(total)))
                                 .font(DS.Typography.metadataFigures)
                                 .foregroundStyle(DS.Color.secondaryText)
                                 .lineLimit(1)
@@ -339,16 +340,16 @@ public struct SourceSelectionView: View {
             }
         }
         .keyboardShortcut(isPrimary ? .defaultAction : nil)
-        .help(slot != nil ? "Open the scan results for \(volume.name)" : startHelp(volume.name))
+        .help(slot != nil ? L10n.format("Open the scan results for %@", volume.name) : startHelp(volume.name))
         .accessibilityLabel(volumeRowLabel(volume, slot: slot))
-        .accessibilityHint(slot != nil ? "Opens the scan results" : startHint(volume.name))
+        .accessibilityHint(slot != nil ? L10n.string("Opens the scan results") : startHint(volume.name))
     }
 
     /// The row's spoken facts: the location, its capacity, and — when it is the
     /// location being scanned — that scan's state and honest counters.
     private func volumeRowLabel(_ volume: VolumeInfo, slot: ScanSlotPresentation?) -> String {
         guard let slot else { return volumeSummary(volume) }
-        return "\(volumeSummary(volume)), \(slot.accessibilityLabel)"
+        return L10n.format("%@, %@", volumeSummary(volume), slot.accessibilityLabel)
     }
 
     /// The state of the scan on a location, set inline beside the row's own
@@ -400,7 +401,7 @@ public struct SourceSelectionView: View {
     /// The row's trailing affordance. The row itself is the control, so this is
     /// a label rather than a second button.
     private func sourceRowAffordance(isView: Bool, isPrimary: Bool) -> some View {
-        Text(isView ? "View Results" : "Scan")
+        Text(L10n.string(isView ? "View Results" : "Scan"))
             .font(DS.Typography.caption)
             .fontWeight(.medium)
             .foregroundStyle(DS.Color.accent)
@@ -423,33 +424,33 @@ public struct SourceSelectionView: View {
     /// Why a start action is unavailable, or what it starts.
     private func startHelp(_ name: String) -> String {
         viewModel.isScanning
-            ? "A scan is already running — open its results, or stop it to start another"
-            : "Scan \(name)"
+            ? L10n.string("A scan is already running — open its results, or stop it to start another")
+            : L10n.format("Scan %@", name)
     }
 
     /// What a start action does, or why it cannot act right now.
     private func startHint(_ name: String) -> String {
         viewModel.isScanning
-            ? "Unavailable while another scan is running"
-            : "Starts scanning \(name)"
+            ? L10n.string("Unavailable while another scan is running")
+            : L10n.format("Starts scanning %@", name)
     }
 
     /// The volume's name, usage, free space, and fullness, as one spoken phrase.
     private func volumeSummary(_ volume: VolumeInfo) -> String {
         var parts = [volume.name]
         if let total = volume.totalCapacity, let used = volume.usedCapacity {
-            parts.append("\(ByteFormat.string(used)) of \(ByteFormat.string(total)) used")
+            parts.append(L10n.format("%@ of %@ used", ByteFormat.string(used), ByteFormat.string(total)))
         }
         if let available = volume.availableCapacity {
-            parts.append("\(ByteFormat.string(available)) available")
+            parts.append(L10n.format("%@ available", ByteFormat.string(available)))
         }
         if let fraction = volume.usedFraction {
-            parts.append("\(Int((fraction * 100).rounded()))% full")
+            parts.append(L10n.format("%lld%% full", Int((fraction * 100).rounded())))
         }
         if volume.isReadOnly {
-            parts.append("read only")
+            parts.append(L10n.string("read only"))
         }
-        return parts.joined(separator: ", ")
+        return L10n.list(parts)
     }
 
     /// The recent locations as the same open list as the volumes: one hairline
@@ -459,7 +460,7 @@ public struct SourceSelectionView: View {
         let locations = recentLocationsShown
         if !locations.isEmpty {
             VStack(alignment: .leading, spacing: DS.Spacing.xSmall) {
-                sectionHeader("Recent")
+                sectionHeader(L10n.string("Recent"))
                 VStack(spacing: 0) {
                     ForEach(Array(locations.enumerated()), id: \.element) { index, url in
                         recentRow(url)
@@ -530,16 +531,16 @@ public struct SourceSelectionView: View {
             }
         }
         .keyboardShortcut(isPrimary ? .defaultAction : nil)
-        .help(slot != nil ? "Open the scan results for \(name)" : startHelp(name))
+        .help(slot != nil ? L10n.format("Open the scan results for %@", name) : startHelp(name))
         .accessibilityLabel(recentRowLabel(name: name, path: url.path, slot: slot))
-        .accessibilityHint(slot != nil ? "Opens the scan results" : startHint(name))
+        .accessibilityHint(slot != nil ? L10n.string("Opens the scan results") : startHint(name))
     }
 
     /// The recent row's spoken facts: the location, its path, and — when it is
     /// the location being scanned — that scan's state and honest counters.
     private func recentRowLabel(name: String, path: String, slot: ScanSlotPresentation?) -> String {
-        guard let slot else { return "\(name), \(path)" }
-        return "\(name), \(path), \(slot.accessibilityLabel)"
+        guard let slot else { return L10n.format("%@, %@", name, path) }
+        return L10n.format("%@, %@, %@", name, path, slot.accessibilityLabel)
     }
 
     /// Whether the scan on the slot has a result a Home row can open. The row
@@ -559,14 +560,14 @@ public struct SourceSelectionView: View {
         Button {
             showingScanOptions.toggle()
         } label: {
-            Label("Scan Options", systemImage: "slider.horizontal.3")
+            Label(L10n.string("Scan Options"), systemImage: "slider.horizontal.3")
                 .labelStyle(.titleAndIcon)
         }
         .popover(isPresented: $showingScanOptions, arrowEdge: .bottom) {
             scanOptionsPopover
         }
-        .help("Choose what the next scan includes")
-        .accessibilityLabel("Scan options")
+        .help(L10n.string("Choose what the next scan includes"))
+        .accessibilityLabel(L10n.string("Scan options"))
         .accessibilityValue(scanOptions.summary)
     }
 
@@ -578,12 +579,12 @@ public struct SourceSelectionView: View {
         Button {
             chooseFolder()
         } label: {
-            Label("Choose a Folder…", systemImage: "folder")
+            Label(L10n.string("Choose a Folder…"), systemImage: "folder")
                 .labelStyle(.titleAndIcon)
         }
         .disabled(viewModel.isScanning)
-        .help("Pick any folder or volume to scan")
-        .accessibilityLabel("Choose a folder to scan")
+        .help(L10n.string("Pick any folder or volume to scan"))
+        .accessibilityLabel(L10n.string("Choose a folder to scan"))
     }
 
     /// What a scan includes, as switches with the consequence of each spelled
@@ -591,22 +592,22 @@ public struct SourceSelectionView: View {
     /// screen and the popover cannot disagree.
     private var scanOptionsPopover: some View {
         VStack(alignment: .leading, spacing: DS.Spacing.medium) {
-            Text("Scan Options")
+            Text(L10n.string("Scan Options"))
                 .font(DS.Typography.headline)
 
             ScanOptionToggle(
-                title: "Include hidden items",
-                detail: "Names macOS hides, such as ~/Library, dotfiles, and caches.",
+                title: L10n.string("Include hidden items"),
+                detail: L10n.string("Names macOS hides, such as ~/Library, dotfiles, and caches."),
                 isOn: optionBinding(\.includeHidden)
             )
             ScanOptionToggle(
-                title: "Stay on this volume",
-                detail: "Do not follow folders that point to another disk or network share.",
+                title: L10n.string("Stay on this volume"),
+                detail: L10n.string("Do not follow folders that point to another disk or network share."),
                 isOn: optionBinding(\.stayOnVolume)
             )
             ScanOptionToggle(
-                title: "Follow symbolic links",
-                detail: "Count a link's target, skipping links that leave the scan.",
+                title: L10n.string("Follow symbolic links"),
+                detail: L10n.string("Count a link's target, skipping links that leave the scan."),
                 isOn: optionBinding(\.followSymlinks)
             )
 
@@ -621,13 +622,13 @@ public struct SourceSelectionView: View {
                 .frame(height: DS.Stroke.hairline)
 
             HStack {
-                Button("Reset to Defaults") {
+                Button(L10n.string("Reset to Defaults")) {
                     scanOptionsStore.reset()
                 }
                 .controlSize(.small)
                 .disabled(scanOptions == .standard)
                 Spacer()
-                Text("Applies to every scan you start.")
+                Text(L10n.string("Applies to every scan you start."))
                     .font(DS.Typography.caption)
                     .foregroundStyle(DS.Color.secondaryText)
             }
@@ -642,17 +643,17 @@ public struct SourceSelectionView: View {
     private var exclusionsEditor: some View {
         VStack(alignment: .leading, spacing: DS.Spacing.small) {
             HStack {
-                Text("Excluded Paths")
+                Text(L10n.string("Excluded Paths"))
                     .font(DS.Typography.body)
                 Spacer()
-                Button("Add Path…") {
+                Button(L10n.string("Add Path…")) {
                     addExclusions()
                 }
                 .controlSize(.small)
             }
 
             if scanOptions.excludedPaths.isEmpty {
-                Text("Nothing excluded.")
+                Text(L10n.string("Nothing excluded."))
                     .font(DS.Typography.caption)
                     .foregroundStyle(DS.Color.secondaryText)
             } else {
@@ -671,12 +672,12 @@ public struct SourceSelectionView: View {
                                 Spacer(minLength: 0)
                                 IconActionButton(
                                     symbol: "xmark",
-                                    help: "Stop excluding \(url.path)",
+                                    help: L10n.format("Stop excluding %@", url.path),
                                     surface: .inline
                                 ) {
                                     scanOptionsStore.removeExclusion(url)
                                 }
-                                .accessibilityLabel("Remove exclusion \(url.path)")
+                                .accessibilityLabel(L10n.format("Remove exclusion %@", url.path))
                             }
                             .padding(.vertical, DS.Spacing.xxSmall)
                         }
@@ -685,7 +686,7 @@ public struct SourceSelectionView: View {
                 .frame(maxHeight: 104)
             }
 
-            Text("Excluded items are left out of the totals and reported in Coverage. The scanned location always stays included.")
+            Text(L10n.string("Excluded items are left out of the totals and reported in Coverage. The scanned location always stays included."))
                 .font(DS.Typography.caption)
                 .foregroundStyle(DS.Color.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)
@@ -719,7 +720,7 @@ public struct SourceSelectionView: View {
                     Image(systemName: "folder.badge.plus")
                         .font(DS.Icon.dropTarget)
                         .foregroundStyle(DS.Color.accent)
-                    Text("Drop a folder to scan it")
+                    Text(L10n.string("Drop a folder to scan it"))
                         .font(DS.Typography.headline)
                 }
             )
@@ -733,8 +734,8 @@ public struct SourceSelectionView: View {
         panel.canChooseFiles = false
         panel.canChooseDirectories = true
         panel.allowsMultipleSelection = false
-        panel.prompt = "Choose"
-        panel.message = "Choose a folder or volume to scan."
+        panel.prompt = L10n.string("Choose")
+        panel.message = L10n.string("Choose a folder or volume to scan.")
         if panel.runModal() == .OK, let url = panel.url {
             startScan(url)
         }
@@ -745,8 +746,8 @@ public struct SourceSelectionView: View {
         panel.canChooseFiles = true
         panel.canChooseDirectories = true
         panel.allowsMultipleSelection = true
-        panel.prompt = "Exclude"
-        panel.message = "Choose files or folders every scan should leave out."
+        panel.prompt = L10n.string("Exclude")
+        panel.message = L10n.string("Choose files or folders every scan should leave out.")
         guard panel.runModal() == .OK else { return }
         scanOptionsStore.addExclusions(panel.urls)
     }

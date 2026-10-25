@@ -1,5 +1,6 @@
 import XCTest
 import SwiftUI
+import DiskLocalization
 @testable import DiskCore
 @testable import DiskUI
 
@@ -17,6 +18,17 @@ import SwiftUI
 /// every drawn wedge has a unique id and at most one node URL, and an aggregate
 /// wedge has no node at all, so it must never light a row.
 final class AccessNoticeQATests: XCTestCase {
+
+    override func setUp() {
+        super.setUp()
+        // Wording assertions are written in the source language.
+        L10n.overrideLanguage("en")
+    }
+
+    override func tearDown() {
+        L10n.overrideLanguage(nil)
+        super.tearDown()
+    }
 
     private func summary(
         permissionDenied: Int,

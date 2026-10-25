@@ -43,6 +43,7 @@ fi
 BIN_PATH="$ROOT_DIR/.build/$CONFIGURATION/$APP_NAME"
 ICON_SRC="$ROOT_DIR/Resources/AppIcon.icns"
 UI_BUNDLE="$ROOT_DIR/.build/$CONFIGURATION/WillyDisk_DiskUI.bundle"
+LOCALIZATION_BUNDLE="$ROOT_DIR/.build/$CONFIGURATION/WillyDisk_DiskLocalization.bundle"
 
 # The marketing version has one source: the repository's VERSION file. Nothing
 # else may state a version, so About, the bundle and a future DMG cannot drift
@@ -113,6 +114,7 @@ if [ -n "$REQUESTED_ARCH" ]; then
         --show-bin-path 2>/dev/null | tail -1)"
     BIN_PATH="$BIN_DIR/$APP_NAME"
     UI_BUNDLE="$BIN_DIR/WillyDisk_DiskUI.bundle"
+    LOCALIZATION_BUNDLE="$BIN_DIR/WillyDisk_DiskLocalization.bundle"
 fi
 
 CONTENTS_DIR="$APP_BUNDLE/Contents"
@@ -132,37 +134,58 @@ if [ ! -d "$UI_BUNDLE" ]; then
     echo "error: missing UI resource bundle at $UI_BUNDLE (run swift build first)" >&2
     exit 1
 fi
+if [ ! -d "$LOCALIZATION_BUNDLE" ]; then
+    echo "error: missing localization bundle at $LOCALIZATION_BUNDLE (run swift build first)" >&2
+    exit 1
+fi
 
 cp "$BIN_PATH" "$STAGED_BIN"
 cp "$ICON_SRC" "$RESOURCES_DIR/AppIcon.icns"
-# The in-app mark lives in DiskUI's resource bundle; copying it here is what lets
-# the hero, Help, and About resolve it from `Bundle.main`'s resource path.
+# The in-app mark lives in DiskUI's resource bundle, and the string catalog's
+# compiled `.lproj` tables live in DiskLocalization's. Both must sit beside the
+# executable for `Bundle.module` to resolve them exactly as the renderer does.
 #
 # The bundle's layout depends on the toolchain: an older SwiftPM writes a flat
 # bundle (Info.plist and resources at its root), while the current one writes
 # Contents/Resources. Foundation loads both, but an app bundle gets the macOS
 # layout either way, so convert the flat form while copying.
-UI_BUNDLE_DEST="$RESOURCES_DIR/WillyDisk_DiskUI.bundle"
-if [ -f "$UI_BUNDLE/Contents/Info.plist" ]; then
-    cp -R "$UI_BUNDLE" "$RESOURCES_DIR/"
-else
-    if [ ! -f "$UI_BUNDLE/Info.plist" ]; then
-        echo "error: unrecognized UI resource bundle layout at $UI_BUNDLE" >&2
+copy_resource_bundle() {
+    local source="$1"
+    local name="$2"
+    local destination="$RESOURCES_DIR/$name"
+    if [ -f "$source/Contents/Info.plist" ]; then
+        cp -R "$source" "$RESOURCES_DIR/"
+        return
+    fi
+    if [ ! -f "$source/Info.plist" ]; then
+        echo "error: unrecognized resource bundle layout at $source" >&2
         exit 1
     fi
-    mkdir -p "$UI_BUNDLE_DEST/Contents/Resources"
-    cp "$UI_BUNDLE/Info.plist" "$UI_BUNDLE_DEST/Contents/Info.plist"
-    for item in "$UI_BUNDLE"/*; do
+    mkdir -p "$destination/Contents/Resources"
+    cp "$source/Info.plist" "$destination/Contents/Info.plist"
+    for item in "$source"/*; do
         if [ "$(basename "$item")" = "Info.plist" ]; then
             continue
         fi
-        cp -R "$item" "$UI_BUNDLE_DEST/Contents/Resources/"
+        cp -R "$item" "$destination/Contents/Resources/"
     done
-fi
-if [ ! -f "$UI_BUNDLE_DEST/Contents/Resources/AppMark.png" ]; then
+}
+
+copy_resource_bundle "$UI_BUNDLE" "WillyDisk_DiskUI.bundle"
+copy_resource_bundle "$LOCALIZATION_BUNDLE" "WillyDisk_DiskLocalization.bundle"
+
+if [ ! -f "$RESOURCES_DIR/WillyDisk_DiskUI.bundle/Contents/Resources/AppMark.png" ]; then
     echo "error: the UI resource bundle does not carry AppMark.png" >&2
     exit 1
 fi
+# The pseudolanguage is a review aid, not an installable language.
+rm -rf "$RESOURCES_DIR/WillyDisk_DiskLocalization.bundle/Contents/Resources/en-XA.lproj"
+for language in en ar; do
+    if [ ! -f "$RESOURCES_DIR/WillyDisk_DiskLocalization.bundle/Contents/Resources/$language.lproj/Localizable.strings" ]; then
+        echo "error: the localization bundle does not carry $language.lproj" >&2
+        exit 1
+    fi
+done
 
 # Guard 2: restamp after staging and before signing. vtool warns that rewriting
 # the Mach-O invalidates the (ad-hoc) signature; that is expected — we re-sign
@@ -196,6 +219,13 @@ cat > "$CONTENTS_DIR/Info.plist" <<PLIST
     <string>WillyDisk</string>
     <key>CFBundleIdentifier</key>
     <string>com.willydisk.app</string>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>en</string>
+    <key>CFBundleLocalizations</key>
+    <array>
+        <string>en</string>
+        <string>ar</string>
+    </array>
     <key>CFBundleVersion</key>
     <string>$BUILD_NUMBER</string>
     <key>CFBundleShortVersionString</key>

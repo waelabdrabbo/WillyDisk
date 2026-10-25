@@ -1,5 +1,6 @@
 import SwiftUI
 import DiskCore
+import DiskLocalization
 
 /// Explains what a scan counted, what it skipped, and why its total is not the
 /// volume's used space.
@@ -8,7 +9,7 @@ import DiskCore
 /// folder scan to a volume by subtraction would invent a number the engine never
 /// measured. The volume's own facts and the scan's own facts sit next to each
 /// other, labelled.
-struct CoverageSheet: View {
+public struct CoverageSheet: View {
     let summary: ScanSummary
     let isLive: Bool
 
@@ -19,7 +20,7 @@ struct CoverageSheet: View {
 
     /// Provenance for previews and tests: supplying the system's answers skips
     /// the probe instead of showing "Checking…" forever under a static renderer.
-    init(
+    public init(
         summary: ScanSummary,
         isLive: Bool,
         volume: VolumeFacts? = nil,
@@ -47,14 +48,14 @@ struct CoverageSheet: View {
 
             HStack(alignment: .top, spacing: DS.Spacing.xxLarge) {
                 VStack(alignment: .leading, spacing: DS.Spacing.xLarge) {
-                    section("Scanned", rows: report.scanned)
-                    section("This volume", rows: report.volume)
+                    section(L10n.string("Scanned"), rows: report.scanned)
+                    section(L10n.string("This volume"), rows: report.volume)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
                 VStack(alignment: .leading, spacing: DS.Spacing.xLarge) {
                     snapshotSection
-                    section("Counted more than once, or not at all", rows: report.limits)
+                    section(L10n.string("Counted more than once, or not at all"), rows: report.limits)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -66,7 +67,7 @@ struct CoverageSheet: View {
 
             HStack {
                 if isLive {
-                    Label("Totals are still growing", systemImage: "hourglass")
+                    Label(L10n.string("Totals are still growing"), systemImage: "hourglass")
                         .font(DS.Typography.caption)
                         .foregroundStyle(DS.Color.secondaryText)
                 }
@@ -74,7 +75,7 @@ struct CoverageSheet: View {
                 Button {
                     dismiss()
                 } label: {
-                    Text("Done")
+                    Text(L10n.string("Done"))
                         .frame(minWidth: DS.Size.actionMinWidth)
                 }
                 .keyboardShortcut(.defaultAction)
@@ -97,7 +98,10 @@ struct CoverageSheet: View {
     /// for a measurement taken at the same moment as the totals.
     private var provenance: String {
         if isLive {
-            return "Scan started \(DateFormat.short(summary.startedAt)); the totals are still growing"
+            return L10n.format(
+                "Scan started %@; the totals are still growing",
+                DateFormat.short(summary.startedAt)
+            )
         }
         return ScanProvenance.settled(startedAt: summary.startedAt, finishedAt: summary.finishedAt)
     }
@@ -109,7 +113,7 @@ struct CoverageSheet: View {
                 .foregroundStyle(DS.Color.accent)
                 .frame(width: 32)
             VStack(alignment: .leading, spacing: DS.Spacing.xSmall) {
-                Text("What this scan counted")
+                Text(L10n.string("What this scan counted"))
                     .font(DS.Typography.title2)
                 Text(PathFormat.abbreviated(summary.root.path, maxLength: 90))
                     .font(DS.Typography.callout)
@@ -158,7 +162,7 @@ struct CoverageSheet: View {
 
     private var snapshotSection: some View {
         VStack(alignment: .leading, spacing: DS.Spacing.small) {
-            SectionLabel("Snapshots")
+            SectionLabel(L10n.string("Snapshots"))
             rowView(report.snapshots)
             if !report.snapshotNames.isEmpty {
                 VStack(alignment: .leading, spacing: DS.Spacing.xxSmall) {
@@ -170,7 +174,7 @@ struct CoverageSheet: View {
                             .truncationMode(.middle)
                     }
                     if report.snapshotNames.count > 3 {
-                        Text("and \(report.snapshotNames.count - 3) more")
+                        Text(L10n.format("and %lld more", report.snapshotNames.count - 3))
                             .font(DS.Typography.caption)
                             .foregroundStyle(DS.Color.secondaryText)
                     }

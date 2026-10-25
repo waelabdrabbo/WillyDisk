@@ -1,5 +1,6 @@
 import SwiftUI
 import DiskCore
+import DiskLocalization
 
 /// The one access notice: the Full Disk Access explanation and the restricted
 /// locations it accounts for, merged into a single row.
@@ -37,7 +38,7 @@ public struct AccessNoticeRow: View {
     /// The noun the affordances use, so a fault-only notice never calls its
     /// findings restricted locations.
     private var detailNoun: String {
-        isAccessRestriction ? "restricted locations" : "unreadable items"
+        L10n.string(isAccessRestriction ? "restricted locations" : "unreadable items")
     }
 
     private var explanation: String {
@@ -46,10 +47,10 @@ public struct AccessNoticeRow: View {
             // reason, so the notice accounts for them without offering a grant
             // that is already held.
             return isFullDiskAccessGranted
-                ? "Items inside them were skipped; these locations could not be read while scanning."
-                : "Items inside them were skipped. Grant WillyDisk Full Disk Access in System Settings → Privacy & Security, then rescan."
+                ? L10n.string("Items inside them were skipped; these locations could not be read while scanning.")
+                : L10n.string("Items inside them were skipped. Grant WillyDisk Full Disk Access in System Settings → Privacy & Security, then rescan.")
         }
-        return "These items could not be read while scanning."
+        return L10n.string("These items could not be read while scanning.")
     }
 
     public var body: some View {
@@ -83,14 +84,14 @@ public struct AccessNoticeRow: View {
 
             // The notice's one action follows the app accent, like the other
             // inline affordances.
-            InlineActionButton("Details") {
+            InlineActionButton(L10n.string("Details")) {
                 isExpanded = true
             }
             .popover(isPresented: $isExpanded, arrowEdge: .top) {
                 detailsPopover
             }
-            .accessibilityLabel("Show \(detailNoun)")
-            .accessibilityHint("Opens the explanation and the list of \(detailNoun)")
+            .accessibilityLabel(L10n.format("Show %@", detailNoun))
+            .accessibilityHint(L10n.format("Opens the explanation and the list of %@", detailNoun))
         }
         .accessibilityElement(children: .contain)
     }
@@ -111,12 +112,12 @@ public struct AccessNoticeRow: View {
                 Button {
                     FullDiskAccessSettings.open()
                 } label: {
-                    Label("Open System Settings…", systemImage: "gearshape")
+                    Label(L10n.string("Open System Settings…"), systemImage: "gearshape")
                 }
                 .buttonStyle(.bordered)
-                .help("Open System Settings → Privacy & Security → Full Disk Access")
-                .accessibilityLabel("Open Full Disk Access in System Settings")
-                .accessibilityHint("Opens the Full Disk Access pane in System Settings")
+                .help(L10n.string("Open System Settings → Privacy & Security → Full Disk Access"))
+                .accessibilityLabel(L10n.string("Open Full Disk Access in System Settings"))
+                .accessibilityHint(L10n.string("Opens the Full Disk Access pane in System Settings"))
             }
 
             if presentation.hasRows {

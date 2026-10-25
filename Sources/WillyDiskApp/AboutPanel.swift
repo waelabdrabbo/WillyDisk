@@ -1,5 +1,6 @@
 import AppKit
 import DiskUI
+import DiskLocalization
 
 /// Presents the standard About panel, filled with the app's own credits.
 ///
@@ -28,11 +29,13 @@ enum AboutPanel {
             .paragraphStyle: paragraph,
         ]
 
+        let summary = L10n.string("A local disk-space analyzer for macOS.")
+        let privacy = L10n.string("Scans run on this Mac; nothing is uploaded.")
         let credits = NSMutableAttributedString(
-            string: "A local disk-space analyzer for macOS.\nScans run on this Mac; nothing is uploaded.\n\n",
+            string: summary + "\n" + privacy + "\n\n",
             attributes: style
         )
-        credits.append(NSAttributedString(string: "MIT License", attributes: style))
+        credits.append(NSAttributedString(string: L10n.string("MIT License"), attributes: style))
         return credits
     }
 }

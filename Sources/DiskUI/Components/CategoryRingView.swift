@@ -1,5 +1,6 @@
 import SwiftUI
 import DiskCore
+import DiskLocalization
 
 /// The scan cut by file category, as one ring around the platter's centre.
 ///
@@ -21,9 +22,9 @@ struct CategoryRingView: View {
             let side = min(geometry.size.width, geometry.size.height)
             ZStack {
                 if breakdown.isEmpty {
-                    placeholder(message: "No file bytes to group yet")
+                    placeholder(message: L10n.string("No file bytes to group yet"))
                 } else if side < DS.Sunburst.minimumSize {
-                    placeholder(message: "Enlarge this pane to see the chart",
+                    placeholder(message: L10n.string("Enlarge this pane to see the chart"),
                                 icon: "arrow.up.left.and.arrow.down.right")
                 } else {
                     ring(side: side)
@@ -32,7 +33,7 @@ struct CategoryRingView: View {
             .frame(width: geometry.size.width, height: geometry.size.height)
         }
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("Scan by file category")
+        .accessibilityLabel(L10n.string("Scan by file category"))
     }
 
     // MARK: - Ring
@@ -71,9 +72,9 @@ struct CategoryRingView: View {
                 .contentShape(shape)
                 .help(helpText(for: segment.category))
                 .accessibilityLabel(accessibilityLabel(for: segment.category))
-                .accessibilityHint(selected == segment.category
+                .accessibilityHint(L10n.string(selected == segment.category
                                    ? "Closes this category and shows all categories"
-                                   : "Shows the largest files in this category")
+                                   : "Shows the largest files in this category"))
                 .accessibilityAddTraits(selected == segment.category ? [.isSelected] : [])
             }
 
@@ -154,17 +155,27 @@ struct CategoryRingView: View {
         .animation(reduceMotion ? nil : .snappy, value: active?.category)
         .position(center)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(title), \(detail)")
+        .accessibilityLabel(L10n.format("%@, %@", title, detail))
     }
 
     private func helpText(for category: FileCategory) -> String {
         guard let share = breakdown.share(of: category) else { return category.displayName }
-        return "\(category.displayName) · \(ByteFormat.string(share.logicalSize)) · \(PercentFormat.ofWhole(share.share))"
+        return L10n.format(
+            "%@ · %@ · %@",
+            category.displayName,
+            ByteFormat.string(share.logicalSize),
+            PercentFormat.ofWhole(share.share)
+        )
     }
 
     private func accessibilityLabel(for category: FileCategory) -> String {
         guard let share = breakdown.share(of: category) else { return category.displayName }
-        return "\(category.displayName), \(ByteFormat.string(share.logicalSize)), \(PercentFormat.ofWhole(share.share)) of the scan"
+        return L10n.format(
+            "%@, %@, %@ of the scan",
+            category.displayName,
+            ByteFormat.string(share.logicalSize),
+            PercentFormat.ofWhole(share.share)
+        )
     }
 
     private func placeholder(message: String, icon: String? = nil) -> some View {
@@ -252,7 +263,7 @@ struct CategoryShareList: View {
             }
         }
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("Categories")
+        .accessibilityLabel(L10n.string("Categories"))
     }
 
     private func row(_ share: CategoryShare) -> some View {
@@ -303,9 +314,19 @@ struct CategoryShareList: View {
                 hovered = nil
             }
         }
-        .help("\(share.category.displayName) · \(ByteFormat.string(share.logicalSize)) · \(PercentFormat.ofWhole(share.share))")
-        .accessibilityLabel("\(share.category.displayName), \(ByteFormat.string(share.logicalSize)), \(PercentFormat.ofWhole(share.share))")
-        .accessibilityHint("Shows the largest files in this category")
+        .help(L10n.format(
+            "%@ · %@ · %@",
+            share.category.displayName,
+            ByteFormat.string(share.logicalSize),
+            PercentFormat.ofWhole(share.share)
+        ))
+        .accessibilityLabel(L10n.format(
+            "%@, %@, %@",
+            share.category.displayName,
+            ByteFormat.string(share.logicalSize),
+            PercentFormat.ofWhole(share.share)
+        ))
+        .accessibilityHint(L10n.string("Shows the largest files in this category"))
     }
 
     private func bar(_ share: CategoryShare, isHovered: Bool) -> some View {

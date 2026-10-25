@@ -1,4 +1,5 @@
 import Foundation
+import DiskLocalization
 
 /// The Home screen's view of the location that occupies the engine's scan slot.
 ///
@@ -39,9 +40,9 @@ public struct ScanSlotPresentation: Equatable, Sendable {
     /// Short status, e.g. `"Scanning…"`.
     public var label: String {
         switch state {
-        case .scanning: return "Scanning…"
-        case .finished: return "Scan complete"
-        case .stopped: return "Scan stopped"
+        case .scanning: return L10n.string("Scanning…")
+        case .finished: return L10n.string("Scan complete")
+        case .stopped: return L10n.string("Scan stopped")
         }
     }
 
@@ -50,16 +51,16 @@ public struct ScanSlotPresentation: Equatable, Sendable {
     /// yet, so the row never shows a fabricated zero.
     public var detail: String? {
         var parts: [String] = []
-        if filesScanned > 0 {
-            parts.append(filesScanned == 1 ? "1 file" : "\(filesScanned.formatted(.number)) files")
-        }
+        if filesScanned > 0 { parts.append(CountFormat.files(filesScanned)) }
         if bytesScanned > 0 { parts.append(ByteFormat.string(bytesScanned)) }
         guard !parts.isEmpty else { return nil }
-        let counts = parts.joined(separator: ", ")
+        let counts = parts.count == 2
+            ? L10n.format("%@, %@", parts[0], parts[1])
+            : parts[0]
         switch state {
-        case .scanning: return "\(counts) so far"
+        case .scanning: return L10n.format("%@ so far", counts)
         case .finished: return counts
-        case .stopped: return "\(counts) gathered"
+        case .stopped: return L10n.format("%@ gathered", counts)
         }
     }
 
@@ -69,12 +70,12 @@ public struct ScanSlotPresentation: Equatable, Sendable {
         let counts = detail
         switch state {
         case .scanning:
-            return counts.map { "Scanning, \($0)" } ?? "Scanning"
+            return counts.map { L10n.format("Scanning, %@", $0) } ?? L10n.string("Scanning")
         case .finished:
-            return counts.map { "Scan finished, \($0)" } ?? "Scan finished"
+            return counts.map { L10n.format("Scan finished, %@", $0) } ?? L10n.string("Scan finished")
         case .stopped:
-            return counts.map { "Scan stopped, \($0), results are partial" }
-                ?? "Scan stopped, results are partial"
+            return counts.map { L10n.format("Scan stopped, %@, results are partial", $0) }
+                ?? L10n.string("Scan stopped, results are partial")
         }
     }
 

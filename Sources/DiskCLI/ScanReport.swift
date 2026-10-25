@@ -1,5 +1,6 @@
 import Foundation
 import DiskCore
+import DiskLocalization
 
 /// Turns a finished scan into the two things the command line can print: a
 /// short human report and the versioned record the app's history stores.
@@ -16,14 +17,45 @@ public enum ScanReport {
     public static func text(for summary: ScanSummary, command: ScanCommand) -> String {
         var lines: [String] = []
 
-        lines.append("WillyDisk scan")
-        lines.append("  Location   \(summary.root.standardizedFileURL.path)")
-        lines.append("  Logical    \(size(summary.totalLogicalSize)) (\(summary.totalLogicalSize.formatted()) bytes)")
-        lines.append("  On disk    \(size(summary.totalAllocatedSize)) (\(summary.totalAllocatedSize.formatted()) bytes)")
-        lines.append("  Files      \(summary.fileCount.formatted())")
-        lines.append("  Folders    \(summary.directoryCount.formatted())")
-        lines.append("  Issues     \(issues(summary))")
-        lines.append("  Options    hidden items included, stays on this volume, symbolic links not followed")
+        let topLabels = [
+            L10n.string("Location"),
+            L10n.string("Logical"),
+            L10n.string("On disk"),
+            L10n.string("Files"),
+            L10n.string("Folders"),
+            L10n.string("Issues"),
+            L10n.string("Options"),
+        ]
+        let topWidth = labelWidth(topLabels, minimum: 11, gap: 3)
+
+        lines.append(L10n.string("WillyDisk scan"))
+        lines.append(row(topLabels[0], summary.root.standardizedFileURL.path, width: topWidth))
+        lines.append(row(
+            topLabels[1],
+            L10n.format(
+                "%@ (%@ bytes)",
+                size(summary.totalLogicalSize),
+                number(summary.totalLogicalSize)
+            ),
+            width: topWidth
+        ))
+        lines.append(row(
+            topLabels[2],
+            L10n.format(
+                "%@ (%@ bytes)",
+                size(summary.totalAllocatedSize),
+                number(summary.totalAllocatedSize)
+            ),
+            width: topWidth
+        ))
+        lines.append(row(topLabels[3], number(summary.fileCount), width: topWidth))
+        lines.append(row(topLabels[4], number(summary.directoryCount), width: topWidth))
+        lines.append(row(topLabels[5], issues(summary), width: topWidth))
+        lines.append(row(
+            topLabels[6],
+            L10n.string("hidden items included, stays on this volume, symbolic links not followed"),
+            width: topWidth
+        ))
 
         if let root = rootNode(in: summary) {
             lines.append("")
@@ -33,9 +65,9 @@ public enum ScanReport {
 
         let files = ordered(summary.largestFiles).prefix(command.top)
         lines.append("")
-        lines.append("Largest files (\(files.count.formatted()))")
+        lines.append(L10n.format("Largest files (%@)", number(files.count)))
         if files.isEmpty {
-            lines.append("  (none)")
+            lines.append("  " + L10n.string("(none)"))
         }
         for file in files {
             lines.append("  \(size(file.logicalSize))  \(file.url.standardizedFileURL.path)")
@@ -50,12 +82,12 @@ public enum ScanReport {
             }
             .prefix(command.top)
         lines.append("")
-        lines.append("By category (\(categories.count.formatted()))")
+        lines.append(L10n.format("By category (%@)", number(categories.count)))
         if categories.isEmpty {
-            lines.append("  (nothing measured)")
+            lines.append("  " + L10n.string("(nothing measured)"))
         }
         for (category, bytes) in categories {
-            lines.append("  \(size(bytes))  \(category.rawValue.capitalized)")
+            lines.append("  \(size(bytes))  \(L10n.string(category.rawValue.capitalized))")
         }
 
         appendAccounting(summary.accounting, into: &lines)
@@ -65,15 +97,22 @@ public enum ScanReport {
 
     private static func issues(_ summary: ScanSummary) -> String {
         guard summary.permissionDeniedCount > 0 else {
-            return summary.errorCount.formatted()
+            return number(summary.errorCount)
         }
-        return "\(summary.errorCount.formatted()) (\(summary.permissionDeniedCount.formatted()) permission denied)"
+        return L10n.format(
+            "%lld (%lld permission denied)",
+            summary.errorCount,
+            summary.permissionDeniedCount
+        )
     }
 
     private static func folderHeading(_ command: ScanCommand) -> String {
-        guard command.depth > 0 else { return "Folders (root only)" }
-        let levels = command.depth == 1 ? "1 level" : "\(command.depth.formatted()) levels"
-        return "Folders (\(levels), \(command.top.formatted()) per level)"
+        guard command.depth > 0 else { return L10n.string("Folders (root only)") }
+        return L10n.format(
+            "Folders (%@, %@ per level)",
+            L10n.format("%lld levels", command.depth),
+            number(command.top)
+        )
     }
 
     private static func append(
@@ -94,47 +133,89 @@ public enum ScanReport {
         let hidden = children.count - min(children.count, command.top)
         if hidden > 0 {
             let childIndent = String(repeating: "  ", count: level + 1)
-            lines.append("\(childIndent)+ \(hidden.formatted()) more \(hidden == 1 ? "folder" : "folders")")
+            let more = L10n.format("%lld more folders", hidden)
+            lines.append("\(childIndent)+ \(more)")
         }
     }
 
     private static func appendAccounting(_ accounting: ScanAccounting, into lines: inout [String]) {
         guard accounting.hasFindings else { return }
         lines.append("")
-        lines.append("Accounting")
+        lines.append(L10n.string("Accounting"))
+
+        let labels = [
+            L10n.string("Hard links"),
+            L10n.string("Dataless"),
+            L10n.string("Skipped"),
+            L10n.string("Exclusions"),
+        ]
+        let width = labelWidth(labels, minimum: 12, gap: 2)
 
         if accounting.hardlinkFileCount > 0 {
-            lines.append(
-                "  Hard links  \(count(accounting.hardlinkFileCount, "file", "files")) with more than one link;"
-                    + " \(size(accounting.hardlinkExtraLogicalSize)) of the total counted twice"
-            )
+            lines.append(row(
+                labels[0],
+                L10n.format(
+                    "%@ with more than one link; %@ of the total counted twice",
+                    L10n.format("%lld files", accounting.hardlinkFileCount),
+                    size(accounting.hardlinkExtraLogicalSize)
+                ),
+                width: width
+            ))
         }
         if accounting.datalessFileCount > 0 {
-            lines.append(
-                "  Dataless    \(count(accounting.datalessFileCount, "file", "files"));"
-                    + " \(size(accounting.datalessLogicalSize)) of logical size lives in the cloud"
-            )
+            lines.append(row(
+                labels[1],
+                L10n.format(
+                    "%@; %@ of logical size lives in the cloud",
+                    L10n.format("%lld files", accounting.datalessFileCount),
+                    size(accounting.datalessLogicalSize)
+                ),
+                width: width
+            ))
         }
 
         var skipped: [String] = []
         if accounting.skippedSymlinkCount > 0 {
-            skipped.append(count(accounting.skippedSymlinkCount, "symbolic link", "symbolic links"))
+            skipped.append(L10n.format("%lld symbolic links", accounting.skippedSymlinkCount))
         }
         if accounting.skippedVolumeCount > 0 {
-            skipped.append(count(accounting.skippedVolumeCount, "volume", "volumes"))
+            skipped.append(L10n.format("%lld volumes", accounting.skippedVolumeCount))
         }
         if accounting.specialFileCount > 0 {
-            skipped.append(count(accounting.specialFileCount, "special file", "special files"))
+            skipped.append(L10n.format("%lld special files", accounting.specialFileCount))
         }
         if !skipped.isEmpty {
-            lines.append("  Skipped     \(skipped.joined(separator: ", "))")
+            lines.append(row(labels[2], L10n.list(skipped), width: width))
         }
         if accounting.excludedItemCount > 0 {
-            lines.append(
-                "  Exclusions  \(count(accounting.excludedItemCount, "entry", "entries")) left out;"
-                    + " their contents are not in the totals"
-            )
+            lines.append(row(
+                labels[3],
+                L10n.format(
+                    "%@ left out; their contents are not in the totals",
+                    L10n.format("%lld entries", accounting.excludedItemCount)
+                ),
+                width: width
+            ))
         }
+    }
+
+    /// One `  label   value` row. The label column is as wide as the widest
+    /// label in the block, so a translation that is longer than English keeps
+    /// every value on one line instead of pushing the column out of alignment.
+    private static func row(_ label: String, _ value: String, width: Int) -> String {
+        "  " + label + String(repeating: " ", count: max(1, width - label.count)) + value
+    }
+
+    private static func labelWidth(_ labels: [String], minimum: Int, gap: Int) -> Int {
+        max(minimum, (labels.map(\.count).max() ?? 0) + gap)
+    }
+
+    private static func number(_ value: Int) -> String {
+        value.formatted(.number.locale(L10n.locale))
+    }
+
+    private static func number(_ value: Int64) -> String {
+        value.formatted(.number.locale(L10n.locale))
     }
 
     // MARK: - Record
@@ -213,11 +294,7 @@ public enum ScanReport {
     }
 
     private static func size(_ bytes: Int64) -> String {
-        guard bytes != 0 else { return "0 bytes" }
+        guard bytes != 0 else { return L10n.string("0 bytes") }
         return ByteCountFormatter.string(fromByteCount: max(0, bytes), countStyle: .file)
-    }
-
-    private static func count(_ value: Int, _ singular: String, _ plural: String) -> String {
-        "\(value.formatted()) \(value == 1 ? singular : plural)"
     }
 }

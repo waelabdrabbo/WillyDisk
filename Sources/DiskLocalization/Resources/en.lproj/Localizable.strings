@@ -1,0 +1,1156 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>%@  →  %@</key>
+	<string>%@  →  %@</string>
+	<key>%@ %@, %@, %@</key>
+	<string>%@ %@, %@, %@</string>
+	<key>%@ (%@ bytes)</key>
+	<string>%@ (%@ bytes)</string>
+	<key>%@ (%@)</key>
+	<string>%@ (%@)</string>
+	<key>%@ Snapshots may still hold space on this volume.</key>
+	<string>%@ Snapshots may still hold space on this volume.</string>
+	<key>%@ across %@</key>
+	<string>%@ across %@</string>
+	<key>%@ across %@ — showing the largest %lld</key>
+	<string>%@ across %@ — showing the largest %lld</string>
+	<key>%@ and are not shown.</key>
+	<string>%@ and are not shown.</string>
+	<key>%@ apart. The earlier run took %@, the later run %@.</key>
+	<string>%@ apart. The earlier run took %@, the later run %@.</string>
+	<key>%@ available</key>
+	<string>%@ available</string>
+	<key>%@ could not be read and are not called duplicates.</key>
+	<string>%@ could not be read and are not called duplicates.</string>
+	<key>%@ each</key>
+	<string>%@ each</string>
+	<key>%@ expects a whole number of at least %lld, not '%@'</key>
+	<string>%@ expects a whole number of at least %lld, not '%@'</string>
+	<key>%@ for “%@”</key>
+	<string>%@ for “%@”</string>
+	<key>%@ gathered</key>
+	<string>%@ gathered</string>
+	<key>%@ in %@</key>
+	<string>%@ in %@</string>
+	<key>%@ is counted more than once, because every link the walk reached is counted as a file.</key>
+	<string>%@ is counted more than once, because every link the walk reached is counted as a file.</string>
+	<key>%@ is not on this Mac</key>
+	<string>%@ is not on this Mac</string>
+	<key>%@ left out; their contents are not in the totals</key>
+	<string>%@ left out; their contents are not in the totals</string>
+	<key>%@ needs a number</key>
+	<string>%@ needs a number</string>
+	<key>%@ of %@</key>
+	<string>%@ of %@</string>
+	<key>%@ of %@ used</key>
+	<string>%@ of %@ used</string>
+	<key>%@ selected · %@</key>
+	<string>%@ selected · %@</string>
+	<key>%@ share a size with another file in this scan. Their contents have not been compared.</key>
+	<string>%@ share a size with another file in this scan. Their contents have not been compared.</string>
+	<key>%@ so far</key>
+	<string>%@ so far</string>
+	<key>%@ used of %@</key>
+	<string>%@ used of %@</string>
+	<key>%@ with identical contents</key>
+	<string>%@ with identical contents</string>
+	<key>%@ with more than one link; %@ of the total counted twice</key>
+	<string>%@ with more than one link; %@ of the total counted twice</string>
+	<key>%@ · %@</key>
+	<string>%@ · %@</string>
+	<key>%@ · %@ · %@</key>
+	<string>%@ · %@ · %@</string>
+	<key>%@ · largest %lld of %lld</key>
+	<string>%@ · largest %lld of %lld</string>
+	<key>%@ · largest %lld so far</key>
+	<string>%@ · largest %lld so far</string>
+	<key>%@ · sample of %@</key>
+	<string>%@ · sample of %@</string>
+	<key>%@ · searched the first %@</key>
+	<string>%@ · searched the first %@</string>
+	<key>%@ · showing the largest %lld</key>
+	<string>%@ · showing the largest %lld</string>
+	<key>%@ — %@</key>
+	<string>%@ — %@</string>
+	<key>%@ — absent from the earlier run's list, which held every entry it found.</key>
+	<string>%@ — absent from the earlier run's list, which held every entry it found.</string>
+	<key>%@ — absent from the earlier run's top %lld, which held entries down to %@. It is larger than that cut-off, so it would have been listed had it existed.</key>
+	<string>%@ — absent from the earlier run's top %lld, which held entries down to %@. It is larger than that cut-off, so it would have been listed had it existed.</string>
+	<key>%@ → %@</key>
+	<string>%@ → %@</string>
+	<key>%@%@, %@, %@</key>
+	<string>%@%@, %@, %@</string>
+	<key>%@, %@</key>
+	<string>%@, %@</string>
+	<key>%@, %@, %@</key>
+	<string>%@, %@, %@</string>
+	<key>%@, %@, %@ of the scan</key>
+	<string>%@, %@, %@ of the scan</string>
+	<key>%@, %@, %@; %@</key>
+	<string>%@, %@, %@; %@</string>
+	<key>%@, %@. %@</key>
+	<string>%@, %@. %@</string>
+	<key>%@. Choose two to compare. Records stay on this Mac.</key>
+	<string>%@. Choose two to compare. Records stay on this Mac.</string>
+	<key>%@: %@</key>
+	<string>%@: %@</string>
+	<key>%@: %@ earlier, %@ later, %@</key>
+	<string>%@: %@ earlier, %@ later, %@</string>
+	<key>%@; %@ of logical size lives in the cloud</key>
+	<string>%@; %@ of logical size lives in the cloud</string>
+	<key>%dh %02dm %02ds</key>
+	<string>%dh %02dm %02ds</string>
+	<key>%dm %02ds</key>
+	<string>%dm %02ds</string>
+	<key>%ds</key>
+	<string>%ds</string>
+	<key>%lld (%lld permission denied)</key>
+	<string>%lld (%lld permission denied)</string>
+	<key>%lld could not be moved</key>
+	<string>%lld could not be moved</string>
+	<key>%lld excluded</key>
+	<string>%lld excluded</string>
+	<key>%lld percent</key>
+	<string>%lld percent</string>
+	<key>%lld so far</key>
+	<string>%lld so far</string>
+	<key>%lld total</key>
+	<string>%lld total</string>
+	<key>%lld%%</key>
+	<string>%lld%%</string>
+	<key>%lld%% full</key>
+	<string>%lld%% full</string>
+	<key>(none)</key>
+	<string>(none)</string>
+	<key>(nothing measured)</key>
+	<string>(nothing measured)</string>
+	<key>+%@</key>
+	<string>+%@</string>
+	<key>, hidden item</key>
+	<string>, hidden item</string>
+	<key>0 bytes</key>
+	<string>0 bytes</string>
+	<key>0%</key>
+	<string>0%</string>
+	<key>100%</key>
+	<string>100%</string>
+	<key>&lt;1%</key>
+	<string>&lt;1%</string>
+	<key>&lt;1s</key>
+	<string>&lt;1s</string>
+	<key>A comparison needs two runs of this location. Scan it again and it will be compared here.</key>
+	<string>A comparison needs two runs of this location. Scan it again and it will be compared here.</string>
+	<key>A file</key>
+	<string>A file</string>
+	<key>A folder; moves everything inside it</key>
+	<string>A folder; moves everything inside it</string>
+	<key>A link's target is not counted through the link; the link itself carries no file data.</key>
+	<string>A link's target is not counted through the link; the link itself carries no file data.</string>
+	<key>A local disk-space analyzer for macOS.</key>
+	<string>A local disk-space analyzer for macOS.</string>
+	<key>A possible duplicate is only a same-size candidate. Check Contents reads the files and compares SHA-256 digests; only matching contents are listed as identical, and cancelling the check confirms nothing.</key>
+	<string>A possible duplicate is only a same-size candidate. Check Contents reads the files and compares SHA-256 digests; only matching contents are listed as identical, and cancelling the check confirms nothing.</string>
+	<key>A scan is already running — cancel it first to start again</key>
+	<string>A scan is already running — cancel it first to start again</string>
+	<key>A scan is already running — open its results, or stop it to start another</key>
+	<string>A scan is already running — open its results, or stop it to start another</string>
+	<key>A scan is already running. Stop it, or wait for it to finish, before starting another.</key>
+	<string>A scan is already running. Stop it, or wait for it to finish, before starting another.</string>
+	<key>A scan is recorded when it finishes. Cancelled scans are not: their totals cover only part of the folder.</key>
+	<string>A scan is recorded when it finishes. Cancelled scans are not: their totals cover only part of the folder.</string>
+	<key>A scan is running</key>
+	<string>A scan is running</string>
+	<key>About WillyDisk</key>
+	<string>About WillyDisk</string>
+	<key>Access</key>
+	<string>Access</string>
+	<key>Accounting</key>
+	<string>Accounting</string>
+	<key>Actions apply to the whole selection.</key>
+	<string>Actions apply to the whole selection.</string>
+	<key>Add Path…</key>
+	<string>Add Path…</string>
+	<key>Add Path… in Scan Options leaves paths out of the next scan. A nested exclusion is skipped without being entered; an exclusion at or above the scan root is ignored.</key>
+	<string>Add Path… in Scan Options leaves paths out of the next scan. A nested exclusion is skipped without being entered; an exclusion at or above the scan root is ignored.</string>
+	<key>All Categories</key>
+	<string>All Categories</string>
+	<key>Allocated</key>
+	<string>Allocated</string>
+	<key>Allocated Size</key>
+	<string>Allocated Size</string>
+	<key>Appearance</key>
+	<string>Appearance</string>
+	<key>Applications</key>
+	<string>Applications</string>
+	<key>Applies to every scan you start.</key>
+	<string>Applies to every scan you start.</string>
+	<key>Archives</key>
+	<string>Archives</string>
+	<key>Audio</key>
+	<string>Audio</string>
+	<key>Available</key>
+	<string>Available</string>
+	<key>Browse This Folder</key>
+	<string>Browse This Folder</string>
+	<key>By category</key>
+	<string>By category</string>
+	<key>By category (%@)</key>
+	<string>By category (%@)</string>
+	<key>Caches</key>
+	<string>Caches</string>
+	<key>Cancel</key>
+	<string>Cancel</string>
+	<key>Cancel Scan</key>
+	<string>Cancel Scan</string>
+	<key>Cancel Scan (⌘.) stops the walk and keeps the totals gathered so far, marked as stopped early.</key>
+	<string>Cancel Scan (⌘.) stops the walk and keeps the totals gathered so far, marked as stopped early.</string>
+	<key>Candidates are places to look, not a recommendation. A move goes through the same confirmation as everywhere else, and the space returns when the Trash is emptied.</key>
+	<string>Candidates are places to look, not a recommendation. A move goes through the same confirmation as everywhere else, and the space returns when the Trash is emptied.</string>
+	<key>Capacity</key>
+	<string>Capacity</string>
+	<key>Categories</key>
+	<string>Categories</string>
+	<key>Category</key>
+	<string>Category</string>
+	<key>Change</key>
+	<string>Change</string>
+	<key>Changed in Finder: “%@”. Rescan.</key>
+	<string>Changed in Finder: “%@”. Rescan.</string>
+	<key>Changes the interface language right away.</key>
+	<string>Changes the interface language right away.</string>
+	<key>Check Contents</key>
+	<string>Check Contents</string>
+	<key>Checked contents</key>
+	<string>Checked contents</string>
+	<key>Checking contents</key>
+	<string>Checking contents</string>
+	<key>Checking these items…</key>
+	<string>Checking these items…</string>
+	<key>Checking this item…</key>
+	<string>Checking this item…</string>
+	<key>Checking…</key>
+	<string>Checking…</string>
+	<key>Choose</key>
+	<string>Choose</string>
+	<key>Choose This Folder, Top Files, Top Folders, or Categories. Search (⌘F) finds any name in the whole scan, not only the folder on screen; include a / to match a path instead. Each result says which folder holds it, right-click one for Show in Folder, and clearing the field returns to the list you were in. Categories shows the same scan split by file category, and choosing a category there lists its largest files without leaving the mode. Show More pages through a long list.</key>
+	<string>Choose This Folder, Top Files, Top Folders, or Categories. Search (⌘F) finds any name in the whole scan, not only the folder on screen; include a / to match a path instead. Each result says which folder holds it, right-click one for Show in Folder, and clearing the field returns to the list you were in. Categories shows the same scan split by file category, and choosing a category there lists its largest files without leaving the mode. Show More pages through a long list.</string>
+	<key>Choose a Folder…</key>
+	<string>Choose a Folder…</string>
+	<key>Choose a folder or volume to scan.</key>
+	<string>Choose a folder or volume to scan.</string>
+	<key>Choose a folder to scan</key>
+	<string>Choose a folder to scan</string>
+	<key>Choose a folder. See what it weighs.</key>
+	<string>Choose a folder. See what it weighs.</string>
+	<key>Choose a volume, a recent scan, or a preset on the Home screen, or use Choose a Folder… (⌘O) to scan anywhere else. Every route starts the same scan with the same options.</key>
+	<string>Choose a volume, a recent scan, or a preset on the Home screen, or use Choose a Folder… (⌘O) to scan anywhere else. Every route starts the same scan with the same options.</string>
+	<key>Choose files or folders every scan should leave out.</key>
+	<string>Choose files or folders every scan should leave out.</string>
+	<key>Choose two runs</key>
+	<string>Choose two runs</string>
+	<key>Choose what the next scan includes</key>
+	<string>Choose what the next scan includes</string>
+	<key>Cleanup</key>
+	<string>Cleanup</string>
+	<key>Cleanup candidates</key>
+	<string>Cleanup candidates</string>
+	<key>Cleanup reads the finished scan for large and old files, cache folders, old downloads, and possible duplicates. Looking costs nothing; nothing moves until you confirm.</key>
+	<string>Cleanup reads the finished scan for large and old files, cache folders, old downloads, and possible duplicates. Looking costs nothing; nothing moves until you confirm.</string>
+	<key>Cleanup view</key>
+	<string>Cleanup view</string>
+	<key>Cleanup…</key>
+	<string>Cleanup…</string>
+	<key>Clear Copies</key>
+	<string>Clear Copies</string>
+	<key>Clear History</key>
+	<string>Clear History</string>
+	<key>Clear History…</key>
+	<string>Clear History…</string>
+	<key>Clear scan history?</key>
+	<string>Clear scan history?</string>
+	<key>Click a row to select it, ⌘-click to add or remove one, and Shift-click to extend. The arrow keys move, Shift extends, Home and End jump.</key>
+	<string>Click a row to select it, ⌘-click to add or remove one, and Shift-click to extend. The arrow keys move, Shift extends, Home and End jump.</string>
+	<key>Click to compare this run</key>
+	<string>Click to compare this run</string>
+	<key>Click to remove this run from the comparison</key>
+	<string>Click to remove this run from the comparison</string>
+	<key>Close Details</key>
+	<string>Close Details</string>
+	<key>Closes this category and shows all categories</key>
+	<string>Closes this category and shows all categories</string>
+	<key>Closes this category and shows the whole breakdown</key>
+	<string>Closes this category and shows the whole breakdown</string>
+	<key>Cloud-only files</key>
+	<string>Cloud-only files</string>
+	<key>Code</key>
+	<string>Code</string>
+	<key>Compare this location's recorded scans</key>
+	<string>Compare this location's recorded scans</string>
+	<key>Compare two scans</key>
+	<string>Compare two scans</string>
+	<key>Compared %@ of %@. The confirmed groups below have identical contents.</key>
+	<string>Compared %@ of %@. The confirmed groups below have identical contents.</string>
+	<key>Compared %@ of %@. The files that were read have different contents; the same size alone is not a duplicate.</key>
+	<string>Compared %@ of %@. The files that were read have different contents; the same size alone is not a duplicate.</string>
+	<key>Comparing contents… %lld%%</key>
+	<string>Comparing contents… %lld%%</string>
+	<key>Comparing file contents</key>
+	<string>Comparing file contents</string>
+	<key>Contents</key>
+	<string>Contents</string>
+	<key>Could not run `tmutil`.</key>
+	<string>Could not run `tmutil`.</string>
+	<key>Could not write the report to %@: %@</key>
+	<string>Could not write the report to %@: %@</string>
+	<key>Couldn’t move to the Trash. %@</key>
+	<string>Couldn’t move to the Trash. %@</string>
+	<key>Count a link's target, skipping links that leave the scan.</key>
+	<string>Count a link's target, skipping links that leave the scan.</string>
+	<key>Counted more than once, or not at all</key>
+	<string>Counted more than once, or not at all</string>
+	<key>Coverage</key>
+	<string>Coverage</string>
+	<key>Coverage reports how many items your exclusions skipped, so a narrower total is never a silent one.</key>
+	<string>Coverage reports how many items your exclusions skipped, so a narrower total is never a silent one.</string>
+	<key>Coverage…</key>
+	<string>Coverage…</string>
+	<key>Dark</key>
+	<string>Dark</string>
+	<key>Dataless</key>
+	<string>Dataless</string>
+	<key>Date</key>
+	<string>Date</string>
+	<key>Derived Data</key>
+	<string>Derived Data</string>
+	<key>Deselect All</key>
+	<string>Deselect All</string>
+	<key>Details</key>
+	<string>Details</string>
+	<key>Directory</key>
+	<string>Directory</string>
+	<key>Dismiss</key>
+	<string>Dismiss</string>
+	<key>Do not follow folders that point to another disk or network share.</key>
+	<string>Do not follow folders that point to another disk or network share.</string>
+	<key>Documents</key>
+	<string>Documents</string>
+	<key>Done</key>
+	<string>Done</string>
+	<key>Downloads</key>
+	<string>Downloads</string>
+	<key>Drop a folder to scan it</key>
+	<string>Drop a folder to scan it</string>
+	<key>Duplicates</key>
+	<string>Duplicates</string>
+	<key>Each file has more than one link, but only one link was reached; no bytes were counted twice.</key>
+	<string>Each file has more than one link, but only one link was reached; no bytes were counted twice.</string>
+	<key>Earlier</key>
+	<string>Earlier</string>
+	<key>English</key>
+	<string>English</string>
+	<key>Enlarge this pane to see the chart</key>
+	<string>Enlarge this pane to see the chart</string>
+	<key>Every recorded run, for every location, is removed. Your files are not touched.</key>
+	<string>Every recorded run, for every location, is removed. Your files are not touched.</string>
+	<key>Exclude</key>
+	<string>Exclude</string>
+	<key>Excluded Paths</key>
+	<string>Excluded Paths</string>
+	<key>Excluded items are left out of every scan's totals and reported in Coverage. The scanned location always stays included.</key>
+	<string>Excluded items are left out of every scan's totals and reported in Coverage. The scanned location always stays included.</string>
+	<key>Excluded items are left out of the totals and reported in Coverage. The scanned location always stays included.</key>
+	<string>Excluded items are left out of the totals and reported in Coverage. The scanned location always stays included.</string>
+	<key>Exclusions</key>
+	<string>Exclusions</string>
+	<key>Explorer view</key>
+	<string>Explorer view</string>
+	<key>Export</key>
+	<string>Export</string>
+	<key>Export Report</key>
+	<string>Export Report</string>
+	<key>Export and privacy</key>
+	<string>Export and privacy</string>
+	<key>Export as CSV…</key>
+	<string>Export as CSV…</string>
+	<key>Export as JSON…</key>
+	<string>Export as JSON…</string>
+	<key>Export failed</key>
+	<string>Export failed</string>
+	<key>Export the analysis report</key>
+	<string>Export the analysis report</string>
+	<key>File</key>
+	<string>File</string>
+	<key>File ▸ Export writes a JSON report with the accounting disclosures, or a CSV of the ranked items.</key>
+	<string>File ▸ Export writes a JSON report with the accounting disclosures, or a CSV of the ranked items.</string>
+	<key>Files</key>
+	<string>Files</string>
+	<key>Files and folders</key>
+	<string>Files and folders</string>
+	<key>Files changing in this folder update the results automatically.</key>
+	<string>Files changing in this folder update the results automatically.</string>
+	<key>Files in a folder named Downloads that have not been modified in %@.</key>
+	<string>Files in a folder named Downloads that have not been modified in %@.</string>
+	<key>Files of at least %@ that have not been modified in %@.</key>
+	<string>Files of at least %@ that have not been modified in %@.</string>
+	<key>Files of at least %@ that share a size with another file. Same size is not a duplicate: Check Contents reads their bytes and compares SHA-256 digests.</key>
+	<string>Files of at least %@ that share a size with another file. Same size is not a duplicate: Check Contents reads their bytes and compares SHA-256 digests.</string>
+	<key>Files that changed</key>
+	<string>Files that changed</string>
+	<key>Find</key>
+	<string>Find</string>
+	<key>Folder</key>
+	<string>Folder</string>
+	<key>Folder path</key>
+	<string>Folder path</string>
+	<key>Folders</key>
+	<string>Folders</string>
+	<key>Folders (%@, %@ per level)</key>
+	<string>Folders (%@, %@ per level)</string>
+	<key>Folders (root only)</key>
+	<string>Folders (root only)</string>
+	<key>Folders named Caches directly inside a Library, and Xcode's Derived Data, offered whole. The apps that made them rebuild them; moving one can cost a rebuild until they do.</key>
+	<string>Folders named Caches directly inside a Library, and Xcode's Derived Data, offered whole. The apps that made them rebuild them; moving one can cost a rebuild until they do.</string>
+	<key>Folders not read</key>
+	<string>Folders not read</string>
+	<key>Folders on other volumes</key>
+	<string>Folders on other volumes</string>
+	<key>Folders that changed</key>
+	<string>Folders that changed</string>
+	<key>Follow symbolic links</key>
+	<string>Follow symbolic links</string>
+	<key>From the scan of %@. Nothing moves until you confirm.</key>
+	<string>From the scan of %@. Nothing moves until you confirm.</string>
+	<key>Go up one level</key>
+	<string>Go up one level</string>
+	<key>Go up to %@</key>
+	<string>Go up to %@</string>
+	<key>Grown</key>
+	<string>Grown</string>
+	<key>Hard links</key>
+	<string>Hard links</string>
+	<key>Hard links are not deduplicated: each link counts, and the extra is disclosed. Dataless files are counted at logical size, with local bytes reported separately.</key>
+	<string>Hard links are not deduplicated: each link counts, and the extra is disclosed. Dataless files are counted at logical size, with local bytes reported separately.</string>
+	<key>Hard links stay separate paths here; moving one does not free space until every link is gone.</key>
+	<string>Hard links stay separate paths here; moving one does not free space until every link is gone.</string>
+	<key>Hard-linked files</key>
+	<string>Hard-linked files</string>
+	<key>Hidden</key>
+	<string>Hidden</string>
+	<key>Hidden items included</key>
+	<string>Hidden items included</string>
+	<key>Hidden items skipped</key>
+	<string>Hidden items skipped</string>
+	<key>Hides this message</key>
+	<string>Hides this message</string>
+	<key>History</key>
+	<string>History</string>
+	<key>History could not be written: %@</key>
+	<string>History could not be written: %@</string>
+	<key>History lists the runs recorded for the location you scanned. Choose two to see what grew, what shrank, and what appeared. Totals and categories are exact; folders and files are each run's largest 100, matched by path, and a New entry may simply have been below the earlier run's cut-off.</key>
+	<string>History lists the runs recorded for the location you scanned. Choose two to see what grew, what shrank, and what appeared. Totals and categories are exact; folders and files are each run's largest 100, matched by path, and a New entry may simply have been below the earlier run's cut-off.</string>
+	<key>History…</key>
+	<string>History…</string>
+	<key>Home</key>
+	<string>Home</string>
+	<key>Identical contents</key>
+	<string>Identical contents</string>
+	<key>Images</key>
+	<string>Images</string>
+	<key>Inaccessible</key>
+	<string>Inaccessible</string>
+	<key>Include hidden items</key>
+	<string>Include hidden items</string>
+	<key>Issues</key>
+	<string>Issues</string>
+	<key>It may have been moved or deleted since the scan.</key>
+	<string>It may have been moved or deleted since the scan.</string>
+	<key>Items</key>
+	<string>Items</string>
+	<key>Items inside them were skipped. Grant WillyDisk Full Disk Access in System Settings → Privacy &amp; Security, then rescan.</key>
+	<string>Items inside them were skipped. Grant WillyDisk Full Disk Access in System Settings → Privacy &amp; Security, then rescan.</string>
+	<key>Items inside them were skipped; these locations could not be read while scanning.</key>
+	<string>Items inside them were skipped; these locations could not be read while scanning.</string>
+	<key>Keep results current</key>
+	<string>Keep results current</string>
+	<key>Kind</key>
+	<string>Kind</string>
+	<key>Language</key>
+	<string>Language</string>
+	<key>Large and old</key>
+	<string>Large and old</string>
+	<key>Large, old, and cache items worth reviewing</key>
+	<string>Large, old, and cache items worth reviewing</string>
+	<key>Largest files (%@)</key>
+	<string>Largest files (%@)</string>
+	<key>Later</key>
+	<string>Later</string>
+	<key>Leave paths out</key>
+	<string>Leave paths out</string>
+	<key>Leave the search and show the folder that holds this item</key>
+	<string>Leave the search and show the folder that holds this item</string>
+	<key>Light</key>
+	<string>Light</string>
+	<key>Links not followed</key>
+	<string>Links not followed</string>
+	<key>Local snapshots</key>
+	<string>Local snapshots</string>
+	<key>Location</key>
+	<string>Location</string>
+	<key>Logical</key>
+	<string>Logical</string>
+	<key>Logical Size</key>
+	<string>Logical Size</string>
+	<key>Looking for files of at least %@ that have not changed in %@, cache folders, old downloads, and files that share a size.</key>
+	<string>Looking for files of at least %@ that have not changed in %@, cache folders, old downloads, and files that share a size.</string>
+	<key>MIT License</key>
+	<string>MIT License</string>
+	<key>Modified</key>
+	<string>Modified</string>
+	<key>Mount point %@</key>
+	<string>Mount point %@</string>
+	<key>Move %@ to Trash…</key>
+	<string>Move %@ to Trash…</string>
+	<key>Move %@ to the Trash?</key>
+	<string>Move %@ to the Trash?</string>
+	<key>Move to Trash</key>
+	<string>Move to Trash</string>
+	<key>Move to Trash…</key>
+	<string>Move to Trash…</string>
+	<key>Move “%@” to the Trash?</key>
+	<string>Move “%@” to the Trash?</string>
+	<key>Moved %@ to the Trash. Space is freed when you empty the Trash.</key>
+	<string>Moved %@ to the Trash. Space is freed when you empty the Trash.</string>
+	<key>Moved %@ to the Trash; %@. %@</key>
+	<string>Moved %@ to the Trash; %@. %@</string>
+	<key>Moving a whole volume to the Trash would take everything on it. WillyDisk only moves items inside a volume.</key>
+	<string>Moving a whole volume to the Trash would take everything on it. WillyDisk only moves items inside a volume.</string>
+	<key>Moving it would take the scan with it. Choose an item inside the scanned folder instead.</key>
+	<string>Moving it would take the scan with it. Choose an item inside the scanned folder instead.</string>
+	<key>Moving these items to the Trash…</key>
+	<string>Moving these items to the Trash…</string>
+	<key>Moving to the Trash does not free space until the Trash is emptied.</key>
+	<string>Moving to the Trash does not free space until the Trash is emptied.</string>
+	<key>Moving to the Trash…</key>
+	<string>Moving to the Trash…</string>
+	<key>Name</key>
+	<string>Name</string>
+	<key>Names macOS hides, such as ~/Library, dotfiles, and caches.</key>
+	<string>Names macOS hides, such as ~/Library, dotfiles, and caches.</string>
+	<key>New</key>
+	<string>New</string>
+	<key>No %@ files in this scan</key>
+	<string>No %@ files in this scan</string>
+	<key>No %@ files to draw</key>
+	<string>No %@ files to draw</string>
+	<key>No %@ files yet</key>
+	<string>No %@ files yet</string>
+	<key>No categories</key>
+	<string>No categories</string>
+	<key>No change</key>
+	<string>No change</string>
+	<key>No entry changed.</key>
+	<string>No entry changed.</string>
+	<key>No file bytes to group yet</key>
+	<string>No file bytes to group yet</string>
+	<key>No file is both at least %@ and unchanged for %@, no Caches or Derived Data folder is inside this scan, and no download is older than %@.</key>
+	<string>No file is both at least %@ and unchanged for %@, no Caches or Derived Data folder is inside this scan, and no download is older than %@.</string>
+	<key>No file is both at least %@ and unchanged for %@, no Caches or Derived Data folder is inside this scan, no download is older than %@, and no two files of at least %@ share a size.</key>
+	<string>No file is both at least %@ and unchanged for %@, no Caches or Derived Data folder is inside this scan, no download is older than %@, and no two files of at least %@ share a size.</string>
+	<key>No files to rank</key>
+	<string>No files to rank</string>
+	<key>No folders to rank</key>
+	<string>No folders to rank</string>
+	<key>No identical contents found</key>
+	<string>No identical contents found</string>
+	<key>No matches</key>
+	<string>No matches</string>
+	<key>No matches for “%@”</key>
+	<string>No matches for “%@”</string>
+	<key>No matches so far</key>
+	<string>No matches so far</string>
+	<key>No matches so far for “%@”</key>
+	<string>No matches so far for “%@”</string>
+	<key>No possible duplicates</key>
+	<string>No possible duplicates</string>
+	<key>No recorded runs</key>
+	<string>No recorded runs</string>
+	<key>No results</key>
+	<string>No results</string>
+	<key>No two files of at least %@ share a size in this scan.</key>
+	<string>No two files of at least %@ share a size in this scan.</string>
+	<key>None found</key>
+	<string>None found</string>
+	<key>None listed</key>
+	<string>None listed</string>
+	<key>Not on this Mac</key>
+	<string>Not on this Mac</string>
+	<key>Not selected</key>
+	<string>Not selected</string>
+	<key>Nothing changed: all %@ in both lists are the same size.</key>
+	<string>Nothing changed: all %@ in both lists are the same size.</string>
+	<key>Nothing excluded.</key>
+	<string>Nothing excluded.</string>
+	<key>Nothing excluded. Scans include every item they can read.</key>
+	<string>Nothing excluded. Scans include every item they can read.</string>
+	<key>Nothing here has a size</key>
+	<string>Nothing here has a size</string>
+	<key>Nothing here is a saving. A smaller scan means less was measured; space returns when the Trash is emptied.</key>
+	<string>Nothing here is a saving. A smaller scan means less was measured; space returns when the Trash is emptied.</string>
+	<key>Nothing here is big enough to draw.</key>
+	<string>Nothing here is big enough to draw.</string>
+	<key>Nothing on this volume can be moved or changed.</key>
+	<string>Nothing on this volume can be moved or changed.</string>
+	<key>Nothing selected</key>
+	<string>Nothing selected</string>
+	<key>Nothing to review</key>
+	<string>Nothing to review</string>
+	<key>Nothing to review here</key>
+	<string>Nothing to review here</string>
+	<key>Old</key>
+	<string>Old</string>
+	<key>Old downloads</key>
+	<string>Old downloads</string>
+	<key>On disk</key>
+	<string>On disk</string>
+	<key>One run recorded</key>
+	<string>One run recorded</string>
+	<key>Only finished scans are recorded: a cancelled scan covers part of the folder, so it is not offered as a run to compare. Records stay on this Mac and hold paths and totals, never file contents. Clear History… removes them all.</key>
+	<string>Only finished scans are recorded: a cancelled scan covers part of the folder, so it is not offered as a run to compare. Records stay on this Mac and hold paths and totals, never file contents. Clear History… removes them all.</string>
+	<key>Open Full Disk Access in System Settings</key>
+	<string>Open Full Disk Access in System Settings</string>
+	<key>Open System Settings → Privacy &amp; Security → Full Disk Access</key>
+	<string>Open System Settings → Privacy &amp; Security → Full Disk Access</string>
+	<key>Open System Settings…</key>
+	<string>Open System Settings…</string>
+	<key>Open the scan results for %@</key>
+	<string>Open the scan results for %@</string>
+	<key>Opens the Full Disk Access pane in System Settings</key>
+	<string>Opens the Full Disk Access pane in System Settings</string>
+	<key>Opens the Trash in Finder</key>
+	<string>Opens the Trash in Finder</string>
+	<key>Opens the confirmation for the selected items</key>
+	<string>Opens the confirmation for the selected items</string>
+	<key>Opens the explanation and the list of %@</key>
+	<string>Opens the explanation and the list of %@</string>
+	<key>Opens the scan results</key>
+	<string>Opens the scan results</string>
+	<key>Options</key>
+	<string>Options</string>
+	<key>Other</key>
+	<string>Other</string>
+	<key>Overlaps and skips</key>
+	<string>Overlaps and skips</string>
+	<key>Part of this item is not stored on disk right now; moving it may free less space than its reported size.</key>
+	<string>Part of this item is not stored on disk right now; moving it may free less space than its reported size.</string>
+	<key>Path</key>
+	<string>Path</string>
+	<key>Pick any folder or volume to scan</key>
+	<string>Pick any folder or volume to scan</string>
+	<key>Possible duplicates</key>
+	<string>Possible duplicates</string>
+	<key>Quick Look</key>
+	<string>Quick Look</string>
+	<key>Quick Look %@</key>
+	<string>Quick Look %@</string>
+	<key>Quick scans</key>
+	<string>Quick scans</string>
+	<key>Read the results</key>
+	<string>Read the results</string>
+	<key>Read-only</key>
+	<string>Read-only</string>
+	<key>Reading files…</key>
+	<string>Reading files…</string>
+	<key>Reading the %@ files…</key>
+	<string>Reading the %@ files…</string>
+	<key>Reading the first folders…</key>
+	<string>Reading the first folders…</string>
+	<key>Reading the scan history…</key>
+	<string>Reading the scan history…</string>
+	<key>Reading the scanned tree…</key>
+	<string>Reading the scanned tree…</string>
+	<key>Reads these files and compares their contents</key>
+	<string>Reads these files and compares their contents</string>
+	<key>Recent</key>
+	<string>Recent</string>
+	<key>Remove exclusion %@</key>
+	<string>Remove exclusion %@</string>
+	<key>Removes every recorded run. Your files are not touched.</key>
+	<string>Removes every recorded run. Your files are not touched.</string>
+	<key>Reported size</key>
+	<string>Reported size</string>
+	<key>Rescan</key>
+	<string>Rescan</string>
+	<key>Reset to Defaults</key>
+	<string>Reset to Defaults</string>
+	<key>Results</key>
+	<string>Results</string>
+	<key>Results changed since this scan. Rescan.</key>
+	<string>Results changed since this scan. Rescan.</string>
+	<key>Return to source selection</key>
+	<string>Return to source selection</string>
+	<key>Return to the scanned location</key>
+	<string>Return to the scanned location</string>
+	<key>Reveal %@ in Finder</key>
+	<string>Reveal %@ in Finder</string>
+	<key>Reveal in Finder</key>
+	<string>Reveal in Finder</string>
+	<key>Review cleanup candidates</key>
+	<string>Review cleanup candidates</string>
+	<key>Right-click a row, or use the detail pane, to reveal it in Finder or move it to the Trash. A move asks first and refuses the scan root, volume roots, your home folder, and protected system locations. The space returns when the Trash is emptied, not when the item is moved.</key>
+	<string>Right-click a row, or use the detail pane, to reveal it in Finder or move it to the Trash. A move asks first and refuses the scan root, volume roots, your home folder, and protected system locations. The space returns when the Trash is emptied, not when the item is moved.</string>
+	<key>Root</key>
+	<string>Root</string>
+	<key>Run 'WillyDisk scan --help' for usage.</key>
+	<string>Run 'WillyDisk scan --help' for usage.</string>
+	<key>Run a scan to see storage analysis.</key>
+	<string>Run a scan to see storage analysis.</string>
+	<key>Run from %@</key>
+	<string>Run from %@</string>
+	<key>Runs</key>
+	<string>Runs</string>
+	<key>Scan</key>
+	<string>Scan</string>
+	<key>Scan %@</key>
+	<string>Scan %@</string>
+	<key>Scan %@ at %@</key>
+	<string>Scan %@ at %@</string>
+	<key>Scan %@ complete</key>
+	<string>Scan %@ complete</string>
+	<key>Scan History</key>
+	<string>Scan History</string>
+	<key>Scan Options</key>
+	<string>Scan Options</string>
+	<key>Scan Options picks what the walk includes: hidden items, other volumes, symbolic links, and excluded paths. The caption beside Scan repeats the choice, and Rescan (⌘R) repeats it exactly.</key>
+	<string>Scan Options picks what the walk includes: hidden items, other volumes, symbolic links, and excluded paths. The caption beside Scan repeats the choice, and Rescan (⌘R) repeats it exactly.</string>
+	<key>Scan by file category</key>
+	<string>Scan by file category</string>
+	<key>Scan cancelled.</key>
+	<string>Scan cancelled.</string>
+	<key>Scan complete</key>
+	<string>Scan complete</string>
+	<key>Scan finished</key>
+	<string>Scan finished</string>
+	<key>Scan finished, %@</key>
+	<string>Scan finished, %@</string>
+	<key>Scan options</key>
+	<string>Scan options</string>
+	<key>Scan started %@; the totals are still growing</key>
+	<string>Scan started %@; the totals are still growing</string>
+	<key>Scan stopped</key>
+	<string>Scan stopped</string>
+	<key>Scan stopped, %@, results are partial</key>
+	<string>Scan stopped, %@, results are partial</string>
+	<key>Scan stopped, results are partial</key>
+	<string>Scan stopped, results are partial</string>
+	<key>Scan the current location again</key>
+	<string>Scan the current location again</string>
+	<key>Scan this location again and its runs will be listed here, side by side.</key>
+	<string>Scan this location again and its runs will be listed here, side by side.</string>
+	<key>Scanned</key>
+	<string>Scanned</string>
+	<key>Scanned %@ in %@</key>
+	<string>Scanned %@ in %@</string>
+	<key>Scanned Folder</key>
+	<string>Scanned Folder</string>
+	<key>Scanned totals cover only the files under %@. The volume's used space also includes other folders, macOS, and space macOS manages outside the file tree. The scan totals are from the scan time above; the volume figures are read when this panel opens. This panel reports both; it does not subtract one from the other.</key>
+	<string>Scanned totals cover only the files under %@. The volume's used space also includes other folders, macOS, and space macOS manages outside the file tree. The scan totals are from the scan time above; the volume figures are read when this panel opens. This panel reports both; it does not subtract one from the other.</string>
+	<key>Scanning</key>
+	<string>Scanning</string>
+	<key>Scanning Unavailable</key>
+	<string>Scanning Unavailable</string>
+	<key>Scanning since %@; %@ so far</key>
+	<string>Scanning since %@; %@ so far</string>
+	<key>Scanning, %@</key>
+	<string>Scanning, %@</string>
+	<key>Scanning, %@ so far</key>
+	<string>Scanning, %@ so far</string>
+	<key>Scanning, progress not yet measurable</key>
+	<string>Scanning, progress not yet measurable</string>
+	<key>Scanning…</key>
+	<string>Scanning…</string>
+	<key>Scans run on this Mac and nothing is uploaded. Nothing is deleted automatically; Move to Trash is the only removal, and it asks first.</key>
+	<string>Scans run on this Mac and nothing is uploaded. Nothing is deleted automatically; Move to Trash is the only removal, and it asks first.</string>
+	<key>Scans run on this Mac; nothing is uploaded.</key>
+	<string>Scans run on this Mac; nothing is uploaded.</string>
+	<key>Scans, results, history, cleanup, coverage, and the Trash.</key>
+	<string>Scans, results, history, cleanup, coverage, and the Trash.</string>
+	<key>Search this scan</key>
+	<string>Search this scan</string>
+	<key>Searching every file and folder…</key>
+	<string>Searching every file and folder…</string>
+	<key>Searching…</key>
+	<string>Searching…</string>
+	<key>Select All</key>
+	<string>Select All</string>
+	<key>Select All But One</key>
+	<string>Select All But One</string>
+	<key>Select All But One leaves the first copy in place. Space returns only when the Trash is emptied.</key>
+	<string>Select All But One leaves the first copy in place. Space returns only when the Trash is emptied.</string>
+	<key>Select and act</key>
+	<string>Select and act</string>
+	<key>Select copies, then Move to Trash…, and the usual confirmation checks every path. The space returns when the Trash is emptied, and moving one hard link frees nothing while another link remains.</key>
+	<string>Select copies, then Move to Trash…, and the usual confirmation checks every path. The space returns when the Trash is emptied, and moving one hard link frees nothing while another link remains.</string>
+	<key>Select two runs in the list to see what grew, what shrank, and what appeared.</key>
+	<string>Select two runs in the list to see what grew, what shrank, and what appeared.</string>
+	<key>Selected for comparison</key>
+	<string>Selected for comparison</string>
+	<key>Selects every copy except the first, so one copy stays in place</key>
+	<string>Selects every copy except the first, so one copy stays in place</string>
+	<key>Share of this scan's logical size. Choose a category to see its largest files.</key>
+	<string>Share of this scan's logical size. Choose a category to see its largest files.</string>
+	<key>Show %@</key>
+	<string>Show %@</string>
+	<key>Show More</key>
+	<string>Show More</string>
+	<key>Show Trash</key>
+	<string>Show Trash</string>
+	<key>Show all categories</key>
+	<string>Show all categories</string>
+	<key>Show every category</key>
+	<string>Show every category</string>
+	<key>Show in Folder</key>
+	<string>Show in Folder</string>
+	<key>Show more items</key>
+	<string>Show more items</string>
+	<key>Show this file's details</key>
+	<string>Show this file's details</string>
+	<key>Show this folder's contents</key>
+	<string>Show this folder's contents</string>
+	<key>Show “%@”</key>
+	<string>Show “%@”</string>
+	<key>Showing the first %lld of %lld — %lld more not listed</key>
+	<string>Showing the first %lld of %lld — %lld more not listed</string>
+	<key>Showing the first %lld — more may follow</key>
+	<string>Showing the first %lld — more may follow</string>
+	<key>Showing the largest %lld of %@</key>
+	<string>Showing the largest %lld of %@</string>
+	<key>Shows source selection; a scan that is running keeps running</key>
+	<string>Shows source selection; a scan that is running keeps running</string>
+	<key>Shows the largest files in this category</key>
+	<string>Shows the largest files in this category</string>
+	<key>Shrunk</key>
+	<string>Shrunk</string>
+	<key>Size</key>
+	<string>Size</string>
+	<key>Skipped</key>
+	<string>Skipped</string>
+	<key>Skipped by your exclusions</key>
+	<string>Skipped by your exclusions</string>
+	<key>Skipped symbolic links, other volumes, special files, and the items your exclusions removed are listed. Nothing that was not read is given an estimated size.</key>
+	<string>Skipped symbolic links, other volumes, special files, and the items your exclusions removed are listed. Nothing that was not read is given an estimated size.</string>
+	<key>Snapshots</key>
+	<string>Snapshots</string>
+	<key>Sockets, devices, and FIFOs hold no file data and were skipped safely.</key>
+	<string>Sockets, devices, and FIFOs hold no file data and were skipped safely.</string>
+	<key>Sort</key>
+	<string>Sort</string>
+	<key>Sort by %@</key>
+	<string>Sort by %@</string>
+	<key>Space previews the selection with Quick Look, Return opens a folder or a file, and Escape clears the selection.</key>
+	<string>Space previews the selection with Quick Look, Return opens a folder or a file, and Escape clears the selection.</string>
+	<key>Special files</key>
+	<string>Special files</string>
+	<key>Start Over</key>
+	<string>Start Over</string>
+	<key>Start a scan</key>
+	<string>Start a scan</string>
+	<key>Starts scanning %@</key>
+	<string>Starts scanning %@</string>
+	<key>Stay on this volume</key>
+	<string>Stay on this volume</string>
+	<key>Stop excluding %@</key>
+	<string>Stop excluding %@</string>
+	<key>Stop the scan, or wait for it to finish, before moving items to the Trash.</key>
+	<string>Stop the scan, or wait for it to finish, before moving items to the Trash.</string>
+	<key>Stop the scan; the results gathered so far are kept</key>
+	<string>Stop the scan; the results gathered so far are kept</string>
+	<key>Stopped after %@, so this is a sample of the scan rather than all of it.</key>
+	<string>Stopped after %@, so this is a sample of the scan rather than all of it.</string>
+	<key>Stopped early — these results are partial</key>
+	<string>Stopped early — these results are partial</string>
+	<key>Storage sunburst</key>
+	<string>Storage sunburst</string>
+	<key>Storage sunburst, %@</key>
+	<string>Storage sunburst, %@</string>
+	<key>Symbolic link</key>
+	<string>Symbolic link</string>
+	<key>Symbolic links are moved themselves; the items they point to stay where they are.</key>
+	<string>Symbolic links are moved themselves; the items they point to stay where they are.</string>
+	<key>System</key>
+	<string>System</string>
+	<key>System follows your Mac. Light or Dark holds that appearance for WillyDisk alone.</key>
+	<string>System follows your Mac. Light or Dark holds that appearance for WillyDisk alone.</string>
+	<key>The chart maps one folder at a time. Clear the search to return to “%@”.</key>
+	<string>The chart maps one folder at a time. Clear the search to return to “%@”.</string>
+	<key>The folder changed after this scan. Rescan to see the current numbers.</key>
+	<string>The folder changed after this scan. Rescan to see the current numbers.</string>
+	<key>The folder changed; the numbers are being re-measured.</key>
+	<string>The folder changed; the numbers are being re-measured.</string>
+	<key>The folder is watched only while its results are on screen.</key>
+	<string>The folder is watched only while its results are on screen.</string>
+	<key>The item is still in place.</key>
+	<string>The item is still in place.</string>
+	<key>The same values the Scan Options sheet on the source screen edits.</key>
+	<string>The same values the Scan Options sheet on the source screen edits.</string>
+	<key>The scan did not enter these items, so their contents are not in the totals. The size of what was left out is therefore unknown.</key>
+	<string>The scan did not enter these items, so their contents are not in the totals. The size of what was left out is therefore unknown.</string>
+	<key>The scan found no unreadable folders, exclusions, hard-link overlaps, cloud-only files, skipped links, other volumes, or special files.</key>
+	<string>The scan found no unreadable folders, exclusions, hard-link overlaps, cloud-only files, skipped links, other volumes, or special files.</string>
+	<key>The scan is measuring this folder. Choose a file or a folder inside it instead.</key>
+	<string>The scan is measuring this folder. Choose a file or a folder inside it instead.</string>
+	<key>The scan stayed on this volume, as its options asked, so these folders were not entered.</key>
+	<string>The scan stayed on this volume, as its options asked, so these folders were not entered.</string>
+	<key>The scanned location</key>
+	<string>The scanned location</string>
+	<key>The scanning engine is not connected yet.</key>
+	<string>The scanning engine is not connected yet.</string>
+	<key>The snapshot list could not be read.</key>
+	<string>The snapshot list could not be read.</string>
+	<key>The startup disk is a volume group, so a scan of / is not reconciled against the disk's capacity.</key>
+	<string>The startup disk is a volume group, so a scan of / is not reconciled against the disk's capacity.</string>
+	<key>The sunburst maps the folder you are in. Click a folder wedge to enter it; click a file wedge to select the file, and click the centre to go up one folder.</key>
+	<string>The sunburst maps the folder you are in. Click a folder wedge to enter it; click a file wedge to select the file, and click the centre to go up one folder.</string>
+	<key>The system does not allow changes on this volume.</key>
+	<string>The system does not allow changes on this volume.</string>
+	<key>The volume's own capacity figures could not be read.</key>
+	<string>The volume's own capacity figures could not be read.</string>
+	<key>The ⓘ button opens Coverage: what the scan counted, what it skipped, and the volume's own figures side by side.</key>
+	<string>The ⓘ button opens Coverage: what the scan counted, what it skipped, and the volume's own figures side by side.</string>
+	<key>Their contents are missing from the totals. %@ were reported.</key>
+	<string>Their contents are missing from the totals. %@ were reported.</string>
+	<key>There is no finished scan to check this item against. Run a scan, then try again.</key>
+	<string>There is no finished scan to check this item against. Run a scan, then try again.</string>
+	<key>These items could not be read while scanning.</key>
+	<string>These items could not be read while scanning.</string>
+	<key>These runs used different scan options. Some of the difference may be what each walk included — hidden items, other volumes, or excluded paths — rather than a change on disk.</key>
+	<string>These runs used different scan options. Some of the difference may be what each walk included — hidden items, other volumes, or excluded paths — rather than a change on disk.</string>
+	<key>They can keep deleted blocks on this volume until macOS removes them. macOS does not expose a snapshot's size.</key>
+	<string>They can keep deleted blocks on this volume until macOS removes them. macOS does not expose a snapshot's size.</string>
+	<key>They report %@ but occupy %@ on this disk. Their data is not here.</key>
+	<string>They report %@ but occupy %@ on this disk. Their data is not here.</string>
+	<key>This Folder</key>
+	<string>This Folder</string>
+	<key>This folder has nothing big enough to draw.</key>
+	<string>This folder has nothing big enough to draw.</string>
+	<key>This folder holds the folder being scanned</key>
+	<string>This folder holds the folder being scanned</string>
+	<key>This folder is empty</key>
+	<string>This folder is empty</string>
+	<key>This is a protected system location</key>
+	<string>This is a protected system location</string>
+	<key>This is the folder being scanned</key>
+	<string>This is the folder being scanned</string>
+	<key>This is the startup disk. macOS presents its system and data halves as one volume, so a scan of the system half and a scan of the data half describe the same volume from different angles.</key>
+	<string>This is the startup disk. macOS presents its system and data halves as one volume, so a scan of the system half and a scan of the data half describe the same volume from different angles.</string>
+	<key>This is the top of a volume</key>
+	<string>This is the top of a volume</string>
+	<key>This is your home folder</key>
+	<string>This is your home folder</string>
+	<key>This item is no longer there</key>
+	<string>This item is no longer there</string>
+	<key>This location is not on this Mac</key>
+	<string>This location is not on this Mac</string>
+	<key>This scan</key>
+	<string>This scan</string>
+	<key>This volume</key>
+	<string>This volume</string>
+	<key>This volume is read-only</key>
+	<string>This volume is read-only</string>
+	<key>Top Files</key>
+	<string>Top Files</string>
+	<key>Top Folders</key>
+	<string>Top Folders</string>
+	<key>Totals and categories are exact: a scan measures every entry it walked. Folders and files are %@, matched by path. An entry is marked New only when the earlier run would have recorded it: it is absent from a list that held everything it found, or larger than a truncated list's cut-off. A later entry at or below that cut-off is not compared.</key>
+	<string>Totals and categories are exact: a scan measures every entry it walked. Folders and files are %@, matched by path. An entry is marked New only when the earlier run would have recorded it: it is absent from a list that held everything it found, or larger than a truncated list's cut-off. A later entry at or below that cut-off is not compared.</string>
+	<key>Totals are exact. Folders and files are %@, matched by path. No saving is claimed.</key>
+	<string>Totals are exact. Folders and files are %@, matched by path. No saving is claimed.</string>
+	<key>Totals are still growing</key>
+	<string>Totals are still growing</string>
+	<key>Trash</key>
+	<string>Trash</string>
+	<key>Type</key>
+	<string>Type</string>
+	<key>Unavailable</key>
+	<string>Unavailable</string>
+	<key>Unavailable while another scan is running</key>
+	<string>Unavailable while another scan is running</string>
+	<key>Unchanged</key>
+	<string>Unchanged</string>
+	<key>Under a minute</key>
+	<string>Under a minute</string>
+	<key>Unreadable locations</key>
+	<string>Unreadable locations</string>
+	<key>Update the numbers when files change in the scanned folder. A long scan is offered a Rescan instead.</key>
+	<string>Update the numbers when files change in the scanned folder. A long scan is offered a Rescan instead.</string>
+	<key>Updating results</key>
+	<string>Updating results</string>
+	<key>Updating…</key>
+	<string>Updating…</string>
+	<key>Use the arrow keys to move through the list, Space to preview, and Return to open.</key>
+	<string>Use the arrow keys to move through the list, Space to preview, and Return to open.</string>
+	<key>Used by the volume</key>
+	<string>Used by the volume</string>
+	<key>Video</key>
+	<string>Video</string>
+	<key>View Results</key>
+	<string>View Results</string>
+	<key>Visibility</key>
+	<string>Visibility</string>
+	<key>Volume</key>
+	<string>Volume</string>
+	<key>Volumes</key>
+	<string>Volumes</string>
+	<key>Waiting for the first items…</key>
+	<string>Waiting for the first items…</string>
+	<key>Watching</key>
+	<string>Watching</string>
+	<key>Watching for changes</key>
+	<string>Watching for changes</string>
+	<key>What coverage leaves out</key>
+	<string>What coverage leaves out</string>
+	<key>What this scan counted</key>
+	<string>What this scan counted</string>
+	<key>What this scan counted, and what it did not</key>
+	<string>What this scan counted, and what it did not</string>
+	<key>While these results are on screen, the scanned folder is watched: a change made in Finder updates the numbers without Rescan. A long scan is not repeated automatically — the results are marked stale and Rescan is offered.</key>
+	<string>While these results are on screen, the scanned folder is watched: a change made in Finder updates the numbers without Rescan. A long scan is not repeated automatically — the results are marked stale and Rescan is offered.</string>
+	<key>WillyDisk</key>
+	<string>WillyDisk</string>
+	<key>WillyDisk Help</key>
+	<string>WillyDisk Help</string>
+	<key>WillyDisk Report.csv</key>
+	<string>WillyDisk Report.csv</string>
+	<key>WillyDisk Report.json</key>
+	<string>WillyDisk Report.json</string>
+	<key>WillyDisk does not move system locations. Choose an item inside the scanned folder instead.</key>
+	<string>WillyDisk does not move system locations. Choose an item inside the scanned folder instead.</string>
+	<key>WillyDisk does not move your home folder as a whole. Choose a file or a folder inside it instead.</key>
+	<string>WillyDisk does not move your home folder as a whole. Choose a file or a folder inside it instead.</string>
+	<key>WillyDisk scan</key>
+	<string>WillyDisk scan</string>
+	<key>WillyDisk scan — measure one folder from the command line
+
+USAGE
+  WillyDisk scan &lt;folder&gt; [--depth &lt;levels&gt;] [--top &lt;rows&gt;] [--json]
+  WillyDisk scan --help
+
+The scan uses the same engine and accounting as the app, with the default scan
+options: hidden items included, no crossing onto another volume, and symbolic
+links not followed. No window opens and no UI is loaded.
+
+OPTIONS
+  --depth &lt;levels&gt;  Folder levels printed below the scan root. 0 prints only
+                    the root. Default: %lld.
+  --top &lt;rows&gt;      Rows printed per folder level and per ranked list.
+                    Default: %lld.
+  --json            Print the finished run as the versioned ScanRecord JSON
+                    (schema %lld) instead of the text report.
+  -h, --help        Show this help and exit.
+
+--depth and --top change only what is printed. The scan still measures every
+entry it can reach, and the totals, counts, and record list that measurement.
+
+EXIT STATUS
+  0    the scan finished; the report states anything it could not read
+  1    the folder does not exist, or the report could not be written
+  2    the command line was not understood
+  130  interrupted; the engine's cancellation path ran and no report was written
+
+A cancelled scan writes no report: its totals cover part of the folder, and
+a comparison against them would read as space that vanished.</key>
+	<string>WillyDisk scan — measure one folder from the command line
+
+USAGE
+  WillyDisk scan &lt;folder&gt; [--depth &lt;levels&gt;] [--top &lt;rows&gt;] [--json]
+  WillyDisk scan --help
+
+The scan uses the same engine and accounting as the app, with the default scan
+options: hidden items included, no crossing onto another volume, and symbolic
+links not followed. No window opens and no UI is loaded.
+
+OPTIONS
+  --depth &lt;levels&gt;  Folder levels printed below the scan root. 0 prints only
+                    the root. Default: %lld.
+  --top &lt;rows&gt;      Rows printed per folder level and per ranked list.
+                    Default: %lld.
+  --json            Print the finished run as the versioned ScanRecord JSON
+                    (schema %lld) instead of the text report.
+  -h, --help        Show this help and exit.
+
+--depth and --top change only what is printed. The scan still measures every
+entry it can reach, and the totals, counts, and record list that measurement.
+
+EXIT STATUS
+  0    the scan finished; the report states anything it could not read
+  1    the folder does not exist, or the report could not be written
+  2    the command line was not understood
+  130  interrupted; the engine's cancellation path ran and no report was written
+
+A cancelled scan writes no report: its totals cover part of the folder, and
+a comparison against them would read as space that vanished.</string>
+	<key>Yes</key>
+	<string>Yes</string>
+	<key>You can put it back from the Trash until you empty it.</key>
+	<string>You can put it back from the Trash until you empty it.</string>
+	<key>You can put them back from the Trash until you empty it.</key>
+	<string>You can put them back from the Trash until you empty it.</string>
+	<key>`tmutil` could not list this volume's snapshots.</key>
+	<string>`tmutil` could not list this volume's snapshots.</string>
+	<key>`tmutil` is not available on this Mac.</key>
+	<string>`tmutil` is not available on this Mac.</string>
+	<key>and %lld more</key>
+	<string>and %lld more</string>
+	<key>each run's largest %lld</key>
+	<string>each run's largest %lld</string>
+	<key>error: %@</key>
+	<string>error: %@</string>
+	<key>error: no such folder: %@</key>
+	<string>error: no such folder: %@</string>
+	<key>error: the record could not be encoded: %@</key>
+	<string>error: the record could not be encoded: %@</string>
+	<key>error: the report could not be written: %@</key>
+	<string>error: the report could not be written: %@</string>
+	<key>error: the scan ended without a result.</key>
+	<string>error: the scan ended without a result.</string>
+	<key>follows symbolic links</key>
+	<string>follows symbolic links</string>
+	<key>hidden items included, stays on this volume, symbolic links not followed</key>
+	<string>hidden items included, stays on this volume, symbolic links not followed</string>
+	<key>macOS did not report local snapshots for this volume.</key>
+	<string>macOS did not report local snapshots for this volume.</string>
+	<key>macOS reports %@ more can be made available for important use by removing purgeable data.</key>
+	<string>macOS reports %@ more can be made available for important use by removing purgeable data.</string>
+	<key>may cross volumes</key>
+	<string>may cross volumes</string>
+	<key>missing the folder to scan</key>
+	<string>missing the folder to scan</string>
+	<key>no command given</key>
+	<string>no command given</string>
+	<key>only one folder can be scanned; '%@' is extra</key>
+	<string>only one folder can be scanned; '%@' is extra</string>
+	<key>read only</key>
+	<string>read only</string>
+	<key>restricted locations</key>
+	<string>restricted locations</string>
+	<key>stays on this volume</key>
+	<string>stays on this volume</string>
+	<key>symbolic links not followed</key>
+	<string>symbolic links not followed</string>
+	<key>the largest entries each run recorded</key>
+	<string>the largest entries each run recorded</string>
+	<key>unknown command '%@'; expected 'scan'</key>
+	<string>unknown command '%@'; expected 'scan'</string>
+	<key>unknown option '%@'</key>
+	<string>unknown option '%@'</string>
+	<key>unreadable items</key>
+	<string>unreadable items</string>
+	<key>العربية</key>
+	<string>العربية</string>
+	<key>“%@” (%@)</key>
+	<string>“%@” (%@)</string>
+	<key>−%@</key>
+	<string>−%@</string>
+</dict>
+</plist>

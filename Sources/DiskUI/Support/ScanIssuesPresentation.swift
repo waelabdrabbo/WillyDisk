@@ -1,5 +1,6 @@
 import Foundation
 import DiskCore
+import DiskLocalization
 
 /// The bounded, classified view of a scan's issues that DiskUI renders.
 ///
@@ -76,33 +77,41 @@ public struct ScanIssuesPresentation: Equatable, Sendable {
     /// One-line headline for the access notice, e.g. `"512 locations
     /// restricted"` or `"3 issues so far"` while the scan is still running.
     public var noticeHeadline: String {
-        let soFar = totalsAreFinal ? "" : " so far"
         if isAccessRestriction {
-            let noun = restrictedLocationCount == 1 ? "location" : "locations"
-            return "\(restrictedLocationCount) \(noun) restricted\(soFar)"
+            return L10n.format(
+                totalsAreFinal ? "%lld locations restricted" : "%lld locations restricted so far",
+                restrictedLocationCount
+            )
         }
-        let noun = totalIssueCount == 1 ? "issue" : "issues"
-        return "\(totalIssueCount) \(noun)\(soFar)"
+        return L10n.format(
+            totalsAreFinal ? "%lld issues" : "%lld issues so far",
+            totalIssueCount
+        )
     }
 
     /// Title of the detail list: expected access restrictions are not failures,
     /// so a denial-dominated list names them as locations.
     public var listTitle: String {
-        isDenialDominated ? "Unreadable locations" : "Issues"
+        L10n.string(isDenialDominated ? "Unreadable locations" : "Issues")
     }
 
     /// One-line accounting for the bounded list, e.g.
     /// `"Showing the first 50 of 512 — 462 more not listed"`.
     public var listSummaryText: String {
         if hasUnlisted {
-            return "Showing the first \(rows.count) of \(totalIssueCount) — \(unlistedCount) more not listed"
+            return L10n.format(
+                "Showing the first %lld of %lld — %lld more not listed",
+                rows.count,
+                totalIssueCount,
+                unlistedCount
+            )
         }
         if !totalsAreFinal {
             return rows.count >= Self.rowLimit
-                ? "Showing the first \(rows.count) — more may follow"
-                : "\(rows.count) so far"
+                ? L10n.format("Showing the first %lld — more may follow", rows.count)
+                : L10n.format("%lld so far", rows.count)
         }
-        return "\(rows.count) total"
+        return L10n.format("%lld total", rows.count)
     }
 
     public init(issues: [ScanIssue], summary: ScanSummary?) {

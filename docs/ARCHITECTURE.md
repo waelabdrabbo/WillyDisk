@@ -22,7 +22,9 @@ Sources/
     Scanning/               # scan engine implementations
     Scanning/Contracts.swift# frozen protocols/types
     Watching/               # FSEvents watcher + the scope that filters its events
-  DiskCLI/                  # `WillyDisk scan` front end (DiskCore only)
+  DiskLocalization/         # string catalog + L10n (Foundation only)
+    Localizable.xcstrings   #   source of truth; compiled into Resources/*.lproj
+  DiskCLI/                  # `WillyDisk scan` front end (DiskCore + DiskLocalization)
   DiskUI/                   # SwiftUI + design system
     DesignSystem/
     Components/
@@ -36,9 +38,9 @@ Scripts/bundle-app.sh       # builds the .app bundle
 docs/                       # ARCHITECTURE.md
 ```
 
-`Package.swift` products: executable `WillyDisk`; libraries `DiskCore`, `DiskUI`.
-`DiskCLI` is a target, not a product: it is linked into the one executable, whose `@main`
-chooses between the command line and the app.
+`Package.swift` products: executable `WillyDisk`; libraries `DiskCore`, `DiskLocalization`,
+`DiskUI`. `DiskCLI` is a target, not a product: it is linked into the one executable,
+whose `@main` chooses between the command line and the app.
 
 Commands:
 
@@ -54,6 +56,8 @@ Commands:
   window chrome (see §6, "Window chrome / Liquid Glass"). `Scripts/run.sh` goes
   through `bundle-app.sh`, which restamps the SDK.
 - Bundle: `bash Scripts/bundle-app.sh` → `.build/WillyDisk.app` (launch with `open`)
+- Localization: `bash Scripts/localize.sh` compiles the catalog into the committed
+  `.lproj` tables; `--check` fails when they are stale.
 
 ## 3. Frozen data model (`DiskCore/Models`)
 
@@ -304,7 +308,7 @@ carries the root node itself in `largestDirectories`.
   app's chrome, the panels it presents, and the menu bar inherit, and whose
   changes SwiftUI's color scheme follows.
 - The command line is a second front end over the same engine, not a second scanner.
-  `DiskCLI` depends on `DiskCore` only. The executable's `@main` checks the process
+  `DiskCLI` depends on `DiskCore` and the Foundation-only `DiskLocalization`. The executable's `@main` checks the process
   arguments before SwiftUI is touched and routes `WillyDisk scan …` (and `--help`) to
   `ScanCLI`, so no `NSApplication`, window, or Dock icon is created. The text report is
   derived from the terminal `ScanSummary`; `--json` prints the versioned `ScanRecord`
@@ -315,6 +319,25 @@ carries the root node itself in `largestDirectories`.
   (missing folder or unwritable report), 2 (usage), and 130 (cancelled).
 - Design tokens live in `DiskUI/DesignSystem/DesignSystem.swift` (spacing scale,
   corner radii, typography roles, semantic colors). UI never hard-codes magic numbers.
+- Localization is a contract of its own. Every user-visible string is a catalog key in
+  `Sources/DiskLocalization/Localizable.xcstrings`, read through `L10n.string` or
+  `L10n.format`; a view, sheet, menu, panel, or CLI message never carries a literal of
+  its own. A key is the English source sentence with `%@`/`%lld` placeholders, and a
+  count is one entry with plural variations rather than a number concatenated with a
+  noun. Language resolution is explicit (an `.lproj` chosen from the preferred
+  languages) because a Swift Package resource bundle is not the main bundle, and the
+  chosen language also sets the layout direction. `ar` is the finished translation and
+  carries Arabic's zero/one/two/few/many/other forms; `en-XA` is the generated
+  doubled-length pseudolanguage. SwiftPM will not compile the catalog without deriving
+  Swift symbols that format-only keys cannot provide, so `Scripts/localize.sh` compiles
+  the committed `en.lproj`/`ar.lproj`/`en-XA.lproj`; CI checks freshness and
+  `Tests/QATests/LocalizationGuardQATests` checks source/catalog agreement. The
+  `ScanRecord` JSON and category raw values are data and stay in the source language.
+  The app's language is itself a preference: `AppLanguage` (`system`, `english`,
+  `arabic`) is stored under `appLanguage`, applied before the first window, and re-pins
+  `L10n` when Settings changes it; `system` clears the override so the catalog follows
+  macOS. The override governs WillyDisk's own windows and date formatting, not AppKit's
+  panels or the command line.
 - The disk chart is `SunburstView` — custom SwiftUI shapes with ring/angle
   geometry, no third-party deps.
 
@@ -347,8 +370,10 @@ carries the root node itself in `largestDirectories`.
   `Sources/DiskCore/Scanning/Contracts.swift`. A change to either is a design change,
   not a refactor: explain the reasoning in the pull request and update this document in
   the same change.
-- `Package.swift`, `Scripts/**`, and this document are shared too. When a change to one
-  of them affects another area, say so in the pull request rather than working around it.
+- `Package.swift`, `Scripts/**`, the localization catalog, and this document are shared
+  too. A new or changed catalog key changes every screen and the command line, so treat
+  it as a shared surface: explain the wording change and run
+  `bash Scripts/localize.sh` in the same change.
 - Everything else is ordinary code. Keep it consistent with the files around it.
 
 ## 8. Non-negotiables
@@ -356,7 +381,9 @@ carries the root node itself in `largestDirectories`.
 Off-main-thread scanning; working cancellation; watchers that only invalidate a finished
 summary, never patch it; graceful permission failures; no automatic deletion (confirmation + clear identification only); no fabricated
 progress/statistics; no invented reconciliation between a folder scan and a
-volume's used space; no dead controls; no placeholder/mock data in the shipped app.
+volume's used space; no dead controls; no placeholder/mock data in the shipped app; no
+user-visible literal outside the string catalog; no count built by concatenating a
+number and a noun when the catalog can resolve its plural.
 
 **Comments are evergreen.** A code comment must never cite a task, issue, or bug
 number, and must never narrate the bug a change fixed. Comments explain only current

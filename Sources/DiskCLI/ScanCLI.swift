@@ -1,5 +1,6 @@
 import Foundation
 import DiskCore
+import DiskLocalization
 
 /// The command-line front end for a scan.
 ///
@@ -41,7 +42,7 @@ public enum ScanCLI {
             invocation = try ScanCommandLine.parse(arguments)
         } catch {
             let message = (error as? ScanUsageError)?.message ?? String(describing: error)
-            output.standardError("error: \(message)\n\(ScanCommandLine.usageHint)\n")
+            output.standardError(L10n.format("error: %@", message) + "\n" + ScanCommandLine.usageHint + "\n")
             return 2
         }
 
@@ -51,7 +52,7 @@ public enum ScanCLI {
 
         case .scan(let command):
             guard FileManager.default.fileExists(atPath: command.root.path) else {
-                output.standardError("error: no such folder: \(command.root.path)\n")
+                output.standardError(L10n.format("error: no such folder: %@", command.root.path) + "\n")
                 return 1
             }
             let engine = FileScanEngine()
@@ -89,11 +90,11 @@ public enum ScanCLI {
         }
 
         if cancelled {
-            output.standardError("Scan cancelled.\n")
+            output.standardError(L10n.string("Scan cancelled.") + "\n")
             return 130
         }
         guard let summary = finished else {
-            output.standardError("error: the scan ended without a result.\n")
+            output.standardError(L10n.string("error: the scan ended without a result.") + "\n")
             return 1
         }
 
@@ -106,7 +107,7 @@ public enum ScanCLI {
             do {
                 text = try ScanReport.json(record)
             } catch {
-                output.standardError("error: the record could not be encoded: \(error.localizedDescription)\n")
+                output.standardError(L10n.format("error: the record could not be encoded: %@", error.localizedDescription) + "\n")
                 return 1
             }
             return write(text, to: output)
@@ -121,7 +122,7 @@ public enum ScanCLI {
             try output.standardOutput(text)
             return 0
         } catch {
-            output.standardError("error: the report could not be written: \(error.localizedDescription)\n")
+            output.standardError(L10n.format("error: the report could not be written: %@", error.localizedDescription) + "\n")
             return 1
         }
     }

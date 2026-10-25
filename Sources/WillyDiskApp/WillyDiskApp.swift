@@ -1,6 +1,7 @@
 import SwiftUI
 import DiskCLI
 import DiskUI
+import DiskLocalization
 
 /// The process entry point, which is either a command-line scan or the app.
 ///
@@ -14,6 +15,10 @@ enum WillyDiskEntry {
         if ScanCLI.handles(CommandLine.arguments) {
             exit(ScanCLI.run(arguments: CommandLine.arguments))
         }
+        // Applied before SwiftUI builds a menu or a window, so the stored
+        // language is in place from the first frame. The command line above
+        // keeps following the system language.
+        AppLanguage.applyStored()
         WillyDiskApp.main()
     }
 }
@@ -23,7 +28,7 @@ struct WillyDiskApp: App {
     @StateObject private var appState = AppState()
 
     var body: some Scene {
-        Window("WillyDisk", id: "main") {
+        Window(L10n.string("WillyDisk"), id: "main") {
             ContentView()
                 .environmentObject(appState)
                 .frame(minWidth: 960, minHeight: 620)
@@ -52,35 +57,39 @@ struct WillyDiskApp: App {
 /// app and the shared view model, so they work on either screen.
 private struct WillyDiskCommands: Commands {
     @ObservedObject var appState: AppState
+    @AppStorage(AppLanguage.defaultsKey) private var language: AppLanguage = .system
     @FocusedValue(\.scanCommands) private var scanCommands
     @FocusedValue(\.resultsCommands) private var resultsCommands
 
     var body: some Commands {
+        // Reading the preference makes the command titles follow a language
+        // chosen while the app is running.
+        let _ = language
         // Single-window utility: no "New Window" command. The About panel keeps
         // the system layout; everything it names comes from the bundle, whose
         // plist is stamped from the repository's VERSION file.
         CommandGroup(replacing: .newItem) {}
         CommandGroup(replacing: .appInfo) {
-            Button("About WillyDisk") {
+            Button(L10n.string("About WillyDisk")) {
                 AboutPanel.present()
             }
         }
 
         CommandGroup(after: .newItem) {
-            Button("Choose a Folder…") {
+            Button(L10n.string("Choose a Folder…")) {
                 appState.chooseSource()
             }
             .keyboardShortcut("o", modifiers: .command)
         }
 
-        CommandMenu("Scan") {
-            Button("Rescan") {
+        CommandMenu(L10n.string("Scan")) {
+            Button(L10n.string("Rescan")) {
                 resultsCommands?.rescan()
             }
             .keyboardShortcut("r", modifiers: .command)
             .disabled(!(resultsCommands?.canRescan ?? false))
 
-            Button("Cancel Scan") {
+            Button(L10n.string("Cancel Scan")) {
                 scanCommands?.cancel()
             }
             .keyboardShortcut(".", modifiers: .command)
@@ -88,24 +97,24 @@ private struct WillyDiskCommands: Commands {
 
             Divider()
 
-            Button("Coverage…") {
+            Button(L10n.string("Coverage…")) {
                 resultsCommands?.showCoverage()
             }
             .disabled(!(resultsCommands?.canShowCoverage ?? false))
 
-            Button("Cleanup…") {
+            Button(L10n.string("Cleanup…")) {
                 resultsCommands?.showCleanup()
             }
             .disabled(!(resultsCommands?.canShowCleanup ?? false))
 
-            Button("History…") {
+            Button(L10n.string("History…")) {
                 resultsCommands?.showHistory()
             }
             .disabled(!(resultsCommands?.canShowHistory ?? false))
         }
 
         CommandGroup(after: .pasteboard) {
-            Button("Find") {
+            Button(L10n.string("Find")) {
                 resultsCommands?.focusSearch()
             }
             .keyboardShortcut("f", modifiers: .command)
@@ -113,11 +122,11 @@ private struct WillyDiskCommands: Commands {
         }
 
         CommandGroup(after: .saveItem) {
-            Menu("Export") {
-                Button("Export as JSON…") {
+            Menu(L10n.string("Export")) {
+                Button(L10n.string("Export as JSON…")) {
                     resultsCommands?.exportJSON()
                 }
-                Button("Export as CSV…") {
+                Button(L10n.string("Export as CSV…")) {
                     resultsCommands?.exportCSV()
                 }
             }
@@ -127,7 +136,7 @@ private struct WillyDiskCommands: Commands {
         // Help lives in the main window as a sheet, so it works from either
         // screen and the app keeps one window.
         CommandGroup(replacing: .help) {
-            Button("WillyDisk Help") {
+            Button(L10n.string("WillyDisk Help")) {
                 appState.isShowingHelp = true
             }
             .keyboardShortcut("?", modifiers: .command)

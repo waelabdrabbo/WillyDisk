@@ -1,4 +1,5 @@
 import AppKit
+import DiskLocalization
 
 /// The app's appearance preference: follow the system, or hold one appearance.
 ///
@@ -29,9 +30,9 @@ public enum AppAppearance: String, CaseIterable, Identifiable, Sendable {
     /// The name the appearance menu shows.
     public var label: String {
         switch self {
-        case .system: "System"
-        case .light: "Light"
-        case .dark: "Dark"
+        case .system: L10n.string("System")
+        case .light: L10n.string("Light")
+        case .dark: L10n.string("Dark")
         }
     }
 

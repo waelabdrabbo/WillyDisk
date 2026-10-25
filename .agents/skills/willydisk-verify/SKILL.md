@@ -14,7 +14,15 @@ four rungs; stop at the highest one the change actually needs.
 swift build
 swift test
 swift test --filter FileScanEngineTests
+python3 Scripts/pseudolanguage.py --check   # en-XA is generated from English
+bash Scripts/localize.sh --check            # the committed .lproj tables match the catalog
 ```
+
+`python3 Scripts/pseudolanguage.py` regenerates the doubled-length `en-XA` values from
+English, and `bash Scripts/localize.sh` recompiles the catalog into
+`Sources/DiskLocalization/Resources/*.lproj`. Run both after editing any user-visible
+string, then commit the catalog and the resources. The guard test in `QATests` fails on a literal that bypasses
+the catalog, a source key missing from it, or a catalog key with no call site.
 
 `swift test` runs the test targets: `DiskCoreTests` (engine behavior), `DiskCLITests`
 (argument parsing, exit statuses, report determinism), and `QATests` (independent
@@ -60,6 +68,22 @@ CONFIGURATION=release bash Scripts/run.sh
 `glassEffect` is an explicit runtime call and is unaffected by the stamp; only
 *automatic* control and chrome modernization is SDK-gated.
 
+### Reviewing a localization change
+
+```
+WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S results -l ar -o .build/renders/l10n
+WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a light -S coverage -c -l ar -o .build/renders/l10n
+WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a light -S cleanup -c -l ar -o .build/renders/l10n
+WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a light -S settings -c -s 460x760 -l ar -o .build/renders/l10n
+WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a light -S results -l en-XA -o .build/renders/l10n
+```
+
+Arabic is the finished right-to-left language; check that the results, coverage, and
+cleanup screens mirror, that no line ends in an ellipsis it should not, and that numbers
+and paths sit in the runs around them. `en-XA` doubles every line: it is where a fixed
+column, a one-line label, or a toolbar item gives way. The pseudolanguage is a review
+aid only and is removed from the app bundle.
+
 ## 4. Capture it offscreen
 
 The only option in a locked session or inside an agent sandbox, and the way to leave a
@@ -79,7 +103,8 @@ It opens no window and needs no Screen Recording permission.
 | `-o DIR` | output directory | `.build/renders` |
 | `-s WxH` | render size in points | `1000x720`, the app's default window |
 | `-a light\|dark\|both` | appearances | `both` |
-| `-S results\|home\|search\|help\|settings\|categories\|cleanup\|duplicates\|history\|both` | screens: results, source selection, results with a whole-scan search open, help sheet content, Settings content, the cleanup sheet's Old and Duplicates tabs, results in Categories mode, the history comparison; `both` is home and results | `results` |
+| `-S results\|home\|search\|help\|settings\|categories\|coverage\|cleanup\|duplicates\|history\|both` | screens: results, source selection, results with a whole-scan search open, help sheet content, Settings content, the coverage sheet, the cleanup sheet's Old and Duplicates tabs, results in Categories mode, the history comparison; `both` is home and results | `results` |
+| `-l en\|ar\|en-XA` | interface language: English, the finished Arabic (right-to-left) translation, or the doubled-length pseudolanguage | `en` |
 | `-t DIR` | scan this directory instead of the fixture | generated fixture |
 | `-c` | capture the content alone, without the window | the window |
 
@@ -104,8 +129,9 @@ list is untouched; `defaults delete render-screens WillyDisk.RecentLocations` cl
 
 ### Give every review a fresh output path
 
-The renderer names its files after the size and appearance, so rendering the same size
-twice reuses the same path — `results-window-light-1000x720.png`. A viewer that already
+The renderer names its files after the size, appearance, and locale, so rendering the
+same size and language twice reuses the same path —
+`results-window-light-en-1000x720.png`. A viewer that already
 loaded that path (the session GUI, a browser, a preview pane) keeps serving the bitmap it
 cached, and the screenshot then contradicts the source. Name the output directory for the
 change instead:
@@ -119,7 +145,7 @@ assume it fixed itself, and do not doubt the build: copy the current PNG to a pa
 has never been rendered and show that, which no cache can answer.
 
 ```
-cp .build/renders/<change>/results-window-light-1000x720.png .build/renders/<change>/check.png
+cp .build/renders/<change>/results-window-light-en-1000x720.png .build/renders/<change>/check.png
 ```
 
 If the fresh path shows the change, the code was right and the reader's cache was stale.
@@ -151,12 +177,13 @@ gitignored `.build/` the way `Scripts/render-screens.sh` compiles its renderer:
 
 ```
 xcrun swiftc -disable-sandbox -module-cache-path "$PWD/.build/render-module-cache" \
-  -I "$PWD/.build/release" -L "$PWD/.build/release" -lDiskUI -lDiskCore \
+  -I "$PWD/.build/release" -L "$PWD/.build/release" -lDiskUI -lDiskCore -lDiskLocalization \
   -o "$PWD/.build/release/probe" "$PWD/.build/probe.swift"
 ```
 
-The host must sit beside `WillyDisk_DiskUI.bundle`, which is how the UI resolves its
-packaged mark; a probe in plain `.build/` would not find it. `Scripts/render-screens.sh`
+The host must sit beside `WillyDisk_DiskUI.bundle` and
+`WillyDisk_DiskLocalization.bundle`, which is how the UI resolves its packaged mark and
+its strings; a probe in plain `.build/` would not find them. `Scripts/render-screens.sh`
 puts its renderer in `.build/debug/` for the same reason.
 
 The host starts a `ScanViewModel(engine: FileScanEngine())`, puts `ResultsView` in an

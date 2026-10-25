@@ -1,5 +1,6 @@
 import XCTest
 import SwiftUI
+import DiskLocalization
 @testable import DiskCore
 @testable import DiskUI
 
@@ -21,6 +22,17 @@ import SwiftUI
 ///   detail list stays bounded while reporting the truthful total.
 @MainActor
 final class UIOverhaulQATests: XCTestCase {
+
+    override func setUp() {
+        super.setUp()
+        // Wording assertions are written in the source language.
+        L10n.overrideLanguage("en")
+    }
+
+    override func tearDown() {
+        L10n.overrideLanguage(nil)
+        super.tearDown()
+    }
 
     // MARK: - Fixtures
 

@@ -1,4 +1,5 @@
 import Foundation
+import DiskLocalization
 
 /// The local APFS snapshots a volume reports.
 ///
@@ -41,7 +42,7 @@ public enum SnapshotProbe {
             return LocalSnapshots(
                 volumeName: volumeName,
                 names: [],
-                failureMessage: "`tmutil` is not available on this Mac."
+                failureMessage: L10n.string("`tmutil` is not available on this Mac.")
             )
         }
 
@@ -59,7 +60,7 @@ public enum SnapshotProbe {
                 return LocalSnapshots(
                     volumeName: volumeName,
                     names: [],
-                    failureMessage: "Could not run `tmutil`."
+                    failureMessage: L10n.string("Could not run `tmutil`.")
                 )
             }
 
@@ -81,7 +82,7 @@ public enum SnapshotProbe {
                 return LocalSnapshots(
                     volumeName: volumeName,
                     names: [],
-                    failureMessage: "`tmutil` could not list this volume's snapshots."
+                    failureMessage: L10n.string("`tmutil` could not list this volume's snapshots.")
                 )
             }
 

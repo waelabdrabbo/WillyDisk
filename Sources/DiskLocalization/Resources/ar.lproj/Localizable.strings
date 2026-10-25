@@ -1,0 +1,1156 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>%@  →  %@</key>
+	<string>%@  ←  %@</string>
+	<key>%@ %@, %@, %@</key>
+	<string>%@ %@، %@، %@</string>
+	<key>%@ (%@ bytes)</key>
+	<string>%@ (%@ بايت)</string>
+	<key>%@ (%@)</key>
+	<string>%@ (%@)</string>
+	<key>%@ Snapshots may still hold space on this volume.</key>
+	<string>%@ قد تحتفظ اللقطات بمساحة على وحدة التخزين هذه.</string>
+	<key>%@ across %@</key>
+	<string>%@ · %@</string>
+	<key>%@ across %@ — showing the largest %lld</key>
+	<string>%@ موزعة على %@ — عرض أكبر %lld</string>
+	<key>%@ and are not shown.</key>
+	<string>%@، ولذلك لا تُعرض.</string>
+	<key>%@ apart. The earlier run took %@, the later run %@.</key>
+	<string>الفارق بينهما %@. استغرق التشغيل الأقدم %@، والتشغيل الأحدث %@.</string>
+	<key>%@ available</key>
+	<string>%@ متاح</string>
+	<key>%@ could not be read and are not called duplicates.</key>
+	<string>تعذّرت قراءة %@ ولا تُعدّ مكررة.</string>
+	<key>%@ each</key>
+	<string>%@ لكل منها</string>
+	<key>%@ expects a whole number of at least %lld, not '%@'</key>
+	<string>%@ يتوقع عددًا صحيحًا لا يقل عن %lld، وليس '%@'</string>
+	<key>%@ for “%@”</key>
+	<string>%@ لـ«%@»</string>
+	<key>%@ gathered</key>
+	<string>%@ مجمّعة</string>
+	<key>%@ in %@</key>
+	<string>%@ · %@</string>
+	<key>%@ is counted more than once, because every link the walk reached is counted as a file.</key>
+	<string>يُحتسب %@ أكثر من مرة، لأن كل رابط وصله المسح يُحتسب ملفًا.</string>
+	<key>%@ is not on this Mac</key>
+	<string>%@ غير موجود على هذا الـ Mac</string>
+	<key>%@ left out; their contents are not in the totals</key>
+	<string>تم استثناء %@؛ محتوياتها غير مشمولة في الإجماليات</string>
+	<key>%@ needs a number</key>
+	<string>%@ يتطلب رقمًا</string>
+	<key>%@ of %@</key>
+	<string>%@ من %@</string>
+	<key>%@ of %@ used</key>
+	<string>%@ من %@ مستخدم</string>
+	<key>%@ selected · %@</key>
+	<string>تم تحديد %@ · %@</string>
+	<key>%@ share a size with another file in this scan. Their contents have not been compared.</key>
+	<string>%@ تتشارك الحجم مع ملف آخر في هذا الفحص. لم تُقارن محتوياتها.</string>
+	<key>%@ so far</key>
+	<string>%@ حتى الآن</string>
+	<key>%@ used of %@</key>
+	<string>مستخدم %@ من %@</string>
+	<key>%@ with identical contents</key>
+	<string>%@ بمحتويات متطابقة</string>
+	<key>%@ with more than one link; %@ of the total counted twice</key>
+	<string>%@ بأكثر من رابط؛ %@ من الإجمالي محسوب مرتين</string>
+	<key>%@ · %@</key>
+	<string>%@ · %@</string>
+	<key>%@ · %@ · %@</key>
+	<string>%@ · %@ · %@</string>
+	<key>%@ · largest %lld of %lld</key>
+	<string>%@ · أكبر %lld من %lld</string>
+	<key>%@ · largest %lld so far</key>
+	<string>%@ · أكبر %lld حتى الآن</string>
+	<key>%@ · sample of %@</key>
+	<string>%@ · عيّنة من %@</string>
+	<key>%@ · searched the first %@</key>
+	<string>%@ · بُحث في أول %@</string>
+	<key>%@ · showing the largest %lld</key>
+	<string>%@ · عرض أكبر %lld</string>
+	<key>%@ — %@</key>
+	<string>%@ — %@</string>
+	<key>%@ — absent from the earlier run's list, which held every entry it found.</key>
+	<string>%@ — غائب عن قائمة التشغيل الأقدم، التي احتوت كل عنصر وجدته.</string>
+	<key>%@ — absent from the earlier run's top %lld, which held entries down to %@. It is larger than that cut-off, so it would have been listed had it existed.</key>
+	<string>%@ — غائب عن قائمة أكبر %lld في التشغيل الأقدم، التي احتوت عناصر حتى %@. وهو أكبر من حد القطع هذا، لذا كان سيُدرج لو وُجد.</string>
+	<key>%@ → %@</key>
+	<string>%@ ← %@</string>
+	<key>%@%@, %@, %@</key>
+	<string>%@%@، %@، %@</string>
+	<key>%@, %@</key>
+	<string>%@، %@</string>
+	<key>%@, %@, %@</key>
+	<string>%@، %@، %@</string>
+	<key>%@, %@, %@ of the scan</key>
+	<string>%@، %@، %@ من الفحص</string>
+	<key>%@, %@, %@; %@</key>
+	<string>%@، %@، %@؛ %@</string>
+	<key>%@, %@. %@</key>
+	<string>%@، %@. %@</string>
+	<key>%@. Choose two to compare. Records stay on this Mac.</key>
+	<string>%@. اختر تشغيلين للمقارنة. تبقى السجلات على هذا الـ Mac.</string>
+	<key>%@: %@</key>
+	<string>%@: %@</string>
+	<key>%@: %@ earlier, %@ later, %@</key>
+	<string>%@: %@ سابقًا، %@ لاحقًا، %@</string>
+	<key>%@; %@ of logical size lives in the cloud</key>
+	<string>%@؛ %@ من الحجم المنطقي موجود في السحابة</string>
+	<key>%dh %02dm %02ds</key>
+	<string>%d س %02d د %02d ث</string>
+	<key>%dm %02ds</key>
+	<string>%d د %02d ث</string>
+	<key>%ds</key>
+	<string>%d ث</string>
+	<key>%lld (%lld permission denied)</key>
+	<string>%lld (%lld مرفوضة بسبب الإذن)</string>
+	<key>%lld could not be moved</key>
+	<string>تعذّر نقل %lld</string>
+	<key>%lld excluded</key>
+	<string>%lld مستثنى</string>
+	<key>%lld percent</key>
+	<string>%lld بالمئة</string>
+	<key>%lld so far</key>
+	<string>%lld حتى الآن</string>
+	<key>%lld total</key>
+	<string>%lld إجمالًا</string>
+	<key>%lld%%</key>
+	<string>%lld٪</string>
+	<key>%lld%% full</key>
+	<string>%lld٪ ممتلئ</string>
+	<key>(none)</key>
+	<string>(لا شيء)</string>
+	<key>(nothing measured)</key>
+	<string>(لم يُقس شيء)</string>
+	<key>+%@</key>
+	<string>+%@</string>
+	<key>, hidden item</key>
+	<string>، عنصر مخفي</string>
+	<key>0 bytes</key>
+	<string>0 بايت</string>
+	<key>0%</key>
+	<string>0٪</string>
+	<key>100%</key>
+	<string>100٪</string>
+	<key>&lt;1%</key>
+	<string>&lt;1٪</string>
+	<key>&lt;1s</key>
+	<string>&lt;1 ث</string>
+	<key>A comparison needs two runs of this location. Scan it again and it will be compared here.</key>
+	<string>تحتاج المقارنة إلى تشغيلين لهذا الموقع. افحصه مرة أخرى وستتم المقارنة هنا.</string>
+	<key>A file</key>
+	<string>ملف</string>
+	<key>A folder; moves everything inside it</key>
+	<string>مجلد؛ ينقل كل ما بداخله</string>
+	<key>A link's target is not counted through the link; the link itself carries no file data.</key>
+	<string>لا يُحتسب هدف الرابط عبر الرابط؛ فالرابط نفسه لا يحمل بيانات ملف.</string>
+	<key>A local disk-space analyzer for macOS.</key>
+	<string>محلّل مساحة قرص محلي لـ macOS.</string>
+	<key>A possible duplicate is only a same-size candidate. Check Contents reads the files and compares SHA-256 digests; only matching contents are listed as identical, and cancelling the check confirms nothing.</key>
+	<string>التكرار المحتمل ليس إلا مرشحًا بالحجم نفسه. «فحص المحتويات» يقرأ الملفات ويقارن ملخصات SHA-256؛ ولا تُدرج كمطابقة إلا المحتويات المتطابقة، وإلغاء الفحص لا يؤكد شيئًا.</string>
+	<key>A scan is already running — cancel it first to start again</key>
+	<string>هناك فحص قيد التشغيل — ألغِه أولًا لبدء فحص جديد</string>
+	<key>A scan is already running — open its results, or stop it to start another</key>
+	<string>هناك فحص قيد التشغيل — افتح نتائجه أو أوقفه لبدء فحص آخر</string>
+	<key>A scan is already running. Stop it, or wait for it to finish, before starting another.</key>
+	<string>هناك فحص قيد التشغيل. أوقفه أو انتظر انتهاءه قبل بدء فحص آخر.</string>
+	<key>A scan is recorded when it finishes. Cancelled scans are not: their totals cover only part of the folder.</key>
+	<string>يُسجّل الفحص عند انتهائه. لا تُسجّل الفحوص الملغاة: إجمالياتها تغطي جزءًا من المجلد فقط.</string>
+	<key>A scan is running</key>
+	<string>هناك فحص قيد التشغيل</string>
+	<key>About WillyDisk</key>
+	<string>حول WillyDisk</string>
+	<key>Access</key>
+	<string>الوصول</string>
+	<key>Accounting</key>
+	<string>المحاسبة</string>
+	<key>Actions apply to the whole selection.</key>
+	<string>تُطبّق الإجراءات على التحديد كله.</string>
+	<key>Add Path…</key>
+	<string>إضافة مسار…</string>
+	<key>Add Path… in Scan Options leaves paths out of the next scan. A nested exclusion is skipped without being entered; an exclusion at or above the scan root is ignored.</key>
+	<string>«إضافة مسار…» في «خيارات الفحص» يستبعد مسارات من الفحص التالي. يُتخطى الاستثناء المتداخل دون دخوله؛ ويُتجاهل الاستثناء عند جذر الفحص أو فوقه.</string>
+	<key>All Categories</key>
+	<string>كل الفئات</string>
+	<key>Allocated</key>
+	<string>المخصص</string>
+	<key>Allocated Size</key>
+	<string>الحجم المخصص</string>
+	<key>Appearance</key>
+	<string>المظهر</string>
+	<key>Applications</key>
+	<string>التطبيقات</string>
+	<key>Applies to every scan you start.</key>
+	<string>ينطبق على كل فحص تبدأه.</string>
+	<key>Archives</key>
+	<string>الأرشيفات</string>
+	<key>Audio</key>
+	<string>الصوت</string>
+	<key>Available</key>
+	<string>المتاح</string>
+	<key>Browse This Folder</key>
+	<string>تصفح هذا المجلد</string>
+	<key>By category</key>
+	<string>حسب الفئة</string>
+	<key>By category (%@)</key>
+	<string>حسب الفئة (%@)</string>
+	<key>Caches</key>
+	<string>ذاكرات التخزين المؤقت</string>
+	<key>Cancel</key>
+	<string>إلغاء</string>
+	<key>Cancel Scan</key>
+	<string>إلغاء الفحص</string>
+	<key>Cancel Scan (⌘.) stops the walk and keeps the totals gathered so far, marked as stopped early.</key>
+	<string>«إلغاء الفحص» (⌘.) يوقف المسح ويحتفظ بالإجماليات المجمّعة حتى الآن، مع وسمها بأنها توقفت مبكرًا.</string>
+	<key>Candidates are places to look, not a recommendation. A move goes through the same confirmation as everywhere else, and the space returns when the Trash is emptied.</key>
+	<string>المرشحون مواضع للبحث لا توصية. يمر النقل عبر التأكيد نفسه كما في كل مكان، وتعود المساحة بعد إفراغ سلة المهملات.</string>
+	<key>Capacity</key>
+	<string>السعة</string>
+	<key>Categories</key>
+	<string>الفئات</string>
+	<key>Category</key>
+	<string>الفئة</string>
+	<key>Change</key>
+	<string>التغيّر</string>
+	<key>Changed in Finder: “%@”. Rescan.</key>
+	<string>تغيّر في Finder: «%@». أعد الفحص.</string>
+	<key>Changes the interface language right away.</key>
+	<string>يغيّر لغة الواجهة فورًا.</string>
+	<key>Check Contents</key>
+	<string>فحص المحتويات</string>
+	<key>Checked contents</key>
+	<string>تم فحص المحتويات</string>
+	<key>Checking contents</key>
+	<string>جارٍ فحص المحتويات</string>
+	<key>Checking these items…</key>
+	<string>جارٍ التحقق من هذه العناصر…</string>
+	<key>Checking this item…</key>
+	<string>جارٍ التحقق من هذا العنصر…</string>
+	<key>Checking…</key>
+	<string>جارٍ التحقق…</string>
+	<key>Choose</key>
+	<string>اختيار</string>
+	<key>Choose This Folder, Top Files, Top Folders, or Categories. Search (⌘F) finds any name in the whole scan, not only the folder on screen; include a / to match a path instead. Each result says which folder holds it, right-click one for Show in Folder, and clearing the field returns to the list you were in. Categories shows the same scan split by file category, and choosing a category there lists its largest files without leaving the mode. Show More pages through a long list.</key>
+	<string>اختر «هذا المجلد» أو «أكبر الملفات» أو «أكبر المجلدات» أو «الفئات». يبحث «بحث» (⌘F) عن أي اسم في الفحص كله، لا في المجلد المعروض فقط؛ وأدرج / لمطابقة مسار بدلًا من ذلك. تذكر كل نتيجة المجلد الذي يحتويها، وانقر عليها بالزر الأيمن لـ«إظهار في المجلد»، ومسح الحقل يعيدك إلى القائمة التي كنت فيها. تعرض «الفئات» الفحص نفسه مقسّمًا حسب فئة الملف، واختيار فئة هناك يسرد أكبر ملفاتها دون مغادرة الوضع. و«إظهار المزيد» يتنقل في قائمة طويلة.</string>
+	<key>Choose a Folder…</key>
+	<string>اختيار مجلد…</string>
+	<key>Choose a folder or volume to scan.</key>
+	<string>اختر مجلدًا أو وحدة تخزين لفحصها.</string>
+	<key>Choose a folder to scan</key>
+	<string>اختر مجلدًا لفحصه</string>
+	<key>Choose a folder. See what it weighs.</key>
+	<string>اختر مجلدًا. واعرف حجمه.</string>
+	<key>Choose a volume, a recent scan, or a preset on the Home screen, or use Choose a Folder… (⌘O) to scan anywhere else. Every route starts the same scan with the same options.</key>
+	<string>اختر وحدة تخزين أو فحصًا حديثًا أو إعدادًا مسبقًا في الشاشة الرئيسية، أو استخدم «اختيار مجلد…» (⌘O) لفحص أي مكان آخر. كل طريق يبدأ الفحص نفسه بالخيارات نفسها.</string>
+	<key>Choose files or folders every scan should leave out.</key>
+	<string>اختر ملفات أو مجلدات ينبغي أن يستثنيها كل فحص.</string>
+	<key>Choose two runs</key>
+	<string>اختر تشغيلين</string>
+	<key>Choose what the next scan includes</key>
+	<string>اختر ما يشمله الفحص التالي</string>
+	<key>Cleanup</key>
+	<string>التنظيف</string>
+	<key>Cleanup candidates</key>
+	<string>مرشحو التنظيف</string>
+	<key>Cleanup reads the finished scan for large and old files, cache folders, old downloads, and possible duplicates. Looking costs nothing; nothing moves until you confirm.</key>
+	<string>يقرأ «التنظيف» الفحص المنتهي بحثًا عن ملفات كبيرة وقديمة، ومجلدات تخزين مؤقت، وتنزيلات قديمة، وتكرارات محتملة. النظر لا يكلّف شيئًا؛ ولا يُنقل أي شيء قبل تأكيدك.</string>
+	<key>Cleanup view</key>
+	<string>عرض التنظيف</string>
+	<key>Cleanup…</key>
+	<string>التنظيف…</string>
+	<key>Clear Copies</key>
+	<string>مسح النسخ</string>
+	<key>Clear History</key>
+	<string>مسح السجل</string>
+	<key>Clear History…</key>
+	<string>مسح السجل…</string>
+	<key>Clear scan history?</key>
+	<string>مسح سجل الفحص؟</string>
+	<key>Click a row to select it, ⌘-click to add or remove one, and Shift-click to extend. The arrow keys move, Shift extends, Home and End jump.</key>
+	<string>انقر صفًا لتحديده، و⌘-انقر لإضافة عنصر أو إزالته، وShift-انقر لتوسيع التحديد. تحرّكك مفاتيح الأسهم، ويوسّع Shift، ويقفز Home وEnd.</string>
+	<key>Click to compare this run</key>
+	<string>انقر لمقارنة هذا التشغيل</string>
+	<key>Click to remove this run from the comparison</key>
+	<string>انقر لإزالة هذا التشغيل من المقارنة</string>
+	<key>Close Details</key>
+	<string>إغلاق التفاصيل</string>
+	<key>Closes this category and shows all categories</key>
+	<string>يغلق هذه الفئة ويعرض كل الفئات</string>
+	<key>Closes this category and shows the whole breakdown</key>
+	<string>يغلق هذه الفئة ويعرض التوزيع كاملًا</string>
+	<key>Cloud-only files</key>
+	<string>ملفات سحابية فقط</string>
+	<key>Code</key>
+	<string>الشيفرة</string>
+	<key>Compare this location's recorded scans</key>
+	<string>مقارنة الفحوص المسجلة لهذا الموقع</string>
+	<key>Compare two scans</key>
+	<string>مقارنة فحصين</string>
+	<key>Compared %@ of %@. The confirmed groups below have identical contents.</key>
+	<string>قُورن %@ من %@. المجموعات المؤكدة أدناه لها محتويات متطابقة.</string>
+	<key>Compared %@ of %@. The files that were read have different contents; the same size alone is not a duplicate.</key>
+	<string>قُورن %@ من %@. الملفات التي قُرئت لها محتويات مختلفة؛ تشابه الحجم وحده لا يعني التكرار.</string>
+	<key>Comparing contents… %lld%%</key>
+	<string>جارٍ مقارنة المحتويات… %lld٪</string>
+	<key>Comparing file contents</key>
+	<string>جارٍ مقارنة محتويات الملفات</string>
+	<key>Contents</key>
+	<string>المحتويات</string>
+	<key>Could not run `tmutil`.</key>
+	<string>تعذّر تشغيل `tmutil`.</string>
+	<key>Could not write the report to %@: %@</key>
+	<string>تعذّرت كتابة التقرير في %@: %@</string>
+	<key>Couldn’t move to the Trash. %@</key>
+	<string>تعذّر النقل إلى سلة المهملات. %@</string>
+	<key>Count a link's target, skipping links that leave the scan.</key>
+	<string>احتساب هدف الرابط، مع تخطّي الروابط التي تخرج من نطاق الفحص.</string>
+	<key>Counted more than once, or not at all</key>
+	<string>محسوبة أكثر من مرة أو غير محسوبة</string>
+	<key>Coverage</key>
+	<string>التغطية</string>
+	<key>Coverage reports how many items your exclusions skipped, so a narrower total is never a silent one.</key>
+	<string>تبلّغ «التغطية» بعدد العناصر التي تخطّتها استثناءاتك، كي لا يكون الإجمالي الأضيق صامتًا.</string>
+	<key>Coverage…</key>
+	<string>التغطية…</string>
+	<key>Dark</key>
+	<string>داكن</string>
+	<key>Dataless</key>
+	<string>بلا بيانات محلية</string>
+	<key>Date</key>
+	<string>التاريخ</string>
+	<key>Derived Data</key>
+	<string>البيانات المشتقة</string>
+	<key>Deselect All</key>
+	<string>إلغاء تحديد الكل</string>
+	<key>Details</key>
+	<string>التفاصيل</string>
+	<key>Directory</key>
+	<string>مجلد</string>
+	<key>Dismiss</key>
+	<string>إغلاق</string>
+	<key>Do not follow folders that point to another disk or network share.</key>
+	<string>لا تتتبّع المجلدات التي تشير إلى قرص آخر أو مشاركة شبكة.</string>
+	<key>Documents</key>
+	<string>المستندات</string>
+	<key>Done</key>
+	<string>تم</string>
+	<key>Downloads</key>
+	<string>التنزيلات</string>
+	<key>Drop a folder to scan it</key>
+	<string>أفلت مجلدًا لفحصه</string>
+	<key>Duplicates</key>
+	<string>المكررة</string>
+	<key>Each file has more than one link, but only one link was reached; no bytes were counted twice.</key>
+	<string>لكل ملف أكثر من رابط، لكن لم يُصل إلى سوى رابط واحد؛ ولم تُحتسب أي بايتات مرتين.</string>
+	<key>Earlier</key>
+	<string>الأقدم</string>
+	<key>English</key>
+	<string>English</string>
+	<key>Enlarge this pane to see the chart</key>
+	<string>وسّع هذا الجزء لرؤية المخطط</string>
+	<key>Every recorded run, for every location, is removed. Your files are not touched.</key>
+	<string>تُزال كل التشغيلات المسجلة لكل موقع. لا تُمس ملفاتك.</string>
+	<key>Exclude</key>
+	<string>استثناء</string>
+	<key>Excluded Paths</key>
+	<string>المسارات المستثناة</string>
+	<key>Excluded items are left out of every scan's totals and reported in Coverage. The scanned location always stays included.</key>
+	<string>تُستثنى العناصر المستثناة من إجماليات كل فحص وتُذكر في التغطية. ويبقى الموقع المفحوص مشمولًا دائمًا.</string>
+	<key>Excluded items are left out of the totals and reported in Coverage. The scanned location always stays included.</key>
+	<string>تُستثنى العناصر المستثناة من الإجماليات وتُذكر في التغطية. ويبقى الموقع المفحوص مشمولًا دائمًا.</string>
+	<key>Exclusions</key>
+	<string>الاستثناءات</string>
+	<key>Explorer view</key>
+	<string>عرض المستكشف</string>
+	<key>Export</key>
+	<string>تصدير</string>
+	<key>Export Report</key>
+	<string>تصدير التقرير</string>
+	<key>Export and privacy</key>
+	<string>التصدير والخصوصية</string>
+	<key>Export as CSV…</key>
+	<string>تصدير بصيغة CSV…</string>
+	<key>Export as JSON…</key>
+	<string>تصدير بصيغة JSON…</string>
+	<key>Export failed</key>
+	<string>فشل التصدير</string>
+	<key>Export the analysis report</key>
+	<string>تصدير تقرير التحليل</string>
+	<key>File</key>
+	<string>ملف</string>
+	<key>File ▸ Export writes a JSON report with the accounting disclosures, or a CSV of the ranked items.</key>
+	<string>«ملف ▸ تصدير» يكتب تقرير JSON مع إفصاحات المحاسبة، أو CSV للعناصر المرتبة.</string>
+	<key>Files</key>
+	<string>الملفات</string>
+	<key>Files and folders</key>
+	<string>ملفات ومجلدات</string>
+	<key>Files changing in this folder update the results automatically.</key>
+	<string>تغيّرات الملفات في هذا المجلد تُحدّث النتائج تلقائيًا.</string>
+	<key>Files in a folder named Downloads that have not been modified in %@.</key>
+	<string>ملفات في مجلد اسمه Downloads لم تُعدّل خلال %@.</string>
+	<key>Files of at least %@ that have not been modified in %@.</key>
+	<string>ملفات بحجم %@ على الأقل لم تُعدّل خلال %@.</string>
+	<key>Files of at least %@ that share a size with another file. Same size is not a duplicate: Check Contents reads their bytes and compares SHA-256 digests.</key>
+	<string>ملفات بحجم %@ على الأقل تتشارك الحجم مع ملف آخر. تشابه الحجم ليس تكرارًا: «فحص المحتويات» يقرأ بايتاتها ويقارن ملخصات SHA-256.</string>
+	<key>Files that changed</key>
+	<string>الملفات التي تغيّرت</string>
+	<key>Find</key>
+	<string>بحث</string>
+	<key>Folder</key>
+	<string>مجلد</string>
+	<key>Folder path</key>
+	<string>مسار المجلد</string>
+	<key>Folders</key>
+	<string>المجلدات</string>
+	<key>Folders (%@, %@ per level)</key>
+	<string>المجلدات (%@، %@ لكل مستوى)</string>
+	<key>Folders (root only)</key>
+	<string>المجلدات (الجذر فقط)</string>
+	<key>Folders named Caches directly inside a Library, and Xcode's Derived Data, offered whole. The apps that made them rebuild them; moving one can cost a rebuild until they do.</key>
+	<string>مجلدات باسم Caches داخل Library مباشرة، وبيانات Derived Data في Xcode، تُعرض كاملة. يعيد التطبيق الذي أنشأها بناءها؛ ونقل أحدها قد يكلّف إعادة بناء حتى يفعل.</string>
+	<key>Folders not read</key>
+	<string>مجلدات لم تُقرأ</string>
+	<key>Folders on other volumes</key>
+	<string>مجلدات على وحدات تخزين أخرى</string>
+	<key>Folders that changed</key>
+	<string>المجلدات التي تغيّرت</string>
+	<key>Follow symbolic links</key>
+	<string>تتبّع الروابط الرمزية</string>
+	<key>From the scan of %@. Nothing moves until you confirm.</key>
+	<string>من فحص %@. لا يُنقل أي شيء قبل تأكيدك.</string>
+	<key>Go up one level</key>
+	<string>الصعود مستوى واحدًا</string>
+	<key>Go up to %@</key>
+	<string>الصعود إلى %@</string>
+	<key>Grown</key>
+	<string>كبُر</string>
+	<key>Hard links</key>
+	<string>الروابط الصلبة</string>
+	<key>Hard links are not deduplicated: each link counts, and the extra is disclosed. Dataless files are counted at logical size, with local bytes reported separately.</key>
+	<string>لا تُزال تكرارات الروابط الصلبة: يُحتسب كل رابط، ويُفصح عن الزائد. وتُحتسب الملفات بلا بيانات محلية بالحجم المنطقي، مع الإبلاغ عن البايتات المحلية منفصلة.</string>
+	<key>Hard links stay separate paths here; moving one does not free space until every link is gone.</key>
+	<string>تبقى الروابط الصلبة مسارات منفصلة هنا؛ نقل أحدها لا يحرّر مساحة حتى يزول كل رابط.</string>
+	<key>Hard-linked files</key>
+	<string>ملفات بروابط صلبة</string>
+	<key>Hidden</key>
+	<string>مخفي</string>
+	<key>Hidden items included</key>
+	<string>العناصر المخفية مضمنة</string>
+	<key>Hidden items skipped</key>
+	<string>العناصر المخفية متخطاة</string>
+	<key>Hides this message</key>
+	<string>يخفي هذه الرسالة</string>
+	<key>History</key>
+	<string>السجل</string>
+	<key>History could not be written: %@</key>
+	<string>تعذّرت كتابة السجل: %@</string>
+	<key>History lists the runs recorded for the location you scanned. Choose two to see what grew, what shrank, and what appeared. Totals and categories are exact; folders and files are each run's largest 100, matched by path, and a New entry may simply have been below the earlier run's cut-off.</key>
+	<string>يسرد «السجل» التشغيلات المسجلة للموقع الذي فحصته. اختر تشغيلين لترى ما كبُر وما صغُر وما ظهر. الإجماليات والفئات دقيقة؛ والمجلدات والملفات هي أكبر 100 في كل تشغيل، وتُطابق بالمسار، وقد يكون العنصر «الجديد» ببساطة دون حد القطع في التشغيل الأقدم.</string>
+	<key>History…</key>
+	<string>السجل…</string>
+	<key>Home</key>
+	<string>الرئيسية</string>
+	<key>Identical contents</key>
+	<string>محتويات متطابقة</string>
+	<key>Images</key>
+	<string>الصور</string>
+	<key>Inaccessible</key>
+	<string>غير قابل للوصول</string>
+	<key>Include hidden items</key>
+	<string>تضمين العناصر المخفية</string>
+	<key>Issues</key>
+	<string>المشكلات</string>
+	<key>It may have been moved or deleted since the scan.</key>
+	<string>ربما نُقل أو حُذف منذ الفحص.</string>
+	<key>Items</key>
+	<string>العناصر</string>
+	<key>Items inside them were skipped. Grant WillyDisk Full Disk Access in System Settings → Privacy &amp; Security, then rescan.</key>
+	<string>تم تخطّي العناصر الواقعة داخلها. امنح WillyDisk الوصول الكامل إلى القرص من إعدادات النظام ← الخصوصية والأمان، ثم أعد الفحص.</string>
+	<key>Items inside them were skipped; these locations could not be read while scanning.</key>
+	<string>تم تخطّي العناصر الواقعة داخلها؛ تعذّرت قراءة هذه المواقع أثناء الفحص.</string>
+	<key>Keep results current</key>
+	<string>إبقاء النتائج محدّثة</string>
+	<key>Kind</key>
+	<string>النوع</string>
+	<key>Language</key>
+	<string>اللغة</string>
+	<key>Large and old</key>
+	<string>كبيرة وقديمة</string>
+	<key>Large, old, and cache items worth reviewing</key>
+	<string>عناصر كبيرة وقديمة وذاكرات تخزين مؤقت تستحق المراجعة</string>
+	<key>Largest files (%@)</key>
+	<string>أكبر الملفات (%@)</string>
+	<key>Later</key>
+	<string>الأحدث</string>
+	<key>Leave paths out</key>
+	<string>استبعاد مسارات</string>
+	<key>Leave the search and show the folder that holds this item</key>
+	<string>يترك البحث ويعرض المجلد الذي يحتوي هذا العنصر</string>
+	<key>Light</key>
+	<string>فاتح</string>
+	<key>Links not followed</key>
+	<string>روابط لم تُتتبّع</string>
+	<key>Local snapshots</key>
+	<string>اللقطات المحلية</string>
+	<key>Location</key>
+	<string>الموقع</string>
+	<key>Logical</key>
+	<string>المنطقي</string>
+	<key>Logical Size</key>
+	<string>الحجم المنطقي</string>
+	<key>Looking for files of at least %@ that have not changed in %@, cache folders, old downloads, and files that share a size.</key>
+	<string>جارٍ البحث عن ملفات بحجم %@ على الأقل لم تتغيّر خلال %@، ومجلدات تخزين مؤقت، وتنزيلات قديمة، وملفات تتشارك الحجم نفسه.</string>
+	<key>MIT License</key>
+	<string>رخصة MIT</string>
+	<key>Modified</key>
+	<string>آخر تعديل</string>
+	<key>Mount point %@</key>
+	<string>نقطة التركيب %@</string>
+	<key>Move %@ to Trash…</key>
+	<string>نقل %@ إلى سلة المهملات…</string>
+	<key>Move %@ to the Trash?</key>
+	<string>نقل %@ إلى سلة المهملات؟</string>
+	<key>Move to Trash</key>
+	<string>نقل إلى سلة المهملات</string>
+	<key>Move to Trash…</key>
+	<string>نقل إلى سلة المهملات…</string>
+	<key>Move “%@” to the Trash?</key>
+	<string>نقل «%@» إلى سلة المهملات؟</string>
+	<key>Moved %@ to the Trash. Space is freed when you empty the Trash.</key>
+	<string>تم نقل %@ إلى سلة المهملات. تُحرّر المساحة عند إفراغ السلة.</string>
+	<key>Moved %@ to the Trash; %@. %@</key>
+	<string>تم نقل %@ إلى سلة المهملات؛ %@. %@</string>
+	<key>Moving a whole volume to the Trash would take everything on it. WillyDisk only moves items inside a volume.</key>
+	<string>نقل وحدة تخزين كاملة إلى سلة المهملات سيأخذ كل ما عليها. لا ينقل WillyDisk إلا عناصر داخل وحدة تخزين.</string>
+	<key>Moving it would take the scan with it. Choose an item inside the scanned folder instead.</key>
+	<string>نقله سيأخذ الفحص معه. اختر عنصرًا داخل المجلد المفحوص بدلًا من ذلك.</string>
+	<key>Moving these items to the Trash…</key>
+	<string>جارٍ نقل هذه العناصر إلى سلة المهملات…</string>
+	<key>Moving to the Trash does not free space until the Trash is emptied.</key>
+	<string>النقل إلى سلة المهملات لا يحرّر مساحة حتى تُفرغ السلة.</string>
+	<key>Moving to the Trash…</key>
+	<string>جارٍ النقل إلى سلة المهملات…</string>
+	<key>Name</key>
+	<string>الاسم</string>
+	<key>Names macOS hides, such as ~/Library, dotfiles, and caches.</key>
+	<string>أسماء يخفيها macOS، مثل ‎~/Library وملفات النقطة وذاكرات التخزين المؤقت.</string>
+	<key>New</key>
+	<string>جديد</string>
+	<key>No %@ files in this scan</key>
+	<string>لا ملفات %@ في هذا الفحص</string>
+	<key>No %@ files to draw</key>
+	<string>لا ملفات %@ لرسمها</string>
+	<key>No %@ files yet</key>
+	<string>لا ملفات %@ بعد</string>
+	<key>No categories</key>
+	<string>لا فئات</string>
+	<key>No change</key>
+	<string>لا تغيّر</string>
+	<key>No entry changed.</key>
+	<string>لم يتغيّر أي إدخال.</string>
+	<key>No file bytes to group yet</key>
+	<string>لا بايتات ملفات لتجميعها بعد</string>
+	<key>No file is both at least %@ and unchanged for %@, no Caches or Derived Data folder is inside this scan, and no download is older than %@.</key>
+	<string>لا يوجد ملف بحجم %@ على الأقل وبلا تغيير خلال %@، ولا مجلد Caches أو Derived Data داخل هذا الفحص، ولا تنزيل أقدم من %@.</string>
+	<key>No file is both at least %@ and unchanged for %@, no Caches or Derived Data folder is inside this scan, no download is older than %@, and no two files of at least %@ share a size.</key>
+	<string>لا يوجد ملف بحجم %@ على الأقل وبلا تغيير خلال %@، ولا مجلد Caches أو Derived Data داخل هذا الفحص، ولا تنزيل أقدم من %@، ولا ملفان بحجم %@ على الأقل يتشاركان الحجم نفسه.</string>
+	<key>No files to rank</key>
+	<string>لا ملفات للترتيب</string>
+	<key>No folders to rank</key>
+	<string>لا مجلدات للترتيب</string>
+	<key>No identical contents found</key>
+	<string>لم تُعثر على محتويات متطابقة</string>
+	<key>No matches</key>
+	<string>لا نتائج مطابقة</string>
+	<key>No matches for “%@”</key>
+	<string>لا نتائج مطابقة لـ«%@»</string>
+	<key>No matches so far</key>
+	<string>لا نتائج مطابقة حتى الآن</string>
+	<key>No matches so far for “%@”</key>
+	<string>لا نتائج مطابقة حتى الآن لـ«%@»</string>
+	<key>No possible duplicates</key>
+	<string>لا عناصر تكرار محتملة</string>
+	<key>No recorded runs</key>
+	<string>لا تشغيلات مسجلة</string>
+	<key>No results</key>
+	<string>لا نتائج</string>
+	<key>No two files of at least %@ share a size in this scan.</key>
+	<string>لا ملفين بحجم %@ على الأقل يتشاركان الحجم نفسه في هذا الفحص.</string>
+	<key>None found</key>
+	<string>لم يُعثر على شيء</string>
+	<key>None listed</key>
+	<string>لا شيء مُدرج</string>
+	<key>Not on this Mac</key>
+	<string>غير موجود على هذا الـ Mac</string>
+	<key>Not selected</key>
+	<string>غير محدد</string>
+	<key>Nothing changed: all %@ in both lists are the same size.</key>
+	<string>لم يتغيّر شيء: كل %@ في القائمتين بالحجم نفسه.</string>
+	<key>Nothing excluded.</key>
+	<string>لا استثناءات.</string>
+	<key>Nothing excluded. Scans include every item they can read.</key>
+	<string>لا استثناءات. تشمل الفحوص كل عنصر يمكنها قراءته.</string>
+	<key>Nothing here has a size</key>
+	<string>لا شيء هنا له حجم</string>
+	<key>Nothing here is a saving. A smaller scan means less was measured; space returns when the Trash is emptied.</key>
+	<string>لا شيء هنا يمثّل توفيرًا. الفحص الأصغر يعني أن ما قيس أقل؛ وتعود المساحة عند إفراغ سلة المهملات.</string>
+	<key>Nothing here is big enough to draw.</key>
+	<string>لا شيء هنا كبير بما يكفي لرسمه.</string>
+	<key>Nothing on this volume can be moved or changed.</key>
+	<string>لا يمكن نقل أو تغيير أي شيء على وحدة التخزين هذه.</string>
+	<key>Nothing selected</key>
+	<string>لم يُحدد شيء</string>
+	<key>Nothing to review</key>
+	<string>لا شيء للمراجعة</string>
+	<key>Nothing to review here</key>
+	<string>لا شيء للمراجعة هنا</string>
+	<key>Old</key>
+	<string>القديمة</string>
+	<key>Old downloads</key>
+	<string>تنزيلات قديمة</string>
+	<key>On disk</key>
+	<string>على القرص</string>
+	<key>One run recorded</key>
+	<string>تشغيل واحد مسجل</string>
+	<key>Only finished scans are recorded: a cancelled scan covers part of the folder, so it is not offered as a run to compare. Records stay on this Mac and hold paths and totals, never file contents. Clear History… removes them all.</key>
+	<string>لا تُسجّل إلا الفحوص المنتهية: الفحص الملغى يغطي جزءًا من المجلد، لذا لا يُعرض كتشغيل للمقارنة. تبقى السجلات على هذا الـ Mac وتحمل المسارات والإجماليات، لا محتويات الملفات. «مسح السجل…» يزيلها كلها.</string>
+	<key>Open Full Disk Access in System Settings</key>
+	<string>فتح الوصول الكامل إلى القرص في إعدادات النظام</string>
+	<key>Open System Settings → Privacy &amp; Security → Full Disk Access</key>
+	<string>فتح إعدادات النظام ← الخصوصية والأمان ← الوصول الكامل إلى القرص</string>
+	<key>Open System Settings…</key>
+	<string>فتح إعدادات النظام…</string>
+	<key>Open the scan results for %@</key>
+	<string>فتح نتائج فحص %@</string>
+	<key>Opens the Full Disk Access pane in System Settings</key>
+	<string>يفتح لوحة الوصول الكامل إلى القرص في إعدادات النظام</string>
+	<key>Opens the Trash in Finder</key>
+	<string>يفتح سلة المهملات في Finder</string>
+	<key>Opens the confirmation for the selected items</key>
+	<string>يفتح تأكيد العناصر المحددة</string>
+	<key>Opens the explanation and the list of %@</key>
+	<string>يفتح الشرح وقائمة %@</string>
+	<key>Opens the scan results</key>
+	<string>يفتح نتائج الفحص</string>
+	<key>Options</key>
+	<string>الخيارات</string>
+	<key>Other</key>
+	<string>أخرى</string>
+	<key>Overlaps and skips</key>
+	<string>التداخلات والتخطيات</string>
+	<key>Part of this item is not stored on disk right now; moving it may free less space than its reported size.</key>
+	<string>جزء من هذا العنصر غير مخزّن على القرص الآن؛ وقد يحرّر نقله مساحة أقل من حجمه المعلن.</string>
+	<key>Path</key>
+	<string>المسار</string>
+	<key>Pick any folder or volume to scan</key>
+	<string>اختر أي مجلد أو وحدة تخزين لفحصها</string>
+	<key>Possible duplicates</key>
+	<string>عناصر تكرار محتملة</string>
+	<key>Quick Look</key>
+	<string>عرض سريع</string>
+	<key>Quick Look %@</key>
+	<string>عرض سريع %@</string>
+	<key>Quick scans</key>
+	<string>فحوص سريعة</string>
+	<key>Read the results</key>
+	<string>قراءة النتائج</string>
+	<key>Read-only</key>
+	<string>للقراءة فقط</string>
+	<key>Reading files…</key>
+	<string>جارٍ قراءة الملفات…</string>
+	<key>Reading the %@ files…</key>
+	<string>جارٍ قراءة ملفات %@…</string>
+	<key>Reading the first folders…</key>
+	<string>جارٍ قراءة المجلدات الأولى…</string>
+	<key>Reading the scan history…</key>
+	<string>جارٍ قراءة سجل الفحص…</string>
+	<key>Reading the scanned tree…</key>
+	<string>جارٍ قراءة الشجرة المفحوصة…</string>
+	<key>Reads these files and compares their contents</key>
+	<string>يقرأ هذه الملفات ويقارن محتوياتها</string>
+	<key>Recent</key>
+	<string>الأخيرة</string>
+	<key>Remove exclusion %@</key>
+	<string>إزالة استثناء %@</string>
+	<key>Removes every recorded run. Your files are not touched.</key>
+	<string>يزيل كل تشغيل مسجل. لا تُمس ملفاتك.</string>
+	<key>Reported size</key>
+	<string>الحجم المعلن</string>
+	<key>Rescan</key>
+	<string>إعادة الفحص</string>
+	<key>Reset to Defaults</key>
+	<string>إعادة التعيين إلى الافتراضات</string>
+	<key>Results</key>
+	<string>النتائج</string>
+	<key>Results changed since this scan. Rescan.</key>
+	<string>تغيّرت النتائج منذ هذا الفحص. أعد الفحص.</string>
+	<key>Return to source selection</key>
+	<string>العودة إلى اختيار المصدر</string>
+	<key>Return to the scanned location</key>
+	<string>العودة إلى الموقع المفحوص</string>
+	<key>Reveal %@ in Finder</key>
+	<string>إظهار %@ في Finder</string>
+	<key>Reveal in Finder</key>
+	<string>إظهار في Finder</string>
+	<key>Review cleanup candidates</key>
+	<string>مراجعة مرشحي التنظيف</string>
+	<key>Right-click a row, or use the detail pane, to reveal it in Finder or move it to the Trash. A move asks first and refuses the scan root, volume roots, your home folder, and protected system locations. The space returns when the Trash is emptied, not when the item is moved.</key>
+	<string>انقر صفًا بالزر الأيمن، أو استخدم لوحة التفاصيل، لإظهاره في Finder أو نقله إلى سلة المهملات. يطلب النقل تأكيدًا أولًا ويرفض جذر الفحص وجذور وحدات التخزين ومجلدك الرئيسي والمواقع المحمية في النظام. وتعود المساحة عند إفراغ سلة المهملات، لا عند نقل العنصر.</string>
+	<key>Root</key>
+	<string>الجذر</string>
+	<key>Run 'WillyDisk scan --help' for usage.</key>
+	<string>شغّل 'WillyDisk scan --help' لعرض الاستخدام.</string>
+	<key>Run a scan to see storage analysis.</key>
+	<string>نفّذ فحصًا لرؤية تحليل التخزين.</string>
+	<key>Run from %@</key>
+	<string>تشغيل من %@</string>
+	<key>Runs</key>
+	<string>التشغيلات</string>
+	<key>Scan</key>
+	<string>فحص</string>
+	<key>Scan %@</key>
+	<string>فحص %@</string>
+	<key>Scan %@ at %@</key>
+	<string>فحص %@ في %@</string>
+	<key>Scan %@ complete</key>
+	<string>اكتمل الفحص %@</string>
+	<key>Scan History</key>
+	<string>سجل الفحص</string>
+	<key>Scan Options</key>
+	<string>خيارات الفحص</string>
+	<key>Scan Options picks what the walk includes: hidden items, other volumes, symbolic links, and excluded paths. The caption beside Scan repeats the choice, and Rescan (⌘R) repeats it exactly.</key>
+	<string>تحدد «خيارات الفحص» ما يشمله المسح: العناصر المخفية ووحدات التخزين الأخرى والروابط الرمزية والمسارات المستثناة. ويعيد التعليق بجانب «فحص» ذكر الاختيار، وتعيد «إعادة الفحص» (⌘R) تنفيذه بدقة.</string>
+	<key>Scan by file category</key>
+	<string>الفحص حسب فئة الملف</string>
+	<key>Scan cancelled.</key>
+	<string>أُلغي الفحص.</string>
+	<key>Scan complete</key>
+	<string>اكتمل الفحص</string>
+	<key>Scan finished</key>
+	<string>انتهى الفحص</string>
+	<key>Scan finished, %@</key>
+	<string>انتهى الفحص، %@</string>
+	<key>Scan options</key>
+	<string>خيارات الفحص</string>
+	<key>Scan started %@; the totals are still growing</key>
+	<string>بدأ الفحص في %@؛ والإجماليات لا تزال تتزايد</string>
+	<key>Scan stopped</key>
+	<string>توقّف الفحص</string>
+	<key>Scan stopped, %@, results are partial</key>
+	<string>توقّف الفحص، %@، والنتائج جزئية</string>
+	<key>Scan stopped, results are partial</key>
+	<string>توقّف الفحص، والنتائج جزئية</string>
+	<key>Scan the current location again</key>
+	<string>فحص الموقع الحالي مرة أخرى</string>
+	<key>Scan this location again and its runs will be listed here, side by side.</key>
+	<string>افحص هذا الموقع مرة أخرى وستُدرج تشغيلاته هنا جنبًا إلى جنب.</string>
+	<key>Scanned</key>
+	<string>المفحوص</string>
+	<key>Scanned %@ in %@</key>
+	<string>تم الفحص في %@ خلال %@</string>
+	<key>Scanned Folder</key>
+	<string>المجلد المفحوص</string>
+	<key>Scanned totals cover only the files under %@. The volume's used space also includes other folders, macOS, and space macOS manages outside the file tree. The scan totals are from the scan time above; the volume figures are read when this panel opens. This panel reports both; it does not subtract one from the other.</key>
+	<string>تغطي إجماليات الفحص الملفات تحت %@ فقط. وتشمل المساحة المستخدمة في وحدة التخزين مجلدات أخرى وmacOS ومساحة يديرها macOS خارج شجرة الملفات. إجماليات الفحص من زمن الفحص أعلاه؛ وأرقام وحدة التخزين تُقرأ عند فتح هذه اللوحة. تعرض هذه اللوحة كليهما؛ ولا تطرح أحدهما من الآخر.</string>
+	<key>Scanning</key>
+	<string>جارٍ الفحص</string>
+	<key>Scanning Unavailable</key>
+	<string>الفحص غير متاح</string>
+	<key>Scanning since %@; %@ so far</key>
+	<string>الفحص جارٍ منذ %@؛ %@ حتى الآن</string>
+	<key>Scanning, %@</key>
+	<string>جارٍ الفحص، %@</string>
+	<key>Scanning, %@ so far</key>
+	<string>جارٍ الفحص، %@ حتى الآن</string>
+	<key>Scanning, progress not yet measurable</key>
+	<string>جارٍ الفحص، والتقدم غير قابل للقياس بعد</string>
+	<key>Scanning…</key>
+	<string>جارٍ الفحص…</string>
+	<key>Scans run on this Mac and nothing is uploaded. Nothing is deleted automatically; Move to Trash is the only removal, and it asks first.</key>
+	<string>تُجرى الفحوص على هذا الـ Mac ولا يُرفع أي شيء. لا يُحذف شيء تلقائيًا؛ و«نقل إلى سلة المهملات» هو الإزالة الوحيدة، وهو يطلب التأكيد أولًا.</string>
+	<key>Scans run on this Mac; nothing is uploaded.</key>
+	<string>تُجرى عمليات الفحص على هذا الـ Mac؛ ولا يُرفع أي شيء.</string>
+	<key>Scans, results, history, cleanup, coverage, and the Trash.</key>
+	<string>الفحوص والنتائج والسجل والتنظيف والتغطية وسلة المهملات.</string>
+	<key>Search this scan</key>
+	<string>بحث في هذا الفحص</string>
+	<key>Searching every file and folder…</key>
+	<string>جارٍ البحث في كل ملف ومجلد…</string>
+	<key>Searching…</key>
+	<string>جارٍ البحث…</string>
+	<key>Select All</key>
+	<string>تحديد الكل</string>
+	<key>Select All But One</key>
+	<string>تحديد الكل عدا واحدة</string>
+	<key>Select All But One leaves the first copy in place. Space returns only when the Trash is emptied.</key>
+	<string>«تحديد الكل عدا واحدة» يترك النسخة الأولى في مكانها. لا تعود المساحة إلا بعد إفراغ سلة المهملات.</string>
+	<key>Select and act</key>
+	<string>التحديد والإجراء</string>
+	<key>Select copies, then Move to Trash…, and the usual confirmation checks every path. The space returns when the Trash is emptied, and moving one hard link frees nothing while another link remains.</key>
+	<string>حدد النسخ، ثم «نقل إلى سلة المهملات…»، وسيتحقق التأكيد المعتاد من كل مسار. تعود المساحة عند إفراغ السلة، ونقل رابط صلب واحد لا يحرّر شيئًا ما بقي رابط آخر.</string>
+	<key>Select two runs in the list to see what grew, what shrank, and what appeared.</key>
+	<string>اختر تشغيلين من القائمة لترى ما كبُر وما صغُر وما ظهر.</string>
+	<key>Selected for comparison</key>
+	<string>محدد للمقارنة</string>
+	<key>Selects every copy except the first, so one copy stays in place</key>
+	<string>يحدد كل نسخة عدا الأولى، فتبقى نسخة واحدة في مكانها</string>
+	<key>Share of this scan's logical size. Choose a category to see its largest files.</key>
+	<string>نصيب من الحجم المنطقي لهذا الفحص. اختر فئة لرؤية أكبر ملفاتها.</string>
+	<key>Show %@</key>
+	<string>إظهار %@</string>
+	<key>Show More</key>
+	<string>إظهار المزيد</string>
+	<key>Show Trash</key>
+	<string>إظهار سلة المهملات</string>
+	<key>Show all categories</key>
+	<string>عرض كل الفئات</string>
+	<key>Show every category</key>
+	<string>عرض كل الفئات</string>
+	<key>Show in Folder</key>
+	<string>إظهار في المجلد</string>
+	<key>Show more items</key>
+	<string>إظهار مزيد من العناصر</string>
+	<key>Show this file's details</key>
+	<string>إظهار تفاصيل هذا الملف</string>
+	<key>Show this folder's contents</key>
+	<string>إظهار محتويات هذا المجلد</string>
+	<key>Show “%@”</key>
+	<string>إظهار «%@»</string>
+	<key>Showing the first %lld of %lld — %lld more not listed</key>
+	<string>عرض أول %lld من %lld — و%lld أخرى غير مدرجة</string>
+	<key>Showing the first %lld — more may follow</key>
+	<string>عرض أول %lld — وقد تتبع المزيد</string>
+	<key>Showing the largest %lld of %@</key>
+	<string>عرض أكبر %lld من %@</string>
+	<key>Shows source selection; a scan that is running keeps running</key>
+	<string>يعرض اختيار المصدر؛ والفحص الجاري يظل جاريًا</string>
+	<key>Shows the largest files in this category</key>
+	<string>يعرض أكبر الملفات في هذه الفئة</string>
+	<key>Shrunk</key>
+	<string>صغُر</string>
+	<key>Size</key>
+	<string>الحجم</string>
+	<key>Skipped</key>
+	<string>تم تخطّيها</string>
+	<key>Skipped by your exclusions</key>
+	<string>تم تخطّيها بسبب استثناءاتك</string>
+	<key>Skipped symbolic links, other volumes, special files, and the items your exclusions removed are listed. Nothing that was not read is given an estimated size.</key>
+	<string>تُدرج الروابط الرمزية المتخطاة ووحدات التخزين الأخرى والملفات الخاصة والعناصر التي أزالتها استثناءاتك. ولا يُعطى أي شيء لم يُقرأ حجمًا تقديريًا.</string>
+	<key>Snapshots</key>
+	<string>اللقطات</string>
+	<key>Sockets, devices, and FIFOs hold no file data and were skipped safely.</key>
+	<string>المقابس والأجهزة وFIFO لا تحمل بيانات ملفات، وتم تخطّيها بأمان.</string>
+	<key>Sort</key>
+	<string>ترتيب</string>
+	<key>Sort by %@</key>
+	<string>الترتيب حسب %@</string>
+	<key>Space previews the selection with Quick Look, Return opens a folder or a file, and Escape clears the selection.</key>
+	<string>تعاين المسافة التحديد بـ«عرض سريع»، وReturn يفتح مجلدًا أو ملفًا، وEscape يمسح التحديد.</string>
+	<key>Special files</key>
+	<string>ملفات خاصة</string>
+	<key>Start Over</key>
+	<string>البدء من جديد</string>
+	<key>Start a scan</key>
+	<string>بدء فحص</string>
+	<key>Starts scanning %@</key>
+	<string>يبدأ فحص %@</string>
+	<key>Stay on this volume</key>
+	<string>البقاء على وحدة التخزين هذه</string>
+	<key>Stop excluding %@</key>
+	<string>إيقاف استثناء %@</string>
+	<key>Stop the scan, or wait for it to finish, before moving items to the Trash.</key>
+	<string>أوقف الفحص أو انتظر انتهاءه قبل نقل العناصر إلى سلة المهملات.</string>
+	<key>Stop the scan; the results gathered so far are kept</key>
+	<string>يوقف الفحص؛ وتُحفظ النتائج المجمّعة حتى الآن</string>
+	<key>Stopped after %@, so this is a sample of the scan rather than all of it.</key>
+	<string>توقّف بعد %@، لذا فهذه عيّنة من الفحص لا كلّه.</string>
+	<key>Stopped early — these results are partial</key>
+	<string>توقّف مبكرًا — هذه النتائج جزئية</string>
+	<key>Storage sunburst</key>
+	<string>مخطط التخزين الشمسي</string>
+	<key>Storage sunburst, %@</key>
+	<string>مخطط التخزين الشمسي، %@</string>
+	<key>Symbolic link</key>
+	<string>رابط رمزي</string>
+	<key>Symbolic links are moved themselves; the items they point to stay where they are.</key>
+	<string>تُنقل الروابط الرمزية نفسها؛ وتبقى العناصر التي تشير إليها في مكانها.</string>
+	<key>System</key>
+	<string>النظام</string>
+	<key>System follows your Mac. Light or Dark holds that appearance for WillyDisk alone.</key>
+	<string>النظام يتبع جهازك. فاتح أو داكن يثبّت ذلك المظهر في WillyDisk وحده.</string>
+	<key>The chart maps one folder at a time. Clear the search to return to “%@”.</key>
+	<string>يرسم المخطط مجلدًا واحدًا في كل مرة. امسح البحث للعودة إلى «%@».</string>
+	<key>The folder changed after this scan. Rescan to see the current numbers.</key>
+	<string>تغيّر المجلد بعد هذا الفحص. أعد الفحص لترى الأرقام الحالية.</string>
+	<key>The folder changed; the numbers are being re-measured.</key>
+	<string>تغيّر المجلد؛ ويجري إعادة قياس الأرقام.</string>
+	<key>The folder is watched only while its results are on screen.</key>
+	<string>يُراقَب المجلد فقط أثناء عرض نتائجه على الشاشة.</string>
+	<key>The item is still in place.</key>
+	<string>لا يزال العنصر في مكانه.</string>
+	<key>The same values the Scan Options sheet on the source screen edits.</key>
+	<string>القيم نفسها التي تعدّلها لوحة خيارات الفحص في شاشة المصدر.</string>
+	<key>The scan did not enter these items, so their contents are not in the totals. The size of what was left out is therefore unknown.</key>
+	<string>لم يدخل الفحص هذه العناصر، لذا محتوياتها غير مشمولة في الإجماليات. وحجم ما استُثني غير معروف تبعًا لذلك.</string>
+	<key>The scan found no unreadable folders, exclusions, hard-link overlaps, cloud-only files, skipped links, other volumes, or special files.</key>
+	<string>لم يعثر الفحص على مجلدات غير مقروءة أو استثناءات أو تداخلات روابط صلبة أو ملفات سحابية فقط أو روابط متخطاة أو وحدات تخزين أخرى أو ملفات خاصة.</string>
+	<key>The scan is measuring this folder. Choose a file or a folder inside it instead.</key>
+	<string>الفحص يقيس هذا المجلد. اختر ملفًا أو مجلدًا بداخله بدلًا من ذلك.</string>
+	<key>The scan stayed on this volume, as its options asked, so these folders were not entered.</key>
+	<string>بقي الفحص على وحدة التخزين هذه وفقًا لخياراته، لذا لم تُدخل هذه المجلدات.</string>
+	<key>The scanned location</key>
+	<string>الموقع المفحوص</string>
+	<key>The scanning engine is not connected yet.</key>
+	<string>محرك الفحص غير متصل بعد.</string>
+	<key>The snapshot list could not be read.</key>
+	<string>تعذّرت قراءة قائمة اللقطات.</string>
+	<key>The startup disk is a volume group, so a scan of / is not reconciled against the disk's capacity.</key>
+	<string>قرص بدء التشغيل مجموعة وحدات تخزين، لذا لا يُسوّى فحص / مقابل سعة القرص.</string>
+	<key>The sunburst maps the folder you are in. Click a folder wedge to enter it; click a file wedge to select the file, and click the centre to go up one folder.</key>
+	<string>يرسم المخطط الشمسي المجلد الذي أنت فيه. انقر على قطاع مجلد للدخول إليه؛ وانقر على قطاع ملف لتحديده، وانقر على المركز للصعود مستوى واحدًا.</string>
+	<key>The system does not allow changes on this volume.</key>
+	<string>لا يسمح النظام بإجراء تغييرات على وحدة التخزين هذه.</string>
+	<key>The volume's own capacity figures could not be read.</key>
+	<string>تعذّرت قراءة أرقام سعة وحدة التخزين نفسها.</string>
+	<key>The ⓘ button opens Coverage: what the scan counted, what it skipped, and the volume's own figures side by side.</key>
+	<string>زر ⓘ يفتح «التغطية»: ما احتسبه الفحص وما تخطّاه وأرقام وحدة التخزين نفسها جنبًا إلى جنب.</string>
+	<key>Their contents are missing from the totals. %@ were reported.</key>
+	<string>محتوياتها ناقصة من الإجماليات. تم الإبلاغ عن %@.</string>
+	<key>There is no finished scan to check this item against. Run a scan, then try again.</key>
+	<string>لا يوجد فحص منتهٍ للتحقق من هذا العنصر. نفّذ فحصًا ثم أعد المحاولة.</string>
+	<key>These items could not be read while scanning.</key>
+	<string>تعذّرت قراءة هذه العناصر أثناء الفحص.</string>
+	<key>These runs used different scan options. Some of the difference may be what each walk included — hidden items, other volumes, or excluded paths — rather than a change on disk.</key>
+	<string>استخدمت هذه التشغيلات خيارات فحص مختلفة. قد يكون بعض الفارق راجعًا إلى ما شمله كل مسح — عناصر مخفية أو وحدات تخزين أخرى أو مسارات مستثناة — لا إلى تغيّر على القرص.</string>
+	<key>They can keep deleted blocks on this volume until macOS removes them. macOS does not expose a snapshot's size.</key>
+	<string>قد تُبقي الكتل المحذوفة على وحدة التخزين هذه حتى يزيلها macOS. ولا يكشف macOS عن حجم اللقطة.</string>
+	<key>They report %@ but occupy %@ on this disk. Their data is not here.</key>
+	<string>تُعلن %@ لكنها تشغل %@ على هذا القرص. بياناتها ليست هنا.</string>
+	<key>This Folder</key>
+	<string>هذا المجلد</string>
+	<key>This folder has nothing big enough to draw.</key>
+	<string>لا شيء في هذا المجلد كبير بما يكفي لرسمه.</string>
+	<key>This folder holds the folder being scanned</key>
+	<string>هذا المجلد يحتوي المجلد الذي يجري فحصه</string>
+	<key>This folder is empty</key>
+	<string>هذا المجلد فارغ</string>
+	<key>This is a protected system location</key>
+	<string>هذا موقع محمي في النظام</string>
+	<key>This is the folder being scanned</key>
+	<string>هذا هو المجلد الذي يجري فحصه</string>
+	<key>This is the startup disk. macOS presents its system and data halves as one volume, so a scan of the system half and a scan of the data half describe the same volume from different angles.</key>
+	<string>هذا قرص بدء التشغيل. يعرض macOS نصفيه، النظام والبيانات، كوحدة تخزين واحدة، لذا يصف فحص نصف النظام وفحص نصف البيانات وحدة التخزين نفسها من زاويتين مختلفتين.</string>
+	<key>This is the top of a volume</key>
+	<string>هذا أعلى وحدة تخزين</string>
+	<key>This is your home folder</key>
+	<string>هذا مجلدك الرئيسي</string>
+	<key>This item is no longer there</key>
+	<string>هذا العنصر لم يعد موجودًا</string>
+	<key>This location is not on this Mac</key>
+	<string>هذا الموقع غير موجود على هذا الـ Mac</string>
+	<key>This scan</key>
+	<string>هذا الفحص</string>
+	<key>This volume</key>
+	<string>وحدة التخزين هذه</string>
+	<key>This volume is read-only</key>
+	<string>وحدة التخزين هذه للقراءة فقط</string>
+	<key>Top Files</key>
+	<string>أكبر الملفات</string>
+	<key>Top Folders</key>
+	<string>أكبر المجلدات</string>
+	<key>Totals and categories are exact: a scan measures every entry it walked. Folders and files are %@, matched by path. An entry is marked New only when the earlier run would have recorded it: it is absent from a list that held everything it found, or larger than a truncated list's cut-off. A later entry at or below that cut-off is not compared.</key>
+	<string>الإجماليات والفئات دقيقة: يقيس الفحص كل عنصر مشى فيه. المجلدات والملفات هي %@، وتُطابق بالمسار. لا يُوسم العنصر «جديدًا» إلا حين كان التشغيل الأقدم سيسجله: أي غائبًا عن قائمة احتوت كل ما وجدته، أو أكبر من حد قطع قائمة مقتطعة. ولا يُقارن عنصر لاحق عند حد القطع هذا أو دونه.</string>
+	<key>Totals are exact. Folders and files are %@, matched by path. No saving is claimed.</key>
+	<string>الإجماليات دقيقة. المجلدات والملفات هي %@، وتُطابق بالمسار. لا ندّعي تحقيق أي توفير.</string>
+	<key>Totals are still growing</key>
+	<string>الإجماليات لا تزال تتزايد</string>
+	<key>Trash</key>
+	<string>سلة المهملات</string>
+	<key>Type</key>
+	<string>النوع</string>
+	<key>Unavailable</key>
+	<string>غير متاح</string>
+	<key>Unavailable while another scan is running</key>
+	<string>غير متاح أثناء تشغيل فحص آخر</string>
+	<key>Unchanged</key>
+	<string>بلا تغيير</string>
+	<key>Under a minute</key>
+	<string>أقل من دقيقة</string>
+	<key>Unreadable locations</key>
+	<string>مواقع غير مقروءة</string>
+	<key>Update the numbers when files change in the scanned folder. A long scan is offered a Rescan instead.</key>
+	<string>حدّث الأرقام عندما تتغيّر الملفات في المجلد المفحوص. الفحص الطويل يُعرض عليه إعادة الفحص بدلًا من ذلك.</string>
+	<key>Updating results</key>
+	<string>تحديث النتائج</string>
+	<key>Updating…</key>
+	<string>جارٍ التحديث…</string>
+	<key>Use the arrow keys to move through the list, Space to preview, and Return to open.</key>
+	<string>استخدم مفاتيح الأسهم للتنقل في القائمة، والمسافة للمعاينة، وReturn للفتح.</string>
+	<key>Used by the volume</key>
+	<string>المستخدم في وحدة التخزين</string>
+	<key>Video</key>
+	<string>الفيديو</string>
+	<key>View Results</key>
+	<string>عرض النتائج</string>
+	<key>Visibility</key>
+	<string>الظهور</string>
+	<key>Volume</key>
+	<string>وحدة التخزين</string>
+	<key>Volumes</key>
+	<string>وحدات التخزين</string>
+	<key>Waiting for the first items…</key>
+	<string>بانتظار العناصر الأولى…</string>
+	<key>Watching</key>
+	<string>قيد المراقبة</string>
+	<key>Watching for changes</key>
+	<string>مراقبة التغييرات</string>
+	<key>What coverage leaves out</key>
+	<string>ما تستبعده التغطية</string>
+	<key>What this scan counted</key>
+	<string>ما احتسبه هذا الفحص</string>
+	<key>What this scan counted, and what it did not</key>
+	<string>ما احتسبه هذا الفحص وما لم يحتسبه</string>
+	<key>While these results are on screen, the scanned folder is watched: a change made in Finder updates the numbers without Rescan. A long scan is not repeated automatically — the results are marked stale and Rescan is offered.</key>
+	<string>أثناء عرض هذه النتائج، تتم مراقبة المجلد المفحوص: التغيير في Finder يحدّث الأرقام دون «إعادة الفحص». ولا يُعاد الفحص الطويل تلقائيًا — تُوسم النتائج بأنها قديمة ويُعرض «إعادة الفحص».</string>
+	<key>WillyDisk</key>
+	<string>WillyDisk</string>
+	<key>WillyDisk Help</key>
+	<string>مساعدة WillyDisk</string>
+	<key>WillyDisk Report.csv</key>
+	<string>تقرير WillyDisk.csv</string>
+	<key>WillyDisk Report.json</key>
+	<string>تقرير WillyDisk.json</string>
+	<key>WillyDisk does not move system locations. Choose an item inside the scanned folder instead.</key>
+	<string>لا ينقل WillyDisk مواقع النظام. اختر عنصرًا داخل المجلد المفحوص بدلًا من ذلك.</string>
+	<key>WillyDisk does not move your home folder as a whole. Choose a file or a folder inside it instead.</key>
+	<string>لا ينقل WillyDisk مجلدك الرئيسي ككل. اختر ملفًا أو مجلدًا بداخله بدلًا من ذلك.</string>
+	<key>WillyDisk scan</key>
+	<string>WillyDisk scan</string>
+	<key>WillyDisk scan — measure one folder from the command line
+
+USAGE
+  WillyDisk scan &lt;folder&gt; [--depth &lt;levels&gt;] [--top &lt;rows&gt;] [--json]
+  WillyDisk scan --help
+
+The scan uses the same engine and accounting as the app, with the default scan
+options: hidden items included, no crossing onto another volume, and symbolic
+links not followed. No window opens and no UI is loaded.
+
+OPTIONS
+  --depth &lt;levels&gt;  Folder levels printed below the scan root. 0 prints only
+                    the root. Default: %lld.
+  --top &lt;rows&gt;      Rows printed per folder level and per ranked list.
+                    Default: %lld.
+  --json            Print the finished run as the versioned ScanRecord JSON
+                    (schema %lld) instead of the text report.
+  -h, --help        Show this help and exit.
+
+--depth and --top change only what is printed. The scan still measures every
+entry it can reach, and the totals, counts, and record list that measurement.
+
+EXIT STATUS
+  0    the scan finished; the report states anything it could not read
+  1    the folder does not exist, or the report could not be written
+  2    the command line was not understood
+  130  interrupted; the engine's cancellation path ran and no report was written
+
+A cancelled scan writes no report: its totals cover part of the folder, and
+a comparison against them would read as space that vanished.</key>
+	<string>WillyDisk scan — قياس مجلد واحد من سطر الأوامر
+
+الاستخدام
+  WillyDisk scan &lt;folder&gt; [--depth &lt;levels&gt;] [--top &lt;rows&gt;] [--json]
+  WillyDisk scan --help
+
+يستخدم الفحص المحرك والمحاسبة نفسيهما اللذين يستخدمهما التطبيق، مع خيارات الفحص
+الافتراضية: العناصر المخفية مضمنة، دون عبور إلى وحدة تخزين أخرى، والروابط
+الرمزية غير متتبعة. لا تُفتح نافذة ولا تُحمَّل أي واجهة.
+
+الخيارات
+  --depth &lt;levels&gt;  مستويات المجلدات المطبوعة تحت جذر الفحص. 0 يطبع الجذر
+                    فقط. الافتراضي: %lld.
+  --top &lt;rows&gt;      الصفوف المطبوعة لكل مستوى مجلد ولكل قائمة مرتبة.
+                    الافتراضي: %lld.
+  --json            طباعة التشغيل المنتهي كسجل ScanRecord JSON المرقّم
+                    (المخطط %lld) بدلًا من التقرير النصي.
+  -h, --help        عرض هذه المساعدة والخروج.
+
+--depth و--top يغيّران ما يُطبع فقط. لا يزال الفحص يقيس كل عنصر يمكنه الوصول
+إليه، والإجماليات والأعداد والسجل تعكس ذلك القياس.
+
+حالة الخروج
+  0    انتهى الفحص؛ ويذكر التقرير أي شيء تعذّرت قراءته
+  1    المجلد غير موجود، أو تعذّرت كتابة التقرير
+  2    لم يُفهم سطر الأوامر
+  130  تمت المقاطعة؛ جرى مسار إلغاء المحرك ولم يُكتب أي تقرير
+
+الفحص الملغى لا يكتب تقريرًا: إجمالياته تغطي جزءًا من المجلد، ومقارنتها
+بقياس كامل ستُقرأ كمساحة اختفت.</string>
+	<key>Yes</key>
+	<string>نعم</string>
+	<key>You can put it back from the Trash until you empty it.</key>
+	<string>يمكنك إعادته من سلة المهملات قبل إفراغها.</string>
+	<key>You can put them back from the Trash until you empty it.</key>
+	<string>يمكنك إعادتها من سلة المهملات قبل إفراغها.</string>
+	<key>`tmutil` could not list this volume's snapshots.</key>
+	<string>تعذّر على `tmutil` سرد لقطات وحدة التخزين هذه.</string>
+	<key>`tmutil` is not available on this Mac.</key>
+	<string>‏`tmutil` غير متاح على هذا الـ Mac.</string>
+	<key>and %lld more</key>
+	<string>و%lld أخرى</string>
+	<key>each run's largest %lld</key>
+	<string>أكبر %lld في كل تشغيل</string>
+	<key>error: %@</key>
+	<string>خطأ: %@</string>
+	<key>error: no such folder: %@</key>
+	<string>خطأ: لا يوجد مجلد بهذا المسار: %@</string>
+	<key>error: the record could not be encoded: %@</key>
+	<string>خطأ: تعذّر ترميز السجل: %@</string>
+	<key>error: the report could not be written: %@</key>
+	<string>خطأ: تعذّرت كتابة التقرير: %@</string>
+	<key>error: the scan ended without a result.</key>
+	<string>خطأ: انتهى الفحص دون نتيجة.</string>
+	<key>follows symbolic links</key>
+	<string>يتتبّع الروابط الرمزية</string>
+	<key>hidden items included, stays on this volume, symbolic links not followed</key>
+	<string>العناصر المخفية مضمنة، البقاء على وحدة التخزين هذه، لا تتبّع للروابط الرمزية</string>
+	<key>macOS did not report local snapshots for this volume.</key>
+	<string>لم يُبلغ macOS عن لقطات محلية لوحدة التخزين هذه.</string>
+	<key>macOS reports %@ more can be made available for important use by removing purgeable data.</key>
+	<string>يفيد macOS بإمكان إتاحة %@ إضافية للاستخدام المهم عبر إزالة البيانات القابلة للتنقية.</string>
+	<key>may cross volumes</key>
+	<string>قد يعبر وحدات التخزين</string>
+	<key>missing the folder to scan</key>
+	<string>المجلد المطلوب فحصه غير موجود</string>
+	<key>no command given</key>
+	<string>لم يُعطَ أي أمر</string>
+	<key>only one folder can be scanned; '%@' is extra</key>
+	<string>يمكن فحص مجلد واحد فقط؛ '%@' زائد</string>
+	<key>read only</key>
+	<string>للقراءة فقط</string>
+	<key>restricted locations</key>
+	<string>مواقع مقيّدة</string>
+	<key>stays on this volume</key>
+	<string>البقاء على وحدة التخزين هذه</string>
+	<key>symbolic links not followed</key>
+	<string>لا يتتبّع الروابط الرمزية</string>
+	<key>the largest entries each run recorded</key>
+	<string>أكبر العناصر التي سجّلها كل تشغيل</string>
+	<key>unknown command '%@'; expected 'scan'</key>
+	<string>أمر غير معروف '%@'؛ المتوقع 'scan'</string>
+	<key>unknown option '%@'</key>
+	<string>خيار غير معروف '%@'</string>
+	<key>unreadable items</key>
+	<string>عناصر غير مقروءة</string>
+	<key>العربية</key>
+	<string>العربية</string>
+	<key>“%@” (%@)</key>
+	<string>«%@» (%@)</string>
+	<key>−%@</key>
+	<string>−%@</string>
+</dict>
+</plist>

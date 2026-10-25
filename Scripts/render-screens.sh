@@ -8,17 +8,19 @@
 # locked session and inside an agent sandbox.
 #
 # Usage:
-#   Scripts/render-screens.sh [-o OUT_DIR] [-s WxH] [-a light|dark|both] [-S results|home|search|help|settings|categories|cleanup|duplicates|history|both] [-t FIXTURE_DIR] [-T STATE]
+#   Scripts/render-screens.sh [-o OUT_DIR] [-s WxH] [-a light|dark|both] [-S results|home|search|help|settings|categories|coverage|cleanup|duplicates|history|both] [-t FIXTURE_DIR] [-T STATE] [-l LOCALE]
 #
 #   -o  output directory                     (default .build/renders)
 #   -s  render size in points                (default 1000x720)
 #   -a  appearances to render                (default both)
+#   -l  interface language: en, ar, or en-XA (default en)
 #   -S  screens to render                    (default results; both is home and
 #       results; search is the results screen with a whole-scan search open;
-#       categories is the results screen in Categories mode; help and settings
-#       are the sheet and preferences contents; cleanup and duplicates are the
-#       cleanup sheet's two tabs, and both scan the same sample tree; history is
-#       the scan-history comparison over three sample runs)
+#       categories is the results screen in Categories mode; coverage is the
+#       coverage sheet; help and settings are the sheet and preferences contents;
+#       cleanup and duplicates are the cleanup sheet's two tabs, and both scan
+#       the same sample tree; history is the scan-history comparison over three
+#       sample runs)
 #   -t  scan this directory instead of the generated fixture
 #   -T  finished (default), scanning, or stopped — the screen a cancelled scan
 #       leaves behind. scanning and stopped both need a directory large enough
@@ -37,11 +39,12 @@ OUT="$ROOT/.build/renders"
 SIZE="1000x720"
 APPEARANCE="both"
 SCREEN="results"
+LOCALE="en"
 STATE="finished"
 FIXTURE=()
 MODE=(--window)
 
-while getopts "o:s:a:S:t:T:ch" opt; do
+while getopts "o:s:a:S:t:T:l:ch" opt; do
   case "$opt" in
     o) OUT="$OPTARG" ;;
     s) SIZE="$OPTARG" ;;
@@ -49,8 +52,9 @@ while getopts "o:s:a:S:t:T:ch" opt; do
     S) SCREEN="$OPTARG" ;;
     t) FIXTURE=(--fixture "$OPTARG") ;;
     T) STATE="$OPTARG" ;;
+    l) LOCALE="$OPTARG" ;;
     c) MODE=(--content) ;;
-    h) sed -n '2,25p' "$0"; exit 0 ;;
+    h) sed -n '2,28p' "$0"; exit 0 ;;
     *) exit 2 ;;
   esac
 done
@@ -85,9 +89,9 @@ fi
 # the UI's `Bundle.module` resolves its resources exactly as it does in the app.
 echo "==> Compiling the renderer"
 xcrun swiftc ${SWIFTC_FLAGS[@]+"${SWIFTC_FLAGS[@]}"} \
-  -I "$ROOT/.build/debug" -L "$ROOT/.build/debug" -lDiskUI -lDiskCore \
+  -I "$ROOT/.build/debug" -L "$ROOT/.build/debug" -lDiskUI -lDiskCore -lDiskLocalization \
   -o "$ROOT/.build/debug/render-screens" \
   "$ROOT/Scripts/RenderScreens/main.swift"
 
 echo "==> Rendering"
-"$ROOT/.build/debug/render-screens" --out "$OUT" --size "$SIZE" --appearance "$APPEARANCE" --screen "$SCREEN" --state "$STATE" "${MODE[@]}" ${FIXTURE[@]+"${FIXTURE[@]}"}
+"$ROOT/.build/debug/render-screens" --out "$OUT" --size "$SIZE" --appearance "$APPEARANCE" --screen "$SCREEN" --state "$STATE" --locale "$LOCALE" "${MODE[@]}" ${FIXTURE[@]+"${FIXTURE[@]}"}

@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import DiskLocalization
 
 /// The app's preferences window.
 ///
@@ -10,10 +11,13 @@ import AppKit
 @MainActor
 public struct SettingsView: View {
     @AppStorage(AppAppearance.defaultsKey) private var appearance: AppAppearance = .system
+    @AppStorage(AppLanguage.defaultsKey) private var language: AppLanguage = .system
     @State private var optionsStore: ScanOptionsStore
     @State private var watchPreferences: WatchPreferences
     @State private var hoveredAppearance: AppAppearance?
+    @State private var hoveredLanguage: AppLanguage?
     @FocusState private var listFocused: Bool
+    @FocusState private var languageListFocused: Bool
 
     public init(
         optionsStore: ScanOptionsStore = .shared,
@@ -26,6 +30,7 @@ public struct SettingsView: View {
     public var body: some View {
         Form {
             appearanceSection
+            languageSection
             scanDefaultsSection
             resultsSection
             exclusionsSection
@@ -34,6 +39,11 @@ public struct SettingsView: View {
         // The window is its own scene, so it does not inherit the tint
         // `ContentView` sets for the main window; the same signal ink applies.
         .tint(DS.Color.signal)
+        .environment(\.layoutDirection, L10n.isRightToLeft ? .rightToLeft : .leftToRight)
+        .environment(\.locale, L10n.locale)
+        // A new identity after a language change rebuilds every row, including
+        // the labels and the section headers that were built in the old one.
+        .id(language)
         .frame(width: 460, height: 760)
         .onChange(of: appearance) { _, choice in
             AppAppearance.apply(choice)
@@ -64,14 +74,14 @@ public struct SettingsView: View {
                 moveSelection(by: 1)
                 return .handled
             }
-            .accessibilityLabel("Appearance")
+            .accessibilityLabel(L10n.string("Appearance"))
 
-            Text("System follows your Mac. Light or Dark holds that appearance for WillyDisk alone.")
+            Text(L10n.string("System follows your Mac. Light or Dark holds that appearance for WillyDisk alone."))
                 .font(DS.Typography.callout)
                 .foregroundStyle(DS.Color.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)
         } header: {
-            Text("Appearance")
+            Text(L10n.string("Appearance"))
         }
     }
 
@@ -131,32 +141,121 @@ public struct SettingsView: View {
         appearance = options[next]
     }
 
+    // MARK: - Language
+
+    private var languageSection: some View {
+        Section {
+            VStack(spacing: 0) {
+                ForEach(Array(AppLanguage.allCases.enumerated()), id: \.element) { index, option in
+                    languageRow(option)
+                    if index < AppLanguage.allCases.count - 1 {
+                        Divider()
+                            .padding(.leading, DS.Spacing.small)
+                    }
+                }
+            }
+            .focusable()
+            .focused($languageListFocused)
+            .focusEffectDisabled()
+            .onKeyPress(.upArrow) {
+                moveLanguageSelection(by: -1)
+                return .handled
+            }
+            .onKeyPress(.downArrow) {
+                moveLanguageSelection(by: 1)
+                return .handled
+            }
+            .accessibilityLabel(L10n.string("Language"))
+
+            Text(L10n.string("Changes the interface language right away."))
+                .font(DS.Typography.callout)
+                .foregroundStyle(DS.Color.secondaryText)
+                .fixedSize(horizontal: false, vertical: true)
+        } header: {
+            Text(L10n.string("Language"))
+        }
+    }
+
+    /// The same full-row choice the appearance list uses. The label is the
+    /// language's own name, so the row a reader needs is findable in either
+    /// direction.
+    private func languageRow(_ option: AppLanguage) -> some View {
+        let selected = language == option
+        return Button {
+            option.apply()
+            language = option
+            languageListFocused = true
+        } label: {
+            HStack(spacing: DS.Spacing.small) {
+                Text(option.label)
+                    .font(DS.Typography.body)
+                    .foregroundStyle(DS.Color.primaryText)
+                Spacer(minLength: 0)
+                Image(systemName: selected ? "largecircle.fill.circle" : "circle")
+                    .font(DS.Typography.title2)
+                    .foregroundStyle(selected ? DS.Color.accent : DS.Color.secondaryText)
+            }
+            .padding(.horizontal, DS.Spacing.small)
+            .padding(.vertical, DS.Spacing.small)
+            .dsHoverableRow(isHovered: hoveredLanguage == option, radius: DS.Radius.medium)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .focusable(false)
+        .onHover { inside in
+            if inside {
+                hoveredLanguage = option
+            } else if hoveredLanguage == option {
+                hoveredLanguage = nil
+            }
+        }
+        .overlay {
+            if languageListFocused && selected {
+                RoundedRectangle(cornerRadius: DS.Radius.medium, style: .continuous)
+                    .strokeBorder(DS.Color.accent, lineWidth: DS.Stroke.focus)
+                    .padding(DS.Spacing.hairline)
+            }
+        }
+        .accessibilityLabel(option.label)
+        .accessibilityAddTraits(selected ? .isSelected : [])
+    }
+
+    private func moveLanguageSelection(by offset: Int) {
+        let options = AppLanguage.allCases
+        guard let index = options.firstIndex(of: language) else { return }
+        let next = min(max(index + offset, 0), options.count - 1)
+        guard next != index else { return }
+        let choice = options[next]
+        choice.apply()
+        language = choice
+    }
+
     // MARK: - Scan defaults
 
     private var scanDefaultsSection: some View {
         Section {
             ScanOptionToggle(
-                title: "Include hidden items",
-                detail: "Names macOS hides, such as ~/Library, dotfiles, and caches.",
+                title: L10n.string("Include hidden items"),
+                detail: L10n.string("Names macOS hides, such as ~/Library, dotfiles, and caches."),
                 isOn: optionBinding(\.includeHidden)
             )
             ScanOptionToggle(
-                title: "Stay on this volume",
-                detail: "Do not follow folders that point to another disk or network share.",
+                title: L10n.string("Stay on this volume"),
+                detail: L10n.string("Do not follow folders that point to another disk or network share."),
                 isOn: optionBinding(\.stayOnVolume)
             )
             ScanOptionToggle(
-                title: "Follow symbolic links",
-                detail: "Count a link's target, skipping links that leave the scan.",
+                title: L10n.string("Follow symbolic links"),
+                detail: L10n.string("Count a link's target, skipping links that leave the scan."),
                 isOn: optionBinding(\.followSymlinks)
             )
 
-            Text("The same values the Scan Options sheet on the source screen edits.")
+            Text(L10n.string("The same values the Scan Options sheet on the source screen edits."))
                 .font(DS.Typography.caption)
                 .foregroundStyle(DS.Color.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)
         } header: {
-            Text("Scan Options")
+            Text(L10n.string("Scan Options"))
         }
     }
 
@@ -165,20 +264,20 @@ public struct SettingsView: View {
     private var resultsSection: some View {
         Section {
             ScanOptionToggle(
-                title: "Keep results current",
-                detail: "Update the numbers when files change in the scanned folder. A long scan is offered a Rescan instead.",
+                title: L10n.string("Keep results current"),
+                detail: L10n.string("Update the numbers when files change in the scanned folder. A long scan is offered a Rescan instead."),
                 isOn: Binding(
                     get: { watchPreferences.keepsResultsCurrent },
                     set: { watchPreferences.keepsResultsCurrent = $0 }
                 )
             )
 
-            Text("The folder is watched only while its results are on screen.")
+            Text(L10n.string("The folder is watched only while its results are on screen."))
                 .font(DS.Typography.caption)
                 .foregroundStyle(DS.Color.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)
         } header: {
-            Text("Results")
+            Text(L10n.string("Results"))
         }
     }
 
@@ -187,7 +286,7 @@ public struct SettingsView: View {
     private var exclusionsSection: some View {
         Section {
             if optionsStore.options.excludedPaths.isEmpty {
-                Text("Nothing excluded. Scans include every item they can read.")
+                Text(L10n.string("Nothing excluded. Scans include every item they can read."))
                     .font(DS.Typography.callout)
                     .foregroundStyle(DS.Color.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)
@@ -197,17 +296,17 @@ public struct SettingsView: View {
                 }
             }
 
-            Button("Add Path…") {
+            Button(L10n.string("Add Path…")) {
                 addExclusions()
             }
             .controlSize(.small)
 
-            Text("Excluded items are left out of every scan's totals and reported in Coverage. The scanned location always stays included.")
+            Text(L10n.string("Excluded items are left out of every scan's totals and reported in Coverage. The scanned location always stays included."))
                 .font(DS.Typography.caption)
                 .foregroundStyle(DS.Color.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)
         } header: {
-            Text("Excluded Paths")
+            Text(L10n.string("Excluded Paths"))
         }
     }
 
@@ -231,12 +330,12 @@ public struct SettingsView: View {
 
             IconActionButton(
                 symbol: "xmark",
-                help: "Stop excluding \(url.path)",
+                help: L10n.format("Stop excluding %@", url.path),
                 surface: .inline
             ) {
                 optionsStore.removeExclusion(url)
             }
-            .accessibilityLabel("Remove exclusion \(url.path)")
+            .accessibilityLabel(L10n.format("Remove exclusion %@", url.path))
         }
         .padding(.vertical, DS.Spacing.xxSmall)
     }
@@ -246,8 +345,8 @@ public struct SettingsView: View {
         panel.canChooseFiles = true
         panel.canChooseDirectories = true
         panel.allowsMultipleSelection = true
-        panel.prompt = "Exclude"
-        panel.message = "Choose files or folders every scan should leave out."
+        panel.prompt = L10n.string("Exclude")
+        panel.message = L10n.string("Choose files or folders every scan should leave out.")
         guard panel.runModal() == .OK else { return }
         optionsStore.addExclusions(panel.urls)
     }

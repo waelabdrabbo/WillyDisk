@@ -3,12 +3,14 @@ import PackageDescription
 
 let package = Package(
     name: "WillyDisk",
+    defaultLocalization: "en",
     platforms: [
         .macOS(.v14)
     ],
     products: [
         .executable(name: "WillyDisk", targets: ["WillyDiskApp"]),
         .library(name: "DiskCore", targets: ["DiskCore"]),
+        .library(name: "DiskLocalization", targets: ["DiskLocalization"]),
         .library(name: "DiskUI", targets: ["DiskUI"]),
     ],
     targets: [
@@ -20,11 +22,23 @@ let package = Package(
             exclude: ["AGENTS.md"]
         ),
 
+        // DiskLocalization — the string catalog and its one lookup path. It is
+        // Foundation only, so the command line can use it without loading UI.
+        .target(
+            name: "DiskLocalization",
+            // The catalog is the source of truth; `Scripts/localize.sh`
+            // compiles it into the `.lproj` resources SwiftPM links, so the
+            // package never asks the toolchain to derive Swift symbols for
+            // format-only keys.
+            exclude: ["AGENTS.md", "Localizable.xcstrings"],
+            resources: [.process("Resources")]
+        ),
+
         // DiskCLI — the `WillyDisk scan` front end. Depends on DiskCore only: the
         // command line consumes the same engine as the app and never loads UI.
         .target(
             name: "DiskCLI",
-            dependencies: ["DiskCore"],
+            dependencies: ["DiskCore", "DiskLocalization"],
             exclude: ["AGENTS.md"]
         ),
 
@@ -33,7 +47,7 @@ let package = Package(
         // `Resources/AppMark.png` is the mark `Scripts/make-icon.swift` draws.
         .target(
             name: "DiskUI",
-            dependencies: ["DiskCore"],
+            dependencies: ["DiskCore", "DiskLocalization"],
             exclude: ["AGENTS.md"],
             resources: [.process("Resources")]
         ),
@@ -42,7 +56,7 @@ let package = Package(
         // dispatches `WillyDisk scan …` to DiskCLI before any UI exists.
         .executableTarget(
             name: "WillyDiskApp",
-            dependencies: ["DiskCore", "DiskUI", "DiskCLI"]
+            dependencies: ["DiskCore", "DiskUI", "DiskCLI", "DiskLocalization"]
         ),
 
         // Test targets: engine behavior in DiskCoreTests, the command line in
@@ -53,11 +67,11 @@ let package = Package(
         ),
         .testTarget(
             name: "DiskCLITests",
-            dependencies: ["DiskCLI", "DiskCore"]
+            dependencies: ["DiskCLI", "DiskCore", "DiskLocalization"]
         ),
         .testTarget(
             name: "QATests",
-            dependencies: ["DiskCore", "DiskUI"]
+            dependencies: ["DiskCore", "DiskUI", "DiskLocalization", "DiskCLI"]
         ),
     ]
 )

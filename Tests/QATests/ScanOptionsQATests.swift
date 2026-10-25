@@ -1,4 +1,5 @@
 import XCTest
+import DiskLocalization
 @testable import DiskCore
 @testable import DiskUI
 
@@ -6,6 +7,17 @@ import XCTest
 /// results, and the ranking behind the explorer's largest lists.
 @MainActor
 final class ScanOptionsQATests: XCTestCase {
+
+    override func setUp() {
+        super.setUp()
+        // Wording assertions are written in the source language.
+        L10n.overrideLanguage("en")
+    }
+
+    override func tearDown() {
+        L10n.overrideLanguage(nil)
+        super.tearDown()
+    }
 
     /// An engine that records every request and keeps the stream open until the
     /// test finishes it, so the first scan's slot is free for the next one.

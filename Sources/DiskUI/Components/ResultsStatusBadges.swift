@@ -1,4 +1,5 @@
 import SwiftUI
+import DiskLocalization
 
 /// The results are older than the disk: the watcher saw a change, or an item
 /// was moved to the Trash. The message names what changed when the screen knows;
@@ -14,7 +15,7 @@ struct StaleResultsBadge: View {
             tone: .warning,
             action: onRescan
         )
-        .help("The folder changed after this scan. Rescan to see the current numbers.")
+        .help(L10n.string("The folder changed after this scan. Rescan to see the current numbers."))
     }
 }
 
@@ -32,20 +33,20 @@ struct WatchStatusChip: View {
                 ProgressView()
                     .controlSize(.mini)
                     .accessibilityHidden(true)
-                Text("Updating…")
+                Text(L10n.string("Updating…"))
             } else {
-                Text("●")
+                Text(verbatim: "●")
                     .foregroundStyle(DS.Color.success)
-                Text("Watching")
+                Text(L10n.string("Watching"))
             }
         }
         .font(DS.Typography.caption)
         .foregroundStyle(DS.Color.secondaryText)
         .lineLimit(1)
         .help(isUpdating
-              ? "The folder changed; the numbers are being re-measured."
-              : "Files changing in this folder update the results automatically.")
+              ? L10n.string("The folder changed; the numbers are being re-measured.")
+              : L10n.string("Files changing in this folder update the results automatically."))
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(isUpdating ? "Updating results" : "Watching for changes")
+        .accessibilityLabel(L10n.string(isUpdating ? "Updating results" : "Watching for changes"))
     }
 }

@@ -1,6 +1,7 @@
 import SwiftUI
 import DiskCore
 import DiskUI
+import DiskLocalization
 
 /// App-level state, injected into the window via `environmentObject`.
 ///
@@ -49,8 +50,8 @@ final class AppState: ObservableObject {
         panel.canChooseFiles = false
         panel.canChooseDirectories = true
         panel.allowsMultipleSelection = false
-        panel.prompt = "Scan"
-        panel.message = "Choose a folder or volume to scan."
+        panel.prompt = L10n.string("Scan")
+        panel.message = L10n.string("Choose a folder or volume to scan.")
 
         if panel.runModal() == .OK, let url = panel.url {
             scanViewModel.start(root: url, options: scanOptions.options)

@@ -1,5 +1,6 @@
 import Foundation
 import DiskCore
+import DiskLocalization
 
 /// One `WillyDisk scan` invocation, after the command line has been understood.
 ///
@@ -58,13 +59,13 @@ public enum ScanCommandLine {
     public static func parse(_ arguments: [String]) throws -> ScanInvocation {
         let args = Array(arguments.dropFirst())
         guard let first = args.first else {
-            throw ScanUsageError("no command given")
+            throw ScanUsageError(L10n.string("no command given"))
         }
         if first == "--help" || first == "-h" {
             return .help
         }
         guard first == "scan" else {
-            throw ScanUsageError("unknown command '\(first)'; expected 'scan'")
+            throw ScanUsageError(L10n.format("unknown command '%@'; expected 'scan'", first))
         }
         if args.dropFirst().contains(where: { $0 == "--help" || $0 == "-h" }) {
             return .help
@@ -90,10 +91,10 @@ public enum ScanCommandLine {
                 top = try wholeNumber(text, name: "--top", minimum: 1)
             default:
                 if argument.hasPrefix("-") {
-                    throw ScanUsageError("unknown option '\(argument)'")
+                    throw ScanUsageError(L10n.format("unknown option '%@'", argument))
                 }
                 guard rootPath == nil else {
-                    throw ScanUsageError("only one folder can be scanned; '\(argument)' is extra")
+                    throw ScanUsageError(L10n.format("only one folder can be scanned; '%@' is extra", argument))
                 }
                 rootPath = argument
                 index += 1
@@ -101,15 +102,18 @@ public enum ScanCommandLine {
         }
 
         guard let path = rootPath, !path.isEmpty else {
-            throw ScanUsageError("missing the folder to scan")
+            throw ScanUsageError(L10n.string("missing the folder to scan"))
         }
         return .scan(ScanCommand(root: folderURL(path), depth: depth, top: top, json: json))
     }
 
     /// A one-line hint printed with a usage error or a failure to start.
-    public static let usageHint = "Run 'WillyDisk scan --help' for usage."
+    public static var usageHint: String { L10n.string("Run 'WillyDisk scan --help' for usage.") }
 
-    public static let help = """
+    /// The help text's catalog key, which is also its English source. The
+    /// placeholders are the print defaults and the record schema version, so the
+    /// help can never state a number the code does not use.
+    public static let helpKey = """
     WillyDisk scan — measure one folder from the command line
 
     USAGE
@@ -122,11 +126,11 @@ public enum ScanCommandLine {
 
     OPTIONS
       --depth <levels>  Folder levels printed below the scan root. 0 prints only
-                        the root. Default: \(ScanCommand.defaultDepth).
+                        the root. Default: %lld.
       --top <rows>      Rows printed per folder level and per ranked list.
-                        Default: \(ScanCommand.defaultTop).
+                        Default: %lld.
       --json            Print the finished run as the versioned ScanRecord JSON
-                        (schema \(ScanRecord.currentSchemaVersion)) instead of the text report.
+                        (schema %lld) instead of the text report.
       -h, --help        Show this help and exit.
 
     --depth and --top change only what is printed. The scan still measures every
@@ -142,6 +146,15 @@ public enum ScanCommandLine {
     a comparison against them would read as space that vanished.
     """
 
+    public static var help: String {
+        L10n.format(
+            helpKey,
+            ScanCommand.defaultDepth,
+            ScanCommand.defaultTop,
+            ScanRecord.currentSchemaVersion
+        )
+    }
+
     // MARK: - Argument pieces
 
     private static func optionValue(
@@ -153,13 +166,13 @@ public enum ScanCommandLine {
         if let equals = argument.firstIndex(of: "=") {
             let value = String(argument[argument.index(after: equals)...])
             guard !value.isEmpty else {
-                throw ScanUsageError("\(name) needs a number")
+                throw ScanUsageError(L10n.format("%@ needs a number", name))
             }
             index += 1
             return value
         }
         guard index + 1 < args.count else {
-            throw ScanUsageError("\(name) needs a number")
+            throw ScanUsageError(L10n.format("%@ needs a number", name))
         }
         index += 2
         return args[index - 1]
@@ -168,7 +181,12 @@ public enum ScanCommandLine {
     private static func wholeNumber(_ text: String, name: String, minimum: Int) throws -> Int {
         guard let value = Int(text), value >= minimum else {
             throw ScanUsageError(
-                "\(name) expects a whole number of at least \(minimum), not '\(text)'"
+                L10n.format(
+                    "%@ expects a whole number of at least %lld, not '%@'",
+                    name,
+                    minimum,
+                    text
+                )
             )
         }
         return value

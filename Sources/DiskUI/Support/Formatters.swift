@@ -1,4 +1,5 @@
 import Foundation
+import DiskLocalization
 
 /// Formatting helpers shared across the UI.
 ///
@@ -82,15 +83,19 @@ public enum PathFormat {
 }
 
 /// Counts with the right noun, so a folder of one never reads “1 folders”.
+///
+/// Each noun is one catalog key with plural variations, not a number glued to a
+/// word here: English needs two forms, Arabic needs six, and the catalog is the
+/// only place that knows the difference.
 enum CountFormat {
-    static func files(_ count: Int) -> String { unit(count, "file", "files") }
-    static func folders(_ count: Int) -> String { unit(count, "folder", "folders") }
-    static func items(_ count: Int) -> String { unit(count, "item", "items") }
-    static func matches(_ count: Int) -> String { unit(count, "match", "matches") }
-
-    private static func unit(_ count: Int, _ singular: String, _ plural: String) -> String {
-        "\(count.formatted()) \(count == 1 ? singular : plural)"
-    }
+    static func files(_ count: Int) -> String { L10n.format("%lld files", count) }
+    static func folders(_ count: Int) -> String { L10n.format("%lld folders", count) }
+    static func items(_ count: Int) -> String { L10n.format("%lld items", count) }
+    static func matches(_ count: Int) -> String { L10n.format("%lld matches", count) }
+    static func entries(_ count: Int) -> String { L10n.format("%lld entries", count) }
+    static func locations(_ count: Int) -> String { L10n.format("%lld locations", count) }
+    static func issues(_ count: Int) -> String { L10n.format("%lld issues", count) }
+    static func runs(_ count: Int) -> String { L10n.format("%lld runs", count) }
 }
 
 /// Share-of-a-whole labels for charts and breakdowns.
@@ -100,41 +105,45 @@ public enum PercentFormat {
     /// “100%”.
     public static func ofWhole(_ share: Double) -> String {
         let fraction = min(max(share, 0), 1)
-        if fraction <= 0 { return "0%" }
-        if fraction >= 1 { return "100%" }
+        if fraction <= 0 { return L10n.string("0%") }
+        if fraction >= 1 { return L10n.string("100%") }
         var percent = Int((fraction * 100).rounded())
-        if percent == 0 { return "<1%" }
+        if percent == 0 { return L10n.string("<1%") }
         if percent == 100 { percent = 99 }
-        return "\(percent)%"
+        return L10n.format("%lld%%", percent)
     }
 }
 
 public enum DateFormat {
     /// Short date + time, e.g. "Oct 13, 2026 at 2:41 PM".
     public static func short(_ date: Date) -> String {
-        date.formatted(date: .abbreviated, time: .shortened)
+        date.formatted(
+            Date.FormatStyle(date: .abbreviated, time: .shortened, locale: L10n.locale)
+        )
     }
 
     /// Date without the time, e.g. "Oct 13, 2026".
     public static func dateOnly(_ date: Date) -> String {
-        date.formatted(date: .abbreviated, time: .omitted)
+        date.formatted(
+            Date.FormatStyle(date: .abbreviated, time: .omitted, locale: L10n.locale)
+        )
     }
 
     /// Duration string for elapsed time, e.g. "1m 23s". A scan that settles
     /// before the first whole second reads as under a second rather than as
     /// zero, which would look like the scan did no work.
     public static func duration(_ interval: TimeInterval) -> String {
-        if interval < 1 { return "<1s" }
+        if interval < 1 { return L10n.string("<1s") }
         let total = Int(max(0, interval))
         let hours = total / 3600
         let minutes = (total % 3600) / 60
         let seconds = total % 60
         if hours > 0 {
-            return String(format: "%dh %02dm %02ds", hours, minutes, seconds)
+            return L10n.format("%dh %02dm %02ds", hours, minutes, seconds)
         }
         if minutes > 0 {
-            return String(format: "%dm %02ds", minutes, seconds)
+            return L10n.format("%dm %02ds", minutes, seconds)
         }
-        return String(format: "%ds", seconds)
+        return L10n.format("%ds", seconds)
     }
 }

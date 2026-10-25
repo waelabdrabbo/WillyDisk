@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import DiskLocalization
 
 /// A native search field for the explorer.
 ///
@@ -27,7 +28,8 @@ struct SearchField: NSViewRepresentable {
         field.sendsSearchStringImmediately = true
         field.sendsWholeSearchString = false
         field.delegate = context.coordinator
-        field.setAccessibilityLabel("Search this scan")
+        field.setAccessibilityLabel(L10n.string("Search this scan"))
+        field.alignment = L10n.isRightToLeft ? .right : .left
         return field
     }
 

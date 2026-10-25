@@ -1,5 +1,6 @@
 import Foundation
 import DiskCore
+import DiskLocalization
 
 /// The kinds of place the cleanup analysis looks, in the order the sheet shows
 /// them.
@@ -12,9 +13,9 @@ public enum CleanupKind: String, CaseIterable, Identifiable, Sendable {
 
     public var title: String {
         switch self {
-        case .largeAndOld: "Large and old"
-        case .caches: "Caches"
-        case .downloads: "Old downloads"
+        case .largeAndOld: L10n.string("Large and old")
+        case .caches: L10n.string("Caches")
+        case .downloads: L10n.string("Old downloads")
         }
     }
 }

@@ -15,7 +15,7 @@ decisions. This is a handoff document, not a specification of frozen interfaces 
   tab at `1ed5184`, scan history with its comparison sheet, the command-line
   scan (`38f6e50`), the unsigned GitHub release pipeline (`7bec1d0`), the
   watched-tree refresh (`b8be044`), global search over the whole finished scan
-  (`e7d6fff`), and the localization pass. This docs handoff follows it.
+  (`e7d6fff`), and the localization pass (`7c7c067`). This docs handoff follows it.
 - Build: `swift build --disable-sandbox`.
 - Tests: 216 QATests + 86 DiskCoreTests (1 skipped, `ScanBenchmarkTests` needs
   `WILLYDISK_BENCH_ROOT`) + 17 DiskCLITests, 0 failures.
@@ -60,7 +60,7 @@ decisions. This is a handoff document, not a specification of frozen interfaces 
 | Watched results: FSEvents invalidation and a quiet root refresh | `b8be044` |
 | Global search over the whole scan: bounded, off the main actor, drill to folder | `e7d6fff` |
 | Unsigned GitHub releases: arm64 and x86_64 zips, checksums, tag workflow | `7bec1d0` |
-| String catalog, Arabic (right to left), pseudolanguage, renderer `--locale` | this pass |
+| String catalog, Arabic (right to left), pseudolanguage, renderer `--locale` | `7c7c067` |
 
 Details worth remembering:
 

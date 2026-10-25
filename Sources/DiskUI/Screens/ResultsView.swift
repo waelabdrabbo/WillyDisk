@@ -5,20 +5,22 @@ import DiskLocalization
 
 /// Screen C — analysis results, and the live state while a scan runs.
 ///
-/// One screen serves both roles, chart first. While a scan runs the top of the
+/// One screen serves both roles. While a scan runs the top of the
 /// screen shows the honest progress — a determinate bar with a percentage only
 /// when the engine reports a reliable fraction, otherwise an indeterminate
 /// indicator, never a fabricated number — and the results fill in as the
-/// engine's progressive snapshots arrive. Once settled, the chart and explorer
-/// take the whole screen: a compact header line names the scanned location and
-/// its size, a directory explorer carries search/sort/filter and file details,
-/// and the inspector's foot holds the single access notice. An interactive
+/// engine's progressive snapshots arrive. Once settled, the explorer and chart
+/// take the whole screen: the explorer column leads with a compact header that
+/// names the scanned location and its size, search/sort/filter, and file
+/// details, the chart takes the rest, and the explorer's foot holds the single
+/// access notice. An interactive
 /// sunburst (click a folder to drill
-/// down, with the toolbar's location — title, path and Back — following the
-/// depth), Reveal in Finder, rescan, and report export round it out.
+/// down, with the chart's own path bar following the depth), Reveal in
+/// Finder, rescan, and report export round it out.
 @MainActor
 public struct ResultsView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.layoutDirection) private var layoutDirection
     @State private var viewModel: ScanViewModel
 
     // Chart / explorer navigation
@@ -26,6 +28,13 @@ public struct ResultsView: View {
     @State private var selection = ExplorerSelection()
     @FocusState private var listFocused: Bool
     @State private var quickLook = QuickLookPreview()
+
+    /// The explorer column's width. The seam keeps it inside the band the chart
+    /// can spare.
+    @State private var explorerWidth: CGFloat = 362
+    /// The width the drag started from, so every change applies the gesture's
+    /// total translation to the width the pointer went down on.
+    @State private var explorerResizeStart: CGFloat?
 
     // Explorer controls
     @State private var searchText = ""
@@ -75,7 +84,7 @@ public struct ResultsView: View {
     /// It is held as an observed reference rather than as plain view state so that
     /// a pointer crossing the explorer's rows re-renders only what reads it — the
     /// list and the chart — and leaves the rest of the screen, from its toolbar to
-    /// its inspector, with the views it already has.
+    /// its explorer column, with the views it already has.
     @State private var hover = ChartHover()
 
     // Access notice
@@ -699,15 +708,8 @@ public struct ResultsView: View {
                 .accessibilityLabel(L10n.string("Home"))
                 .accessibilityHint(L10n.string("Shows source selection; a scan that is running keeps running"))
             }
-            // The trail sits immediately after Home. With no title in the window
-            // chrome it is the only place that names the folder on screen; it stays
-            // present at the scanned root as plain text, and every ancestor before
-            // the current folder is a button.
-            ToolbarItem(placement: .navigation) {
-                breadcrumbTrail
-            }
             // A flexible spacer keeps Coverage, Rescan, and Export trailing while
-            // Home and the trail stay grouped at the leading edge.
+            // Home stays at the leading edge.
             if #available(macOS 26.0, *) {
                 ToolbarSpacer(.flexible)
             } else if #available(macOS 15.0, *) {
@@ -790,28 +792,63 @@ public struct ResultsView: View {
         return viewModel.displayedTotal
     }
 
-    /// The results layout: the chart owns the canvas and the inspector holds the
-    /// item list with the access notice at its foot.
+    /// The results layout: the explorer column leads and the chart takes what is
+    /// left.
     ///
-    /// The inspector is attached to the chart band, never to the whole screen, so
-    /// the notice can never reclaim the window's full height.
-    /// The bands are told apart by their own spacing and fills, not by rules.
+    /// The bands are told apart by their own spacing and fills, not by rules. The
+    /// explorer keeps the width the seam gives it; the chart is the flexible
+    /// remainder, so a wider window is chart, never a wider list.
     private var content: some View {
-        chartPane
-            // The item list is a primary surface, not an optional accessory:
-            // keep it present for every result state and let the user size it
-            // with the inspector divider. Do not add a collapse control.
-            .inspector(isPresented: .constant(true)) {
-                explorerPane
-                    .dsGlassControl(cornerRadius: DS.Radius.panel)
-                    .padding(DS.Spacing.medium)
-                    .inspectorColumnWidth(min: 300, ideal: 362, max: 560)
+        HStack(spacing: 0) {
+            explorerPane
+                .dsGlassControl(cornerRadius: DS.Radius.panel)
+                .padding(DS.Spacing.medium)
+                .frame(width: explorerWidth)
+            explorerResizeHandle
+            chartPane
+        }
+    }
+
+    /// The explorer column's width band: enough for a name and its size while
+    /// leaving the chart the majority of the window.
+    private static let explorerWidthRange: ClosedRange<CGFloat> = 300...560
+
+    /// The seam between the explorer column and the chart.
+    ///
+    /// The pointer turns into the column-resize cursor and a drag widens or
+    /// narrows the explorer.
+    /// The drag is read in the layout direction, so dragging toward the window's
+    /// edge grows the column in either reading direction.
+    private var explorerResizeHandle: some View {
+        Color.clear
+            .frame(width: DS.Spacing.medium)
+            .contentShape(Rectangle())
+            .onHover { inside in
+                if inside {
+                    NSCursor.resizeLeftRight.push()
+                } else {
+                    NSCursor.pop()
+                }
             }
+            .gesture(
+                DragGesture(minimumDistance: 1)
+                    .onChanged { value in
+                        let start = explorerResizeStart ?? explorerWidth
+                        if explorerResizeStart == nil { explorerResizeStart = start }
+                        let delta = value.translation.width * (layoutDirection == .rightToLeft ? -1 : 1)
+                        explorerWidth = min(
+                            max(start + delta, Self.explorerWidthRange.lowerBound),
+                            Self.explorerWidthRange.upperBound
+                        )
+                    }
+                    .onEnded { _ in explorerResizeStart = nil }
+            )
+            .accessibilityHidden(true)
     }
 
     // MARK: - Access notice
 
-    /// The single merged access notice, at the foot of the inspector.
+    /// The single merged access notice, at the foot of the explorer column.
     private var accessNoticeRow: some View {
         LiveAccessNotice(
             viewModel: viewModel,
@@ -860,6 +897,7 @@ public struct ResultsView: View {
 
     private var chartPane: some View {
         VStack(spacing: 0) {
+            chartHeader
             if isSearchActive {
                 searchChart
             } else if explorerMode == .categories {
@@ -912,6 +950,34 @@ public struct ResultsView: View {
             scanStatusStrip
                 .padding(.bottom, DS.Spacing.medium)
         }
+    }
+
+    /// The chart's own path bar: the folder the chart is centred on, with every
+    /// ancestor a step back up.
+    ///
+    /// It lives in the pane rather than in the window toolbar so it travels with
+    /// the chart in both reading directions, instead of staying pinned to the
+    /// window's leading edge where it no longer describes the chart beside it.
+    ///
+    /// The path appears only when it can take you somewhere: below the scanned
+    /// root, where the ancestors are steps back up, and outside Categories, whose
+    /// ring charts the whole scan rather than the open folder. The row keeps its
+    /// height in every state, so the chart does not shift when the path comes or
+    /// goes.
+    private var chartHeader: some View {
+        HStack(spacing: 0) {
+            if showsChartPath {
+                breadcrumbTrail
+            }
+            Spacer(minLength: 0)
+        }
+        .frame(height: DS.Size.iconButton)
+        .padding(.horizontal, DS.Spacing.medium)
+        .padding(.vertical, DS.Spacing.xSmall)
+    }
+
+    private var showsChartPath: Bool {
+        explorerMode != .categories && !breadcrumb.isEmpty
     }
 
     /// The chart pane while a search is active.
@@ -1020,7 +1086,7 @@ public struct ResultsView: View {
             } else {
                 contentsList
                     // The list is the flexible band: it gives up height to the
-                    // detail pane and the access notice at the inspector's foot.
+                    // detail pane and the access notice at the explorer's foot.
                     .frame(maxHeight: .infinity)
             }
 
@@ -1035,7 +1101,7 @@ public struct ResultsView: View {
                 accessNoticeRow
             }
         }
-        // The inspector is a fixed-height column, not a stack that grows to its
+        // The explorer is a fixed-height column, not a stack that grows to its
         // content: its list is the part that scrolls. Without this frame an
         // expanded notice can make the pane report its ideal content height and
         // push the whole window's content out of view.
@@ -1157,14 +1223,13 @@ public struct ResultsView: View {
                 .layoutPriority(index == breadcrumb.count - 1 ? 2 : 0)
             }
         }
-        // The system insets the Home item but not a custom item that follows it;
-        // reserve the same breathing room before the capsule closes.
-        .padding(.trailing, DS.Spacing.small)
-        .frame(maxWidth: DS.Size.toolbarBreadcrumbMaxWidth)
         .accessibilityElement(children: .contain)
         .accessibilityLabel(L10n.string("Folder path"))
     }
 
+    /// Both branches reserve the same box. The current folder is plain text, but
+    /// it keeps the inset and the hit-target height an ancestor crumb wears, so
+    /// the name does not shift when a drill turns it into a link and back.
     @ViewBuilder
     private func crumb(_ name: String, isCurrent: Bool = false, action: @escaping () -> Void) -> some View {
         if isCurrent {
@@ -1172,6 +1237,8 @@ public struct ResultsView: View {
                 .font(DS.Typography.body)
                 .foregroundStyle(DS.Color.primaryText)
                 .lineLimit(1)
+                .padding(.horizontal, DS.Spacing.xSmall)
+                .frame(minHeight: DS.Size.iconButton)
                 .accessibilityAddTraits(.isHeader)
         } else {
             BreadcrumbCrumb(name: name, action: action)
@@ -1179,7 +1246,8 @@ public struct ResultsView: View {
     }
 
     /// One ancestor crumb. The trail stays quiet at rest; hovering raises the
-    /// secondary name to the accent and reserves the standard hit target.
+    /// secondary name to the accent and fills the same chip an inline action
+    /// wears, so a way back up is recognisable as a control.
     /// The folder already on screen is plain text, not a button that would do
     /// nothing.
     private struct BreadcrumbCrumb: View {
@@ -1194,7 +1262,12 @@ public struct ResultsView: View {
                     .font(DS.Typography.body)
                     .foregroundStyle(isHovered ? DS.Color.accent : DS.Color.secondaryText)
                     .lineLimit(1)
+                    .padding(.horizontal, DS.Spacing.xSmall)
                     .frame(minHeight: DS.Size.iconButton)
+                    .background(
+                        RoundedRectangle(cornerRadius: DS.Radius.small, style: .continuous)
+                            .fill(DS.Color.accent.opacity(isHovered ? DS.Opacity.rowHover : 0))
+                    )
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -1226,8 +1299,14 @@ public struct ResultsView: View {
                     .font(DS.Typography.metric)
                     .monospacedDigit()
                     .foregroundStyle(DS.Color.primaryText)
+                    // The total is the one figure on the row that must survive
+                    // whole: it holds one line and gives way in points only at
+                    // the narrowest column, where the folder name truncates.
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                    .layoutPriority(1)
             }
-            // The full timestamp would push the line past the inspector's
+            // The full timestamp would push the line past the column's
             // width; the compact form keeps the counts and recency together and
             // the full provenance stays in the tooltip and accessibility label.
             HStack(spacing: DS.Spacing.small) {
@@ -1307,7 +1386,7 @@ public struct ResultsView: View {
             .font(DS.Typography.caption)
             .monospacedDigit()
             .foregroundStyle(DS.Color.secondaryText)
-            // A translated date and duration can outgrow the inspector's
+            // A translated date and duration can outgrow the explorer's
             // column; two lines keep the whole stamp readable rather than
             // ending it with an ellipsis.
             .lineLimit(2)

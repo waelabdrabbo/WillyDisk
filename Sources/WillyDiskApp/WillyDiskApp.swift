@@ -34,7 +34,7 @@ struct WillyDiskApp: App {
                 .frame(minWidth: 960, minHeight: 620)
         }
         // Sized for the source screen's 720 pt column: one window width that
-        // still gives the results chart and its inspector room side by side.
+        // still gives the results explorer column and its chart room side by side.
         .defaultSize(width: 1000, height: 720)
         .windowResizability(.contentMinSize)
         // Put screen actions on the same titlebar row as the traffic lights.

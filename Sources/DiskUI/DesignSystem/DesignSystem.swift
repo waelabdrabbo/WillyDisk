@@ -73,9 +73,6 @@ public enum DS {
         public static let capacityArcSweep: CGFloat = 0.75
         /// Rotation that puts the arc's gap at six o'clock.
         public static let capacityArcRotation: Double = 135
-        /// Widest the toolbar's folder trail grows before its names compress, so a
-        /// deep path cannot push the title or the trailing actions out of reach.
-        public static let toolbarBreadcrumbMaxWidth: CGFloat = 420
         /// How many explorer rows the list builds before offering "Show More".
         public static let explorerPageSize = 15
         /// Progress bar bounds in the in-progress header.
@@ -289,7 +286,7 @@ public enum DS {
         public static let caption: SwiftUI.Font = .subheadline
         /// The one number that rules a screen: a scan's total on the results
         /// header, a volume's share on the home screen.
-        public static let metric: SwiftUI.Font = .system(size: 30, weight: .semibold)
+        public static let metric: SwiftUI.Font = .system(size: 26, weight: .semibold)
         /// A figure inside running text — a size in a row, a count in a caption.
         public static let figures: SwiftUI.Font = .system(.body).monospacedDigit()
         /// Figures inside a metadata line, one step below a row's primary size.

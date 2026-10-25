@@ -5005,198 +5005,6 @@
       },
       "shouldGenerateSwiftSymbol": false
     },
-    "Changed in Finder in %lld folders. Rescan.": {
-      "extractionState": "manual",
-      "localizations": {
-        "ar": {
-          "variations": {
-            "plural": {
-              "few": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "تغيّر في Finder %lld مجلدات. أعد الفحص."
-                }
-              },
-              "many": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "تغيّر في Finder %lld مجلدًا. أعد الفحص."
-                }
-              },
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "تغيّر في Finder مجلد واحد. أعد الفحص."
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "تغيّر في Finder %lld مجلد. أعد الفحص."
-                }
-              },
-              "two": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "تغيّر في Finder مجلدان. أعد الفحص."
-                }
-              },
-              "zero": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "لم يتغيّر شيء في Finder. أعد الفحص."
-                }
-              }
-            }
-          }
-        },
-        "en": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Changed in Finder in %lld folder. Rescan."
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Changed in Finder in %lld folders. Rescan."
-                }
-              }
-            }
-          }
-        },
-        "en-XA": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "[Çĥáñĝéð íñ Ƒíñðéŕ íñ %lld ƒöļðéŕ. Ŕéšçáñ.·······································]"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "[Çĥáñĝéð íñ Ƒíñðéŕ íñ %lld ƒöļðéŕš. Ŕéšçáñ.········································]"
-                }
-              }
-            }
-          }
-        }
-      },
-      "shouldGenerateSwiftSymbol": false
-    },
-    "Changed in Finder in %lld+ folders. Rescan.": {
-      "extractionState": "manual",
-      "localizations": {
-        "ar": {
-          "variations": {
-            "plural": {
-              "few": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "تغيّر في Finder %lld مجلدات أو أكثر. أعد الفحص."
-                }
-              },
-              "many": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "تغيّر في Finder %lld مجلدًا أو أكثر. أعد الفحص."
-                }
-              },
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "تغيّر في Finder مجلد واحد أو أكثر. أعد الفحص."
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "تغيّر في Finder %lld مجلد أو أكثر. أعد الفحص."
-                }
-              },
-              "two": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "تغيّر في Finder مجلدان أو أكثر. أعد الفحص."
-                }
-              },
-              "zero": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "لم يتغيّر شيء في Finder. أعد الفحص."
-                }
-              }
-            }
-          }
-        },
-        "en": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Changed in Finder in %lld+ folder. Rescan."
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Changed in Finder in %lld+ folders. Rescan."
-                }
-              }
-            }
-          }
-        },
-        "en-XA": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "[Çĥáñĝéð íñ Ƒíñðéŕ íñ %lld+ ƒöļðéŕ. Ŕéšçáñ.········································]"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "[Çĥáñĝéð íñ Ƒíñðéŕ íñ %lld+ ƒöļðéŕš. Ŕéšçáñ.·········································]"
-                }
-              }
-            }
-          }
-        }
-      },
-      "shouldGenerateSwiftSymbol": false
-    },
-    "Changed in Finder: “%@”. Rescan.": {
-      "extractionState": "manual",
-      "localizations": {
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "تغيّر في Finder: «%@». أعد الفحص."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Changed in Finder: “%@”. Rescan."
-          }
-        },
-        "en-XA": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "[Çĥáñĝéð íñ Ƒíñðéŕ: “%@”. Ŕéšçáñ.······························]"
-          }
-        }
-      },
-      "shouldGenerateSwiftSymbol": false
-    },
     "Changes the interface language right away.": {
       "extractionState": "manual",
       "localizations": {
@@ -6397,6 +6205,30 @@
       },
       "shouldGenerateSwiftSymbol": false
     },
+    "Current contents. This scan finished %@. Nothing moves until you confirm.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "المحتوى الحالي. انتهى هذا الفحص في %@. لا يُنقل أي شيء قبل تأكيدك."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Current contents. This scan finished %@. Nothing moves until you confirm."
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Çúŕŕéñŧ çöñŧéñŧš. Ŧĥíš šçáñ ƒíñíšĥéð %@. Ñöŧĥíñĝ ɱöṽéš úñŧíļ ýöú çöñƒíŕɱ.·······································································]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
     "Dark": {
       "extractionState": "manual",
       "localizations": {
@@ -7417,30 +7249,6 @@
       },
       "shouldGenerateSwiftSymbol": false
     },
-    "Files changing in this folder update the results automatically.": {
-      "extractionState": "manual",
-      "localizations": {
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "تغيّرات الملفات في هذا المجلد تُحدّث النتائج تلقائيًا."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Files changing in this folder update the results automatically."
-          }
-        },
-        "en-XA": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "[Ƒíļéš çĥáñĝíñĝ íñ ŧĥíš ƒöļðéŕ úþðáŧé ŧĥé ŕéšúļŧš áúŧöɱáŧíçáļļý.·····························································]"
-          }
-        }
-      },
-      "shouldGenerateSwiftSymbol": false
-    },
     "Files in a folder named Downloads that have not been modified in %@.": {
       "extractionState": "manual",
       "localizations": {
@@ -7796,30 +7604,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "[Ƒöļļöŵ šýɱƀöļíç ļíñķš···················]"
-          }
-        }
-      },
-      "shouldGenerateSwiftSymbol": false
-    },
-    "From the scan of %@. Nothing moves until you confirm.": {
-      "extractionState": "manual",
-      "localizations": {
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "من فحص %@. لا يُنقل أي شيء قبل تأكيدك."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "From the scan of %@. Nothing moves until you confirm."
-          }
-        },
-        "en-XA": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "[Ƒŕöɱ ŧĥé šçáñ öƒ %@. Ñöŧĥíñĝ ɱöṽéš úñŧíļ ýöú çöñƒíŕɱ.···················································]"
           }
         }
       },
@@ -11905,30 +11689,6 @@
       },
       "shouldGenerateSwiftSymbol": false
     },
-    "Scanning since %@; %@ so far": {
-      "extractionState": "manual",
-      "localizations": {
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "الفحص جارٍ منذ %@؛ %@ حتى الآن"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Scanning since %@; %@ so far"
-          }
-        },
-        "en-XA": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "[Šçáññíñĝ šíñçé %@; %@ šö ƒáŕ··························]"
-          }
-        }
-      },
-      "shouldGenerateSwiftSymbol": false
-    },
     "Scanning, %@": {
       "extractionState": "manual",
       "localizations": {
@@ -11948,30 +11708,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "[Šçáññíñĝ, %@··········]"
-          }
-        }
-      },
-      "shouldGenerateSwiftSymbol": false
-    },
-    "Scanning, %@ so far": {
-      "extractionState": "manual",
-      "localizations": {
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "جارٍ الفحص، %@ حتى الآن"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Scanning, %@ so far"
-          }
-        },
-        "en-XA": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "[Šçáññíñĝ, %@ šö ƒáŕ·················]"
           }
         }
       },
@@ -13585,30 +13321,6 @@
       },
       "shouldGenerateSwiftSymbol": false
     },
-    "The folder changed; the numbers are being re-measured.": {
-      "extractionState": "manual",
-      "localizations": {
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "تغيّر المجلد؛ ويجري إعادة قياس الأرقام."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "The folder changed; the numbers are being re-measured."
-          }
-        },
-        "en-XA": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "[Ŧĥé ƒöļðéŕ çĥáñĝéð; ŧĥé ñúɱƀéŕš áŕé ƀéíñĝ ŕé-ɱéášúŕéð.····················································]"
-          }
-        }
-      },
-      "shouldGenerateSwiftSymbol": false
-    },
     "The folder is watched only while its results are on screen.": {
       "extractionState": "manual",
       "localizations": {
@@ -14036,6 +13748,30 @@
           "stringUnit": {
             "state": "translated",
             "value": "[Ŧĥéšé íŧéɱš çöúļð ñöŧ ƀé ŕéáð ŵĥíļé šçáññíñĝ.···········································]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "These numbers update automatically as files change.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تتحدّث هذه الأرقام تلقائيًا مع تغيّر الملفات."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "These numbers update automatically as files change."
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Ŧĥéšé ñúɱƀéŕš úþðáŧé áúŧöɱáŧíçáļļý áš ƒíļéš çĥáñĝé.·················································]"
           }
         }
       },
@@ -14737,73 +14473,25 @@
       },
       "shouldGenerateSwiftSymbol": false
     },
-    "Update the numbers when files change in the scanned folder. A long scan is offered a Rescan instead.": {
+    "Update the numbers as files change in the scanned folder. A change is applied where it happened, so even a whole-disk scan stays current.": {
       "extractionState": "manual",
       "localizations": {
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "حدّث الأرقام عندما تتغيّر الملفات في المجلد المفحوص. الفحص الطويل يُعرض عليه إعادة الفحص بدلًا من ذلك."
+            "value": "حدّث الأرقام مع تغيّر الملفات في المجلد المفحوص. يُطبَّق التغيير في موضعه، فيبقى فحص القرص كاملًا محدّثًا."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Update the numbers when files change in the scanned folder. A long scan is offered a Rescan instead."
+            "value": "Update the numbers as files change in the scanned folder. A change is applied where it happened, so even a whole-disk scan stays current."
           }
         },
         "en-XA": {
           "stringUnit": {
             "state": "translated",
-            "value": "[Úþðáŧé ŧĥé ñúɱƀéŕš ŵĥéñ ƒíļéš çĥáñĝé íñ ŧĥé šçáññéð ƒöļðéŕ. Á ļöñĝ šçáñ íš öƒƒéŕéð á Ŕéšçáñ íñšŧéáð.··································································································]"
-          }
-        }
-      },
-      "shouldGenerateSwiftSymbol": false
-    },
-    "Updating results": {
-      "extractionState": "manual",
-      "localizations": {
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "تحديث النتائج"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Updating results"
-          }
-        },
-        "en-XA": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "[Úþðáŧíñĝ ŕéšúļŧš··············]"
-          }
-        }
-      },
-      "shouldGenerateSwiftSymbol": false
-    },
-    "Updating…": {
-      "extractionState": "manual",
-      "localizations": {
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "جارٍ التحديث…"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Updating…"
-          }
-        },
-        "en-XA": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "[Úþðáŧíñĝ…·······]"
+            "value": "[Úþðáŧé ŧĥé ñúɱƀéŕš áš ƒíļéš çĥáñĝé íñ ŧĥé šçáññéð ƒöļðéŕ. Á çĥáñĝé íš áþþļíéð ŵĥéŕé íŧ ĥáþþéñéð, šö éṽéñ á ŵĥöļé-ðíšķ šçáñ šŧáýš çúŕŕéñŧ.·······································································································································]"
           }
         }
       },
@@ -15001,54 +14689,6 @@
       },
       "shouldGenerateSwiftSymbol": false
     },
-    "Watching": {
-      "extractionState": "manual",
-      "localizations": {
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "قيد المراقبة"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Watching"
-          }
-        },
-        "en-XA": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "[Ŵáŧçĥíñĝ······]"
-          }
-        }
-      },
-      "shouldGenerateSwiftSymbol": false
-    },
-    "Watching for changes": {
-      "extractionState": "manual",
-      "localizations": {
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "مراقبة التغييرات"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Watching for changes"
-          }
-        },
-        "en-XA": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "[Ŵáŧçĥíñĝ ƒöŕ çĥáñĝéš··················]"
-          }
-        }
-      },
-      "shouldGenerateSwiftSymbol": false
-    },
     "What coverage leaves out": {
       "extractionState": "manual",
       "localizations": {
@@ -15121,25 +14761,25 @@
       },
       "shouldGenerateSwiftSymbol": false
     },
-    "While these results are on screen, the scanned folder is watched: a change made in Finder updates the numbers without Rescan. A long scan is not repeated automatically — the results are marked stale and Rescan is offered.": {
+    "While these results are on screen, the scanned folder is watched: a change made in Finder updates the numbers without Rescan. If watching is off, or the results could not be made live, they are marked out of date and Rescan is offered.": {
       "extractionState": "manual",
       "localizations": {
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "أثناء عرض هذه النتائج، تتم مراقبة المجلد المفحوص: التغيير في Finder يحدّث الأرقام دون «إعادة الفحص». ولا يُعاد الفحص الطويل تلقائيًا — تُوسم النتائج بأنها قديمة ويُعرض «إعادة الفحص»."
+            "value": "ما دامت هذه النتائج على الشاشة، تتم مراقبة المجلد المفحوص: تغيير يحدث في Finder يحدّث الأرقام دون إعادة فحص. وإذا كانت المراقبة متوقفة أو تعذّر تحديث النتائج مباشرةً، تُعلَّم النتائج بأنها قديمة ويُعرَض إعادة الفحص."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "While these results are on screen, the scanned folder is watched: a change made in Finder updates the numbers without Rescan. A long scan is not repeated automatically — the results are marked stale and Rescan is offered."
+            "value": "While these results are on screen, the scanned folder is watched: a change made in Finder updates the numbers without Rescan. If watching is off, or the results could not be made live, they are marked out of date and Rescan is offered."
           }
         },
         "en-XA": {
           "stringUnit": {
             "state": "translated",
-            "value": "[Ŵĥíļé ŧĥéšé ŕéšúļŧš áŕé öñ šçŕééñ, ŧĥé šçáññéð ƒöļðéŕ íš ŵáŧçĥéð: á çĥáñĝé ɱáðé íñ Ƒíñðéŕ úþðáŧéš ŧĥé ñúɱƀéŕš ŵíŧĥöúŧ Ŕéšçáñ. Á ļöñĝ šçáñ íš ñöŧ ŕéþéáŧéð áúŧöɱáŧíçáļļý — ŧĥé ŕéšúļŧš áŕé ɱáŕķéð šŧáļé áñð Ŕéšçáñ íš öƒƒéŕéð.···························································································································································································································]"
+            "value": "[Ŵĥíļé ŧĥéšé ŕéšúļŧš áŕé öñ šçŕééñ, ŧĥé šçáññéð ƒöļðéŕ íš ŵáŧçĥéð: á çĥáñĝé ɱáðé íñ Ƒíñðéŕ úþðáŧéš ŧĥé ñúɱƀéŕš ŵíŧĥöúŧ Ŕéšçáñ. Íƒ ŵáŧçĥíñĝ íš öƒƒ, öŕ ŧĥé ŕéšúļŧš çöúļð ñöŧ ƀé ɱáðé ļíṽé, ŧĥéý áŕé ɱáŕķéð öúŧ öƒ ðáŧé áñð Ŕéšçáñ íš öƒƒéŕéð.·········································································································································································································································]"
           }
         }
       },

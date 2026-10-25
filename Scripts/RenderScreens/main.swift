@@ -4,6 +4,22 @@ import DiskCore
 import DiskUI
 import DiskLocalization
 
+/// A render shows the settled results screen, which is the state the app reaches
+/// with watching on. This watcher never reports a change; it exists so the screen
+/// is the one a person sees, live sentence included, rather than one with the
+/// watch switched off.
+@MainActor
+private final class RenderWatcher: TreeWatching {
+    func start(
+        root: URL,
+        excludedPaths: [URL],
+        stayOnVolume: Bool,
+        onChange: @escaping @Sendable (ScanTreeChange) -> Void
+    ) throws {}
+
+    func stop() {}
+}
+
 /// Offscreen renderer for WillyDisk's screens.
 ///
 /// It drives the real views with a real scan of a generated fixture tree and
@@ -391,7 +407,7 @@ func render(_ options: Options) {
     let historyStore = ScanHistoryStore(directory: options.out.appendingPathComponent("history"))
     try? historyStore.clear()
     let history = ScanHistory(store: historyStore)
-    let viewModel = ScanViewModel(engine: FileScanEngine(), history: history)
+    let viewModel = ScanViewModel(engine: FileScanEngine(), history: history, watcher: RenderWatcher())
     if needsScan {
         viewModel.start(root: fixture)
     }
@@ -527,9 +543,10 @@ func render(_ options: Options) {
                 case .cleanup, .duplicates:
                     if let summary = viewModel.summary,
                        let root = rootNode(in: summary),
-                       let preview = CleanupAnalysis.analyze(root: root, now: Date()) {
+                       let tree = LiveTree(scanning: summary),
+                       let preview = CleanupAnalysis.analyze(in: tree, now: Date()) {
                         CleanupSheet(
-                            root: root,
+                            tree: tree,
                             rootName: root.name,
                             scannedAt: summary.finishedAt,
                             previewReport: preview,

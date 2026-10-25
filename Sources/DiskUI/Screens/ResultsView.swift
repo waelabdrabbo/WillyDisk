@@ -77,6 +77,30 @@ public struct ResultsView: View {
     /// its inputs do. Memoising the derived rows keeps the filtering, ordering
     /// and formatting off the redraw path.
     @State private var rowsCache = ExplorerRowsCache()
+    /// Holds the focused folder's entries between changes of the tree, so a
+    /// hover, a selection or a resize does not decode and allocate them again.
+    @State private var childrenCache = LiveChildrenCache()
+
+    /// The largest entries the tree holds, once a ranking walk has landed.
+    @State private var liveTop: LiveTopEntries?
+    /// Bumped when a ranking lands or is dropped, so cached rows rebuild against
+    /// the new list even though the tree's own revision did not move again.
+    @State private var rankingRevision = 0
+    @State private var rankingTask: Task<Void, Never>?
+    @State private var rankingRetryTask: Task<Void, Never>?
+    @State private var rankingStartedAt: ContinuousClock.Instant?
+    /// When the open search last started a walk, so a changing disk re-runs it
+    /// on an interval instead of between its own entries.
+    @State private var lastSearchStartedAt: ContinuousClock.Instant?
+    @State private var searchRefreshTask: Task<Void, Never>?
+    /// When the open category's files were last walked over the tree.
+    @State private var categoryFilesStartedAt: ContinuousClock.Instant?
+
+    /// How often a live ranking or an open search may re-walk the tree. Both walk
+    /// every entry, and a disk that is being written to bumps the revision every
+    /// fraction of a second; the previous answer stays while the next is due.
+    private static let liveRerankInterval: Duration = .seconds(3)
+    private static let liveSearchInterval: Duration = .seconds(4)
 
     /// The one hovered node, shared by the explorer rows and the chart, so
     /// hovering either side lights the other. Matched by URL, never by identity.
@@ -124,9 +148,7 @@ public struct ResultsView: View {
     private var summary: ScanSummary? { viewModel.liveSummary }
 
     /// Whether a scan is still running and the visible results will keep growing.
-    /// A quiet refresh is not a live scan: it measures in the background while
-    /// the screen keeps showing the previous summary.
-    private var isLiveScan: Bool { viewModel.isScanning && !viewModel.isRefreshing }
+    private var isLiveScan: Bool { viewModel.isScanning }
 
     /// The scanned root's own node, present once the traversal has finalized it.
     ///
@@ -150,20 +172,51 @@ public struct ResultsView: View {
     /// snapshot instead of waiting for whole folders to complete.
     private var rootNodes: [ScanNode] {
         guard let s = summary else { return [] }
+        // The live tree's root entries once it exists; the scan's own snapshot
+        // children before that (and while a scan is still walking).
+        if viewModel.liveTree != nil {
+            return viewModel.liveChildren(atPath: s.root.path) ?? []
+        }
         if let root = rootNode(in: s) { return root.children }
         return s.rootChildren
     }
 
     /// The nodes currently shown by the chart / explorer (the drill-down target).
     private var currentChildren: [ScanNode] {
-        guard let opened = breadcrumb.last else { return rootNodes }
-        return resolvedFocus?.children ?? opened.children
+        guard let s = summary else { return [] }
+        guard viewModel.liveTree != nil else {
+            guard let opened = breadcrumb.last else { return rootNodes }
+            return resolvedFocus?.children ?? opened.children
+        }
+        // The breadcrumb records where the explorer is; the entries come from the
+        // tree at that path, so the list is what the disk holds now.
+        let focusPath = breadcrumb.last?.url.path ?? s.root.path
+        return childrenCache.children(
+            path: focusPath,
+            revision: viewModel.resultsRevision,
+            tree: viewModel.liveTree
+        ) {
+            viewModel.liveChildren(atPath: focusPath) ?? []
+        }
     }
 
     /// The focused folder's entries that have something to show — the ones the
     /// explorer lists and the chart draws.
     private var presentableChildren: [ScanNode] {
         currentChildren.filter(\.isPresentable)
+    }
+
+    /// Where a deeper chart ring reads its children from.
+    ///
+    /// `nil` before the tree exists, so the chart walks the snapshot's own
+    /// children; with a tree, each ring asks for the entries that folder holds
+    /// now, and the chart's own caps keep that walk bounded.
+    private var liveChildrenProvider: ((ScanNode) -> [ScanNode])? {
+        guard let tree = viewModel.liveTree else { return nil }
+        return { node in
+            guard let id = tree.id(atPath: node.url.path) else { return [] }
+            return tree.scanNodes(forChildrenOf: id) ?? []
+        }
     }
 
     /// The nodes behind the two "largest" lists, straight from the engine's own
@@ -175,15 +228,69 @@ public struct ResultsView: View {
         case .folder, .categories:
             return []
         case .topFiles:
-            return summary.largestFiles
+            // The tree's own ranking once a walk has landed; the scan's until then.
+            return liveTop?.files ?? summary.largestFiles
         case .topFolders:
+            if let live = liveTop { return live.directories }
             let rootPath = summary.root.standardizedFileURL.path
             return summary.largestDirectories.filter { $0.url.standardizedFileURL.path != rootPath }
         }
     }
 
-    /// The scan's bytes by category, for the Categories mode and its ring.
+    /// Keeps an open category's file list current as the tree changes, on the
+    /// same interval the other whole-tree walks use.
+    @MainActor
+    private func reloadCategoryFilesIfNeeded() {
+        guard let category = drilledCategory else { return }
+        let now = ContinuousClock().now
+        if let started = categoryFilesStartedAt, now < started.advanced(by: Self.liveRerankInterval) {
+            return
+        }
+        loadFiles(of: category)
+    }
+
+    /// Re-ranks the tree when the list on screen is one of the largest lists.
+    @MainActor
+    private func refreshRanking() {
+        guard explorerMode == .topFiles || explorerMode == .topFolders,
+              let tree = viewModel.liveTree else { return }
+        let now = ContinuousClock().now
+        if let started = rankingStartedAt, now < started.advanced(by: Self.liveRerankInterval) {
+            // Too soon for another walk; queue one for when the interval ends so
+            // a single late change still reaches the list.
+            guard rankingRetryTask == nil else { return }
+            let wait = now.duration(to: started.advanced(by: Self.liveRerankInterval))
+            rankingRetryTask = Task {
+                try? await Task.sleep(for: wait)
+                guard !Task.isCancelled else { return }
+                rankingRetryTask = nil
+                rankingStartedAt = nil
+                refreshRanking()
+            }
+            return
+        }
+        rankingStartedAt = now
+        rankingTask?.cancel()
+        let run = viewModel.scanRun
+        rankingTask = Task {
+            let entries = await Task.detached(priority: .utility) {
+                LiveTreeRanking.topEntries(in: tree)
+            }.value
+            guard !Task.isCancelled, viewModel.scanRun == run else { return }
+            liveTop = entries
+            rankingRevision &+= 1
+        }
+    }
+
+    /// The scan's bytes by category, for the Categories mode and its ring: the
+    /// live tree's own category totals once it exists, the summary before that.
     private var categoryBreakdown: CategoryBreakdown {
+        if let tree = viewModel.liveTree {
+            return CategoryBreakdown(
+                categoryBreakdown: tree.categorySizes(),
+                totalLogicalSize: tree.totalLogicalSize
+            )
+        }
         guard let summary else {
             return CategoryBreakdown(categoryBreakdown: [:], totalLogicalSize: 0)
         }
@@ -230,6 +337,30 @@ public struct ResultsView: View {
     /// keystroke neither blocks the screen nor starts a walk that the next
     /// keystroke immediately replaces. Every new query cancels the one before it,
     /// and the walk checks cancellation between nodes.
+    /// Re-runs an open search when the tree changed under it.
+    ///
+    /// The walk is throttled: on a disk that is never quiet every applied batch
+    /// bumps the revision, and walking millions of entries for each one would
+    /// spend more time searching than the disk spends changing. The previous
+    /// answer stays on screen until the next walk starts.
+    @MainActor
+    private func refreshSearchForTreeChange() {
+        guard isSearchActive, !isLiveScan else { return }
+        let now = ContinuousClock().now
+        if let started = lastSearchStartedAt, now < started.advanced(by: Self.liveSearchInterval) {
+            searchRefreshTask?.cancel()
+            let wait = now.duration(to: started.advanced(by: Self.liveSearchInterval))
+            searchRefreshTask = Task {
+                try? await Task.sleep(for: wait)
+                guard !Task.isCancelled else { return }
+                searchRefreshTask = nil
+                startSearch(searchText, debounce: false)
+            }
+            return
+        }
+        startSearch(searchText, debounce: false)
+    }
+
     private func startSearch(_ text: String, debounce: Bool = true) {
         searchRun?.cancel()
         searchRun = nil
@@ -242,11 +373,16 @@ public struct ResultsView: View {
         }
 
         isSearching = true
+        lastSearchStartedAt = ContinuousClock().now
         let forest = searchForest
+        let tree = viewModel.liveTree
         let task: Task<ScanSearchResults?, Never> = Task.detached(priority: .userInitiated) {
             if debounce {
                 try? await Task.sleep(for: .milliseconds(250))
                 guard !Task.isCancelled else { return nil }
+            }
+            if let tree {
+                return ScanSearch.results(for: query, in: tree, isCancelled: { Task.isCancelled })
             }
             return ScanSearch.results(
                 for: query,
@@ -288,20 +424,21 @@ public struct ResultsView: View {
         clearSelection()
     }
 
-    /// The category's files come from the tree the finished scan already carries,
-    /// walked off the main actor and capped like the cleanup analysis. A live scan
-    /// has no final root node yet, so it falls back to the engine's ranked list and
-    /// the header says it is the largest files so far.
+    /// The category's files come from the live tree, walked off the main actor and
+    /// capped like the cleanup analysis. Before the tree exists — during the scan,
+    /// or while a full disk is being turned into one — the engine's ranked list
+    /// stands in and the header says it is the largest files so far.
     private func loadFiles(of category: FileCategory) {
         categoryFilesTask?.cancel()
         categoryFiles = nil
         guard let summary else { return }
 
-        if let root = rootNode(in: summary) {
+        if let tree = viewModel.liveTree {
+            categoryFilesStartedAt = ContinuousClock().now
             let task = Task.detached(priority: .userInitiated) {
                 CategoryFileIndex.largest(
                     filesOf: category,
-                    in: root,
+                    in: tree,
                     isCancelled: { Task.isCancelled }
                 )
             }
@@ -334,6 +471,11 @@ public struct ResultsView: View {
     /// resolves to nothing, and the folder keeps the entries it was opened with.
     private var resolvedFocus: ScanNode? {
         guard !breadcrumb.isEmpty else { return nil }
+        // A live tree answers by path: the node's numbers move while the screen
+        // is open, so the snapshot the folder was opened from is not the answer.
+        if viewModel.liveTree != nil, let path = breadcrumb.last?.url.path {
+            return viewModel.liveNode(atPath: path)
+        }
         var level = rootNodes
         var resolved: ScanNode?
         for crumb in breadcrumb {
@@ -359,6 +501,7 @@ public struct ResultsView: View {
             // A new search result set has the same query as the one it replaces,
             // so the revision is what makes the rows rebuild exactly once.
             searchResults: isSearchActive ? searchRevision : -1,
+            ranking: rankingRevision,
             sort: sortOrder,
             mode: explorerMode,
             maxChildren: chartChildLimit
@@ -563,6 +706,7 @@ public struct ResultsView: View {
             pruneSelection()
         }
         .onChange(of: explorerMode) { _, newMode in
+            refreshRanking()
             // The list's scope changed, so a selection, a hover, and a search
             // that were about the old list would otherwise point at rows that are
             // no longer on screen.
@@ -602,12 +746,17 @@ public struct ResultsView: View {
             // screen no longer has.
             pruneSelection()
             pruneBreadcrumb()
-            // A quiet refresh replaces the settled tree a search ran over. A live
-            // scan's partials arrive far too often to restart a whole-tree walk
-            // for each one, so the search re-runs when the walk is done.
-            if isSearchActive && !isLiveScan {
-                startSearch(searchText)
-            }
+            // An applied batch moved the numbers a ranking or an open search was
+            // built from, so both are walked again — on their own intervals.
+            refreshRanking()
+            refreshSearchForTreeChange()
+            reloadCategoryFilesIfNeeded()
+        }
+        .onChange(of: viewModel.scanRun) { _, _ in
+            // A new scan owns a new tree; the old ranking described the old one.
+            liveTop = nil
+            rankingRevision &+= 1
+            rankingStartedAt = nil
         }
         .onChange(of: viewModel.isWatchingEnabled) { _, _ in
             viewModel.watchPreferenceChanged()
@@ -627,6 +776,12 @@ public struct ResultsView: View {
             // it, even though it is off the main actor.
             searchRun?.cancel()
             searchRun = nil
+            searchRefreshTask?.cancel()
+            searchRefreshTask = nil
+            rankingTask?.cancel()
+            rankingTask = nil
+            rankingRetryTask?.cancel()
+            rankingRetryTask = nil
         }
         .task(id: viewModel.scanRun) {
             // Re-run for every scan and on Rescan: grant Full Disk Access in
@@ -634,8 +789,10 @@ public struct ResultsView: View {
             fullDiskAccessGranted = await FullDiskAccessProbe.isGranted()
         }
         .task {
-            // A screen opened with a query already in the field searches at once
+            // A screen opened on a largest list ranks the tree it was given, and
+            // one opened with a query already in the field searches at once
             // rather than waiting out the debounce meant for typing.
+            refreshRanking()
             guard !searchText.isEmpty else { return }
             startSearch(searchText, debounce: false)
         }
@@ -646,7 +803,6 @@ public struct ResultsView: View {
                     message: notice.message,
                     showsShowTrash: notice.showsShowTrash,
                     onShowTrash: openTrash,
-                    onRescan: rescan,
                     onDismiss: viewModel.dismissReclaimNotice
                 )
                 .padding(.horizontal, DS.Spacing.large)
@@ -671,9 +827,9 @@ public struct ResultsView: View {
                     CoverageSheet(summary: summary, isLive: viewModel.isScanning)
                 }
             case .cleanup:
-                if let summary, let root = rootNode(in: summary) {
+                if let summary, let root = rootNode(in: summary), let tree = viewModel.liveTree {
                     CleanupSheet(
-                        root: root,
+                        tree: tree,
                         rootName: root.name,
                         scannedAt: summary.finishedAt,
                         onMove: { nodes in
@@ -943,6 +1099,8 @@ public struct ResultsView: View {
                     centerLabel: breadcrumb.last?.name ?? scannedRootName ?? L10n.string("Root"),
                     selectedNodeURL: selectedNodes.count == 1 ? selectedNodes[0].url : nil,
                     maxChildren: chartChildLimit,
+                    revision: viewModel.resultsRevision,
+                    children: liveChildrenProvider,
                     hoveredURL: $hover.url,
                     onCenterTap: chartCenterAction,
                     centerHint: chartCenterHint
@@ -952,8 +1110,49 @@ public struct ResultsView: View {
                 .padding(DS.Spacing.medium)
             }
             scanStatusStrip
-                .padding(.bottom, DS.Spacing.medium)
+            // The chart's foot: when the run behind the numbers was gathered on
+            // the leading side, and the fact that the numbers follow the disk on
+            // the trailing one. The row keeps its height while either says
+            // nothing, so the chart and the strip above it never move.
+            HStack(spacing: DS.Spacing.small) {
+                Text(settledProvenance?.short ?? "")
+                    .font(DS.Typography.caption)
+                    .foregroundStyle(DS.Color.secondaryText)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .help(settledProvenance?.full ?? "")
+                    .accessibilityLabel(settledProvenance?.full ?? "")
+                    .accessibilityHidden(settledProvenance == nil)
+                    .opacity(settledProvenance == nil ? 0 : 1)
+                Spacer(minLength: DS.Spacing.small)
+                Text(L10n.string("These numbers update automatically as files change."))
+                    .font(DS.Typography.caption)
+                    .foregroundStyle(DS.Color.secondaryText)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .opacity(isResultsLive ? 1 : 0)
+                    .accessibilityHidden(!isResultsLive)
+            }
+            .padding(.horizontal, DS.Spacing.medium)
+            .padding(.bottom, DS.Spacing.medium)
         }
+    }
+
+    /// When the run behind the numbers was gathered and how long it took; `nil`
+    /// while a scan is in flight, because it has no finish time yet. The compact
+    /// text sits in the chart's foot, the full stamp in its tooltip.
+    private var settledProvenance: (short: String, full: String)? {
+        guard !isLiveScan, let s = summary else { return nil }
+        return (
+            ScanProvenance.compactSettled(startedAt: s.startedAt, finishedAt: s.finishedAt),
+            ScanProvenance.settled(startedAt: s.startedAt, finishedAt: s.finishedAt)
+        )
+    }
+
+    /// Whether the numbers on screen follow the disk: a live tree with the watch
+    /// on, and no scan in progress.
+    private var isResultsLive: Bool {
+        viewModel.isWatching && viewModel.liveTree != nil && !isLiveScan
     }
 
     /// The chart's own path bar: the folder the chart is centred on, with every
@@ -1295,9 +1494,6 @@ public struct ResultsView: View {
                     .foregroundStyle(DS.Color.primaryText)
                     .lineLimit(1)
                     .truncationMode(.middle)
-                if viewModel.isUpdating || (viewModel.isWatching && !viewModel.resultsAreStale) {
-                    WatchStatusChip(isUpdating: viewModel.isUpdating)
-                }
                 Spacer(minLength: DS.Spacing.small)
                 Text(ByteFormat.string(focusedTotal))
                     .font(DS.Typography.metric)
@@ -1310,18 +1506,10 @@ public struct ResultsView: View {
                     .minimumScaleFactor(0.8)
                     .layoutPriority(1)
             }
-            // The full timestamp would push the line past the column's
-            // width; the compact form keeps the counts and recency together and
-            // the full provenance stays in the tooltip and accessibility label.
-            HStack(spacing: DS.Spacing.small) {
-                Text(countsText)
-                    .font(DS.Typography.caption)
-                    .foregroundStyle(DS.Color.secondaryText)
-                    .lineLimit(1)
-                Spacer(minLength: DS.Spacing.xSmall)
-                provenanceMetadata
-            }
-            .lineLimit(1)
+            Text(countsText)
+                .font(DS.Typography.caption)
+                .foregroundStyle(DS.Color.secondaryText)
+                .lineLimit(1)
             if viewModel.resultsAreStale && !viewModel.isUpdating {
                 StaleResultsBadge(message: staleMessage, onRescan: rescan)
             }
@@ -1332,71 +1520,35 @@ public struct ResultsView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    /// What the stale marker names. The watcher's folders are the ones that
-    /// actually changed; a move to the Trash has no folder list and keeps the
-    /// general wording.
+    /// What the stale marker says. A watched root changes in folders a person did
+    /// not touch — caches and logs are written continuously — so the marker states
+    /// that the numbers are older than the disk and never counts or names the
+    /// folders behind it.
     private var staleMessage: String {
-        guard let first = viewModel.changedFolders.first else {
-            return L10n.string("Results changed since this scan. Rescan.")
-        }
-        if viewModel.changedFoldersWereTruncated {
-            return L10n.format("Changed in Finder in %lld+ folders. Rescan.", viewModel.changedFolderCount)
-        }
-        if viewModel.changedFolderCount <= 1 {
-            return L10n.format("Changed in Finder: “%@”. Rescan.", first.lastPathComponent)
-        }
-        return L10n.format("Changed in Finder in %lld folders. Rescan.", viewModel.changedFolderCount)
+        L10n.string("Results changed since this scan. Rescan.")
     }
 
     /// Counts for the list's scope: the folder's own entries while the chart and
     /// list agree on a folder, and the whole scan's counts while the list is one
     /// of the largest lists.
     private var countsText: String {
+        // The tree's own totals once it exists: they move as the disk does.
+        let fileCount = viewModel.liveTree?.fileCount ?? summary?.fileCount ?? 0
+        let directoryCount = viewModel.liveTree?.directoryCount ?? summary?.directoryCount ?? 0
         if explorerMode == .folder {
             return L10n.format(
                 "%@ across %@",
-                CountFormat.files(summary?.fileCount ?? 0),
+                CountFormat.files(fileCount),
                 CountFormat.items(presentableChildren.count)
             )
         }
-        guard let s = summary else { return CountFormat.files(0) }
-        // The scan root is a folder in the summary, but it is the scan itself and
+        // The scan root is a folder in the tree, but it is the scan itself and
         // never one of its own subfolders, so the largest-list counts leave it out.
         return L10n.format(
             "%@ in %@",
-            CountFormat.files(s.fileCount),
-            CountFormat.folders(max(0, s.directoryCount - 1))
+            CountFormat.files(fileCount),
+            CountFormat.folders(max(0, directoryCount - 1))
         )
-    }
-
-    /// When the results were gathered and how long the scan took, so the numbers
-    /// are never read as current. A live scan states its start and keeps the
-    /// elapsed time moving; a settled one states both and stops.
-    @ViewBuilder
-    private var provenanceMetadata: some View {
-        if isLiveScan, let started = viewModel.scanStartedAt ?? summary?.startedAt {
-            TimelineView(.periodic(from: .now, by: 1)) { context in
-                let full = ScanProvenance.live(startedAt: started, now: context.date)
-                provenanceText(ScanProvenance.compactLive(startedAt: started, now: context.date), full: full)
-            }
-        } else if let s = summary {
-            let full = ScanProvenance.settled(startedAt: s.startedAt, finishedAt: s.finishedAt)
-            provenanceText(ScanProvenance.compactSettled(startedAt: s.startedAt, finishedAt: s.finishedAt), full: full)
-        }
-    }
-
-    private func provenanceText(_ compact: String, full: String) -> some View {
-        Text(compact)
-            .font(DS.Typography.caption)
-            .monospacedDigit()
-            .foregroundStyle(DS.Color.secondaryText)
-            // A translated date and duration can outgrow the explorer's
-            // column; two lines keep the whole stamp readable rather than
-            // ending it with an ellipsis.
-            .lineLimit(2)
-            .fixedSize(horizontal: false, vertical: true)
-            .help(full)
-            .accessibilityLabel(full)
     }
 
     /// The settled notice for a scan that stopped before it had covered the whole
@@ -1815,7 +1967,11 @@ public struct ResultsView: View {
     /// tree does not hold — one from a snapshot the screen has moved past —
     /// resolves to nothing rather than to a wrong folder.
     private func folderChain(holding folder: URL) -> [ScanNode]? {
-        guard let summary, let root = rootNode(in: summary) else { return nil }
+        guard let summary else { return nil }
+        if let tree = viewModel.liveTree {
+            return ExplorerPath.chain(to: folder, rootPath: summary.root.path, in: tree)
+        }
+        guard let root = rootNode(in: summary) else { return nil }
         return ExplorerPath.chain(to: folder, from: root)
     }
 
@@ -2000,13 +2156,13 @@ public struct ResultsView: View {
     /// walked, so this waits for a settled summary.
     private func pruneBreadcrumb() {
         guard !isLiveScan, !breadcrumb.isEmpty else { return }
-        var level = rootNodes
-        var kept: [ScanNode] = []
-        for crumb in breadcrumb {
-            guard let match = level.first(where: { $0.url == crumb.url }) else { break }
-            kept.append(match)
-            level = match.children
-        }
+        // A live tree answers by path; its nodes carry no children to descend,
+        // which is what a snapshot-only walk would need.
+        let kept = ExplorerBreadcrumb.pruned(
+            breadcrumb,
+            rootNodes: rootNodes,
+            tree: viewModel.liveTree
+        )
         guard kept.map(\.id) != breadcrumb.map(\.id) else { return }
         breadcrumb = kept
     }
@@ -2600,9 +2756,44 @@ private struct ExplorerRowsKey: Equatable {
     /// The whole-scan result set the rows were built from, or -1 when the list is
     /// a folder's entries or a ranked list.
     var searchResults: Int
+    /// The largest-list answer the rows were built from: a ranking walk lands
+    /// after the tree's revision moved, so it needs a token of its own.
+    var ranking: Int
     var sort: SortOrder
     var mode: ExplorerMode
     var maxChildren: Int
+}
+
+/// Keeps a folder's materialized entries while the tree and the path hold.
+///
+/// The live tree hands out value nodes on demand; decoding a folder's whole
+/// listing again for every body pass — a hover, a resize, a text cursor — is
+/// work the screen did not change, so the last answer is held beside the inputs
+/// that produced it.
+@MainActor
+private final class LiveChildrenCache {
+    private struct Key: Equatable {
+        let path: String
+        let revision: Int
+        let tree: ObjectIdentifier?
+    }
+
+    private var key: Key?
+    private var held: [ScanNode] = []
+
+    func children(
+        path: String,
+        revision: Int,
+        tree: LiveTree?,
+        build: () -> [ScanNode]
+    ) -> [ScanNode] {
+        let key = Key(path: path, revision: revision, tree: tree.map(ObjectIdentifier.init))
+        if key == self.key { return held }
+        let fresh = build()
+        self.key = key
+        self.held = fresh
+        return fresh
+    }
 }
 
 /// Keeps the explorer's visible rows while their inputs stay the same.

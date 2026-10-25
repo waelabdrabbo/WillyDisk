@@ -4,15 +4,14 @@ import Darwin
 /// One batch of filesystem changes reduced to what a scan of a particular root
 /// cares about.
 ///
-/// `folders` is bounded so a busy root cannot grow a screen's badge without
-/// bound; `folderCount` still reports how many distinct folders the batch
-/// named, so a truncated list is never presented as the whole of it.
+/// `folders` is bounded by `ScanWatchScope.maxBatchPaths` so a pathological
+/// burst cannot grow a consumer without bound. It is a work list, not a label:
+/// a consumer that reconciles folders must act on all of them (and defer the
+/// tail if it has its own bound), because a folder left out is a change the
+/// screen never sees.
 public struct ScanTreeChange: Sendable, Equatable {
     /// The changed folders, in the order they were first reported.
     public let folders: [URL]
-    /// How many distinct in-scope folders the batch named, including ones left
-    /// out of `folders` to keep the batch bounded.
-    public let folderCount: Int
     /// Whether the batch could not name its paths reliably: FSEvents dropped or
     /// wrapped events, or asked for a whole subtree to be rescanned.
     public let isCoarse: Bool
@@ -21,12 +20,10 @@ public struct ScanTreeChange: Sendable, Equatable {
 
     public init(
         folders: [URL] = [],
-        folderCount: Int? = nil,
         isCoarse: Bool = false,
         rootMissing: Bool = false
     ) {
         self.folders = folders
-        self.folderCount = folderCount ?? folders.count
         self.isCoarse = isCoarse
         self.rootMissing = rootMissing
     }
@@ -71,10 +68,9 @@ public struct LiveScanVolumeProbe: ScanVolumeProbing {
 /// not — the opposite of the traversal's identity test, and for a different
 /// question.
 public struct ScanWatchScope: Sendable {
-    /// A batch larger than this is truncated; the scan is refreshed anyway.
+    /// A batch larger than this is truncated; the walk on the other side of it
+    /// measures the whole root again when a batch cannot be trusted.
     public static let maxBatchPaths = 4_096
-    /// How many changed folders a single batch reports for display.
-    public static let maxReportedFolders = 16
 
     /// The root as the request named it, used when a change has to name it.
     public let root: URL
@@ -134,17 +130,13 @@ public struct ScanWatchScope: Sendable {
 
         var seen = Set<String>()
         var folders: [URL] = []
-        var count = 0
         for raw in paths.prefix(Self.maxBatchPaths) {
             let path = normalizedPath(raw)
             guard includes(normalized: path), seen.insert(path).inserted else { continue }
-            count += 1
-            if folders.count < Self.maxReportedFolders {
-                folders.append(URL(fileURLWithPath: path, isDirectory: true))
-            }
+            folders.append(URL(fileURLWithPath: path, isDirectory: true))
         }
-        guard count > 0 else { return nil }
-        return ScanTreeChange(folders: folders, folderCount: count)
+        guard !folders.isEmpty else { return nil }
+        return ScanTreeChange(folders: folders)
     }
 
     // MARK: - Paths

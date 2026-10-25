@@ -216,8 +216,6 @@
 	<string>الفئة</string>
 	<key>Change</key>
 	<string>التغيّر</string>
-	<key>Changed in Finder: “%@”. Rescan.</key>
-	<string>تغيّر في Finder: «%@». أعد الفحص.</string>
 	<key>Changes the interface language right away.</key>
 	<string>يغيّر لغة الواجهة فورًا.</string>
 	<key>Check Contents</key>
@@ -318,6 +316,8 @@
 	<string>تبلّغ «التغطية» بعدد العناصر التي تخطّتها استثناءاتك، كي لا يكون الإجمالي الأضيق صامتًا.</string>
 	<key>Coverage…</key>
 	<string>التغطية…</string>
+	<key>Current contents. This scan finished %@. Nothing moves until you confirm.</key>
+	<string>المحتوى الحالي. انتهى هذا الفحص في %@. لا يُنقل أي شيء قبل تأكيدك.</string>
 	<key>Dark</key>
 	<string>داكن</string>
 	<key>Dataless</key>
@@ -396,8 +396,6 @@
 	<string>الملفات</string>
 	<key>Files and folders</key>
 	<string>ملفات ومجلدات</string>
-	<key>Files changing in this folder update the results automatically.</key>
-	<string>تغيّرات الملفات في هذا المجلد تُحدّث النتائج تلقائيًا.</string>
 	<key>Files in a folder named Downloads that have not been modified in %@.</key>
 	<string>ملفات في مجلد اسمه Downloads لم تُعدّل خلال %@.</string>
 	<key>Files of at least %@ that have not been modified in %@.</key>
@@ -428,8 +426,6 @@
 	<string>المجلدات التي تغيّرت</string>
 	<key>Follow symbolic links</key>
 	<string>تتبّع الروابط الرمزية</string>
-	<key>From the scan of %@. Nothing moves until you confirm.</key>
-	<string>من فحص %@. لا يُنقل أي شيء قبل تأكيدك.</string>
 	<key>Go up one level</key>
 	<string>الصعود مستوى واحدًا</string>
 	<key>Go up to %@</key>
@@ -770,12 +766,8 @@
 	<string>جارٍ الفحص</string>
 	<key>Scanning Unavailable</key>
 	<string>الفحص غير متاح</string>
-	<key>Scanning since %@; %@ so far</key>
-	<string>الفحص جارٍ منذ %@؛ %@ حتى الآن</string>
 	<key>Scanning, %@</key>
 	<string>جارٍ الفحص، %@</string>
-	<key>Scanning, %@ so far</key>
-	<string>جارٍ الفحص، %@ حتى الآن</string>
 	<key>Scanning, progress not yet measurable</key>
 	<string>جارٍ الفحص، والتقدم غير قابل للقياس بعد</string>
 	<key>Scanning…</key>
@@ -896,8 +888,6 @@
 	<string>يرسم المخطط مجلدًا واحدًا في كل مرة. امسح البحث للعودة إلى «%@».</string>
 	<key>The folder changed after this scan. Rescan to see the current numbers.</key>
 	<string>تغيّر المجلد بعد هذا الفحص. أعد الفحص لترى الأرقام الحالية.</string>
-	<key>The folder changed; the numbers are being re-measured.</key>
-	<string>تغيّر المجلد؛ ويجري إعادة قياس الأرقام.</string>
 	<key>The folder is watched only while its results are on screen.</key>
 	<string>يُراقَب المجلد فقط أثناء عرض نتائجه على الشاشة.</string>
 	<key>The item is still in place.</key>
@@ -934,6 +924,8 @@
 	<string>لا يوجد فحص منتهٍ للتحقق من هذا العنصر. نفّذ فحصًا ثم أعد المحاولة.</string>
 	<key>These items could not be read while scanning.</key>
 	<string>تعذّرت قراءة هذه العناصر أثناء الفحص.</string>
+	<key>These numbers update automatically as files change.</key>
+	<string>تتحدّث هذه الأرقام تلقائيًا مع تغيّر الملفات.</string>
 	<key>These runs used different scan options. Some of the difference may be what each walk included — hidden items, other volumes, or excluded paths — rather than a change on disk.</key>
 	<string>استخدمت هذه التشغيلات خيارات فحص مختلفة. قد يكون بعض الفارق راجعًا إلى ما شمله كل مسح — عناصر مخفية أو وحدات تخزين أخرى أو مسارات مستثناة — لا إلى تغيّر على القرص.</string>
 	<key>They can keep deleted blocks on this volume until macOS removes them. macOS does not expose a snapshot's size.</key>
@@ -992,12 +984,8 @@
 	<string>أقل من دقيقة</string>
 	<key>Unreadable locations</key>
 	<string>مواقع غير مقروءة</string>
-	<key>Update the numbers when files change in the scanned folder. A long scan is offered a Rescan instead.</key>
-	<string>حدّث الأرقام عندما تتغيّر الملفات في المجلد المفحوص. الفحص الطويل يُعرض عليه إعادة الفحص بدلًا من ذلك.</string>
-	<key>Updating results</key>
-	<string>تحديث النتائج</string>
-	<key>Updating…</key>
-	<string>جارٍ التحديث…</string>
+	<key>Update the numbers as files change in the scanned folder. A change is applied where it happened, so even a whole-disk scan stays current.</key>
+	<string>حدّث الأرقام مع تغيّر الملفات في المجلد المفحوص. يُطبَّق التغيير في موضعه، فيبقى فحص القرص كاملًا محدّثًا.</string>
 	<key>Use the arrow keys to move through the list, Space to preview, and Return to open.</key>
 	<string>استخدم مفاتيح الأسهم للتنقل في القائمة، والمسافة للمعاينة، وReturn للفتح.</string>
 	<key>Used by the volume</key>
@@ -1014,18 +1002,14 @@
 	<string>وحدات التخزين</string>
 	<key>Waiting for the first items…</key>
 	<string>بانتظار العناصر الأولى…</string>
-	<key>Watching</key>
-	<string>قيد المراقبة</string>
-	<key>Watching for changes</key>
-	<string>مراقبة التغييرات</string>
 	<key>What coverage leaves out</key>
 	<string>ما تستبعده التغطية</string>
 	<key>What this scan counted</key>
 	<string>ما احتسبه هذا الفحص</string>
 	<key>What this scan counted, and what it did not</key>
 	<string>ما احتسبه هذا الفحص وما لم يحتسبه</string>
-	<key>While these results are on screen, the scanned folder is watched: a change made in Finder updates the numbers without Rescan. A long scan is not repeated automatically — the results are marked stale and Rescan is offered.</key>
-	<string>أثناء عرض هذه النتائج، تتم مراقبة المجلد المفحوص: التغيير في Finder يحدّث الأرقام دون «إعادة الفحص». ولا يُعاد الفحص الطويل تلقائيًا — تُوسم النتائج بأنها قديمة ويُعرض «إعادة الفحص».</string>
+	<key>While these results are on screen, the scanned folder is watched: a change made in Finder updates the numbers without Rescan. If watching is off, or the results could not be made live, they are marked out of date and Rescan is offered.</key>
+	<string>ما دامت هذه النتائج على الشاشة، تتم مراقبة المجلد المفحوص: تغيير يحدث في Finder يحدّث الأرقام دون إعادة فحص. وإذا كانت المراقبة متوقفة أو تعذّر تحديث النتائج مباشرةً، تُعلَّم النتائج بأنها قديمة ويُعرَض إعادة الفحص.</string>
 	<key>WillyDisk</key>
 	<string>WillyDisk</string>
 	<key>WillyDisk Diagnostics.json</key>

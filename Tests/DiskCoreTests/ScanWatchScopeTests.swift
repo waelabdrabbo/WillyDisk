@@ -78,16 +78,22 @@ final class ScanWatchScopeTests: XCTestCase {
 
         let result = try XCTUnwrap(change)
         XCTAssertEqual(result.folders.map(\.path), ["/scan/tree/a", "/scan/tree/b"])
-        XCTAssertEqual(result.folderCount, 2)
         XCTAssertFalse(result.isCoarse)
         XCTAssertFalse(result.rootMissing)
     }
 
-    func testBatchIsBoundedButCountsEveryFolder() throws {
+    func testEveryChangedFolderIsReported() throws {
+        // The list is a work list: a consumer has to reconcile all of it, so a
+        // batch below the path bound loses nothing.
         let paths = (0..<25).map { "/scan/tree/folder-\($0)/file" }
         let result = try XCTUnwrap(scope().change(inBatch: paths))
-        XCTAssertEqual(result.folders.count, ScanWatchScope.maxReportedFolders)
-        XCTAssertEqual(result.folderCount, 25, "a shortened list never claims to be the whole batch")
+        XCTAssertEqual(result.folders.count, 25)
+    }
+
+    func testABatchIsBoundedByThePathLimit() throws {
+        let paths = (0..<(ScanWatchScope.maxBatchPaths + 100)).map { "/scan/tree/folder-\($0)/file" }
+        let result = try XCTUnwrap(scope().change(inBatch: paths))
+        XCTAssertEqual(result.folders.count, ScanWatchScope.maxBatchPaths)
     }
 
     func testOutOfScopeBatchIsNil() {

@@ -20,9 +20,8 @@ stream reports.
   `CleanupSheet` (large/old, cache, download, and duplicate candidates that go to the
   reclaim confirmation), `HistorySheet` (the recorded runs of a location, two compared),
   `AccessNoticeRow`, `FlowLayout`, `ScanOptionToggle` (one scan option, shared by the
-  source screen's sheet and Settings), `ResultsStatusBadges` (the single watching/updating
-  chip and the stale marker), `ControlStyles` (the shared row hover, inline and icon
-  actions, and warning notice).
+  source screen's sheet and Settings), `ResultsStatusBadges` (the stale marker),
+  `ControlStyles` (the shared row hover, inline and icon actions, and warning notice).
 - `DesignSystem/` — `DesignSystem.swift` holds every token (`DS`), `ChartPalette.swift`
   the chart fills, `FileCategory+UI.swift` the category symbols and labels,
   `AppAppearance.swift` the stored system/light/dark preference the Settings window
@@ -67,12 +66,21 @@ stream reports.
   "Cancel" dismisses a modal task, and "Dismiss" hides a notice.
 - Liquid Glass is an enhancement only: gate macOS 26 APIs behind
   `if #available(macOS 26.0, *)`. Never call a newer API unguarded.
-- A watched change is an invalidation, not an edit. `ScanViewModel` names the changed
-  folder and marks the results stale; a refresh keeps the old summary on screen,
-  publishes no partial/progress/issue, and replaces it only with the terminal summary.
-  Refreshes are not recorded in History. A refresh is not a live scan: `isLiveScan` is
-  `isScanning && !isRefreshing`, and a stopped refresh leaves the old summary complete
-  and stale.
+- A watched change edits the live tree; it never re-scans. The tree arrives with the
+  engine's terminal event (`LiveTreeScanning`); an engine that only reports summaries
+  leaves `ScanViewModel` to build it from the finished summary off the main actor
+  (`isBuildingLiveTree`). `ScanViewModel` feeds the folders the watcher reports to
+  `LiveTreeUpdater` after `LiveUpdatePolicy.quietPeriod`, and bumps `resultsRevision`
+  when a batch changed anything.
+  The explorer, the chart, the totals, the category ring, the largest lists
+  (`LiveTreeRanking`), the whole-scan search, `CleanupAnalysis`, `CategoryFileIndex`
+  and the duplicate candidates all walk the tree; export, diagnostics, coverage and
+  History stay the scan's record. The whole-tree walks are throttled
+  (`liveRerankInterval` 3 s, `liveSearchInterval` 4 s), run off the main actor, and
+  are cancelled when the screen leaves. `resultsAreStale` is only for a
+  screen that cannot follow — a scan that could not become a tree, or the watch
+  switched off — and an applied batch clears it. Nothing is re-measured, so there is no
+  refresh budget and `isLiveScan` is just `isScanning`.
 - `.partial` snapshots are advisory — the engine may throttle or omit them — and are
   never terminal. Update in place; the terminal `.finished` replaces them. The scan
   root's entries arrive ready-made in `ScanSummary.rootChildren`, folders included

@@ -159,18 +159,22 @@ Details worth remembering:
   absent from that list rather than certainly new. Entries that left the later list are
   counted, not called removals. Runs with different scan options say so: the difference
   may be what each walk included. Nothing in the comparison is called a saving.
-- Watched results are invalidated, never patched. A batch from the watcher marks the
-  results stale and names the folder; when the run on the slot took 10 s or less, the
-  same `ScanRequest` is re-run after 750 ms of quiet, at most once every 5 s, and the
-  new terminal summary replaces the old one only when it lands. No partial, progress,
-  or issue from that background walk reaches the screen: the old summary is the only
-  measurement on screen until the new one is complete. A slower run, a cooldown, the
-  Settings switch, or a root that disappeared leaves the stale badge and Rescan.
-  Refreshes update the screen, not History. The watcher is armed only while settled
-  results are on the results screen; it stops on Home, on a new scan, on cancellation,
-  and when the root is gone. One stream covers `/`; the scope applies the engine's
-  exclusions and `stayOnVolume` device rule, and maps `/System/Volumes/Data/…` back to
-  `/…` because that is how FSEvents names the startup disk's data volume.
+- Watched results read a live tree. The stream is item-level: each file or folder that
+  moved is reduced to the folder it changes, and events carrying no creation, removal,
+  rename, or write are dropped, because attribute, owner, xattr, and clone metadata
+  cannot change a measured number. `LiveTreeUpdater` reconciles each changed folder —
+  files from their own `stat`, vanished entries removed, a folder that arrived measured
+  once — under the scan's own `LiveTreePolicy`, applies the batch after 200 ms of quiet,
+  and bumps one revision. Nothing is re-scanned, so there is no refresh budget and no
+  run that is "too slow to keep current": a whole-disk scan is as live as a home folder
+  (a re-listing measured 0.05 ms and an edit 1.19 µs on a 4.6M-entry tree). The stale
+  marker is only for a screen that cannot follow — no tree, or the watch switched off.
+  `ScanSummary` remains the scan's record for History, the CLI, export, diagnostics and
+  coverage. The watcher is armed only while settled results are on the results
+  screen; it stops on Home, on a new scan, on cancellation, and when the root is gone.
+  The scope applies the engine's exclusions and `stayOnVolume` device rule, and maps
+  `/System/Volumes/Data/…` back to `/…` because that is how FSEvents names the startup
+  disk's data volume. `docs/LIVE-TREE.md` is the design, the invariants, and the stages.
 - Search covers the whole tree the scan carries, from every explorer mode, not the folder
   or the ranked list on screen. The field's query replaces the list's scope only: the mode,
   the breadcrumb, and the sort are untouched, so clearing the field restores exactly the
@@ -330,10 +334,8 @@ one-off visual check.
   structural, not only measured: a per-directory node cap with small files folded into
   one expandable node, so a multi-million-file tree cannot grow the resident set without
   bound. That changes which files the explorer can open, so it needs its own design note.
-- Polish: coverage discoverability, staleness detection outside the watched tree (the
-  watcher covers Finder changes while results are on screen), folder-level coverage
-  disclosure, CSV accounting (JSON has it, CSV
-  does not), empty states, window sizing, accessibility audit.
+- Polish: coverage discoverability, folder-level coverage disclosure, CSV accounting
+  (JSON has it, CSV does not), empty states, window sizing, accessibility audit.
 
 ### 2. Treemap as a second chart
 
@@ -398,18 +400,20 @@ the update screen does not call an unsigned download verified or trusted.
 - Snapshots are listed by name only. macOS exposes no snapshot size; do not estimate
   one.
 - Trash does not free space until it is emptied; result wording must say so.
-- A move never edits the tree. It marks results stale and offers Rescan; when the screen
-  is watching and the run is within the refresh budget, the root is measured again as a
-  new scan and the terminal result replaces the old one. A long run is not repeated
+- A move reaches the tree like any other change. Moving an item to the Trash produces
+  filesystem events, and the watched tree applies them; the screen updates without
+  Rescan. When nothing can follow — watching is off, or the results never became a live
+  tree — they are marked stale and Rescan is offered. A long run is never repeated
   automatically.
 - The app is a single window. Coverage, reclaim, cleanup, history, and Help are sheets
   on the main window.
-- Watching invalidates; it never patches. A change is only a reason to measure the root
-  again — never an edit to a `ScanSummary`, a node, or a total. The old measurement stays
-  on screen until a new terminal summary replaces it.
-- Automatic refreshes update the screen, not History. History records the finished runs
-  the user started; a watch that keeps the screen current must not push them out of the
-  20-per-location record.
+- Watching edits the live tree with measured changes; it never invents one. A folder is
+  re-listed, a file is written from its own `stat`, and a folder that arrived is
+  measured once with the engine, under the scan's own rules. A `ScanSummary` is never
+  edited; it stays the record of the run that produced it.
+- Live updates change the screen, not History. History records the finished runs the
+  user started; the tree following the disk must not write records or push them out of
+  the 20-per-location record.
 - History compares measurements, never claims savings. Only a finished scan the user
   started is recorded, and a stored run's options travel with it so a difference in what each
   walk included is disclosed rather than read as a change on disk.

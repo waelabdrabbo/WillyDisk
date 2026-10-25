@@ -15,7 +15,7 @@ final class CategoryFilesQATests: XCTestCase {
             file("/scan/Documents/report.pdf", size: 500 * megabyte, category: .documents),
         ])
 
-        let result = try XCTUnwrap(CategoryFileIndex.largest(filesOf: .images, in: root))
+        let result = try XCTUnwrap(CategoryFileIndex.largest(filesOf: .images, in: tree(root)))
 
         XCTAssertEqual(result.files.map(\.name), ["big.jpg", "small.png"])
         XCTAssertEqual(result.matchCount, 2)
@@ -31,7 +31,7 @@ final class CategoryFilesQATests: XCTestCase {
         ])
 
         let result = try XCTUnwrap(
-            CategoryFileIndex.largest(filesOf: .images, in: root, limit: 2)
+            CategoryFileIndex.largest(filesOf: .images, in: tree(root), limit: 2)
         )
 
         XCTAssertEqual(result.files.map(\.name), ["a.bin", "b.bin"])
@@ -47,21 +47,22 @@ final class CategoryFilesQATests: XCTestCase {
         let root = directory("/scan", children: children)
 
         let result = try XCTUnwrap(
-            CategoryFileIndex.largest(filesOf: .images, in: root, maxVisitedNodes: 2)
+            CategoryFileIndex.largest(filesOf: .images, in: tree(root), maxVisitedNodes: 2)
         )
 
         XCTAssertTrue(result.stoppedAtLimit)
         XCTAssertLessThanOrEqual(result.visitedCount, 3)
     }
 
-    func testCancellingStopsTheWalk() {
+    func testCancellingStopsTheWalk() throws {
         let root = directory("/scan", children: [
             file("/scan/a.jpg", size: 1, category: .images),
         ])
+        let live = try tree(root)
 
         XCTAssertNil(CategoryFileIndex.largest(
             filesOf: .images,
-            in: root,
+            in: live,
             isCancelled: { true }
         ))
     }
@@ -85,7 +86,7 @@ final class CategoryFilesQATests: XCTestCase {
         )
         let root = directory("/scan", children: [link])
 
-        let result = try XCTUnwrap(CategoryFileIndex.largest(filesOf: .images, in: root))
+        let result = try XCTUnwrap(CategoryFileIndex.largest(filesOf: .images, in: tree(root)))
         XCTAssertTrue(result.files.isEmpty)
         XCTAssertEqual(result.matchCount, 0)
     }
@@ -95,13 +96,48 @@ final class CategoryFilesQATests: XCTestCase {
             file("/scan/report.pdf", size: 10, category: .documents),
         ])
 
-        let result = try XCTUnwrap(CategoryFileIndex.largest(filesOf: .images, in: root))
+        let result = try XCTUnwrap(CategoryFileIndex.largest(filesOf: .images, in: tree(root)))
         XCTAssertTrue(result.files.isEmpty)
         XCTAssertEqual(result.matchCount, 0)
         XCTAssertEqual(result.totalLogicalSize, 0)
     }
 
     // MARK: - Fixtures
+
+    /// The live tree a fixture root describes; a folder's counts are its
+    /// children's, as the arena requires.
+    private func tree(
+        _ root: ScanNode,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) throws -> LiveTree {
+        var categories: [FileCategory: Int64] = [:]
+        func visit(_ node: ScanNode) {
+            if !node.isDirectory, node.fileCount > 0 {
+                categories[node.category, default: 0] += node.logicalSize
+            }
+            node.children.forEach(visit)
+        }
+        visit(root)
+        let summary = ScanSummary(
+            root: root.url,
+            totalLogicalSize: root.logicalSize,
+            totalAllocatedSize: root.allocatedSize,
+            fileCount: root.fileCount,
+            directoryCount: root.directoryCount,
+            inaccessibleCount: 0,
+            errorCount: 0,
+            permissionDeniedCount: 0,
+            surfacedIssueCount: 0,
+            startedAt: Date(timeIntervalSince1970: 0),
+            finishedAt: Date(timeIntervalSince1970: 1),
+            categoryBreakdown: categories,
+            largestFiles: [],
+            largestDirectories: [root],
+            rootChildren: []
+        )
+        return try XCTUnwrap(LiveTree(scanning: summary), file: file, line: line)
+    }
 
     private func directory(_ path: String, children: [ScanNode]) -> ScanNode {
         ScanNode(
@@ -113,8 +149,8 @@ final class CategoryFilesQATests: XCTestCase {
             category: .other,
             logicalSize: children.reduce(0) { $0 + $1.logicalSize },
             allocatedSize: children.reduce(0) { $0 + $1.allocatedSize },
-            fileCount: children.filter { !$0.isDirectory }.count,
-            directoryCount: 1,
+            fileCount: children.reduce(0) { $0 + $1.fileCount },
+            directoryCount: 1 + children.reduce(0) { $0 + $1.directoryCount },
             modifiedAt: nil,
             isAccessible: true,
             errorMessage: nil,

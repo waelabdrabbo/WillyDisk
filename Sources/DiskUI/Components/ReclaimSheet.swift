@@ -233,10 +233,11 @@ public struct ReclaimNotice: Equatable, Sendable {
 /// The line after a trash action that keeps the results honest.
 ///
 /// It never says the space was reclaimed: it says what moved and when the space
-/// comes back, offers the Trash and a fresh scan, and dismisses itself after a
-/// short read. The notice is an opaque panel lifted off the results, so the list
-/// underneath never reads through it; it holds open while the pointer is over it,
-/// so its actions stay reachable while they are in use.
+/// comes back, offers the Trash, and dismisses itself after a short read. A move
+/// reaches the watched tree as a filesystem change, so there is nothing to
+/// re-measure by hand here. The notice is an opaque panel lifted off the results,
+/// so the list underneath never reads through it; it holds open while the pointer
+/// is over it, so its actions stay reachable while they are in use.
 struct ReclaimBanner: View {
     enum Tone: Equatable, Sendable { case success, failure }
 
@@ -244,7 +245,6 @@ struct ReclaimBanner: View {
     let message: String
     let showsShowTrash: Bool
     let onShowTrash: () -> Void
-    let onRescan: () -> Void
     let onDismiss: () -> Void
 
     @Environment(\.colorSchemeContrast) private var contrast
@@ -291,9 +291,6 @@ struct ReclaimBanner: View {
                     .controlSize(.small)
                     .accessibilityHint(L10n.string("Opens the Trash in Finder"))
             }
-            Button(L10n.string("Rescan"), action: onRescan)
-                .controlSize(.small)
-                .buttonStyle(.borderedProminent)
             IconActionButton(symbol: "xmark", help: L10n.string("Dismiss"), surface: .inline, action: onDismiss)
         }
         .padding(.horizontal, DS.Spacing.large)

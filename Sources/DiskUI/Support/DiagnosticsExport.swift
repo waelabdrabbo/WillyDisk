@@ -75,27 +75,27 @@ public enum DiagnosticsExport {
         )
     }
 
-    /// The measurement the report may describe, if there is one. A live scan
-    /// reports its newest snapshot — counted work, never a projection — while a
-    /// quiet refresh reports the complete older run still on screen, because the
-    /// walk in flight publishes nothing.
+    /// The measurement the report may describe, if there is one: the finished
+    /// run, or the newest snapshot a running one has produced — counted work,
+    /// never a projection.
     private static func measuredSummary(of viewModel: ScanViewModel) -> ScanSummary? {
         switch viewModel.phase {
         case .finished, .cancelled:
             return viewModel.summary
         case .scanning:
-            return viewModel.isRefreshing ? viewModel.summary : viewModel.partialSummary
+            return viewModel.partialSummary
         case .idle, .failed:
             return nil
         }
     }
 
     private static func state(of viewModel: ScanViewModel) -> String {
-        if viewModel.isRefreshing { return "refreshing" }
         switch viewModel.phase {
         case .idle: return "idle"
         case .scanning: return "running"
-        case .finished: return "finished"
+        // A finished run whose tree is installed is being kept current, which is
+        // what the report's numbers describe.
+        case .finished: return viewModel.liveTree == nil ? "finished" : "live"
         case .cancelled: return "cancelled"
         case .failed: return "failed"
         }
@@ -118,10 +118,6 @@ public enum DiagnosticsExport {
             guard let measured else { return startTiming(for: viewModel) }
             return summaryTiming(measured, source: "cancelledSnapshot")
         case .scanning:
-            if viewModel.isRefreshing {
-                guard let measured else { return startTiming(for: viewModel) }
-                return summaryTiming(measured, source: "finishedSummary")
-            }
             guard let startedAt = viewModel.scanStartedAt else {
                 return Timing(source: "none", startedAt: nil, finishedAt: nil, elapsedSeconds: nil)
             }

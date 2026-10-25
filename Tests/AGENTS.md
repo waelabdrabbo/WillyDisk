@@ -17,6 +17,9 @@ Three targets with different jobs.
   (`find` / `du`) and probes the non-negotiables, covering scan correctness, the
   `ScanViewModel` state machine, the access notice, and the UI surface.
 
+Two opt-in benchmarks, `ScanBenchmarkTests` and `LiveTreeBenchmarkTests`, skip unless
+`WILLYDISK_BENCH_ROOT` points at a folder, so they never slow `swift test`.
+
 Assert real behavior. Do not add placeholder or mock data that reaches the shipped app,
 and do not assert fabricated progress — `fractionCompleted` must be `nil` whenever no
 reliable total exists.

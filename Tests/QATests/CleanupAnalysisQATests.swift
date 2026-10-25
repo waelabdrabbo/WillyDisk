@@ -3,8 +3,8 @@ import Foundation
 @testable import DiskCore
 @testable import DiskUI
 
-/// Verifies the cleanup heuristics: what they include, what they refuse to
-/// include, and the limits they disclose.
+/// Verifies the cleanup heuristics against a live tree: what they include, what
+/// they refuse to include, and the limits they disclose.
 final class CleanupAnalysisQATests: XCTestCase {
 
     private let now = Date(timeIntervalSince1970: 1_800_000_000)
@@ -21,7 +21,7 @@ final class CleanupAnalysisQATests: XCTestCase {
             file("/scan/small-old.bin", size: 100 * megabyte, modified: old),
         ])
 
-        let report = try XCTUnwrap(CleanupAnalysis.analyze(root: root, now: now))
+        let report = try XCTUnwrap(CleanupAnalysis.analyze(in: tree(root), now: now))
         let group = try XCTUnwrap(report.groups.first { $0.kind == .largeAndOld })
 
         XCTAssertEqual(group.matchCount, 1)
@@ -30,12 +30,19 @@ final class CleanupAnalysisQATests: XCTestCase {
 
     func testAFolderIsNeverOfferedAsALargeOldFile() throws {
         let old = now.addingTimeInterval(-400 * 24 * 3600)
+        let recent = now.addingTimeInterval(-10 * 24 * 3600)
         let root = directory("/scan", children: [
-            directory("/scan/archive", size: 5_000 * megabyte, modified: old, children: []),
+            directory("/scan/archive", modified: old, children: [
+                file("/scan/archive/recent.bin", size: 5_000 * megabyte, modified: recent),
+            ]),
         ])
 
-        let report = try XCTUnwrap(CleanupAnalysis.analyze(root: root, now: now))
-        XCTAssertTrue(try XCTUnwrap(report.groups.first { $0.kind == .largeAndOld }).candidates.isEmpty)
+        let report = try XCTUnwrap(CleanupAnalysis.analyze(in: tree(root), now: now))
+        let group = try XCTUnwrap(report.groups.first { $0.kind == .largeAndOld })
+        XCTAssertTrue(
+            group.candidates.isEmpty,
+            "a folder's size is its children's; only files are offered as large and old"
+        )
     }
 
     // MARK: - Caches
@@ -44,13 +51,12 @@ final class CleanupAnalysisQATests: XCTestCase {
         let old = now.addingTimeInterval(-400 * 24 * 3600)
         let cacheFile = file("/scan/Library/Caches/com.example/blob.bin",
                              size: 700 * megabyte, modified: old)
-        let caches = directory("/scan/Library/Caches",
-                               size: 700 * megabyte, children: [cacheFile])
-        let library = directory("/scan/Library", size: 700 * megabyte, children: [caches])
+        let caches = directory("/scan/Library/Caches", children: [cacheFile])
+        let library = directory("/scan/Library", children: [caches])
         let document = file("/scan/Documents/big.bin", size: 600 * megabyte, modified: old)
         let root = directory("/scan", children: [library, document])
 
-        let report = try XCTUnwrap(CleanupAnalysis.analyze(root: root, now: now))
+        let report = try XCTUnwrap(CleanupAnalysis.analyze(in: tree(root), now: now))
         let cacheGroup = try XCTUnwrap(report.groups.first { $0.kind == .caches })
         let largeGroup = try XCTUnwrap(report.groups.first { $0.kind == .largeAndOld })
 
@@ -65,26 +71,25 @@ final class CleanupAnalysisQATests: XCTestCase {
         let old = now.addingTimeInterval(-400 * 24 * 3600)
         let appCache = file("/Users/me/Library/Caches/com.example/blob.bin",
                             size: 700 * megabyte, modified: old)
-        let sub = directory("/Users/me/Library/Caches/com.example",
-                            size: 700 * megabyte, children: [appCache])
-        let root = directory("/Users/me/Library/Caches", size: 700 * megabyte,
-                             children: [sub])
+        let sub = directory("/Users/me/Library/Caches/com.example", children: [appCache])
+        let root = directory("/Users/me/Library/Caches", children: [sub])
 
-        let report = try XCTUnwrap(CleanupAnalysis.analyze(root: root, now: now))
+        let report = try XCTUnwrap(CleanupAnalysis.analyze(in: tree(root), now: now))
         XCTAssertTrue(try XCTUnwrap(report.groups.first { $0.kind == .caches }).candidates.isEmpty)
     }
 
     func testDerivedDataIsRecognisedAsACache() throws {
-        let derived = directory("/scan/Library/Developer/Xcode/DerivedData",
-                                size: 2_000 * megabyte,
-                                children: [])
-        let xcode = directory("/scan/Library/Developer/Xcode", size: 2_000 * megabyte,
-                              children: [derived])
-        let developer = directory("/scan/Library/Developer", size: 2_000 * megabyte,
-                                  children: [xcode])
-        let library = directory("/scan/Library", size: 2_000 * megabyte, children: [developer])
+        let derived = directory("/scan/Library/Developer/Xcode/DerivedData", children: [
+            file("/scan/Library/Developer/Xcode/DerivedData/blob.bin",
+                 size: 2_000 * megabyte, modified: now),
+        ])
+        let xcode = directory("/scan/Library/Developer/Xcode", children: [derived])
+        let developer = directory("/scan/Library/Developer", children: [xcode])
+        let library = directory("/scan/Library", children: [developer])
 
-        let report = try XCTUnwrap(CleanupAnalysis.analyze(root: directory("/scan", children: [library]), now: now))
+        let report = try XCTUnwrap(
+            CleanupAnalysis.analyze(in: tree(directory("/scan", children: [library])), now: now)
+        )
         let cacheGroup = try XCTUnwrap(report.groups.first { $0.kind == .caches })
         XCTAssertEqual(cacheGroup.candidates.map(\.name), ["DerivedData"])
     }
@@ -102,7 +107,9 @@ final class CleanupAnalysisQATests: XCTestCase {
             file("/scan/Documents/old.pdf", size: 200 * megabyte, modified: old),
         ])
 
-        let report = try XCTUnwrap(CleanupAnalysis.analyze(root: directory("/scan", children: [downloads, documents]), now: now))
+        let report = try XCTUnwrap(
+            CleanupAnalysis.analyze(in: tree(directory("/scan", children: [downloads, documents])), now: now)
+        )
         let group = try XCTUnwrap(report.groups.first { $0.kind == .downloads })
 
         XCTAssertEqual(group.matchCount, 1)
@@ -120,7 +127,7 @@ final class CleanupAnalysisQATests: XCTestCase {
             file("/scan/small-b.bin", size: megabyte - 1, modified: now),
         ])
 
-        let report = try XCTUnwrap(CleanupAnalysis.analyze(root: root, now: now))
+        let report = try XCTUnwrap(CleanupAnalysis.analyze(in: tree(root), now: now))
 
         XCTAssertEqual(report.duplicateGroupCount, 1)
         let group = try XCTUnwrap(report.duplicateGroups.first)
@@ -136,7 +143,7 @@ final class CleanupAnalysisQATests: XCTestCase {
             file("/scan/small-b.bin", size: megabyte - 1, modified: now),
         ])
 
-        let report = try XCTUnwrap(CleanupAnalysis.analyze(root: root, now: now))
+        let report = try XCTUnwrap(CleanupAnalysis.analyze(in: tree(root), now: now))
         XCTAssertTrue(report.duplicateGroups.isEmpty)
         XCTAssertEqual(report.duplicateGroupCount, 0)
     }
@@ -147,7 +154,7 @@ final class CleanupAnalysisQATests: XCTestCase {
         })
         let policy = CleanupPolicy(maxDuplicateFilesPerGroup: 2)
 
-        let report = try XCTUnwrap(CleanupAnalysis.analyze(root: root, policy: policy, now: now))
+        let report = try XCTUnwrap(CleanupAnalysis.analyze(in: tree(root), policy: policy, now: now))
         let group = try XCTUnwrap(report.duplicateGroups.first)
 
         XCTAssertEqual(group.matchCount, 4)
@@ -165,7 +172,7 @@ final class CleanupAnalysisQATests: XCTestCase {
         ])
         let policy = CleanupPolicy(maxDuplicateGroups: 1)
 
-        let report = try XCTUnwrap(CleanupAnalysis.analyze(root: root, policy: policy, now: now))
+        let report = try XCTUnwrap(CleanupAnalysis.analyze(in: tree(root), policy: policy, now: now))
 
         XCTAssertEqual(report.duplicateGroupCount, 2)
         XCTAssertEqual(report.duplicateGroups.count, 1)
@@ -183,7 +190,7 @@ final class CleanupAnalysisQATests: XCTestCase {
         ])
         let policy = CleanupPolicy(maxCandidatesPerGroup: 2)
 
-        let report = try XCTUnwrap(CleanupAnalysis.analyze(root: root, policy: policy, now: now))
+        let report = try XCTUnwrap(CleanupAnalysis.analyze(in: tree(root), policy: policy, now: now))
         let group = try XCTUnwrap(report.groups.first { $0.kind == .largeAndOld })
 
         XCTAssertEqual(group.matchCount, 3)
@@ -198,16 +205,17 @@ final class CleanupAnalysisQATests: XCTestCase {
         let policy = CleanupPolicy(maxVisitedNodes: 2)
 
         let report = try XCTUnwrap(
-            CleanupAnalysis.analyze(root: directory("/scan", children: children), policy: policy, now: now)
+            CleanupAnalysis.analyze(in: tree(directory("/scan", children: children)), policy: policy, now: now)
         )
 
         XCTAssertTrue(report.stoppedAtLimit)
         XCTAssertLessThanOrEqual(report.visitedCount, policy.maxVisitedNodes + 1)
     }
 
-    func testCancellingStopsTheWalk() {
+    func testCancellingStopsTheWalk() throws {
         let root = directory("/scan", children: [file("/scan/a.bin", size: 1, modified: now)])
-        XCTAssertNil(CleanupAnalysis.analyze(root: root, now: now, isCancelled: { true }))
+        let live = try tree(root)
+        XCTAssertNil(CleanupAnalysis.analyze(in: live, now: now, isCancelled: { true }))
     }
 
     func testSymlinksAreNeverCandidates() throws {
@@ -219,9 +227,9 @@ final class CleanupAnalysisQATests: XCTestCase {
             isDirectory: false,
             isSymlink: true,
             category: .other,
-            logicalSize: 900 * megabyte,
+            logicalSize: 0,
             allocatedSize: 0,
-            fileCount: 1,
+            fileCount: 0,
             directoryCount: 0,
             modifiedAt: old,
             isAccessible: true,
@@ -229,7 +237,7 @@ final class CleanupAnalysisQATests: XCTestCase {
             children: []
         )
 
-        let report = try XCTUnwrap(CleanupAnalysis.analyze(root: directory("/scan", children: [link]), now: now))
+        let report = try XCTUnwrap(CleanupAnalysis.analyze(in: tree(directory("/scan", children: [link])), now: now))
         XCTAssertTrue(report.isEmpty)
     }
 
@@ -247,9 +255,43 @@ final class CleanupAnalysisQATests: XCTestCase {
 
     // MARK: - Fixtures
 
+    /// The live tree a fixture root describes. A folder's size and counts are its
+    /// children's, which is what the arena requires of every subtree.
+    private func tree(
+        _ root: ScanNode,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) throws -> LiveTree {
+        var categories: [FileCategory: Int64] = [:]
+        func visit(_ node: ScanNode) {
+            if !node.isDirectory, node.fileCount > 0 {
+                categories[node.category, default: 0] += node.logicalSize
+            }
+            node.children.forEach(visit)
+        }
+        visit(root)
+        let summary = ScanSummary(
+            root: root.url,
+            totalLogicalSize: root.logicalSize,
+            totalAllocatedSize: root.allocatedSize,
+            fileCount: root.fileCount,
+            directoryCount: root.directoryCount,
+            inaccessibleCount: 0,
+            errorCount: 0,
+            permissionDeniedCount: 0,
+            surfacedIssueCount: 0,
+            startedAt: Date(timeIntervalSince1970: 0),
+            finishedAt: Date(timeIntervalSince1970: 1),
+            categoryBreakdown: categories,
+            largestFiles: [],
+            largestDirectories: [root],
+            rootChildren: []
+        )
+        return try XCTUnwrap(LiveTree(scanning: summary), file: file, line: line)
+    }
+
     private func directory(
         _ path: String,
-        size: Int64 = 0,
         modified: Date? = nil,
         children: [ScanNode]
     ) -> ScanNode {
@@ -260,10 +302,10 @@ final class CleanupAnalysisQATests: XCTestCase {
             isDirectory: true,
             isSymlink: false,
             category: .other,
-            logicalSize: size,
-            allocatedSize: size,
-            fileCount: children.filter { !$0.isDirectory }.count,
-            directoryCount: 1,
+            logicalSize: children.reduce(0) { $0 + $1.logicalSize },
+            allocatedSize: children.reduce(0) { $0 + $1.allocatedSize },
+            fileCount: children.reduce(0) { $0 + $1.fileCount },
+            directoryCount: 1 + children.reduce(0) { $0 + $1.directoryCount },
             modifiedAt: modified,
             isAccessible: true,
             errorMessage: nil,

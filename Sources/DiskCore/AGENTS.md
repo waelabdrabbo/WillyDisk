@@ -41,15 +41,51 @@ ranked entries are the top 100 of each run, and an entry absent from a truncated
 list is only `new` when it outranks that list's cut-off — at or below it the comparison
 leaves the entry out. No difference is called a saving.
 
+## Live tree (`Live/`)
+
+`LiveTree` is the arena the results screen reads: 56 bytes per entry plus one
+append-only UTF-8 name blob, subtree aggregates stored on every node, and a small edit
+vocabulary (`insert`, `updateFile`, `touch`, `move`, `remove`) applied in batches under
+one lock. A batch that changes anything bumps `revision` once; a batch that changes
+nothing does not. Ids carry a generation, so a removed entry can never be mistaken for a
+later entry that reused its slot. `scanNode(for:depth:)` materializes the frozen
+`ScanNode` for surfaces that still need it, with an id derived from the entry's so a
+redraw keeps row identity, and `LiveTree(scanning:)` refuses a summary whose totals
+disagree with the tree it would build. A watcher's folders are applied to this tree as
+measured edits; the tree never holds an invented one. `docs/LIVE-TREE.md` has the model,
+the invariants, and the migration.
+
+The engine fills the tree as it walks: `FileScanEngine` conforms to
+`LiveTreeScanning`, and `FileScanner` inserts a folder when it is claimed, a folder's
+files and link leaves in **one batch** when its listing is done (one lock, one ancestor
+walk — the batch must never look up a sibling by name, or a wide folder becomes
+quadratic), and the folder's own metadata when its subtree finishes. The updater's inserts
+use `Edit.insertNew` for the same reason: it has just diffed the names, so the tree need
+not scan every sibling to look for one. The tree is handed over just before `.finished`,
+and only when it matches the summary the same walk built.
+
+`LiveTreeUpdater` is the actor that turns the folders a watcher reports into edits: it
+re-lists a folder with `DirectoryReader`, writes files from their own `stat`, removes
+vanished entries, and measures a folder that arrived by running its own `ScanEngine` on
+it once (a separate instance, so a subtree walk never takes the app's scan slot).
+`LiveTreePolicy` carries the scan's rules and every entry is re-checked against them.
+A folder is reconciled whole or not at all: over the subtree-scan budget it comes back
+in `Batch.deferred` with nothing written, and nested folders under another changed folder
+are dropped because listing the outer one answers both.
+
 ## Watching (`Watching/`)
 
-One FSEvents stream per root, owned by `ScanTreeWatcher`; `ScanWatchScope` is the only
-place that decides whether an event path belongs to what a scan measured. Its rules
-mirror the request: canonical `realpath` root and exclusions, an exclusion at or above
-the root ignored, the same `stayOnVolume` device rule as the traversal, and
-`/System/Volumes/Data/…` mapped to `/…` when the root is `/`. The callback runs on a
-private serial queue; `start` and `stop` are safe from any thread. A watcher never edits
-the tree or a summary — it only reports that a re-measurement is due.
+One item-level FSEvents stream per root, owned by `ScanTreeWatcher`. `ScanItemEvent`
+reduces each item event to the folder it changes (a file's event is its parent, a
+directory's own entry change is the directory) and drops the metadata events that
+cannot change what a scan measured. `ScanWatchScope` is the only place that decides
+whether that folder belongs to the scan. Its rules mirror the request: canonical
+`realpath` root and exclusions, an exclusion at or above the root ignored, the same
+`stayOnVolume` device rule as the traversal, and `/System/Volumes/Data/…` mapped to
+`/…` when the root is `/`. The callback runs on a private serial queue; `start` and
+`stop` are safe from any thread. The watcher itself never edits anything: it reports
+the folders, and `LiveTreeUpdater` applies the measured edits to the tree. A
+`ScanSummary` is never edited.
 
 ## Testing
 

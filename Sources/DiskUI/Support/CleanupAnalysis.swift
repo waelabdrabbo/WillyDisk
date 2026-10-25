@@ -140,8 +140,12 @@ public struct CleanupPolicy: Equatable, Sendable {
 public enum CleanupAnalysis {
 
     /// Returns nil when the caller cancelled before the walk finished.
+    ///
+    /// The walk reads the live tree, so a folder that changed or arrived since
+    /// the scan is judged on what it holds now. Every number and date it uses was
+    /// measured; nothing here touches the filesystem.
     public static func analyze(
-        root: ScanNode,
+        in tree: LiveTree,
         policy: CleanupPolicy = .standard,
         now: Date = Date(),
         isCancelled: @Sendable () -> Bool = { false }
@@ -153,13 +157,18 @@ public enum CleanupAnalysis {
 
         let largeCutoff = now.addingTimeInterval(-policy.largeFileAge)
         let downloadCutoff = now.addingTimeInterval(-policy.downloadAge)
-        let rootPath = root.url.standardizedFileURL.path
+        let rootName = tree.entry(for: LiveTree.rootID)?.name
 
         var visited = 0
         var stoppedAtLimit = false
-        var stack: [(node: ScanNode, inDownloads: Bool)] = [(root, root.name == "Downloads")]
+        // The scan root itself is never offered: the reclaim guard would refuse
+        // it, and a root that happens to be a cache is the reason the person is
+        // looking, not a candidate. The walk starts at its entries.
+        var stack: [(entry: LiveEntry, parentName: String?, inDownloads: Bool)] = tree
+            .children(of: LiveTree.rootID)
+            .map { ($0, rootName, rootName == "Downloads") }
 
-        while let entry = stack.popLast() {
+        while let item = stack.popLast() {
             if isCancelled() { return nil }
             visited += 1
             if visited > policy.maxVisitedNodes {
@@ -167,46 +176,47 @@ public enum CleanupAnalysis {
                 break
             }
 
-            let node = entry.node
+            let node = item.entry
             if node.isSymlink { continue }
 
-            if node.isDirectory {
-                // The scan root itself is never offered: the reclaim guard would
-                // refuse it, and a root that happens to be a cache is the reason
-                // the person is looking, not a candidate.
-                if node.url.standardizedFileURL.path != rootPath, isCacheRoot(node) {
+            if node.kind == .directory {
+                if isCacheRoot(name: node.name, parentName: item.parentName) {
                     if node.logicalSize > 0 {
-                        caches.offer(node)
+                        caches.offer(CandidateFacts(of: node))
                     }
                     continue
                 }
-                let inDownloads = entry.inDownloads || node.name == "Downloads"
-                for child in node.children {
-                    stack.append((child, inDownloads))
+                let inDownloads = item.inDownloads || node.name == "Downloads"
+                for child in tree.children(of: node.id) {
+                    stack.append((child, node.name, inDownloads))
                 }
                 continue
             }
 
             if node.logicalSize >= policy.duplicateMinimum {
-                duplicateSizes.offer(node)
+                duplicateSizes.offer(CandidateFacts(of: node))
             }
 
             if node.logicalSize >= policy.largeFileMinimum,
                let modified = node.modifiedAt,
                modified <= largeCutoff {
-                largeAndOld.offer(node)
+                largeAndOld.offer(CandidateFacts(of: node))
             }
 
-            if entry.inDownloads,
+            if item.inDownloads,
                let modified = node.modifiedAt,
                modified <= downloadCutoff {
-                downloads.offer(node)
+                downloads.offer(CandidateFacts(of: node))
             }
         }
 
-        let duplicates = duplicateSizes.finish(maxGroups: policy.maxDuplicateGroups)
+        let duplicates = duplicateSizes.finish(maxGroups: policy.maxDuplicateGroups, tree: tree)
         return CleanupReport(
-            groups: [largeAndOld.finish(), caches.finish(), downloads.finish()],
+            groups: [
+                largeAndOld.finish(tree: tree),
+                caches.finish(tree: tree),
+                downloads.finish(tree: tree),
+            ],
             duplicateGroups: duplicates.groups,
             duplicateGroupCount: duplicates.totalGroupCount,
             visitedCount: visited,
@@ -215,16 +225,29 @@ public enum CleanupAnalysis {
         )
     }
 
-    /// A cache folder by path: `Library/Caches`, or Xcode's `DerivedData`.
-    static func isCacheRoot(_ node: ScanNode) -> Bool {
-        guard node.isDirectory else { return false }
-        let components = node.url.standardizedFileURL.pathComponents
-        guard components.count >= 2 else { return false }
-        let name = components[components.count - 1]
-        let parent = components[components.count - 2]
-        if name == "Caches", parent == "Library" { return true }
-        if name == "DerivedData", parent == "Xcode" { return true }
+    /// A cache folder by name and parent: `Library/Caches`, or Xcode's
+    /// `DerivedData`. Read from the walk's own parent rather than a path, so the
+    /// test needs no path building for every entry.
+    static func isCacheRoot(name: String, parentName: String?) -> Bool {
+        guard let parentName else { return false }
+        if name == "Caches", parentName == "Library" { return true }
+        if name == "DerivedData", parentName == "Xcode" { return true }
         return false
+    }
+
+    /// The measured facts of one entry, enough to rank and materialize it later.
+    private struct CandidateFacts {
+        let id: LiveNodeID
+        let logicalSize: Int64
+        let allocatedSize: Int64
+        let modifiedAt: Date?
+
+        init(of entry: LiveEntry) {
+            self.id = entry.id
+            self.logicalSize = entry.logicalSize
+            self.allocatedSize = entry.allocatedSize
+            self.modifiedAt = entry.modifiedAt
+        }
     }
 
     /// Keeps the largest matches while counting every match.
@@ -238,18 +261,18 @@ public enum CleanupAnalysis {
         private(set) var matchCount = 0
         private(set) var totalLogicalSize: Int64 = 0
         private(set) var totalAllocatedSize: Int64 = 0
-        private var kept: [ScanNode] = []
+        private var kept: [CandidateFacts] = []
 
         init(kind: CleanupKind, capacity: Int) {
             self.kind = kind
             self.capacity = max(0, capacity)
         }
 
-        mutating func offer(_ node: ScanNode) {
+        mutating func offer(_ facts: CandidateFacts) {
             matchCount += 1
-            totalLogicalSize += max(0, node.logicalSize)
-            totalAllocatedSize += max(0, node.allocatedSize)
-            kept.append(node)
+            totalLogicalSize += max(0, facts.logicalSize)
+            totalAllocatedSize += max(0, facts.allocatedSize)
+            kept.append(facts)
             // Trim as the walk runs so a huge match set cannot grow without
             // bound; the final cut happens in `finish()`.
             if kept.count > max(capacity * 2, 16) {
@@ -257,19 +280,27 @@ public enum CleanupAnalysis {
             }
         }
 
-        func finish() -> CleanupGroup {
+        func finish(tree: LiveTree) -> CleanupGroup {
             var items = kept
             items.sort { lhs, rhs in
                 lhs.logicalSize == rhs.logicalSize
-                    ? lhs.url.path < rhs.url.path
+                    ? lhs.id < rhs.id
                     : lhs.logicalSize > rhs.logicalSize
             }
             if items.count > capacity {
                 items.removeLast(items.count - capacity)
             }
+            let candidates = items
+                .compactMap { tree.scanNode(for: $0.id) }
+                .map(CleanupCandidate.init)
+                .sorted { lhs, rhs in
+                    lhs.logicalSize == rhs.logicalSize
+                        ? lhs.url.path < rhs.url.path
+                        : lhs.logicalSize > rhs.logicalSize
+                }
             return CleanupGroup(
                 kind: kind,
-                candidates: items.map(CleanupCandidate.init),
+                candidates: candidates,
                 matchCount: matchCount,
                 totalLogicalSize: totalLogicalSize,
                 totalAllocatedSize: totalAllocatedSize
@@ -279,7 +310,7 @@ public enum CleanupAnalysis {
         private mutating func trim() {
             kept.sort { lhs, rhs in
                 lhs.logicalSize == rhs.logicalSize
-                    ? lhs.url.path < rhs.url.path
+                    ? lhs.id < rhs.id
                     : lhs.logicalSize > rhs.logicalSize
             }
             if kept.count > capacity {
@@ -294,31 +325,31 @@ public enum CleanupAnalysis {
     /// bounded group. A size that never repeats is dropped when the walk ends.
     private struct DuplicateSizeBuckets {
         let capacity: Int
-        private var firstBySize: [Int64: ScanNode] = [:]
+        private var firstBySize: [Int64: CandidateFacts] = [:]
         private var groups: [Int64: BoundedDuplicateGroup] = [:]
 
         init(capacity: Int) {
             self.capacity = max(2, capacity)
         }
 
-        mutating func offer(_ node: ScanNode) {
-            let size = max(0, node.logicalSize)
+        mutating func offer(_ facts: CandidateFacts) {
+            let size = max(0, facts.logicalSize)
             if var group = groups[size] {
-                group.offer(node)
+                group.offer(facts)
                 groups[size] = group
             } else if let first = firstBySize.removeValue(forKey: size) {
                 var group = BoundedDuplicateGroup(logicalSize: size, capacity: capacity)
                 group.offer(first)
-                group.offer(node)
+                group.offer(facts)
                 groups[size] = group
             } else {
-                firstBySize[size] = node
+                firstBySize[size] = facts
             }
         }
 
-        func finish(maxGroups: Int) -> (groups: [DuplicateSizeGroup], totalGroupCount: Int) {
+        func finish(maxGroups: Int, tree: LiveTree) -> (groups: [DuplicateSizeGroup], totalGroupCount: Int) {
             let totalGroupCount = groups.count
-            var finished = groups.values.map { $0.finish() }
+            var finished = groups.values.map { $0.finish(tree: tree) }
             finished.sort { lhs, rhs in
                 lhs.logicalSize == rhs.logicalSize
                     ? lhs.matchCount > rhs.matchCount
@@ -338,36 +369,42 @@ public enum CleanupAnalysis {
         let logicalSize: Int64
         let capacity: Int
         private(set) var matchCount = 0
-        private var kept: [ScanNode] = []
+        private var kept: [CandidateFacts] = []
 
         init(logicalSize: Int64, capacity: Int) {
             self.logicalSize = logicalSize
             self.capacity = max(2, capacity)
         }
 
-        mutating func offer(_ node: ScanNode) {
+        mutating func offer(_ facts: CandidateFacts) {
             matchCount += 1
-            kept.append(node)
+            kept.append(facts)
             if kept.count > max(capacity * 2, 16) {
                 trim()
             }
         }
 
-        func finish() -> DuplicateSizeGroup {
-            var items = kept
-            items.sort { $0.url.path < $1.url.path }
-            if items.count > capacity {
-                items.removeLast(items.count - capacity)
+        func finish(tree: LiveTree) -> DuplicateSizeGroup {
+            var candidates = kept.compactMap { facts -> CleanupCandidate? in
+                guard let node = tree.scanNode(for: facts.id) else { return nil }
+                return CleanupCandidate(node: node)
+            }
+            candidates.sort { $0.url.path < $1.url.path }
+            if candidates.count > capacity {
+                candidates.removeLast(candidates.count - capacity)
             }
             return DuplicateSizeGroup(
                 logicalSize: logicalSize,
-                candidates: items.map(CleanupCandidate.init),
+                candidates: candidates,
                 matchCount: matchCount
             )
         }
 
+        /// The trim keeps the first entry ids while the walk is going, so a huge
+        /// size group cannot grow without bound; the final cut is by path once the
+        /// tree is in hand.
         private mutating func trim() {
-            kept.sort { $0.url.path < $1.url.path }
+            kept.sort { $0.id < $1.id }
             if kept.count > capacity {
                 kept.removeLast(kept.count - capacity)
             }

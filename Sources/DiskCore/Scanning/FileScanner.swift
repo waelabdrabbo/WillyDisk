@@ -100,11 +100,16 @@ enum FileScanner {
 
     // MARK: - Entry point
 
+    /// Walks `request`. When `liveTree` is given, the walk fills a `LiveTree` as
+    /// it goes and reports it just before the terminal event, once the tree is
+    /// known to agree with the summary. It is reported before `.finished` so a
+    /// consumer that reacts to the terminal event can always take it.
     static func run(
         request: ScanRequest,
         access: FileSystemAccess = .live,
         cadence: SnapshotCadence = .production,
         concurrency: Int = FileScanner.defaultConcurrency,
+        liveTree: (@Sendable (LiveTree) -> Void)? = nil,
         emit: @escaping @Sendable (ScanEvent) -> Void
     ) async {
         let startDate = Date()
@@ -219,6 +224,9 @@ enum FileScanner {
         }
 
         let rootResolvedPath = access.resolvedPath(rootPath)
+        let tree = liveTree == nil
+            ? nil
+            : LiveTree(rootName: rootName, rootURL: request.root, isSymlink: rootIsSymlink)
         let context = ScanContext(
             request: request,
             access: access,
@@ -228,6 +236,7 @@ enum FileScanner {
             rootResolvedPath: rootResolvedPath,
             exclusions: exclusionIndex(in: request, access: access, rootResolvedPath: rootResolvedPath),
             startDate: startDate,
+            liveTree: tree,
             emit: emit
         )
 
@@ -236,7 +245,8 @@ enum FileScanner {
             name: rootName,
             isSymlink: rootIsSymlink,
             stat: scanStat,
-            relation: .root
+            relation: .root,
+            liveSlot: tree == nil ? nil : LiveTree.rootID
         )
 
         if context.isCancelled {
@@ -246,7 +256,13 @@ enum FileScanner {
         if context.workUnits > 0 {
             emit(.progress(context.progress(finishedAt: Date())))
         }
-        emit(.finished(context.summary(finishedAt: Date())))
+        let summary = context.summary(finishedAt: Date())
+        // The tree is only handed on when it agrees with the summary the same
+        // walk produced; otherwise the caller keeps the summary alone.
+        if let tree, let liveTree, tree.matches(summary) {
+            liveTree(tree)
+        }
+        emit(.finished(summary))
     }
 
     // MARK: - Small helpers
@@ -433,6 +449,8 @@ enum FileScanner {
         let name: String
         let isSymlink: Bool
         let stat: FileStat
+        /// The live tree's entry for this folder, when the walk is filling one.
+        let slot: LiveNodeID?
     }
 
     /// Where a directory sits relative to the scan root, which is what decides
@@ -528,6 +546,8 @@ enum FileScanner {
         let rootResolvedPath: String
         let exclusions: ExclusionIndex
         let startDate: Date
+        /// The tree this walk fills as it goes, when the caller asked for one.
+        let liveTree: LiveTree?
         let emit: @Sendable (ScanEvent) -> Void
 
         private let lock: OSAllocatedUnfairLock<WalkState>
@@ -544,6 +564,7 @@ enum FileScanner {
             rootResolvedPath: String,
             exclusions: ExclusionIndex,
             startDate: Date,
+            liveTree: LiveTree?,
             emit: @escaping @Sendable (ScanEvent) -> Void
         ) {
             self.request = request
@@ -553,6 +574,7 @@ enum FileScanner {
             self.rootResolvedPath = rootResolvedPath
             self.exclusions = exclusions
             self.startDate = startDate
+            self.liveTree = liveTree
             self.emit = emit
 
             let workerCount = max(1, concurrency)
@@ -973,7 +995,8 @@ enum FileScanner {
             isSymlink: Bool,
             stat: FileStat,
             relation: RootRelation = .deeper,
-            rootChild: String? = nil
+            rootChild: String? = nil,
+            liveSlot: LiveNodeID? = nil
         ) async -> ScanNode? {
             if Task.isCancelled {
                 markCancelled()
@@ -1060,7 +1083,8 @@ enum FileScanner {
                         name: entry.name,
                         stat: childStat,
                         isSymlink: false,
-                        checkClock: checkClock
+                        checkClock: checkClock,
+                        liveParent: liveSlot
                     ) {
                         subdirectories.append(pending)
                     }
@@ -1076,7 +1100,12 @@ enum FileScanner {
                         noteExcludedItem(path: childPath, checkClock: checkClock)
                         continue
                     }
-                    switch resolveSymlink(name: entry.name, path: childPath, stat: childStat) {
+                    switch resolveSymlink(
+                        name: entry.name,
+                        path: childPath,
+                        stat: childStat,
+                        liveParent: liveSlot
+                    ) {
                     case .child(let node, let targetStat):
                         noteEntry(path: childPath, file: node, stat: targetStat, checkClock: checkClock)
                         children.append(node)
@@ -1095,6 +1124,10 @@ enum FileScanner {
                     recordSpecialFile()
                     noteEntry(path: childPath, file: nil, checkClock: checkClock)
                 }
+            }
+
+            if let liveSlot, let liveTree {
+                liveTree.insertDiscovered(children, under: liveSlot)
             }
 
             // The work this directory has done on its own entries is credited
@@ -1156,7 +1189,8 @@ enum FileScanner {
                                     isSymlink: pending.isSymlink,
                                     stat: pending.stat,
                                     relation: relation.childOf,
-                                    rootChild: relation == .root ? pending.path : rootChild
+                                    rootChild: relation == .root ? pending.path : rootChild,
+                                    liveSlot: pending.slot
                                 ) {
                                     // A root child's own entries are listed the
                                     // moment each finishes, so a screen can open
@@ -1181,6 +1215,15 @@ enum FileScanner {
                         }
                     }
                 }
+            }
+
+            if let liveSlot, let liveTree {
+                liveTree.recordDirectoryMetadata(
+                    id: liveSlot,
+                    modifiedAt: stat.modifiedAt,
+                    isAccessible: isAccessible,
+                    errorMessage: errorMessage
+                )
             }
 
             directoryCount += 1   // count this directory itself
@@ -1217,7 +1260,8 @@ enum FileScanner {
             name: String,
             stat: FileStat,
             isSymlink: Bool,
-            checkClock: Bool
+            checkClock: Bool,
+            liveParent: LiveNodeID?
         ) -> PendingDirectory? {
             // A bulk read reports the *underlying* volume's device for a mount
             // point, so a mount point's real device has to be read directly —
@@ -1237,7 +1281,13 @@ enum FileScanner {
                 return true
             }
             guard claimed else { return nil }
-            return PendingDirectory(path: path, name: name, isSymlink: isSymlink, stat: stat)
+            let slot = liveTree?.insertDiscoveredDirectory(
+                under: liveParent ?? LiveTree.rootID,
+                name: name,
+                isSymlink: isSymlink,
+                modifiedAt: stat.modifiedAt
+            )
+            return PendingDirectory(path: path, name: name, isSymlink: isSymlink, stat: stat, slot: slot)
         }
 
         /// Claims a directory reached through a followed symlink.
@@ -1250,7 +1300,12 @@ enum FileScanner {
             }
         }
 
-        private func resolveSymlink(name: String, path: String, stat: FileStat) -> SymlinkOutcome? {
+        private func resolveSymlink(
+            name: String,
+            path: String,
+            stat: FileStat,
+            liveParent: LiveNodeID?
+        ) -> SymlinkOutcome? {
             guard request.followSymlinks else {
                 // Default safe behavior: represent the link as a zero-sized leaf, never follow.
                 recordSkippedSymbolicLink()
@@ -1282,7 +1337,15 @@ enum FileScanner {
                     recordSkippedSymbolicLink()
                     return nil
                 }
-                return .directory(PendingDirectory(path: path, name: name, isSymlink: true, stat: target))
+                let slot = liveTree?.insertDiscoveredDirectory(
+                    under: liveParent ?? LiveTree.rootID,
+                    name: name,
+                    isSymlink: true,
+                    modifiedAt: target.modifiedAt
+                )
+                return .directory(
+                    PendingDirectory(path: path, name: name, isSymlink: true, stat: target, slot: slot)
+                )
             }
 
             if target.isRegularFile {

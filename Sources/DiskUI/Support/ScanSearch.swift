@@ -106,6 +106,80 @@ public enum ScanSearch {
         )
     }
 
+    /// The same search over the live tree.
+    ///
+    /// The tree holds what the disk holds now, so a file created after the scan is
+    /// found and a deleted one is not. Names come from the tree; a path query
+    /// asks the tree for each entry's path, which is why it costs more than a
+    /// name query. The walk is bounded by the same visited cap and can be
+    /// cancelled between entries.
+    public static func results(
+        for query: String,
+        in tree: LiveTree,
+        limit: Int = resultLimit,
+        maxVisitedNodes: Int = visitedNodeLimit,
+        isCancelled: @Sendable () -> Bool = { false }
+    ) -> ScanSearchResults? {
+        let needle = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !needle.isEmpty else {
+            return ScanSearchResults(
+                query: needle,
+                matches: [],
+                matchCount: 0,
+                visitedCount: 0,
+                stoppedAtLimit: false
+            )
+        }
+
+        let options: String.CompareOptions = [.caseInsensitive, .diacriticInsensitive]
+        let matchesPaths = needle.contains("/")
+        let capacity = max(limit, 0)
+        var matches: [ScanNode] = []
+        var matchCount = 0
+        var visited = 0
+        var stoppedAtLimit = false
+        var cancelled = false
+
+        tree.walk { entry in
+            if cancelled { return .stop }
+            if isCancelled() {
+                cancelled = true
+                return .stop
+            }
+            if visited >= maxVisitedNodes {
+                stoppedAtLimit = true
+                return .stop
+            }
+            visited += 1
+
+            let matchesName = entry.name.range(of: needle, options: options) != nil
+            let matchesPath = matchesPaths
+                && (tree.path(of: entry.id)?.range(of: needle, options: options) != nil)
+            if matchesName || matchesPath {
+                matchCount += 1
+                if let node = tree.scanNode(for: entry.id) {
+                    matches.append(node)
+                    if matches.count > max(capacity * 2, 32) {
+                        matches = largest(matches, to: capacity)
+                    }
+                }
+            }
+            // A symbolic link is an entry by its own name; whatever it points at
+            // is not walked, exactly as the scan did not walk it.
+            if entry.kind == .directory && !entry.isSymlink { return .descend }
+            return .skipChildren
+        }
+        guard !cancelled else { return nil }
+
+        return ScanSearchResults(
+            query: needle,
+            matches: largest(matches, to: capacity),
+            matchCount: matchCount,
+            visitedCount: visited,
+            stoppedAtLimit: stoppedAtLimit
+        )
+    }
+
     /// The largest `capacity` matches, ordered the way the explorer's size sort
     /// is: bytes first, path second, so equal sizes have one stable order.
     private static func largest(_ nodes: [ScanNode], to capacity: Int) -> [ScanNode] {

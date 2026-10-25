@@ -22,6 +22,8 @@ Sources/
     Scanning/               # scan engine implementations
     Scanning/Contracts.swift# frozen protocols/types
     Watching/               # FSEvents watcher + the scope that filters its events
+    Live/                   # the live results tree: arena, edits, updater, build from a scan
+    History/                # scan records, the per-run store, the comparison
   DiskLocalization/         # string catalog + L10n (Foundation only)
     Localizable.xcstrings   #   source of truth; compiled into Resources/*.lproj
   DiskCLI/                  # `WillyDisk scan` front end (DiskCore + DiskLocalization)
@@ -35,7 +37,7 @@ Tests/
   DiskCLITests/             # command-line parsing, report, exit statuses
   QATests/                  # independent verification
 Scripts/bundle-app.sh       # builds the .app bundle
-docs/                       # ARCHITECTURE.md
+docs/                       # ARCHITECTURE.md, LIVE-TREE.md, ROADMAP.md
 ```
 
 `Package.swift` products: executable `WillyDisk`; libraries `DiskCore`, `DiskLocalization`,
@@ -241,19 +243,35 @@ carries the root node itself in `largestDirectories`.
   rate a person can see, never once per snapshot. While the explorer is being
   scrolled the newest snapshot is held and taken when the scroll ends, so a
   redraw never lands under a moving list.
-- Settled results can watch their root through the `TreeWatching` seam.
-  `ScanTreeWatcher` owns one FSEvents stream over the root; `ScanWatchScope` is the
-  only thing that decides whether an event belongs to what the scan measured, and it
-  mirrors the request's own rules: canonical `realpath` root and exclusions, an
+- Settled results read a live tree. `ScanTreeWatcher` owns one item-level FSEvents
+  stream over the root, so a batch names the files and folders that moved.
+  `ScanItemEvent` reduces each item to the folder it changes — a file's event is its
+  parent folder, a directory's own entry change is the directory — and drops events
+  that carry no creation, removal, rename, or write: owner, attribute, xattr, and clone
+  metadata cannot move a number a scan reported, and a busy root emits them
+  continuously. `ScanWatchScope` is the only thing that decides whether a folder
+  belongs to what the scan measured: canonical `realpath` root and exclusions, an
   exclusion at or above the root ignored, the same `stayOnVolume` device rule as the
-  traversal, and `/System/Volumes/Data/…` mapped back to `/…` for a `/` scan. A batch
-  only invalidates: the view model names the changed folder, marks the results stale,
-  and — when the run was within `RefreshPolicy.budget` and the user has left watching
-  on — re-runs the same `ScanRequest` in place after a quiet period and cooldown. A
-  refresh publishes no `.partial`, no progress, and no issue, so the old summary stays
-  the only measurement on screen until the terminal one replaces it. An automatic
-  refresh is not written to History; History records the runs the user started. The
-  watcher stops on Home, on a new scan, on cancellation, and when the root disappears.
+  traversal, and `/System/Volumes/Data/…` mapped back to `/…` for a `/` scan.
+  `LiveTree` holds the scan as a compact arena of measured entries, and the engine
+  fills it while it walks (`LiveTreeScanning`): a folder's entries are inserted in one
+  batch when its listing is done, and the tree is handed to the screen just before
+  `.finished`, only when it agrees with the summary the same walk produced.
+  `LiveTreeUpdater` reconciles each changed folder after that — a file from its own
+  `stat`, a vanished entry removed, a folder that arrived measured once with the engine
+  — under the scan's own `LiveTreePolicy`, so an edit can never put in the tree
+  something that scan would have skipped. A batch is applied after a short quiet period and bumps one
+  `revision`, so the screen rebuilds once. Nothing is re-measured and no run is too
+  slow to keep current: a whole-disk scan is as live as a home folder. The stale marker
+  is only for a screen that cannot follow a change (no tree, or the watch switched
+  off). Two questions need the whole tree rather than one folder: the explorer's
+  largest lists and the whole-scan search. Both walk it off the main actor, take the
+  lock per folder, and run on their own intervals — every entry they visit was
+  measured, though the answer is not a snapshot of one instant. The cleanup and
+  duplicate candidates and the category file list walk the tree the same way.
+  `ScanSummary` stays the scan's record — History, the CLI, export, diagnostics and the
+  coverage sheet describe the run, not the screen. The watcher stops on Home, on a new
+  scan, on cancellation, and when the root disappears.
 - `SourceSelectionView` offers quick-scan presets (Home, Downloads, Applications,
   Caches, Derived Data, Trash) that start the same real scan as picking the folder
   by hand, and lists the next scan's excluded paths in its Scan Options popover.
@@ -378,8 +396,9 @@ carries the root node itself in `largestDirectories`.
 
 ## 8. Non-negotiables
 
-Off-main-thread scanning; working cancellation; watchers that only invalidate a finished
-summary, never patch it; graceful permission failures; no automatic deletion (confirmation + clear identification only); no fabricated
+Off-main-thread scanning; working cancellation; a live results tree edited only with
+measured changes — never an invented one — and a `ScanSummary` that is never edited;
+graceful permission failures; no automatic deletion (confirmation + clear identification only); no fabricated
 progress/statistics; no invented reconciliation between a folder scan and a
 volume's used space; no dead controls; no placeholder/mock data in the shipped app; no
 user-visible literal outside the string catalog; no count built by concatenating a

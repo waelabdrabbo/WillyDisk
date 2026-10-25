@@ -216,8 +216,6 @@
 	<string>[Çáŧéĝöŕý······]</string>
 	<key>Change</key>
 	<string>[Çĥáñĝé····]</string>
-	<key>Changed in Finder: “%@”. Rescan.</key>
-	<string>[Çĥáñĝéð íñ Ƒíñðéŕ: “%@”. Ŕéšçáñ.······························]</string>
 	<key>Changes the interface language right away.</key>
 	<string>[Çĥáñĝéš ŧĥé íñŧéŕƒáçé ļáñĝúáĝé ŕíĝĥŧ áŵáý.········································]</string>
 	<key>Check Contents</key>
@@ -318,6 +316,8 @@
 	<string>[Çöṽéŕáĝé ŕéþöŕŧš ĥöŵ ɱáñý íŧéɱš ýöúŕ éẋçļúšíöñš šķíþþéð, šö á ñáŕŕöŵéŕ ŧöŧáļ íš ñéṽéŕ á šíļéñŧ öñé.·································································································]</string>
 	<key>Coverage…</key>
 	<string>[Çöṽéŕáĝé…·······]</string>
+	<key>Current contents. This scan finished %@. Nothing moves until you confirm.</key>
+	<string>[Çúŕŕéñŧ çöñŧéñŧš. Ŧĥíš šçáñ ƒíñíšĥéð %@. Ñöŧĥíñĝ ɱöṽéš úñŧíļ ýöú çöñƒíŕɱ.·······································································]</string>
 	<key>Dark</key>
 	<string>[Ðáŕķ····]</string>
 	<key>Dataless</key>
@@ -396,8 +396,6 @@
 	<string>[Ƒíļéš····]</string>
 	<key>Files and folders</key>
 	<string>[Ƒíļéš áñð ƒöļðéŕš···············]</string>
-	<key>Files changing in this folder update the results automatically.</key>
-	<string>[Ƒíļéš çĥáñĝíñĝ íñ ŧĥíš ƒöļðéŕ úþðáŧé ŧĥé ŕéšúļŧš áúŧöɱáŧíçáļļý.·····························································]</string>
 	<key>Files in a folder named Downloads that have not been modified in %@.</key>
 	<string>[Ƒíļéš íñ á ƒöļðéŕ ñáɱéð Ðöŵñļöáðš ŧĥáŧ ĥáṽé ñöŧ ƀééñ ɱöðíƒíéð íñ %@.··································································]</string>
 	<key>Files of at least %@ that have not been modified in %@.</key>
@@ -428,8 +426,6 @@
 	<string>[Ƒöļðéŕš ŧĥáŧ çĥáñĝéð··················]</string>
 	<key>Follow symbolic links</key>
 	<string>[Ƒöļļöŵ šýɱƀöļíç ļíñķš···················]</string>
-	<key>From the scan of %@. Nothing moves until you confirm.</key>
-	<string>[Ƒŕöɱ ŧĥé šçáñ öƒ %@. Ñöŧĥíñĝ ɱöṽéš úñŧíļ ýöú çöñƒíŕɱ.···················································]</string>
 	<key>Go up one level</key>
 	<string>[Ĝö úþ öñé ļéṽéļ·············]</string>
 	<key>Go up to %@</key>
@@ -770,12 +766,8 @@
 	<string>[Šçáññíñĝ······]</string>
 	<key>Scanning Unavailable</key>
 	<string>[Šçáññíñĝ Úñáṽáíļáƀļé··················]</string>
-	<key>Scanning since %@; %@ so far</key>
-	<string>[Šçáññíñĝ šíñçé %@; %@ šö ƒáŕ··························]</string>
 	<key>Scanning, %@</key>
 	<string>[Šçáññíñĝ, %@··········]</string>
-	<key>Scanning, %@ so far</key>
-	<string>[Šçáññíñĝ, %@ šö ƒáŕ·················]</string>
 	<key>Scanning, progress not yet measurable</key>
 	<string>[Šçáññíñĝ, þŕöĝŕéšš ñöŧ ýéŧ ɱéášúŕáƀļé···································]</string>
 	<key>Scanning…</key>
@@ -896,8 +888,6 @@
 	<string>[Ŧĥé çĥáŕŧ ɱáþš öñé ƒöļðéŕ áŧ á ŧíɱé. Çļéáŕ ŧĥé šéáŕçĥ ŧö ŕéŧúŕñ ŧö “%@”.······································································]</string>
 	<key>The folder changed after this scan. Rescan to see the current numbers.</key>
 	<string>[Ŧĥé ƒöļðéŕ çĥáñĝéð áƒŧéŕ ŧĥíš šçáñ. Ŕéšçáñ ŧö šéé ŧĥé çúŕŕéñŧ ñúɱƀéŕš.····································································]</string>
-	<key>The folder changed; the numbers are being re-measured.</key>
-	<string>[Ŧĥé ƒöļðéŕ çĥáñĝéð; ŧĥé ñúɱƀéŕš áŕé ƀéíñĝ ŕé-ɱéášúŕéð.····················································]</string>
 	<key>The folder is watched only while its results are on screen.</key>
 	<string>[Ŧĥé ƒöļðéŕ íš ŵáŧçĥéð öñļý ŵĥíļé íŧš ŕéšúļŧš áŕé öñ šçŕééñ.·························································]</string>
 	<key>The item is still in place.</key>
@@ -934,6 +924,8 @@
 	<string>[Ŧĥéŕé íš ñö ƒíñíšĥéð šçáñ ŧö çĥéçķ ŧĥíš íŧéɱ áĝáíñšŧ. Ŕúñ á šçáñ, ŧĥéñ ŧŕý áĝáíñ.···············································································]</string>
 	<key>These items could not be read while scanning.</key>
 	<string>[Ŧĥéšé íŧéɱš çöúļð ñöŧ ƀé ŕéáð ŵĥíļé šçáññíñĝ.···········································]</string>
+	<key>These numbers update automatically as files change.</key>
+	<string>[Ŧĥéšé ñúɱƀéŕš úþðáŧé áúŧöɱáŧíçáļļý áš ƒíļéš çĥáñĝé.·················································]</string>
 	<key>These runs used different scan options. Some of the difference may be what each walk included — hidden items, other volumes, or excluded paths — rather than a change on disk.</key>
 	<string>[Ŧĥéšé ŕúñš úšéð ðíƒƒéŕéñŧ šçáñ öþŧíöñš. Šöɱé öƒ ŧĥé ðíƒƒéŕéñçé ɱáý ƀé ŵĥáŧ éáçĥ ŵáļķ íñçļúðéð — ĥíððéñ íŧéɱš, öŧĥéŕ ṽöļúɱéš, öŕ éẋçļúðéð þáŧĥš — ŕáŧĥéŕ ŧĥáñ á çĥáñĝé öñ ðíšķ.············································································································································································]</string>
 	<key>They can keep deleted blocks on this volume until macOS removes them. macOS does not expose a snapshot's size.</key>
@@ -992,12 +984,8 @@
 	<string>[Úñðéŕ á ɱíñúŧé············]</string>
 	<key>Unreadable locations</key>
 	<string>[Úñŕéáðáƀļé ļöçáŧíöñš··················]</string>
-	<key>Update the numbers when files change in the scanned folder. A long scan is offered a Rescan instead.</key>
-	<string>[Úþðáŧé ŧĥé ñúɱƀéŕš ŵĥéñ ƒíļéš çĥáñĝé íñ ŧĥé šçáññéð ƒöļðéŕ. Á ļöñĝ šçáñ íš öƒƒéŕéð á Ŕéšçáñ íñšŧéáð.··································································································]</string>
-	<key>Updating results</key>
-	<string>[Úþðáŧíñĝ ŕéšúļŧš··············]</string>
-	<key>Updating…</key>
-	<string>[Úþðáŧíñĝ…·······]</string>
+	<key>Update the numbers as files change in the scanned folder. A change is applied where it happened, so even a whole-disk scan stays current.</key>
+	<string>[Úþðáŧé ŧĥé ñúɱƀéŕš áš ƒíļéš çĥáñĝé íñ ŧĥé šçáññéð ƒöļðéŕ. Á çĥáñĝé íš áþþļíéð ŵĥéŕé íŧ ĥáþþéñéð, šö éṽéñ á ŵĥöļé-ðíšķ šçáñ šŧáýš çúŕŕéñŧ.·······································································································································]</string>
 	<key>Use the arrow keys to move through the list, Space to preview, and Return to open.</key>
 	<string>[Úšé ŧĥé áŕŕöŵ ķéýš ŧö ɱöṽé ŧĥŕöúĝĥ ŧĥé ļíšŧ, Šþáçé ŧö þŕéṽíéŵ, áñð Ŕéŧúŕñ ŧö öþéñ.················································································]</string>
 	<key>Used by the volume</key>
@@ -1014,18 +1002,14 @@
 	<string>[Ṽöļúɱéš·····]</string>
 	<key>Waiting for the first items…</key>
 	<string>[Ŵáíŧíñĝ ƒöŕ ŧĥé ƒíŕšŧ íŧéɱš…··························]</string>
-	<key>Watching</key>
-	<string>[Ŵáŧçĥíñĝ······]</string>
-	<key>Watching for changes</key>
-	<string>[Ŵáŧçĥíñĝ ƒöŕ çĥáñĝéš··················]</string>
 	<key>What coverage leaves out</key>
 	<string>[Ŵĥáŧ çöṽéŕáĝé ļéáṽéš öúŧ······················]</string>
 	<key>What this scan counted</key>
 	<string>[Ŵĥáŧ ŧĥíš šçáñ çöúñŧéð····················]</string>
 	<key>What this scan counted, and what it did not</key>
 	<string>[Ŵĥáŧ ŧĥíš šçáñ çöúñŧéð, áñð ŵĥáŧ íŧ ðíð ñöŧ·········································]</string>
-	<key>While these results are on screen, the scanned folder is watched: a change made in Finder updates the numbers without Rescan. A long scan is not repeated automatically — the results are marked stale and Rescan is offered.</key>
-	<string>[Ŵĥíļé ŧĥéšé ŕéšúļŧš áŕé öñ šçŕééñ, ŧĥé šçáññéð ƒöļðéŕ íš ŵáŧçĥéð: á çĥáñĝé ɱáðé íñ Ƒíñðéŕ úþðáŧéš ŧĥé ñúɱƀéŕš ŵíŧĥöúŧ Ŕéšçáñ. Á ļöñĝ šçáñ íš ñöŧ ŕéþéáŧéð áúŧöɱáŧíçáļļý — ŧĥé ŕéšúļŧš áŕé ɱáŕķéð šŧáļé áñð Ŕéšçáñ íš öƒƒéŕéð.···························································································································································································································]</string>
+	<key>While these results are on screen, the scanned folder is watched: a change made in Finder updates the numbers without Rescan. If watching is off, or the results could not be made live, they are marked out of date and Rescan is offered.</key>
+	<string>[Ŵĥíļé ŧĥéšé ŕéšúļŧš áŕé öñ šçŕééñ, ŧĥé šçáññéð ƒöļðéŕ íš ŵáŧçĥéð: á çĥáñĝé ɱáðé íñ Ƒíñðéŕ úþðáŧéš ŧĥé ñúɱƀéŕš ŵíŧĥöúŧ Ŕéšçáñ. Íƒ ŵáŧçĥíñĝ íš öƒƒ, öŕ ŧĥé ŕéšúļŧš çöúļð ñöŧ ƀé ɱáðé ļíṽé, ŧĥéý áŕé ɱáŕķéð öúŧ öƒ ðáŧé áñð Ŕéšçáñ íš öƒƒéŕéð.·········································································································································································································································]</string>
 	<key>WillyDisk</key>
 	<string>[ŴíļļýÐíšķ·······]</string>
 	<key>WillyDisk Diagnostics.json</key>

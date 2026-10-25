@@ -29,6 +29,13 @@ public struct SunburstView: View {
     private let centerLabel: String
     private let selectedNodeURL: URL?
     private let maxChildren: Int
+    /// Where a deeper ring's children come from. `nil` reads the node's own
+    /// children, which is what a snapshot carries; a live tree supplies the
+    /// entries it holds now instead.
+    private let children: ((ScanNode) -> [ScanNode])?
+    /// Bumped when the data behind the nodes changed without their identities
+    /// changing — a live tree's edit keeps an entry's id while its bytes move.
+    private let revision: Int
     @Binding private var hoveredURL: URL?
     private let onSelect: (ScanNode) -> Void
     /// What clicking the spindle hole does — going up one level — or nil when
@@ -52,6 +59,8 @@ public struct SunburstView: View {
         centerLabel: String,
         selectedNodeURL: URL? = nil,
         maxChildren: Int = DS.Sunburst.maxChildrenPerNode,
+        revision: Int = 0,
+        children: ((ScanNode) -> [ScanNode])? = nil,
         hoveredURL: Binding<URL?> = .constant(nil),
         onCenterTap: (() -> Void)? = nil,
         centerHint: String = L10n.string("Go up one level"),
@@ -61,6 +70,8 @@ public struct SunburstView: View {
         self.centerLabel = centerLabel
         self.selectedNodeURL = selectedNodeURL
         self.maxChildren = maxChildren
+        self.revision = revision
+        self.children = children
         self._hoveredURL = hoveredURL
         self.onCenterTap = onCenterTap
         self.centerHint = centerHint
@@ -72,8 +83,8 @@ public struct SunburstView: View {
         // part of drawing the chart — walking and ordering the node tree and
         // ranking every sibling group's colours — so they are derived once per
         // change of the data rather than once per redraw.
-        let layout = segmentsCache.layout(for: nodes, maxChildren: maxChildren) {
-            SunburstLayout.segments(roots: nodes, maxChildren: maxChildren)
+        let layout = segmentsCache.layout(for: nodes, maxChildren: maxChildren, revision: revision) {
+            SunburstLayout.segments(roots: nodes, maxChildren: maxChildren, children: children)
         }
         return chartSurface(segments: layout.segments, revision: layout.revision)
             // Keyboard focus joins the same shared state a pointer hover does, so
@@ -364,11 +375,21 @@ enum SunburstLayout {
     /// default density. The ceiling still applies, so a very long list turns
     /// its tail into the truthful aggregate instead of unbounded controls.
     static func segments(roots: [ScanNode], maxChildren: Int) -> [SunburstSegment] {
+        segments(roots: roots, maxChildren: maxChildren, children: nil)
+    }
+
+    /// The rings, with deeper children read from `children` when it is given.
+    static func segments(
+        roots: [ScanNode],
+        maxChildren: Int,
+        children: ((ScanNode) -> [ScanNode])?
+    ) -> [SunburstSegment] {
         segments(
             roots: roots,
             maxRings: DS.Sunburst.maxRings,
             maxChildren: maxChildren,
-            maxSegments: DS.Sunburst.maxSegments
+            maxSegments: DS.Sunburst.maxSegments,
+            children: children
         )
     }
 
@@ -399,7 +420,8 @@ enum SunburstLayout {
         roots: [ScanNode],
         maxRings: Int,
         maxChildren: Int,
-        maxSegments: Int = DS.Sunburst.maxSegments
+        maxSegments: Int = DS.Sunburst.maxSegments,
+        children: ((ScanNode) -> [ScanNode])? = nil
     ) -> [SunburstSegment] {
         var result: [SunburstSegment] = []
         var level: [Placed] = []
@@ -419,9 +441,11 @@ enum SunburstLayout {
         var ring = 2
         while ring <= maxRings, !level.isEmpty, result.count < maxSegments {
             var next: [Placed] = []
-            for parent in level where parent.node.isDirectory && !parent.node.children.isEmpty {
+            for parent in level where parent.node.isDirectory {
+                let deeper = children?(parent.node) ?? parent.node.children
+                guard !deeper.isEmpty else { continue }
                 appendRing(
-                    children: parent.node.children,
+                    children: deeper,
                     start: parent.start,
                     end: parent.end,
                     ring: ring,
@@ -826,18 +850,24 @@ private struct SunburstWedgeView: View, Equatable {
 private final class SunburstSegmentsCache {
     private var ids: [UUID] = []
     private var maxChildren = -1
+    private var sourceRevision = -1
     private var held: [SunburstSegment] = []
     private var revision = 0
 
-    func layout(for nodes: [ScanNode], maxChildren: Int, build: () -> [SunburstSegment])
-        -> (segments: [SunburstSegment], revision: Int) {
+    func layout(
+        for nodes: [ScanNode],
+        maxChildren: Int,
+        revision sourceRevision: Int,
+        build: () -> [SunburstSegment]
+    ) -> (segments: [SunburstSegment], revision: Int) {
         let ids = nodes.map(\.id)
-        guard ids != self.ids || maxChildren != self.maxChildren else {
+        guard ids != self.ids || maxChildren != self.maxChildren || sourceRevision != self.sourceRevision else {
             return (held, revision)
         }
         held = build()
         self.ids = ids
         self.maxChildren = maxChildren
+        self.sourceRevision = sourceRevision
         revision += 1
         return (held, revision)
     }

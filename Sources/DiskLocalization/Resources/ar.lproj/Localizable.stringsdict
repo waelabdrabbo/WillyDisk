@@ -698,54 +698,6 @@
 			<string>لا سنوات</string>
 		</dict>
 	</dict>
-	<key>Changed in Finder in %lld folders. Rescan.</key>
-	<dict>
-		<key>NSStringLocalizedFormatKey</key>
-		<string>%#@value@</string>
-		<key>value</key>
-		<dict>
-			<key>NSStringFormatSpecTypeKey</key>
-			<string>NSStringPluralRuleType</string>
-			<key>NSStringFormatValueTypeKey</key>
-			<string>lld</string>
-			<key>few</key>
-			<string>تغيّر في Finder %lld مجلدات. أعد الفحص.</string>
-			<key>many</key>
-			<string>تغيّر في Finder %lld مجلدًا. أعد الفحص.</string>
-			<key>one</key>
-			<string>تغيّر في Finder مجلد واحد. أعد الفحص.</string>
-			<key>other</key>
-			<string>تغيّر في Finder %lld مجلد. أعد الفحص.</string>
-			<key>two</key>
-			<string>تغيّر في Finder مجلدان. أعد الفحص.</string>
-			<key>zero</key>
-			<string>لم يتغيّر شيء في Finder. أعد الفحص.</string>
-		</dict>
-	</dict>
-	<key>Changed in Finder in %lld+ folders. Rescan.</key>
-	<dict>
-		<key>NSStringLocalizedFormatKey</key>
-		<string>%#@value@</string>
-		<key>value</key>
-		<dict>
-			<key>NSStringFormatSpecTypeKey</key>
-			<string>NSStringPluralRuleType</string>
-			<key>NSStringFormatValueTypeKey</key>
-			<string>lld</string>
-			<key>few</key>
-			<string>تغيّر في Finder %lld مجلدات أو أكثر. أعد الفحص.</string>
-			<key>many</key>
-			<string>تغيّر في Finder %lld مجلدًا أو أكثر. أعد الفحص.</string>
-			<key>one</key>
-			<string>تغيّر في Finder مجلد واحد أو أكثر. أعد الفحص.</string>
-			<key>other</key>
-			<string>تغيّر في Finder %lld مجلد أو أكثر. أعد الفحص.</string>
-			<key>two</key>
-			<string>تغيّر في Finder مجلدان أو أكثر. أعد الفحص.</string>
-			<key>zero</key>
-			<string>لم يتغيّر شيء في Finder. أعد الفحص.</string>
-		</dict>
-	</dict>
 	<key>Each size group keeps at most %lld files; the rest are not compared.</key>
 	<dict>
 		<key>NSStringLocalizedFormatKey</key>

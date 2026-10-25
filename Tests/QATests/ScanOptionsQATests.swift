@@ -249,9 +249,12 @@ final class ScanOptionsQATests: XCTestCase {
         let instant = ScanProvenance.settled(startedAt: started, finishedAt: started.addingTimeInterval(0.4))
         XCTAssertTrue(instant.hasSuffix("<1s"), instant)
 
-        let live = ScanProvenance.live(startedAt: started, now: started.addingTimeInterval(5))
-        XCTAssertTrue(live.hasPrefix("Scanning since "))
-        XCTAssertTrue(live.hasSuffix("5s so far"), live)
+        let compact = ScanProvenance.compactSettled(
+            startedAt: started,
+            finishedAt: started.addingTimeInterval(83)
+        )
+        XCTAssertTrue(compact.hasPrefix("Scanned "))
+        XCTAssertTrue(compact.hasSuffix("1m 23s"), compact)
     }
 
     // MARK: - Largest lists

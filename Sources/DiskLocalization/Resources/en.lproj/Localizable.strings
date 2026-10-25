@@ -216,8 +216,6 @@
 	<string>Category</string>
 	<key>Change</key>
 	<string>Change</string>
-	<key>Changed in Finder: “%@”. Rescan.</key>
-	<string>Changed in Finder: “%@”. Rescan.</string>
 	<key>Changes the interface language right away.</key>
 	<string>Changes the interface language right away.</string>
 	<key>Check Contents</key>
@@ -318,6 +316,8 @@
 	<string>Coverage reports how many items your exclusions skipped, so a narrower total is never a silent one.</string>
 	<key>Coverage…</key>
 	<string>Coverage…</string>
+	<key>Current contents. This scan finished %@. Nothing moves until you confirm.</key>
+	<string>Current contents. This scan finished %@. Nothing moves until you confirm.</string>
 	<key>Dark</key>
 	<string>Dark</string>
 	<key>Dataless</key>
@@ -396,8 +396,6 @@
 	<string>Files</string>
 	<key>Files and folders</key>
 	<string>Files and folders</string>
-	<key>Files changing in this folder update the results automatically.</key>
-	<string>Files changing in this folder update the results automatically.</string>
 	<key>Files in a folder named Downloads that have not been modified in %@.</key>
 	<string>Files in a folder named Downloads that have not been modified in %@.</string>
 	<key>Files of at least %@ that have not been modified in %@.</key>
@@ -428,8 +426,6 @@
 	<string>Folders that changed</string>
 	<key>Follow symbolic links</key>
 	<string>Follow symbolic links</string>
-	<key>From the scan of %@. Nothing moves until you confirm.</key>
-	<string>From the scan of %@. Nothing moves until you confirm.</string>
 	<key>Go up one level</key>
 	<string>Go up one level</string>
 	<key>Go up to %@</key>
@@ -770,12 +766,8 @@
 	<string>Scanning</string>
 	<key>Scanning Unavailable</key>
 	<string>Scanning Unavailable</string>
-	<key>Scanning since %@; %@ so far</key>
-	<string>Scanning since %@; %@ so far</string>
 	<key>Scanning, %@</key>
 	<string>Scanning, %@</string>
-	<key>Scanning, %@ so far</key>
-	<string>Scanning, %@ so far</string>
 	<key>Scanning, progress not yet measurable</key>
 	<string>Scanning, progress not yet measurable</string>
 	<key>Scanning…</key>
@@ -896,8 +888,6 @@
 	<string>The chart maps one folder at a time. Clear the search to return to “%@”.</string>
 	<key>The folder changed after this scan. Rescan to see the current numbers.</key>
 	<string>The folder changed after this scan. Rescan to see the current numbers.</string>
-	<key>The folder changed; the numbers are being re-measured.</key>
-	<string>The folder changed; the numbers are being re-measured.</string>
 	<key>The folder is watched only while its results are on screen.</key>
 	<string>The folder is watched only while its results are on screen.</string>
 	<key>The item is still in place.</key>
@@ -934,6 +924,8 @@
 	<string>There is no finished scan to check this item against. Run a scan, then try again.</string>
 	<key>These items could not be read while scanning.</key>
 	<string>These items could not be read while scanning.</string>
+	<key>These numbers update automatically as files change.</key>
+	<string>These numbers update automatically as files change.</string>
 	<key>These runs used different scan options. Some of the difference may be what each walk included — hidden items, other volumes, or excluded paths — rather than a change on disk.</key>
 	<string>These runs used different scan options. Some of the difference may be what each walk included — hidden items, other volumes, or excluded paths — rather than a change on disk.</string>
 	<key>They can keep deleted blocks on this volume until macOS removes them. macOS does not expose a snapshot's size.</key>
@@ -992,12 +984,8 @@
 	<string>Under a minute</string>
 	<key>Unreadable locations</key>
 	<string>Unreadable locations</string>
-	<key>Update the numbers when files change in the scanned folder. A long scan is offered a Rescan instead.</key>
-	<string>Update the numbers when files change in the scanned folder. A long scan is offered a Rescan instead.</string>
-	<key>Updating results</key>
-	<string>Updating results</string>
-	<key>Updating…</key>
-	<string>Updating…</string>
+	<key>Update the numbers as files change in the scanned folder. A change is applied where it happened, so even a whole-disk scan stays current.</key>
+	<string>Update the numbers as files change in the scanned folder. A change is applied where it happened, so even a whole-disk scan stays current.</string>
 	<key>Use the arrow keys to move through the list, Space to preview, and Return to open.</key>
 	<string>Use the arrow keys to move through the list, Space to preview, and Return to open.</string>
 	<key>Used by the volume</key>
@@ -1014,18 +1002,14 @@
 	<string>Volumes</string>
 	<key>Waiting for the first items…</key>
 	<string>Waiting for the first items…</string>
-	<key>Watching</key>
-	<string>Watching</string>
-	<key>Watching for changes</key>
-	<string>Watching for changes</string>
 	<key>What coverage leaves out</key>
 	<string>What coverage leaves out</string>
 	<key>What this scan counted</key>
 	<string>What this scan counted</string>
 	<key>What this scan counted, and what it did not</key>
 	<string>What this scan counted, and what it did not</string>
-	<key>While these results are on screen, the scanned folder is watched: a change made in Finder updates the numbers without Rescan. A long scan is not repeated automatically — the results are marked stale and Rescan is offered.</key>
-	<string>While these results are on screen, the scanned folder is watched: a change made in Finder updates the numbers without Rescan. A long scan is not repeated automatically — the results are marked stale and Rescan is offered.</string>
+	<key>While these results are on screen, the scanned folder is watched: a change made in Finder updates the numbers without Rescan. If watching is off, or the results could not be made live, they are marked out of date and Rescan is offered.</key>
+	<string>While these results are on screen, the scanned folder is watched: a change made in Finder updates the numbers without Rescan. If watching is off, or the results could not be made live, they are marked out of date and Rescan is offered.</string>
 	<key>WillyDisk</key>
 	<string>WillyDisk</string>
 	<key>WillyDisk Diagnostics.json</key>

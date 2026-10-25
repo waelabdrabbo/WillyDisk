@@ -265,7 +265,7 @@ public struct SettingsView: View {
         Section {
             ScanOptionToggle(
                 title: L10n.string("Keep results current"),
-                detail: L10n.string("Update the numbers when files change in the scanned folder. A long scan is offered a Rescan instead."),
+                detail: L10n.string("Update the numbers as files change in the scanned folder. A change is applied where it happened, so even a whole-disk scan stays current."),
                 isOn: Binding(
                     get: { watchPreferences.keepsResultsCurrent },
                     set: { watchPreferences.keepsResultsCurrent = $0 }

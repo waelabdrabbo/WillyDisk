@@ -25,6 +25,7 @@ contracts, shared-interface rules §7, non-negotiables §8).
 | `Sources/DiskUI/Resources/AppMark.png` | the circular in-app mark the UI and About show |
 | `Sources/DiskCore/Models/` | frozen value model: `FileCategory`, `ScanNode`, `ScanSummary` |
 | `Sources/DiskCore/History/` | `ScanRecord` (versioned DTO), `ScanHistoryStore`, `ScanComparison` |
+| `Sources/DiskCore/Live/` | the live results tree: one compact arena of measured entries, the edits a filesystem change becomes, the updater that applies a folder re-listing, and the build from a finished scan |
 | `Sources/DiskCore/Scanning/Contracts.swift` | frozen `ScanRequest`, `ScanEvent`, `ScanProgress`, `ScanEngine`, `ScanIssueKind` |
 | `Sources/DiskLocalization/` | the string catalog and `L10n`; generated `.lproj` tables under `Resources/` |
 | `Sources/DiskCore/Scanning/` (the rest) | the scan engine and its filesystem plumbing |
@@ -54,7 +55,12 @@ the tree), `ScanHistoryStore.swift` the one-file-per-run store, and
 `ScanComparison.swift` the totals/category/entry comparison.
 `Watching/` holds `ScanTreeWatcher` (one FSEvents stream per root) and `ScanWatchScope`
 (the request's root, exclusions, and volume rule applied to event paths). A watcher only
-invalidates: it never edits a `ScanSummary`.
+reports changed folders; `LiveTreeUpdater` applies the measured edits to the live tree,
+and a `ScanSummary` is never edited.
+`Live/` holds the tree the results screen reads: `LiveTree.swift` is the compact
+arena and its measured edits, `LiveTreeUpdater.swift` turns a changed folder into those
+edits (with `LiveTreePolicy` keeping the scan's rules), and `LiveTree+ScanSummary.swift`
+builds one from a finished scan. `docs/LIVE-TREE.md` is the design and the migration.
 
 **`DiskUI` — SwiftUI.**
 `ScanViewModel.swift` is the `@MainActor @Observable` state machine that consumes

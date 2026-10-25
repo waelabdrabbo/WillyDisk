@@ -14,6 +14,12 @@ public enum ScanTreeWatchError: Error, Equatable {
 /// stream's. The callback runs on a private serial queue, so the handler must
 /// leave it quickly — the app's consumer hops to the main actor.
 ///
+/// The stream reports items, so a batch names the files and folders that moved.
+/// `ScanItemEvent` reduces each one to the folder it changes and drops the
+/// metadata events that cannot change what a scan measured. Events are never
+/// filtered by the process that caused them: a change this process made — moving
+/// an item to the Trash — is still a change to the tree the results describe.
+///
 /// The watcher holds no strong reference to its consumer: the handler is called
 /// with whatever the consumer retains, and stopping the watcher releases it.
 public final class ScanTreeWatcher: @unchecked Sendable {
@@ -25,6 +31,7 @@ public final class ScanTreeWatcher: @unchecked Sendable {
         kFSEventStreamCreateFlagUseCFTypes
             | kFSEventStreamCreateFlagWatchRoot
             | kFSEventStreamCreateFlagNoDefer
+            | kFSEventStreamCreateFlagFileEvents
     )
 
     private static let rootChangedFlag = FSEventStreamEventFlags(kFSEventStreamEventFlagRootChanged)
@@ -156,6 +163,7 @@ public final class ScanTreeWatcher: @unchecked Sendable {
         let usable = min(count, array.count)
         var raw: [String] = []
         raw.reserveCapacity(min(usable, ScanWatchScope.maxBatchPaths))
+        var seen = Set<String>()
         var coarse = false
         var rootMissing = false
 
@@ -163,8 +171,12 @@ public final class ScanTreeWatcher: @unchecked Sendable {
             let flag = flags[index]
             if flag & Self.rootChangedFlag != 0 { rootMissing = true }
             if flag & Self.coarseFlags != 0 { coarse = true }
-            if let path = array[index] as? String, !path.isEmpty {
-                raw.append(path)
+            guard raw.count < ScanWatchScope.maxBatchPaths,
+                  let path = array[index] as? String, !path.isEmpty,
+                  ScanItemEvent.changesMeasuredContents(flag) else { continue }
+            let folder = ScanItemEvent.folderPath(for: path, flags: flag)
+            if seen.insert(folder).inserted {
+                raw.append(folder)
             }
         }
 

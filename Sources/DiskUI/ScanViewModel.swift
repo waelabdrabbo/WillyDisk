@@ -20,31 +20,34 @@ public struct ScanIssue: Identifiable, Sendable, Hashable {
     }
 }
 
-/// How a settled screen decides to re-measure itself after a Finder change.
-public struct RefreshPolicy: Sendable, Equatable {
-    /// How long the root must stay quiet before an automatic refresh starts.
+/// How settled results absorb filesystem changes.
+///
+/// A change is applied to the live tree where it happened, so nothing is
+/// re-measured and no run is "too slow to keep current". The quiet period only
+/// batches the burst one Finder action produces, and the bounds keep a single
+/// batch from holding the updater in a long subtree walk.
+public struct LiveUpdatePolicy: Sendable, Equatable {
+    /// How long the root must stay quiet before a batch is applied.
     public var quietPeriod: Duration
-    /// The shortest gap between the end of one automatic refresh and the start
-    /// of the next.
-    public var cooldown: Duration
-    /// A scan that took longer than this is offered a Rescan instead of being
-    /// repeated automatically; the screen keeps the last honest measurement.
-    public var budget: TimeInterval
+    /// How many folders one batch reconciles.
+    public var maxFoldersPerBatch: Int
+    /// How many new folders one batch measures before the rest is deferred.
+    public var maxSubtreeScansPerBatch: Int
 
-    public static let standard = RefreshPolicy(
-        quietPeriod: .milliseconds(750),
-        cooldown: .seconds(5),
-        budget: 10
+    public static let standard = LiveUpdatePolicy(
+        quietPeriod: .milliseconds(200),
+        maxFoldersPerBatch: 512,
+        maxSubtreeScansPerBatch: 16
     )
 
     public init(
-        quietPeriod: Duration = .milliseconds(750),
-        cooldown: Duration = .seconds(5),
-        budget: TimeInterval = 10
+        quietPeriod: Duration = .milliseconds(200),
+        maxFoldersPerBatch: Int = 512,
+        maxSubtreeScansPerBatch: Int = 16
     ) {
         self.quietPeriod = quietPeriod
-        self.cooldown = cooldown
-        self.budget = budget
+        self.maxFoldersPerBatch = maxFoldersPerBatch
+        self.maxSubtreeScansPerBatch = maxSubtreeScansPerBatch
     }
 }
 
@@ -109,25 +112,20 @@ public final class ScanViewModel {
     /// When the scan on the slot started, for the results line before a snapshot
     /// carries its own timestamps.
     public private(set) var scanStartedAt: Date?
-    /// Set when something outside the engine changed the tree the summary
-    /// describes — moving an item to the Trash — so the screen can say the
-    /// numbers are older than the disk instead of presenting them as current.
-    /// Cleared when a scan starts over the same slot.
+    /// Set when the screen cannot follow a change and the numbers on it are
+    /// therefore older than the disk — no live tree, or no watch to feed one.
+    /// Cleared as soon as an applied batch brings the tree up to date.
     public private(set) var resultsAreStale = false
-    /// The folders the watcher reported changed since the results settled.
-    /// Bounded to what a badge can name; `changedFolderCount` counts the rest.
-    public private(set) var changedFolders: [URL] = []
-    public private(set) var changedFolderCount = 0
-    /// A batch named more folders than the badge keeps. The count is then a
-    /// lower bound and the screen says so rather than inventing the rest.
-    public private(set) var changedFoldersWereTruncated = false
     /// Whether a watcher is installed on the scan root.
     public private(set) var isWatching = false
-    /// Whether the results on screen are being re-measured in place. The old
-    /// summary stays visible until the new one lands.
-    public private(set) var isRefreshing = false
-    /// Whether a change is waiting out the quiet period before a refresh.
-    public private(set) var isRefreshPending = false
+    /// The tree the results screen reads: the finished scan as a live arena that
+    /// filesystem changes are applied to. Built off the main actor once a scan
+    /// settles; `nil` while it is being built and when it could not be built.
+    public private(set) var liveTree: LiveTree?
+    /// Whether the finished scan is still being turned into a live tree.
+    public private(set) var isBuildingLiveTree = false
+    /// Whether a batch of filesystem changes is being applied right now.
+    public private(set) var isApplyingChanges = false
     /// The outcome of the last trash request, kept until the screen dismisses it
     /// or a new scan starts.
     public private(set) var reclaimNotice: ReclaimNotice?
@@ -154,9 +152,6 @@ public final class ScanViewModel {
         var moved: [ReclaimCandidate] = []
         var failures: [String] = []
 
-        isReclaiming = true
-        changeDuringReclaim = false
-
         for candidate in candidates {
             var context = await ReclaimContextProbe.context(for: candidate.url, scanRoot: root)
             context.isScanning = isScanning
@@ -172,14 +167,10 @@ public final class ScanViewModel {
             }
         }
 
-        if !moved.isEmpty {
+        if !moved.isEmpty, liveTree == nil || !isWatching {
+            // A watched tree follows the move through the filesystem itself;
+            // without one the numbers on screen are now older than the disk.
             markResultsStale()
-        }
-
-        isReclaiming = false
-        if changeDuringReclaim {
-            changeDuringReclaim = false
-            scheduleRefresh()
         }
 
         let notice = makeReclaimNotice(moved: moved, failures: failures)
@@ -254,7 +245,7 @@ public final class ScanViewModel {
     /// edits the results; it only decides whether a change is re-measured.
     public let watchPreferences: WatchPreferences
     private let watcher: (any TreeWatching)?
-    private let refreshPolicy: RefreshPolicy
+    private let updatePolicy: LiveUpdatePolicy
     /// Where a finished scan is remembered. `nil` means this process does not
     /// keep history: the app shell supplies one so scans are recorded, while a
     /// test or a preview that drives a scan is not made to write into the user's
@@ -268,17 +259,17 @@ public final class ScanViewModel {
     /// Bumped whenever the watch starts or stops, so a batch delivered for an
     /// older root cannot mark the results that replaced it.
     private var watchGeneration = 0
-    /// A refresh waiting out its quiet period (and, if needed, the cooldown).
-    private var pendingRefresh: Task<Void, Never>?
-    /// When the last automatic refresh finished, for the cooldown.
-    private var lastAutomaticRefreshAt: ContinuousClock.Instant?
-    /// Whether a trash request is moving items right now, so a refresh never
-    /// measures the tree halfway through the batch.
-    private var isReclaiming = false
-    private var changeDuringReclaim = false
-    /// Every folder the current stale state is about, for counting without
-    /// growing the badge's list without bound.
-    private var changedFolderPaths: Set<String> = []
+    /// The finished scan being turned into a live tree, so a scan that is
+    /// replaced or reset never installs its tree over the next one.
+    private var liveTreeTask: Task<Void, Never>?
+    /// The one writer that applies filesystem changes to the tree.
+    private var updater: LiveTreeUpdater?
+    /// Folders the watcher reported that have not been reconciled yet.
+    private var pendingFolders: Set<String> = []
+    /// A batch waiting out the quiet period before it is applied.
+    private var pendingUpdate: Task<Void, Never>?
+    /// A hard bound on the folders a batch may hold while it waits.
+    private static let maxPendingFolders = 4_096
 
     /// The newest progressive snapshot that has not reached the screen yet.
     private var heldPartial: ScanSummary?
@@ -323,14 +314,14 @@ public final class ScanViewModel {
         history: ScanHistory? = nil,
         watchPreferences: WatchPreferences = .shared,
         watcher: (any TreeWatching)? = nil,
-        refreshPolicy: RefreshPolicy = .standard
+        updatePolicy: LiveUpdatePolicy = .standard
     ) {
         self.engine = engine
         self.reclaimController = ReclaimController()
         self.optionsStore = optionsStore
         self.watchPreferences = watchPreferences
         self.watcher = watcher
-        self.refreshPolicy = refreshPolicy
+        self.updatePolicy = updatePolicy
         self.history = history
     }
 
@@ -343,14 +334,14 @@ public final class ScanViewModel {
         history: ScanHistory? = nil,
         watchPreferences: WatchPreferences = .shared,
         watcher: (any TreeWatching)? = nil,
-        refreshPolicy: RefreshPolicy = .standard
+        updatePolicy: LiveUpdatePolicy = .standard
     ) {
         self.engine = engine
         self.reclaimController = reclaimController
         self.optionsStore = optionsStore
         self.watchPreferences = watchPreferences
         self.watcher = watcher
-        self.refreshPolicy = refreshPolicy
+        self.updatePolicy = updatePolicy
         self.history = history
     }
 
@@ -368,8 +359,8 @@ public final class ScanViewModel {
     /// Whether the user has asked the screen to keep itself current.
     public var isWatchingEnabled: Bool { watchPreferences.keepsResultsCurrent }
 
-    /// Whether an automatic update is waiting out its quiet period or running.
-    public var isUpdating: Bool { isRefreshing || isRefreshPending }
+    /// Whether a batch of filesystem changes is being applied to the tree.
+    public var isUpdating: Bool { isApplyingChanges }
 
     /// Whether the visible results come from a scan that stopped before it had
     /// covered the whole root, so the totals on screen are only part of it.
@@ -387,13 +378,30 @@ public final class ScanViewModel {
     /// snapshot (and after a cancel that produced none).
     public var liveSummary: ScanSummary? { summary ?? partialSummary }
 
-    public var filesScanned: Int { progress?.filesScanned ?? summary?.fileCount ?? 0 }
-    public var directoriesScanned: Int { progress?.directoriesScanned ?? summary?.directoryCount ?? 0 }
-    public var bytesScanned: Int64 { progress?.bytesScanned ?? summary?.totalLogicalSize ?? 0 }
+    public var filesScanned: Int { progress?.filesScanned ?? liveTree?.fileCount ?? summary?.fileCount ?? 0 }
+    public var directoriesScanned: Int { progress?.directoriesScanned ?? liveTree?.directoryCount ?? summary?.directoryCount ?? 0 }
+    public var bytesScanned: Int64 { progress?.bytesScanned ?? liveTree?.totalLogicalSize ?? summary?.totalLogicalSize ?? 0 }
     public var elapsed: TimeInterval { progress?.elapsed ?? 0 }
 
-    /// Total size to display — the finished total when done, else bytes so far.
-    public var displayedTotal: Int64 { summary?.totalLogicalSize ?? bytesScanned }
+    /// Total size to display: the engine's counted bytes while a scan runs, then
+    /// the live tree once it exists, and the finished summary before that.
+    public var displayedTotal: Int64 {
+        progress != nil ? bytesScanned : (liveTree?.totalLogicalSize ?? summary?.totalLogicalSize ?? bytesScanned)
+    }
+
+    /// The tree's entries for a folder, as the frozen nodes the screens draw.
+    ///
+    /// `nil` before the tree exists, so a screen can keep showing the summary
+    /// while a full disk is being turned into one.
+    public func liveChildren(atPath path: String) -> [ScanNode]? {
+        guard let tree = liveTree, let id = tree.id(atPath: path) else { return nil }
+        return tree.scanNodes(forChildrenOf: id)
+    }
+
+    /// The tree's node at a path, or `nil` before the tree exists.
+    public func liveNode(atPath path: String) -> ScanNode? {
+        liveTree?.scanNode(atPath: path)
+    }
 
     /// The bounded, classified view of this scan's issues for the UI.
     ///
@@ -424,11 +432,13 @@ public final class ScanViewModel {
             )
         case .finished:
             guard let summary else { return nil }
+            // The tree's numbers once it exists: the slot describes the results
+            // on screen, which keep moving after the scan settles.
             return ScanSlotPresentation(
                 root: root,
                 state: .finished,
-                filesScanned: summary.fileCount,
-                bytesScanned: summary.totalLogicalSize,
+                filesScanned: liveTree?.fileCount ?? summary.fileCount,
+                bytesScanned: liveTree?.totalLogicalSize ?? summary.totalLogicalSize,
                 fraction: nil
             )
         case .cancelled:
@@ -457,7 +467,7 @@ public final class ScanViewModel {
     /// running keeps running in the background, and its results stay available.
     public func showHome() {
         route = .home
-        cancelPendingRefresh()
+        cancelPendingUpdate()
         stopWatching()
     }
 
@@ -500,14 +510,7 @@ public final class ScanViewModel {
         scanStartedAt = .now
         resultsAreStale = false
         reclaimNotice = nil
-        changedFolders = []
-        changedFolderCount = 0
-        changedFoldersWereTruncated = false
-        changedFolderPaths = []
-        isRefreshing = false
-        isRefreshPending = false
-        lastAutomaticRefreshAt = nil
-        cancelPendingRefresh()
+        discardLiveTree()
         stopWatching()
         phase = .scanning
         resultsRevision &+= 1
@@ -519,9 +522,13 @@ public final class ScanViewModel {
             includeHidden: options.includeHidden,
             excludedPaths: options.excludedPaths
         )
-        let stream = engine.scan(request)
+        // An engine that fills a tree as it walks hands it over with the
+        // terminal event; anything else leaves the tree to be built from the
+        // summary afterwards.
+        let liveEngine = engine as? any LiveTreeScanning
+        let stream = liveEngine?.scan(request, buildingLiveTree: true) ?? engine.scan(request)
         scanTask = Task { [weak self] in
-            await self?.consume(stream, generation: generation)
+            await self?.consume(stream, generation: generation, liveEngine: liveEngine)
         }
     }
 
@@ -538,10 +545,9 @@ public final class ScanViewModel {
 
     /// Marks the results on the slot as older than the disk.
     ///
-    /// Used after an item is moved to the Trash. The tree the summary describes is
-    /// no longer what the engine measured, and rescanning a whole disk for one
-    /// removal would be worse than saying so: the screen keeps the last honest
-    /// totals, labels them stale, and offers Rescan.
+    /// Used when the screen has no way to follow a change — no live tree, or the
+    /// watch switched off — so the numbers it shows are older than the disk and
+    /// Rescan is the way to catch up.
     public func markResultsStale() {
         resultsAreStale = true
     }
@@ -577,14 +583,7 @@ public final class ScanViewModel {
         resultsAreStale = false
         reclaimNotice = nil
         blockedStartNotice = nil
-        changedFolders = []
-        changedFolderCount = 0
-        changedFoldersWereTruncated = false
-        changedFolderPaths = []
-        isRefreshing = false
-        isRefreshPending = false
-        lastAutomaticRefreshAt = nil
-        cancelPendingRefresh()
+        discardLiveTree()
         stopWatching()
         isResultsScrolling = false
         phase = .idle
@@ -601,6 +600,10 @@ public final class ScanViewModel {
 
     /// Matches the watch to what is on screen: settled results, on the results
     /// route, with the preference on. Anything else means no stream is open.
+    ///
+    /// A run's length does not decide whether it is watched: a change is applied
+    /// to the live tree where it happened, so a whole-disk scan is kept current
+    /// as cheaply as a home folder.
     private func updateWatching() {
         let shouldWatch = watcher != nil
             && watchPreferences.keepsResultsCurrent
@@ -611,7 +614,7 @@ public final class ScanViewModel {
         if shouldWatch {
             startWatching()
         } else {
-            cancelPendingRefresh()
+            cancelPendingUpdate()
             stopWatching()
         }
     }
@@ -644,190 +647,198 @@ public final class ScanViewModel {
         watcher?.stop()
     }
 
-    private func cancelPendingRefresh() {
-        pendingRefresh?.cancel()
-        pendingRefresh = nil
-        isRefreshPending = false
+    private func cancelPendingUpdate() {
+        pendingUpdate?.cancel()
+        pendingUpdate = nil
+        pendingFolders.removeAll()
     }
 
     /// One batch from the watcher, already filtered to the scan's own tree.
+    ///
+    /// The folders are collected, not reconciled one by one: a Finder action
+    /// arrives as a burst, and the tree is edited once for the whole of it.
     private func receive(_ change: ScanTreeChange, watchGeneration generation: Int) {
         guard generation == watchGeneration, isWatching, phase == .finished else { return }
 
         if change.rootMissing {
-            record(change)
-            cancelPendingRefresh()
+            cancelPendingUpdate()
             stopWatching()
             markResultsStale()
             return
         }
         guard !change.isEmpty else { return }
 
-        record(change)
-        markResultsStale()
+        for folder in change.folders where pendingFolders.count < Self.maxPendingFolders {
+            pendingFolders.insert(folder.path)
+        }
 
-        // Moving items changes the tree too; measuring it halfway through the
-        // batch would be a reading of neither state.
-        if isReclaiming {
-            changeDuringReclaim = true
+        guard liveTree != nil else {
+            // The tree is still being built for this scan; the same folders are
+            // applied the moment it exists. Without one the screen keeps the
+            // scan's own measurement and says it is older than the disk.
+            if !isBuildingLiveTree { markResultsStale() }
             return
         }
-        scheduleRefresh()
+        scheduleUpdate()
     }
 
-    private func record(_ change: ScanTreeChange) {
-        for folder in change.folders {
-            guard changedFolderPaths.insert(folder.path).inserted else { continue }
-            changedFolderCount += 1
-            if changedFolders.count < ScanWatchScope.maxReportedFolders {
-                changedFolders.append(folder)
-            }
-        }
-        if change.folderCount > change.folders.count {
-            changedFoldersWereTruncated = true
-        }
-    }
+    /// Waits out the quiet period, then applies everything collected.
+    ///
+    /// One pass runs at a time: while a pass is in flight new folders collect, and
+    /// the pass that is finishing drains them, so a long measurement never has a
+    /// second pass scheduled behind it.
+    private func scheduleUpdate() {
+        guard updater != nil, liveTree != nil, phase == .finished, !isScanning,
+              !isApplyingChanges else { return }
 
-    /// Waits out the quiet period — and the cooldown, if one is still running —
-    /// then re-measures the root.
-    private func scheduleRefresh() {
-        guard !isScanning, !isRefreshing, !isReclaiming else { return }
-        guard canRefreshAutomatically else { return }
-
-        pendingRefresh?.cancel()
-        isRefreshPending = true
-
-        let delay = max(refreshPolicy.quietPeriod, cooldownRemaining)
+        pendingUpdate?.cancel()
+        let delay = updatePolicy.quietPeriod
         let generation = scanGeneration
-        pendingRefresh = Task { [weak self] in
+        pendingUpdate = Task { [weak self] in
             if delay > .zero { try? await Task.sleep(for: delay) }
             guard !Task.isCancelled, let self, self.scanGeneration == generation else { return }
-            self.beginRefresh()
+            await self.applyPendingChanges()
         }
     }
 
-    /// A run that took longer than the budget is not repeated behind the user's
-    /// back; the screen says it is stale and offers Rescan instead.
-    private var canRefreshAutomatically: Bool {
-        guard let summary else { return false }
-        return summary.finishedAt.timeIntervalSince(summary.startedAt) <= refreshPolicy.budget
-    }
+    private func applyPendingChanges() async {
+        pendingUpdate = nil
+        // The pass in flight drains whatever arrived during it, so a task that
+        // wakes up mid-pass has nothing of its own to do.
+        guard !isApplyingChanges,
+              let updater, liveTree != nil, phase == .finished, !pendingFolders.isEmpty else { return }
 
-    private var cooldownRemaining: Duration {
-        guard let lastAutomaticRefreshAt else { return .zero }
-        let ready = lastAutomaticRefreshAt.advanced(by: refreshPolicy.cooldown)
-        return max(.zero, ContinuousClock().now.duration(to: ready))
-    }
-
-    /// Re-measures the root without clearing what is on screen.
-    ///
-    /// This is the one place a scan begins without discarding the previous
-    /// results: no snapshot, no progress, and no issue from the new walk reaches
-    /// the screen, and the old summary is replaced only by the new terminal one.
-    /// The request is the one the visible results came from, so a change cannot
-    /// silently narrow or widen what the numbers mean.
-    private func beginRefresh() {
-        pendingRefresh = nil
-        isRefreshPending = false
-
-        guard !isScanning, !isRefreshing, !isReclaiming,
-              watchPreferences.keepsResultsCurrent,
-              phase == .finished, route == .results,
-              let root = currentRoot, let engine,
-              canRefreshAutomatically else {
-            updateWatching()
-            return
-        }
-
-        stopWatching()
-        isRefreshing = true
-        phase = .scanning
-        scanTask?.cancel()
-        scanGeneration &+= 1
+        let folders = Array(pendingFolders.prefix(Self.maxPendingFolders))
+        pendingFolders.subtract(folders)
         let generation = scanGeneration
-        discardHeldPartial()
-        lastPartialAppliedAt = nil
+        isApplyingChanges = true
+        let batch = await updater.apply(changedFolders: folders)
+        isApplyingChanges = false
 
-        let request = ScanRequest(
+        guard generation == scanGeneration, liveTree != nil else { return }
+        if batch.changed {
+            resultsAreStale = false
+            resultsRevision &+= 1
+        }
+        for folder in batch.deferred where pendingFolders.count < Self.maxPendingFolders {
+            pendingFolders.insert(folder)
+        }
+        // Folders that arrived during the pass, and the ones it deferred, are the
+        // next pass's work.
+        if !pendingFolders.isEmpty { scheduleUpdate() }
+    }
+
+    // MARK: - The live tree
+
+    /// Turns a finished scan into the tree the screen edits.
+    ///
+    /// Building it walks the whole measured tree, which is seconds on a full disk,
+    /// so it happens off the main actor: the screen keeps showing the summary in
+    /// the meantime and switches to the tree when it lands. A tree that disagrees
+    /// with the scan it came from is refused by `LiveTree(scanning:)`; the screen
+    /// then stays on the summary and says when it is out of date.
+    private func prepareLiveTree(for summary: ScanSummary) {
+        liveTreeTask?.cancel()
+        cancelPendingUpdate()
+        liveTree = nil
+        updater = nil
+        isBuildingLiveTree = true
+        resultsRevision &+= 1
+
+        let generation = scanGeneration
+        let policy = liveTreePolicy(root: summary.root)
+        liveTreeTask = Task { [weak self] in
+            let tree = await Task.detached(priority: .userInitiated) {
+                LiveTree(scanning: summary)
+            }.value
+            guard !Task.isCancelled, let self, self.scanGeneration == generation else { return }
+            self.install(tree: tree, policy: policy)
+        }
+    }
+
+    /// The rules of the scan on the slot, for the tree that keeps applying them.
+    private func liveTreePolicy(root: URL) -> LiveTreePolicy {
+        LiveTreePolicy(ScanRequest(
             root: root,
             followSymlinks: lastOptions.followSymlinks,
             stayOnVolume: lastOptions.stayOnVolume,
             includeHidden: lastOptions.includeHidden,
             excludedPaths: lastOptions.excludedPaths
-        )
-        let stream = engine.scan(request)
-        scanTask = Task { [weak self] in
-            await self?.consume(stream, generation: generation)
+        ))
+    }
+
+    private func install(tree: LiveTree?, policy: LiveTreePolicy) {
+        isBuildingLiveTree = false
+        liveTree = tree
+        updater = tree.map {
+            LiveTreeUpdater(
+                tree: $0,
+                policy: policy,
+                maxFoldersPerBatch: updatePolicy.maxFoldersPerBatch,
+                maxSubtreeScansPerBatch: updatePolicy.maxSubtreeScansPerBatch
+            )
         }
+        resultsRevision &+= 1
+        // A scan that could not become a tree is not stale by itself; the next
+        // change it cannot follow is what marks the screen.
+        guard tree != nil else { return }
+        // Folders reported while the tree was being built are reconciled now.
+        if !pendingFolders.isEmpty { scheduleUpdate() }
+    }
+
+    private func discardLiveTree() {
+        liveTreeTask?.cancel()
+        liveTreeTask = nil
+        cancelPendingUpdate()
+        liveTree = nil
+        updater = nil
+        isBuildingLiveTree = false
+        isApplyingChanges = false
     }
 
     // MARK: - Event consumption
 
-    private func consume(_ stream: AsyncStream<ScanEvent>, generation: Int) async {
+    private func consume(
+        _ stream: AsyncStream<ScanEvent>,
+        generation: Int,
+        liveEngine: (any LiveTreeScanning)? = nil
+    ) async {
         for await event in stream {
             guard generation == scanGeneration else { return }
             switch event {
             case .started(let root):
                 currentRoot = root
             case .progress(let p):
-                // A refresh measures in place: its counters describe a walk the
-                // screen is not showing, so they never reach it.
-                guard !isRefreshing else { break }
                 progress = p
             case .issue(let kind, let path, let message):
-                guard !isRefreshing else { break }
                 issues.append(ScanIssue(path: path, message: message, kind: kind))
             case .partial(let snapshot):
-                guard !isRefreshing else { break }
                 hold(snapshot, generation: generation)
             case .finished(let s):
-                let wasRefresh = isRefreshing
                 discardHeldPartial()
                 summary = s
                 partialSummary = nil
                 progress = nil
                 phase = .finished
                 resultsAreStale = false
-                changedFolders = []
-                changedFolderCount = 0
-                changedFoldersWereTruncated = false
-                changedFolderPaths = []
-                isRefreshing = false
-                isRefreshPending = false
-                pendingRefresh = nil
                 resultsRevision &+= 1
-                // A refresh keeps the screen current; it is not a run the user
-                // asked to compare, so History stays the record of those.
-                if wasRefresh {
-                    // The cooldown runs from the end of the work so two long
-                    // refreshes cannot follow one another back to back.
-                    lastAutomaticRefreshAt = ContinuousClock().now
+                recordHistory(s)
+                if let tree = await liveEngine?.takeLiveTree() {
+                    // The walk built the tree; nothing here converts the summary.
+                    install(tree: tree, policy: liveTreePolicy(root: s.root))
                 } else {
-                    recordHistory(s)
+                    prepareLiveTree(for: s)
                 }
                 updateWatching()
             case .cancelled(let partial):
-                let wasRefresh = isRefreshing
                 discardHeldPartial()
-                if wasRefresh {
-                    // The complete older measurement is still the best answer on
-                    // screen; only its age is new. A stopped update is a decision
-                    // the watcher should not immediately undo.
-                    phase = .finished
-                    isRefreshing = false
-                    isRefreshPending = false
-                    pendingRefresh = nil
-                    resultsAreStale = true
-                    stopWatching()
-                } else {
-                    if let partial { summary = partial }
-                    partialSummary = nil
-                    progress = nil
-                    phase = .cancelled
-                    resultsRevision &+= 1
-                    if summary == nil { route = .home }
-                    updateWatching()
-                }
+                if let partial { summary = partial }
+                partialSummary = nil
+                progress = nil
+                phase = .cancelled
+                resultsRevision &+= 1
+                if summary == nil { route = .home }
+                updateWatching()
             }
         }
 
@@ -835,17 +846,6 @@ public final class ScanViewModel {
         // without one the scan is over either way, so the screen settles on what
         // it has instead of reporting a scan that is no longer running.
         guard generation == scanGeneration, phase == .scanning else { return }
-        if isRefreshing {
-            // The refresh never produced a terminal event, so what is on screen
-            // is still the complete measurement it started from.
-            phase = .finished
-            isRefreshing = false
-            isRefreshPending = false
-            pendingRefresh = nil
-            resultsAreStale = true
-            stopWatching()
-            return
-        }
         // A snapshot the cadence was still holding is the newest the engine
         // produced, so it is what the screen settles on.
         if let held = heldPartial { partialSummary = held }

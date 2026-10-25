@@ -66,6 +66,35 @@ final class ScanTreeWatcherTests: XCTestCase {
         )
     }
 
+    func testAFileEventNamesTheFolderThatHoldsIt() throws {
+        let root = try makeRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let nested = root.appendingPathComponent("nested", isDirectory: true)
+        try FileManager.default.createDirectory(at: nested, withIntermediateDirectories: true)
+
+        let watcher = ScanTreeWatcher(latency: 0.2)
+        let changes = Box<[ScanTreeChange]>([])
+        try watcher.start(root: root, excludedPaths: [], stayOnVolume: false) { change in
+            changes.mutate { $0.append(change) }
+        }
+        defer { watcher.stop() }
+
+        Thread.sleep(forTimeInterval: 0.2)
+        try Data("hello".utf8).write(to: nested.appendingPathComponent("inside.txt"))
+
+        XCTAssertTrue(waitForChange(changes), "FSEvents should report a file written in a subfolder")
+        Thread.sleep(forTimeInterval: 0.5)
+        let reported = changes.current.flatMap { $0.folders.map(\.path) }
+        XCTAssertTrue(
+            reported.contains(ScanWatchScope.canonicalPath(nested)),
+            "the file's own event should name the folder that holds it, got \(reported)"
+        )
+        XCTAssertFalse(
+            reported.contains(ScanWatchScope.canonicalPath(nested.appendingPathComponent("inside.txt"))),
+            "an item event is reported as its folder, never as the file"
+        )
+    }
+
     func testStoppingEndsDelivery() throws {
         let root = try makeRoot()
         defer { try? FileManager.default.removeItem(at: root) }

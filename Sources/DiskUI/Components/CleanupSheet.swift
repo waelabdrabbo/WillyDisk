@@ -26,7 +26,7 @@ public enum CleanupTab: String, CaseIterable, Identifiable, Sendable {
 /// in one place.
 @MainActor
 public struct CleanupSheet: View {
-    private let root: ScanNode
+    private let tree: LiveTree
     private let rootName: String
     private let scannedAt: Date
     private let policy: CleanupPolicy
@@ -46,8 +46,10 @@ public struct CleanupSheet: View {
     /// uses it so a screenshot does not race a background analysis.
     /// `previewDuplicateReport` does the same for a finished content check.
     /// `initialTab` lets a preview open the tab it needs to show.
+    /// `tree` is the live results tree the sheet analyses: the candidates are
+    /// what it holds now, not what the scan measured.
     public init(
-        root: ScanNode,
+        tree: LiveTree,
         rootName: String,
         scannedAt: Date,
         policy: CleanupPolicy = .standard,
@@ -57,7 +59,7 @@ public struct CleanupSheet: View {
         onMove: @escaping ([ScanNode]) -> Void,
         onClose: @escaping () -> Void
     ) {
-        self.root = root
+        self.tree = tree
         self.rootName = rootName
         self.scannedAt = scannedAt
         self.policy = policy
@@ -124,7 +126,7 @@ public struct CleanupSheet: View {
                     .foregroundStyle(DS.Color.secondaryText)
                     .lineLimit(1)
                     .truncationMode(.middle)
-                Text(L10n.format("From the scan of %@. Nothing moves until you confirm.", DateFormat.short(scannedAt)))
+                Text(L10n.format("Current contents. This scan finished %@. Nothing moves until you confirm.", DateFormat.short(scannedAt)))
                     .font(DS.Typography.caption)
                     .foregroundStyle(DS.Color.secondaryText)
             }
@@ -710,10 +712,10 @@ public struct CleanupSheet: View {
 
     private func analyzeIfNeeded() async {
         guard report == nil, isAnalyzing else { return }
-        let root = root
+        let tree = tree
         let policy = policy
         let task = Task.detached(priority: .userInitiated) {
-            CleanupAnalysis.analyze(root: root, policy: policy, isCancelled: { Task.isCancelled })
+            CleanupAnalysis.analyze(in: tree, policy: policy, isCancelled: { Task.isCancelled })
         }
         analysisTask = task
         let result = await task.value

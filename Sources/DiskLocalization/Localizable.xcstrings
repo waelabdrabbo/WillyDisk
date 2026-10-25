@@ -6205,6 +6205,30 @@
       },
       "shouldGenerateSwiftSymbol": false
     },
+    "Could not write the diagnostics to %@: %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تعذّرت كتابة التشخيصات في %@: %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Could not write the diagnostics to %@: %@"
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Çöúļð ñöŧ ŵŕíŧé ŧĥé ðíáĝñöšŧíçš ŧö %@: %@·······································]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
     "Could not write the report to %@: %@": {
       "extractionState": "manual",
       "localizations": {
@@ -7081,6 +7105,78 @@
       },
       "shouldGenerateSwiftSymbol": false
     },
+    "Export Diagnostics": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تصدير التشخيصات"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Export Diagnostics"
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Éẋþöŕŧ Ðíáĝñöšŧíçš················]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "Export Diagnostics writes scan settings, timing, issue counts, and the app version. It carries no file names, paths, or contents.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يكتب «تصدير التشخيصات» إعدادات الفحص والتوقيت وأعداد المشكلات وإصدار التطبيق، ولا يتضمّن أسماء الملفات ولا مساراتها ولا محتوياتها."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Export Diagnostics writes scan settings, timing, issue counts, and the app version. It carries no file names, paths, or contents."
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Éẋþöŕŧ Ðíáĝñöšŧíçš ŵŕíŧéš šçáñ šéŧŧíñĝš, ŧíɱíñĝ, íššúé çöúñŧš, áñð ŧĥé áþþ ṽéŕšíöñ. Íŧ çáŕŕíéš ñö ƒíļé ñáɱéš, þáŧĥš, öŕ çöñŧéñŧš.·······························································································································]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "Export Diagnostics…": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تصدير التشخيصات…"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Export Diagnostics…"
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Éẋþöŕŧ Ðíáĝñöšŧíçš…·················]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
     "Export Report": {
       "extractionState": "manual",
       "localizations": {
@@ -7201,25 +7297,25 @@
       },
       "shouldGenerateSwiftSymbol": false
     },
-    "Export the analysis report": {
+    "Export the analysis report or diagnostics": {
       "extractionState": "manual",
       "localizations": {
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "تصدير تقرير التحليل"
+            "value": "تصدير تقرير التحليل أو التشخيصات"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Export the analysis report"
+            "value": "Export the analysis report or diagnostics"
           }
         },
         "en-XA": {
           "stringUnit": {
             "state": "translated",
-            "value": "[Éẋþöŕŧ ŧĥé áñáļýšíš ŕéþöŕŧ························]"
+            "value": "[Éẋþöŕŧ ŧĥé áñáļýšíš ŕéþöŕŧ öŕ ðíáĝñöšŧíçš·······································]"
           }
         }
       },
@@ -8204,6 +8300,30 @@
           "stringUnit": {
             "state": "translated",
             "value": "[Íñçļúðé ĥíððéñ íŧéɱš··················]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "Includes scan settings, timing, issue counts, and version. No file names, paths, or contents are included.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تتضمّن إعدادات الفحص والتوقيت وأعداد المشكلات والإصدار. لا تتضمّن أسماء الملفات ولا مساراتها ولا محتوياتها."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Includes scan settings, timing, issue counts, and version. No file names, paths, or contents are included."
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Íñçļúðéš šçáñ šéŧŧíñĝš, ŧíɱíñĝ, íššúé çöúñŧš, áñð ṽéŕšíöñ. Ñö ƒíļé ñáɱéš, þáŧĥš, öŕ çöñŧéñŧš áŕé íñçļúðéð.········································································································]"
           }
         }
       },
@@ -15044,6 +15164,30 @@
           "stringUnit": {
             "state": "translated",
             "value": "[ŴíļļýÐíšķ·······]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "WillyDisk Diagnostics.json": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تشخيصات WillyDisk.json"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "WillyDisk Diagnostics.json"
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[ŴíļļýÐíšķ Ðíáĝñöšŧíçš.ĵšöñ························]"
           }
         }
       },

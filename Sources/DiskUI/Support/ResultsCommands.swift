@@ -11,6 +11,8 @@ public struct ResultsCommands {
     public var canExport: Bool
     public var exportJSON: () -> Void
     public var exportCSV: () -> Void
+    public var canExportDiagnostics: Bool
+    public var exportDiagnostics: () -> Void
     public var canShowCoverage: Bool
     public var showCoverage: () -> Void
     public var canShowCleanup: Bool
@@ -25,6 +27,8 @@ public struct ResultsCommands {
         canExport: Bool,
         exportJSON: @escaping () -> Void,
         exportCSV: @escaping () -> Void,
+        canExportDiagnostics: Bool,
+        exportDiagnostics: @escaping () -> Void,
         canShowCoverage: Bool,
         showCoverage: @escaping () -> Void,
         canShowCleanup: Bool,
@@ -38,6 +42,8 @@ public struct ResultsCommands {
         self.canExport = canExport
         self.exportJSON = exportJSON
         self.exportCSV = exportCSV
+        self.canExportDiagnostics = canExportDiagnostics
+        self.exportDiagnostics = exportDiagnostics
         self.canShowCoverage = canShowCoverage
         self.showCoverage = showCoverage
         self.canShowCleanup = canShowCleanup

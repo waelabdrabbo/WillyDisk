@@ -17,7 +17,7 @@ decisions. This is a handoff document, not a specification of frozen interfaces 
   watched-tree refresh (`b8be044`), global search over the whole finished scan
   (`e7d6fff`), and the localization pass (`7c7c067`). This docs handoff follows it.
 - Build: `swift build --disable-sandbox`.
-- Tests: 216 QATests + 86 DiskCoreTests (1 skipped, `ScanBenchmarkTests` needs
+- Tests: 221 QATests + 86 DiskCoreTests (1 skipped, `ScanBenchmarkTests` needs
   `WILLYDISK_BENCH_ROOT`) + 17 DiskCLITests, 0 failures.
 - CI: `.github/workflows/ci.yml` builds, tests, checks that the bundle reports
   `VERSION`, runs the bundled binary's `scan` and its usage exit status, and uploads
@@ -38,7 +38,8 @@ decisions. This is a handoff document, not a specification of frozen interfaces 
   runs of a location, select rows with the mouse or keyboard, preview them with Quick
   Look, move items to the Trash behind a guard and confirmation, change the scan defaults
   and excluded paths in Settings, keep settled results current when the scanned tree
-  changes, and read About or Help. The same binary also scans a
+  changes, and read About or Help. It exports the analysis report as JSON or CSV, and a
+  diagnostics report for support that names no user file. The same binary also scans a
   folder from the command line, as text or as the record JSON, with no window.
 
 ## Shipped — do not rebuild
@@ -192,6 +193,17 @@ Details worth remembering:
   engine's slot, and compares two of its runs. The current run is recorded as it
   settles; the sheet picks the two newest by default and lets any two be chosen. Clear
   History… removes every record for every location and touches no user file.
+- Diagnostics and report export are different documents. Export ▸ Export Diagnostics…
+  writes one JSON file (`schemaVersion` 1) with the run's choices (booleans and an
+  exclusion **count**, never the paths), its timing and which measurement that timing
+  came from, its measured totals and accounting, its issue counts, and the app's
+  version, build, macOS version and build, architecture, and interface language. It
+  carries no file name, path, excluded location, or file content. A finished run's
+  timing is its own endpoints; a stopped one says it is the last snapshot; a live one
+  uses the engine's clock and reports no totals until a snapshot exists; a quiet refresh
+  reports the completed run still on screen as `refreshing`. The save panel says what
+  the file does and does not contain. Report export (JSON/CSV) is the separate document
+  that names paths.
 - The command line is a front end over the same `FileScanEngine`, not a second scanner:
   `DiskCLI` depends on `DiskCore` only, and the executable's `@main` routes
   `WillyDisk scan …` (or a leading option such as `--help`) before SwiftUI is touched,
@@ -311,10 +323,8 @@ one-off visual check.
 
 ## Remaining work, in recommended order
 
-### 1. Diagnostics, performance, and polish
+### 1. Performance and polish
 
-- Export a diagnostics bundle (scan settings, timing, issue counts, version) with no
-  user file contents.
 - Performance guardrails for million-file scans; the benchmark test is currently
   skipped unless an environment variable points at a root. The ceiling should become
   structural, not only measured: a per-directory node cap with small files folded into
@@ -435,6 +445,8 @@ the update screen does not call an unsigned download verified or trusted.
 ## Suggested opening prompt
 
 > Read `docs/ROADMAP.md`. Verify `HEAD` and run the build and tests. Implement item 1,
-> the diagnostics bundle: scan settings, timing, issue counts, and the app version, with
-> no user file contents, written the way report export is. Keep frozen contracts
-> untouched, and do not commit unless I ask.
+> the performance guardrails: first write the design note for a per-directory node cap
+> that folds small files into one expandable node, then give the benchmark a structural
+> ceiling as well as a measured one. Keep frozen contracts untouched unless the note
+> argues for a change, and update `docs/ARCHITECTURE.md` with it. Do not commit unless I
+> ask.

@@ -302,6 +302,8 @@
 	<string>المحتويات</string>
 	<key>Could not run `tmutil`.</key>
 	<string>تعذّر تشغيل `tmutil`.</string>
+	<key>Could not write the diagnostics to %@: %@</key>
+	<string>تعذّرت كتابة التشخيصات في %@: %@</string>
 	<key>Could not write the report to %@: %@</key>
 	<string>تعذّرت كتابة التقرير في %@: %@</string>
 	<key>Couldn’t move to the Trash. %@</key>
@@ -368,6 +370,12 @@
 	<string>عرض المستكشف</string>
 	<key>Export</key>
 	<string>تصدير</string>
+	<key>Export Diagnostics</key>
+	<string>تصدير التشخيصات</string>
+	<key>Export Diagnostics writes scan settings, timing, issue counts, and the app version. It carries no file names, paths, or contents.</key>
+	<string>يكتب «تصدير التشخيصات» إعدادات الفحص والتوقيت وأعداد المشكلات وإصدار التطبيق، ولا يتضمّن أسماء الملفات ولا مساراتها ولا محتوياتها.</string>
+	<key>Export Diagnostics…</key>
+	<string>تصدير التشخيصات…</string>
 	<key>Export Report</key>
 	<string>تصدير التقرير</string>
 	<key>Export and privacy</key>
@@ -378,8 +386,8 @@
 	<string>تصدير بصيغة JSON…</string>
 	<key>Export failed</key>
 	<string>فشل التصدير</string>
-	<key>Export the analysis report</key>
-	<string>تصدير تقرير التحليل</string>
+	<key>Export the analysis report or diagnostics</key>
+	<string>تصدير تقرير التحليل أو التشخيصات</string>
 	<key>File</key>
 	<string>ملف</string>
 	<key>File ▸ Export writes a JSON report with the accounting disclosures, or a CSV of the ranked items.</key>
@@ -462,6 +470,8 @@
 	<string>غير قابل للوصول</string>
 	<key>Include hidden items</key>
 	<string>تضمين العناصر المخفية</string>
+	<key>Includes scan settings, timing, issue counts, and version. No file names, paths, or contents are included.</key>
+	<string>تتضمّن إعدادات الفحص والتوقيت وأعداد المشكلات والإصدار. لا تتضمّن أسماء الملفات ولا مساراتها ولا محتوياتها.</string>
 	<key>Issues</key>
 	<string>المشكلات</string>
 	<key>It may have been moved or deleted since the scan.</key>
@@ -1018,6 +1028,8 @@
 	<string>أثناء عرض هذه النتائج، تتم مراقبة المجلد المفحوص: التغيير في Finder يحدّث الأرقام دون «إعادة الفحص». ولا يُعاد الفحص الطويل تلقائيًا — تُوسم النتائج بأنها قديمة ويُعرض «إعادة الفحص».</string>
 	<key>WillyDisk</key>
 	<string>WillyDisk</string>
+	<key>WillyDisk Diagnostics.json</key>
+	<string>تشخيصات WillyDisk.json</string>
 	<key>WillyDisk Help</key>
 	<string>مساعدة WillyDisk</string>
 	<key>WillyDisk Report.csv</key>

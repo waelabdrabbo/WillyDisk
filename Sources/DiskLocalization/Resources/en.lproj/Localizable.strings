@@ -302,6 +302,8 @@
 	<string>Contents</string>
 	<key>Could not run `tmutil`.</key>
 	<string>Could not run `tmutil`.</string>
+	<key>Could not write the diagnostics to %@: %@</key>
+	<string>Could not write the diagnostics to %@: %@</string>
 	<key>Could not write the report to %@: %@</key>
 	<string>Could not write the report to %@: %@</string>
 	<key>Couldn’t move to the Trash. %@</key>
@@ -368,6 +370,12 @@
 	<string>Explorer view</string>
 	<key>Export</key>
 	<string>Export</string>
+	<key>Export Diagnostics</key>
+	<string>Export Diagnostics</string>
+	<key>Export Diagnostics writes scan settings, timing, issue counts, and the app version. It carries no file names, paths, or contents.</key>
+	<string>Export Diagnostics writes scan settings, timing, issue counts, and the app version. It carries no file names, paths, or contents.</string>
+	<key>Export Diagnostics…</key>
+	<string>Export Diagnostics…</string>
 	<key>Export Report</key>
 	<string>Export Report</string>
 	<key>Export and privacy</key>
@@ -378,8 +386,8 @@
 	<string>Export as JSON…</string>
 	<key>Export failed</key>
 	<string>Export failed</string>
-	<key>Export the analysis report</key>
-	<string>Export the analysis report</string>
+	<key>Export the analysis report or diagnostics</key>
+	<string>Export the analysis report or diagnostics</string>
 	<key>File</key>
 	<string>File</string>
 	<key>File ▸ Export writes a JSON report with the accounting disclosures, or a CSV of the ranked items.</key>
@@ -462,6 +470,8 @@
 	<string>Inaccessible</string>
 	<key>Include hidden items</key>
 	<string>Include hidden items</string>
+	<key>Includes scan settings, timing, issue counts, and version. No file names, paths, or contents are included.</key>
+	<string>Includes scan settings, timing, issue counts, and version. No file names, paths, or contents are included.</string>
 	<key>Issues</key>
 	<string>Issues</string>
 	<key>It may have been moved or deleted since the scan.</key>
@@ -1018,6 +1028,8 @@
 	<string>While these results are on screen, the scanned folder is watched: a change made in Finder updates the numbers without Rescan. A long scan is not repeated automatically — the results are marked stale and Rescan is offered.</string>
 	<key>WillyDisk</key>
 	<string>WillyDisk</string>
+	<key>WillyDisk Diagnostics.json</key>
+	<string>WillyDisk Diagnostics.json</string>
 	<key>WillyDisk Help</key>
 	<string>WillyDisk Help</string>
 	<key>WillyDisk Report.csv</key>

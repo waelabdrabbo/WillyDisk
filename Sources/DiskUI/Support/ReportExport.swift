@@ -1,11 +1,10 @@
 import Foundation
-import AppKit
 import UniformTypeIdentifiers
 import DiskCore
 import DiskLocalization
 
-/// Report export (JSON + CSV) via `NSSavePanel`. Writes a real file to a
-/// user-chosen location.
+/// Report export (JSON + CSV) through the shared save panel. Writes a real file
+/// to a user-chosen location.
 @MainActor
 public enum ReportExport {
 
@@ -80,11 +79,27 @@ public enum ReportExport {
         encoder.dateEncodingStrategy = .iso8601
         guard let data = try? encoder.encode(makeReport(summary)),
               let text = String(data: data, encoding: .utf8) else { return }
-        presentSavePanel(content: text, defaultName: L10n.string("WillyDisk Report.json"), contentType: .json)
+        ExportPanel.present(
+            content: text,
+            defaultName: L10n.string("WillyDisk Report.json"),
+            contentType: .json,
+            title: L10n.string("Export Report"),
+            failureDescription: writeFailure
+        )
     }
 
     public static func exportCSV(summary: ScanSummary) {
-        presentSavePanel(content: makeCSV(summary), defaultName: L10n.string("WillyDisk Report.csv"), contentType: .commaSeparatedText)
+        ExportPanel.present(
+            content: makeCSV(summary),
+            defaultName: L10n.string("WillyDisk Report.csv"),
+            contentType: .commaSeparatedText,
+            title: L10n.string("Export Report"),
+            failureDescription: writeFailure
+        )
+    }
+
+    private static func writeFailure(_ url: URL, _ error: Error) -> String {
+        L10n.format("Could not write the report to %@: %@", url.lastPathComponent, error.localizedDescription)
     }
 
     // MARK: - Report building
@@ -163,30 +178,5 @@ public enum ReportExport {
 
     private static func iso(_ date: Date) -> String {
         ISO8601DateFormatter().string(from: date)
-    }
-
-    // MARK: - Save panel
-
-    private static func presentSavePanel(content: String, defaultName: String, contentType: UTType) {
-        let panel = NSSavePanel()
-        panel.nameFieldStringValue = defaultName
-        panel.allowedContentTypes = [contentType]
-        panel.canCreateDirectories = true
-        panel.title = L10n.string("Export Report")
-        if panel.runModal() == .OK, let url = panel.url {
-            do {
-                try content.write(to: url, atomically: true, encoding: .utf8)
-            } catch {
-                presentWriteError(error, url: url)
-            }
-        }
-    }
-
-    private static func presentWriteError(_ error: Error, url: URL) {
-        let alert = NSAlert()
-        alert.alertStyle = .warning
-        alert.messageText = L10n.string("Export failed")
-        alert.informativeText = L10n.format("Could not write the report to %@: %@", url.lastPathComponent, error.localizedDescription)
-        alert.runModal()
     }
 }

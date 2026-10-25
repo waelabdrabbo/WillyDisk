@@ -176,6 +176,7 @@ private extension HelpView {
             symbol: "lock",
             paragraphs: [
                 L10n.string("File ▸ Export writes a JSON report with the accounting disclosures, or a CSV of the ranked items."),
+                L10n.string("Export Diagnostics writes scan settings, timing, issue counts, and the app version. It carries no file names, paths, or contents."),
                 L10n.string("Scans run on this Mac and nothing is uploaded. Nothing is deleted automatically; Move to Trash is the only removal, and it asks first."),
             ]
         ),

@@ -302,6 +302,8 @@
 	<string>[Çöñŧéñŧš······]</string>
 	<key>Could not run `tmutil`.</key>
 	<string>[Çöúļð ñöŧ ŕúñ `ŧɱúŧíļ`.·····················]</string>
+	<key>Could not write the diagnostics to %@: %@</key>
+	<string>[Çöúļð ñöŧ ŵŕíŧé ŧĥé ðíáĝñöšŧíçš ŧö %@: %@·······································]</string>
 	<key>Could not write the report to %@: %@</key>
 	<string>[Çöúļð ñöŧ ŵŕíŧé ŧĥé ŕéþöŕŧ ŧö %@: %@··································]</string>
 	<key>Couldn’t move to the Trash. %@</key>
@@ -368,6 +370,12 @@
 	<string>[Éẋþļöŕéŕ ṽíéŵ···········]</string>
 	<key>Export</key>
 	<string>[Éẋþöŕŧ····]</string>
+	<key>Export Diagnostics</key>
+	<string>[Éẋþöŕŧ Ðíáĝñöšŧíçš················]</string>
+	<key>Export Diagnostics writes scan settings, timing, issue counts, and the app version. It carries no file names, paths, or contents.</key>
+	<string>[Éẋþöŕŧ Ðíáĝñöšŧíçš ŵŕíŧéš šçáñ šéŧŧíñĝš, ŧíɱíñĝ, íššúé çöúñŧš, áñð ŧĥé áþþ ṽéŕšíöñ. Íŧ çáŕŕíéš ñö ƒíļé ñáɱéš, þáŧĥš, öŕ çöñŧéñŧš.·······························································································································]</string>
+	<key>Export Diagnostics…</key>
+	<string>[Éẋþöŕŧ Ðíáĝñöšŧíçš…·················]</string>
 	<key>Export Report</key>
 	<string>[Éẋþöŕŧ Ŕéþöŕŧ···········]</string>
 	<key>Export and privacy</key>
@@ -378,8 +386,8 @@
 	<string>[Éẋþöŕŧ áš ĴŠÖÑ…·············]</string>
 	<key>Export failed</key>
 	<string>[Éẋþöŕŧ ƒáíļéð···········]</string>
-	<key>Export the analysis report</key>
-	<string>[Éẋþöŕŧ ŧĥé áñáļýšíš ŕéþöŕŧ························]</string>
+	<key>Export the analysis report or diagnostics</key>
+	<string>[Éẋþöŕŧ ŧĥé áñáļýšíš ŕéþöŕŧ öŕ ðíáĝñöšŧíçš·······································]</string>
 	<key>File</key>
 	<string>[Ƒíļé····]</string>
 	<key>File ▸ Export writes a JSON report with the accounting disclosures, or a CSV of the ranked items.</key>
@@ -462,6 +470,8 @@
 	<string>[Íñáççéššíƀļé··········]</string>
 	<key>Include hidden items</key>
 	<string>[Íñçļúðé ĥíððéñ íŧéɱš··················]</string>
+	<key>Includes scan settings, timing, issue counts, and version. No file names, paths, or contents are included.</key>
+	<string>[Íñçļúðéš šçáñ šéŧŧíñĝš, ŧíɱíñĝ, íššúé çöúñŧš, áñð ṽéŕšíöñ. Ñö ƒíļé ñáɱéš, þáŧĥš, öŕ çöñŧéñŧš áŕé íñçļúðéð.········································································································]</string>
 	<key>Issues</key>
 	<string>[Íššúéš····]</string>
 	<key>It may have been moved or deleted since the scan.</key>
@@ -1018,6 +1028,8 @@
 	<string>[Ŵĥíļé ŧĥéšé ŕéšúļŧš áŕé öñ šçŕééñ, ŧĥé šçáññéð ƒöļðéŕ íš ŵáŧçĥéð: á çĥáñĝé ɱáðé íñ Ƒíñðéŕ úþðáŧéš ŧĥé ñúɱƀéŕš ŵíŧĥöúŧ Ŕéšçáñ. Á ļöñĝ šçáñ íš ñöŧ ŕéþéáŧéð áúŧöɱáŧíçáļļý — ŧĥé ŕéšúļŧš áŕé ɱáŕķéð šŧáļé áñð Ŕéšçáñ íš öƒƒéŕéð.···························································································································································································································]</string>
 	<key>WillyDisk</key>
 	<string>[ŴíļļýÐíšķ·······]</string>
+	<key>WillyDisk Diagnostics.json</key>
+	<string>[ŴíļļýÐíšķ Ðíáĝñöšŧíçš.ĵšöñ························]</string>
 	<key>WillyDisk Help</key>
 	<string>[ŴíļļýÐíšķ Ĥéļþ············]</string>
 	<key>WillyDisk Report.csv</key>

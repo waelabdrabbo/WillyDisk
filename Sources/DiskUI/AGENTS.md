@@ -35,7 +35,9 @@ stream reports.
   folder chain a search result drills to), `Formatters`,
   `LocationName` (a location's display name), `VolumeInfo`, `RecentLocations`,
   `FullDiskAccess` + `FullDiskAccessProbe`, `ScanIssuesPresentation`,
-  `ScanSlotPresentation`, `ReportExport` (JSON/CSV through `NSSavePanel`),
+  `ScanSlotPresentation`, `ReportExport` (JSON/CSV through `ExportPanel`, the one
+  save panel), `DiagnosticsExport` (scan settings, timing, issue counts, and build
+  facts; never a file name, path, or content),
   `CategoryBreakdown` (sizes by category), `CategoryFiles` (a category's largest
   files, walked off the main actor), `CleanupAnalysis` (bounded large/old, cache, and
   download heuristics over the finished tree, including same-size duplicate

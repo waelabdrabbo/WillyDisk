@@ -126,11 +126,17 @@ private struct WillyDiskCommands: Commands {
                 Button(L10n.string("Export as JSON…")) {
                     resultsCommands?.exportJSON()
                 }
+                .disabled(!(resultsCommands?.canExport ?? false))
                 Button(L10n.string("Export as CSV…")) {
                     resultsCommands?.exportCSV()
                 }
+                .disabled(!(resultsCommands?.canExport ?? false))
+                Divider()
+                Button(L10n.string("Export Diagnostics…")) {
+                    resultsCommands?.exportDiagnostics()
+                }
+                .disabled(!(resultsCommands?.canExportDiagnostics ?? false))
             }
-            .disabled(!(resultsCommands?.canExport ?? false))
         }
 
         // Help lives in the main window as a sheet, so it works from either

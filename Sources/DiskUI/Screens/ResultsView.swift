@@ -753,12 +753,16 @@ public struct ResultsView: View {
 
                 Menu {
                     Button(L10n.string("Export as JSON…")) { exportJSON() }
+                        .disabled(summary == nil)
                     Button(L10n.string("Export as CSV…")) { exportCSV() }
+                        .disabled(summary == nil)
+                    Divider()
+                    Button(L10n.string("Export Diagnostics…")) { exportDiagnostics() }
+                        .disabled(viewModel.currentRoot == nil)
                 } label: {
                     Label(L10n.string("Export"), systemImage: "square.and.arrow.up")
                 }
-                .help(L10n.string("Export the analysis report"))
-                .disabled(summary == nil)
+                .help(L10n.string("Export the analysis report or diagnostics"))
             }
         }
     }
@@ -1940,6 +1944,8 @@ public struct ResultsView: View {
             canExport: summary != nil,
             exportJSON: { exportJSON() },
             exportCSV: { exportCSV() },
+            canExportDiagnostics: viewModel.currentRoot != nil,
+            exportDiagnostics: { exportDiagnostics() },
             canShowCoverage: summary != nil,
             showCoverage: { showCoverage() },
             canShowCleanup: summary != nil && !viewModel.isScanning,
@@ -1982,6 +1988,10 @@ public struct ResultsView: View {
     private func exportCSV() {
         guard let summary else { return }
         ReportExport.exportCSV(summary: summary)
+    }
+
+    private func exportDiagnostics() {
+        DiagnosticsExport.export(from: viewModel)
     }
 
     /// Drops crumbs that no longer exist in the results on screen, and refreshes

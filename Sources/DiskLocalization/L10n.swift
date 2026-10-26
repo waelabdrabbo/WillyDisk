@@ -15,7 +15,8 @@ import Foundation
 /// choice collapses to the development language outside an app. Resolving the
 /// `.lproj` here keeps the same lookup working in the app, the offscreen renderer,
 /// and the tests, and lets a render ask for one language without changing the
-/// process's preferences.
+/// process's preferences. A bundled language Foundation will not localize is
+/// read from its table file instead, so it never silently answers in English.
 public enum L10n {
 
     /// A language the catalog carries. English is the source and the fallback.
@@ -83,8 +84,14 @@ public enum L10n {
         let chosen = table(for: language)
         let value = chosen.localizedString(forKey: key, value: nil, table: catalogTable)
         if value != key { return value }
+        // `Bundle` serves a language it recognises in the bundle. A table it
+        // will not serve is read from the file SwiftPM copied, so a language
+        // bundled beside it still answers.
+        if let value = directValue(for: key, language: language) { return value }
         let fallback = table(for: sourceLanguage)
-        return fallback.localizedString(forKey: key, value: key, table: catalogTable)
+        let fallbackValue = fallback.localizedString(forKey: key, value: nil, table: catalogTable)
+        if fallbackValue != key { return fallbackValue }
+        return directValue(for: key, language: sourceLanguage) ?? key
     }
 
     public static func format(_ key: String, language: String, _ arguments: CVarArg...) -> String {
@@ -114,8 +121,24 @@ public enum L10n {
 
     nonisolated(unsafe) private static var tables: [String: Bundle] = [:]
 
+    /// Values read straight from a language's compiled table, for the tables
+    /// `Bundle` will not localize.
+    nonisolated(unsafe) private static var directTables: [String: [String: String]] = [:]
+
+    /// Every language the resource bundle carries: the localizations Foundation
+    /// recognizes, plus the `.lproj` directories SwiftPM copied.
     private static var bundledLanguages: [String] {
-        Bundle.module.localizations.sorted()
+        var languages = Set(Bundle.module.localizations)
+        if let resources = Bundle.module.resourceURL,
+           let entries = try? FileManager.default.contentsOfDirectory(
+               at: resources,
+               includingPropertiesForKeys: nil
+           ) {
+            for entry in entries where entry.pathExtension.lowercased() == "lproj" {
+                languages.insert(entry.deletingPathExtension().lastPathComponent)
+            }
+        }
+        return languages.sorted()
     }
 
     private static func resolvePreferredLanguage() -> String {
@@ -136,15 +159,78 @@ public enum L10n {
         lock.lock()
         defer { lock.unlock() }
         if let cached = tables[language] { return cached }
-        let module = Bundle.module
         let bundle: Bundle
-        if let path = module.path(forResource: language, ofType: "lproj"),
-           let localized = Bundle(path: path) {
+        if let directory = localizationDirectory(for: language),
+           let localized = Bundle(path: directory.path) {
             bundle = localized
         } else {
-            bundle = module
+            bundle = Bundle.module
         }
         tables[language] = bundle
         return bundle
+    }
+
+    /// The language's compiled table, read from its file. The caller holds
+    /// `lock`.
+    ///
+    /// A plural key has no plain entry here; its variations stay with the
+    /// `.stringsdict` the bundle resolves.
+    private static func directTable(for language: String) -> [String: String] {
+        if let cached = directTables[language] { return cached }
+        var values: [String: String] = [:]
+        if let directory = localizationDirectory(for: language) {
+            let file = directory.appendingPathComponent("\(catalogTable).strings")
+            if let data = try? Data(contentsOf: file),
+               let plist = try? PropertyListSerialization.propertyList(from: data, format: nil),
+               let table = plist as? [String: Any] {
+                values = table.compactMapValues { $0 as? String }
+            }
+        }
+        directTables[language] = values
+        return values
+    }
+
+    private static func directValue(for key: String, language: String) -> String? {
+        lock.lock()
+        defer { lock.unlock() }
+        return directTable(for: language)[key]
+    }
+
+    /// The values the compiled table for a language carries, read from the file
+    /// SwiftPM copied. The QA suite checks a language this way because the
+    /// lookup itself can be answered by `Bundle` instead.
+    static func bundledTable(_ language: String) -> [String: String] {
+        lock.lock()
+        defer { lock.unlock() }
+        return directTable(for: language)
+    }
+
+    /// The bundled directory for a language.
+    ///
+    /// `Bundle.path(forResource:ofType:)` is the direct route, but Foundation
+    /// only answers it for localizations it recognises. The resource directory's
+    /// listing answers for every `.lproj` SwiftPM copied, so a language the
+    /// system does not list is still found. The caller holds `lock`.
+    private static func localizationDirectory(for language: String) -> URL? {
+        let module = Bundle.module
+        if let path = module.path(forResource: language, ofType: "lproj") {
+            return URL(fileURLWithPath: path)
+        }
+        guard let resources = module.resourceURL,
+              let entries = try? FileManager.default.contentsOfDirectory(
+                  at: resources,
+                  includingPropertiesForKeys: nil
+              ) else { return nil }
+        let wanted = normalizedLanguage(language)
+        return entries.first { entry in
+            guard entry.pathExtension.lowercased() == "lproj" else { return false }
+            return normalizedLanguage(entry.deletingPathExtension().lastPathComponent) == wanted
+        }
+    }
+
+    /// A language identifier compared without case or separator differences, so
+    /// `en-XA` and `en_xa` name the same directory.
+    private static func normalizedLanguage(_ language: String) -> String {
+        language.lowercased().replacingOccurrences(of: "_", with: "-")
     }
 }

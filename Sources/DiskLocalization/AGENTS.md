@@ -13,7 +13,8 @@ The one string catalog and the one lookup path for everything the app shows.
   committed because a build must not need `xcstringstool`.
 - `L10n.swift` — `string(_:)`, `format(_:_:)`, language resolution, and the
   right-to-left answer. Foundation only: `DiskCLI` links this target and must
-  never pull in AppKit or SwiftUI.
+  never pull in AppKit or SwiftUI. It localizes through a language's `.lproj`, and
+  reads the table file itself when Foundation will not serve that language.
 
 ## Rules
 

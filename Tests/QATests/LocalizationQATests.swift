@@ -122,9 +122,24 @@ final class LocalizationQATests: XCTestCase {
     func testPseudolanguageKeepsFormatAndDoublesTheText() {
         let english = L10n.string("Search this scan", language: "en")
         let pseudo = L10n.string("Search this scan", language: "en-XA")
-        XCTAssertNotEqual(pseudo, english)
+        XCTAssertNotEqual(
+            pseudo,
+            english,
+            "the pseudolanguage answered in English; offered languages: \(L10n.availableLanguages)"
+        )
         XCTAssertGreaterThan(pseudo.count, english.count + 4)
         XCTAssertTrue(pseudo.hasPrefix("["))
+    }
+
+    func testEveryBundledLanguageCarriesItsTable() {
+        for language in ["en", "ar", "en-XA"] {
+            let table = L10n.bundledTable(language)
+            XCTAssertGreaterThan(table.count, 500, "\(language) has no readable table in the bundle")
+            XCTAssertTrue(L10n.availableLanguages.contains(language), "\(language) is not offered")
+        }
+        let pseudo = L10n.bundledTable("en-XA")["Search this scan"]
+        XCTAssertNotNil(pseudo, "the pseudolanguage table has no entry for the search field")
+        XCTAssertTrue(pseudo?.hasPrefix("[") ?? false, "the pseudolanguage entry is not the generated one")
     }
 
     func testLanguageOverrideIsHonouredAndRestorable() {

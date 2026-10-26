@@ -21,4 +21,21 @@ public enum RecentLocations {
         list = Array(list.prefix(maxCount))
         UserDefaults.standard.set(list.map(\.absoluteString), forKey: key)
     }
+
+    /// The display names shared by more than one of `urls`.
+    ///
+    /// A recent row shows the path of a colliding name instead of its last run:
+    /// two rows reading only "Documents" cannot be told apart, and the path can
+    /// say which one is which.
+    public static func repeatedNames(in urls: [URL]) -> Set<String> {
+        var seen: Set<String> = []
+        var repeated: Set<String> = []
+        for url in urls {
+            let name = LocationName.of(url)
+            if !seen.insert(name).inserted {
+                repeated.insert(name)
+            }
+        }
+        return repeated
+    }
 }

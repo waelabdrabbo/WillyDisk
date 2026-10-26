@@ -39,6 +39,7 @@ stream reports.
   (the bounded whole-scan name search, run off the main actor) + `ExplorerPath` (the
   folder chain a search result drills to), `Formatters`,
   `LocationName` (a location's display name), `VolumeInfo`, `RecentLocations`,
+  `RecentLocationDetail` (what a recent row says instead of its path),
   `FullDiskAccess` + `FullDiskAccessProbe`, `ScanIssuesPresentation`,
   `ScanSlotPresentation`, `ReportExport` (JSON/CSV through `ExportPanel`, the one
   save panel), `DiagnosticsExport` (scan settings, timing, issue counts, and build

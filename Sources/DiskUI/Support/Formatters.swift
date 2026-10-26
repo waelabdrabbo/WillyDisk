@@ -129,6 +129,18 @@ public enum DateFormat {
         )
     }
 
+    /// A date as an interval from `now`, e.g. "2 days ago", in the app's
+    /// language. The system formatter carries the named forms — "yesterday",
+    /// "now" — that the app would otherwise have to spell out in every
+    /// language.
+    public static func relative(_ date: Date, relativeTo now: Date = Date()) -> String {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.locale = L10n.locale
+        formatter.dateTimeStyle = .named
+        formatter.unitsStyle = .full
+        return formatter.localizedString(for: date, relativeTo: now)
+    }
+
     /// Duration string for elapsed time, e.g. "1m 23s". A scan that settles
     /// before the first whole second reads as under a second rather than as
     /// zero, which would look like the scan did no work.

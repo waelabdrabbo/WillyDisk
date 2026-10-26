@@ -504,6 +504,8 @@
 	<string>[Ļáŕĝé, öļð, áñð çáçĥé íŧéɱš ŵöŕŧĥ ŕéṽíéŵíñĝ·········································]</string>
 	<key>Largest files (%@)</key>
 	<string>[Ļáŕĝéšŧ ƒíļéš (%@)················]</string>
+	<key>Last scan %@ · %@</key>
+	<string>[Ļášŧ šçáñ %@ · %@···············]</string>
 	<key>Later</key>
 	<string>[Ļáŧéŕ····]</string>
 	<key>Leave paths out</key>
@@ -648,6 +650,8 @@
 	<string>[Öñ ðíšķ·····]</string>
 	<key>One run recorded</key>
 	<string>[Öñé ŕúñ ŕéçöŕðéð··············]</string>
+	<key>Only %@ free</key>
+	<string>[Öñļý %@ ƒŕéé··········]</string>
 	<key>Only finished scans are recorded: a cancelled scan covers part of the folder, so it is not offered as a run to compare. Records stay on this Mac and hold paths and totals, never file contents. Clear History… removes them all.</key>
 	<string>[Öñļý ƒíñíšĥéð šçáñš áŕé ŕéçöŕðéð: á çáñçéļļéð šçáñ çöṽéŕš þáŕŧ öƒ ŧĥé ƒöļðéŕ, šö íŧ íš ñöŧ öƒƒéŕéð áš á ŕúñ ŧö çöɱþáŕé. Ŕéçöŕðš šŧáý öñ ŧĥíš Ɱáç áñð ĥöļð þáŧĥš áñð ŧöŧáļš, ñéṽéŕ ƒíļé çöñŧéñŧš. Çļéáŕ Ĥíšŧöŕý… ŕéɱöṽéš ŧĥéɱ áļļ.·······························································································································································································································]</string>
 	<key>Open Full Disk Access in System Settings</key>
@@ -658,6 +662,8 @@
 	<string>[Öþéñ Šýšŧéɱ Šéŧŧíñĝš…···················]</string>
 	<key>Open the scan results for %@</key>
 	<string>[Öþéñ ŧĥé šçáñ ŕéšúļŧš ƒöŕ %@··························]</string>
+	<key>Open the scan results for %@ at %@</key>
+	<string>[Öþéñ ŧĥé šçáñ ŕéšúļŧš ƒöŕ %@ áŧ %@································]</string>
 	<key>Opens the Full Disk Access pane in System Settings</key>
 	<string>[Öþéñš ŧĥé Ƒúļļ Ðíšķ Áççéšš þáñé íñ Šýšŧéɱ Šéŧŧíñĝš················································]</string>
 	<key>Opens the Moved tab</key>
@@ -848,6 +854,10 @@
 	<string>[Šĥáŕé öƒ ŧĥíš šçáñ'š ļöĝíçáļ šížé. Çĥööšé á çáŧéĝöŕý ŧö šéé íŧš ļáŕĝéšŧ ƒíļéš.············································································]</string>
 	<key>Show %@</key>
 	<string>[Šĥöŵ %@·····]</string>
+	<key>Show All</key>
+	<string>[Šĥöŵ Áļļ······]</string>
+	<key>Show Less</key>
+	<string>[Šĥöŵ Ļéšš·······]</string>
 	<key>Show More</key>
 	<string>[Šĥöŵ Ɱöŕé·······]</string>
 	<key>Show Moved</key>

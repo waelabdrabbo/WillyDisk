@@ -35,6 +35,10 @@ public struct SourceSelectionView: View {
     /// scan started from the menu or a drop uses them as well.
     @State private var scanOptionsStore: ScanOptionsStore
     @State private var showingScanOptions = false
+    @State private var isShowingAllRecents = false
+
+    /// How many recent locations the section shows before offering Show All.
+    private static let collapsedRecentCount = 3
 
     public init(viewModel: ScanViewModel = ScanViewModel()) {
         _viewModel = State(initialValue: viewModel)
@@ -88,6 +92,12 @@ public struct SourceSelectionView: View {
         .task {
             volumes = VolumeInfo.enumerate()
             presets = await ScanPresetCatalog.resolved()
+            // The recent rows read the last finished run for each location.
+            // Load the shared history here when this screen is the first to
+            // need it, rather than re-reading the store on every return.
+            if let history = viewModel.history, history.snapshot.records.isEmpty {
+                await history.reload()
+            }
         }
         .onDrop(of: [UTType.fileURL], isTargeted: $isDragOver) { providers in
             handleDrop(providers)
@@ -180,13 +190,27 @@ public struct SourceSelectionView: View {
                     Text(preset.displayName)
                         .font(DS.Typography.body)
                         .foregroundStyle(DS.Color.primaryText)
-                    Text(preset.isAvailable ? PathFormat.abbreviated(preset.url.path) : L10n.string("Not on this Mac"))
-                        .font(DS.Typography.caption)
-                        .foregroundStyle(DS.Color.secondaryText)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
+                    // A live preset is only its name: the slot already says
+                    // what it scans. A missing one still has to say why it
+                    // cannot act, so it keeps the caption line.
+                    if !preset.isAvailable {
+                        Text(L10n.string("Not on this Mac"))
+                            .font(DS.Typography.caption)
+                            .foregroundStyle(DS.Color.secondaryText)
+                    }
                 }
                 Spacer(minLength: 0)
+                // The slot's action cue: graphite at rest, accent under the
+                // pointer. A missing preset has nothing to start, so it
+                // carries none.
+                if preset.isAvailable {
+                    Image(systemName: "arrow.right")
+                        .flipsForRightToLeftLayoutDirection(true)
+                        .font(DS.Icon.inline)
+                        .foregroundStyle(hoveredPreset == preset.id ? DS.Color.accent : DS.Color.mutedText)
+                        .alignmentGuide(.presetNameMiddle) { $0[VerticalAlignment.center] }
+                        .accessibilityHidden(true)
+                }
             }
             .padding(.horizontal, DS.Spacing.medium)
             .padding(.vertical, DS.Spacing.medium)
@@ -274,7 +298,7 @@ public struct SourceSelectionView: View {
                     .rotationEffect(.degrees(DS.Size.capacityArcRotation))
                 Circle()
                     .trim(from: 0, to: DS.Size.capacityArcSweep * used)
-                    .stroke(DS.Color.signal,
+                    .stroke(volume.isLowOnSpace ? DS.Color.warning : DS.Color.signal,
                             style: StrokeStyle(lineWidth: DS.Size.capacityArcWidth, lineCap: .butt))
                     .rotationEffect(.degrees(DS.Size.capacityArcRotation))
                 Text(L10n.format("%lld%%", Int((used * 100).rounded())))
@@ -284,6 +308,21 @@ public struct SourceSelectionView: View {
             .frame(width: DS.Size.capacityArcSize, height: DS.Size.capacityArcSize)
             .accessibilityHidden(true)
         }
+    }
+
+    /// The free space left on a nearly full volume, said in words beside its
+    /// figures. The ring turns madder at the same threshold, so the reading
+    /// never depends on colour alone.
+    private func freeSpaceWarning(_ available: Int64) -> some View {
+        HStack(spacing: DS.Spacing.xxSmall) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(DS.Icon.detail)
+                .accessibilityHidden(true)
+            Text(L10n.format("Only %@ free", ByteFormat.string(available)))
+                .font(DS.Typography.metadataFigures)
+                .lineLimit(1)
+        }
+        .foregroundStyle(DS.Color.warning)
     }
 
     private func volumeRow(_ volume: VolumeInfo) -> some View {
@@ -311,6 +350,12 @@ public struct SourceSelectionView: View {
                                 .font(DS.Typography.metadataFigures)
                                 .foregroundStyle(DS.Color.secondaryText)
                                 .lineLimit(1)
+                        }
+                        // A nearly full volume says how much room is left,
+                        // beside the figures the ring is drawing. The warning
+                        // tint is never the only carrier of that fact.
+                        if volume.isLowOnSpace, let available = volume.availableCapacity {
+                            freeSpaceWarning(available)
                         }
                         // The location on the engine's scan slot reports that
                         // scan's state on this line, so finishing a scan never
@@ -421,11 +466,15 @@ public struct SourceSelectionView: View {
         return DS.Color.accent.opacity(isHovered ? DS.Opacity.rowCurrentHover : DS.Opacity.rowPrimary)
     }
 
-    /// Why a start action is unavailable, or what it starts.
-    private func startHelp(_ name: String) -> String {
-        viewModel.isScanning
-            ? L10n.string("A scan is already running — open its results, or stop it to start another")
-            : L10n.format("Scan %@", name)
+    /// Why a start action is unavailable, or what it starts. A recent row passes
+    /// its path so the tooltip still names the folder whose visible detail is its
+    /// last run.
+    private func startHelp(_ name: String, path: String? = nil) -> String {
+        if viewModel.isScanning {
+            return L10n.string("A scan is already running — open its results, or stop it to start another")
+        }
+        guard let path else { return L10n.format("Scan %@", name) }
+        return L10n.format("Scan %@ at %@", name, path)
     }
 
     /// What a start action does, or why it cannot act right now.
@@ -455,27 +504,51 @@ public struct SourceSelectionView: View {
 
     /// The recent locations as the same open list as the volumes: one hairline
     /// between rows, no card of their own.
+    ///
+    /// Three rows resume the usual work without pushing the rest of the screen
+    /// down; a longer list keeps the rest behind Show All. Each row says what the
+    /// last finished run measured instead of printing its path, so the section
+    /// reads as results rather than as a log of directories.
     @ViewBuilder
     private var recentSection: some View {
         let locations = recentLocationsShown
         if !locations.isEmpty {
+            let shown = isShowingAllRecents
+                ? locations
+                : Array(locations.prefix(Self.collapsedRecentCount))
+            let repeatedNames = RecentLocations.repeatedNames(in: locations)
             VStack(alignment: .leading, spacing: DS.Spacing.xSmall) {
                 sectionHeader(L10n.string("Recent"))
                 VStack(spacing: 0) {
-                    ForEach(Array(locations.enumerated()), id: \.element) { index, url in
-                        recentRow(url)
-                        if index < locations.count - 1 {
+                    ForEach(Array(shown.enumerated()), id: \.element) { index, url in
+                        recentRow(url, nameIsRepeated: repeatedNames.contains(LocationName.of(url)))
+                        if index < shown.count - 1 {
                             rowSeparator
                         }
                     }
+                }
+                if locations.count > Self.collapsedRecentCount {
+                    InlineActionButton(
+                        L10n.string(isShowingAllRecents ? "Show Less" : "Show All"),
+                        systemImage: isShowingAllRecents ? "chevron.up" : "chevron.down",
+                        fillsWidth: true
+                    ) {
+                        isShowingAllRecents.toggle()
+                    }
+                    .padding(.top, DS.Spacing.xSmall)
                 }
             }
         }
     }
 
-    private func recentRow(_ url: URL) -> some View {
+    private func recentRow(_ url: URL, nameIsRepeated: Bool) -> some View {
         let slot = viewModel.scanSlot(for: url)
         let name = LocationName.of(url)
+        let detail = RecentLocationDetail.of(
+            url: url,
+            record: viewModel.history?.records(for: url).first,
+            nameIsRepeated: nameIsRepeated
+        )
         let isPrimary = slot != nil && rowResultsArePrimary
         let isEnabled = slot != nil || !viewModel.isScanning
         let isHovered = isEnabled && hoveredSource == url
@@ -487,24 +560,20 @@ public struct SourceSelectionView: View {
             }
         } label: {
             HStack(spacing: DS.Spacing.medium) {
-                // The gutter the volume rows give their capacity ring, so both
-                // lists start their text on the same line.
-                Image(systemName: "clock")
-                    .font(DS.Icon.inline)
-                    .foregroundStyle(DS.Color.secondaryText)
-                    .frame(width: DS.Size.capacityArcSize, alignment: .center)
-                    .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 1) {
                     Text(name)
                         .font(DS.Typography.body)
                         .foregroundStyle(DS.Color.primaryText)
                     HStack(spacing: DS.Spacing.medium) {
-                        Text(url.path)
+                        // A measured run is the usual detail; a path still
+                        // appears where it is the only way to tell two rows
+                        // apart, or where no finished run exists yet.
+                        Text(detail.text)
                             .font(DS.Typography.caption)
-                            .foregroundStyle(DS.Color.mutedText)
+                            .foregroundStyle(detail.isPath ? DS.Color.mutedText : DS.Color.secondaryText)
                             .lineLimit(1)
-                            .truncationMode(.middle)
-                        // The scan's state sits beside the path, so a scanned
+                            .truncationMode(detail.isPath ? .middle : .tail)
+                        // The scan's state sits beside the detail, so a scanned
                         // location keeps the same two lines as an unscanned one.
                         if let slot {
                             scanStatus(slot)
@@ -531,16 +600,30 @@ public struct SourceSelectionView: View {
             }
         }
         .keyboardShortcut(isPrimary ? .defaultAction : nil)
-        .help(slot != nil ? L10n.format("Open the scan results for %@", name) : startHelp(name))
-        .accessibilityLabel(recentRowLabel(name: name, path: url.path, slot: slot))
+        .help(slot != nil
+            ? L10n.format("Open the scan results for %@ at %@", name, url.path)
+            : startHelp(name, path: url.path))
+        .accessibilityLabel(recentRowLabel(name: name, path: url.path, detail: detail, slot: slot))
         .accessibilityHint(slot != nil ? L10n.string("Opens the scan results") : startHint(name))
     }
 
-    /// The recent row's spoken facts: the location, its path, and — when it is
-    /// the location being scanned — that scan's state and honest counters.
-    private func recentRowLabel(name: String, path: String, slot: ScanSlotPresentation?) -> String {
-        guard let slot else { return L10n.format("%@, %@", name, path) }
-        return L10n.format("%@, %@, %@", name, path, slot.accessibilityLabel)
+    /// The recent row's spoken facts: the location, its path, the last run when
+    /// one is shown, and — when it is the location being scanned — that scan's
+    /// state and honest counters.
+    private func recentRowLabel(
+        name: String,
+        path: String,
+        detail: RecentLocationDetail,
+        slot: ScanSlotPresentation?
+    ) -> String {
+        var parts = [name, path]
+        if !detail.isPath {
+            parts.append(detail.text)
+        }
+        if let slot {
+            parts.append(slot.accessibilityLabel)
+        }
+        return L10n.list(parts)
     }
 
     /// Whether the scan on the slot has a result a Home row can open. The row

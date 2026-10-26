@@ -23,6 +23,21 @@ public struct VolumeInfo: Identifiable, Equatable {
         return min(max(Double(used) / Double(total), 0), 1)
     }
 
+    /// Whether the volume is full enough for its row to raise the free-space
+    /// warning.
+    ///
+    /// The share, not a byte count: the row's ring is a share too, so the tint
+    /// and the figure it surrounds agree about what "nearly full" means. A
+    /// volume whose capacity is unknown stays unwarned rather than guessed at.
+    var isLowOnSpace: Bool {
+        guard let fraction = usedFraction else { return false }
+        return fraction >= Self.lowSpaceFraction
+    }
+
+    /// Nine tenths used leaves little enough room that the exact free figure is
+    /// worth naming before the disk fills.
+    private static let lowSpaceFraction = 0.9
+
     /// Whether `url` is the directory this volume is mounted at.
     ///
     /// Compares paths rather than URLs: the two sides reach here from different

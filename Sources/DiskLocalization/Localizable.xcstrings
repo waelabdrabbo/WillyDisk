@@ -8545,6 +8545,30 @@
       },
       "shouldGenerateSwiftSymbol": false
     },
+    "Last scan %@ · %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "آخر فحص %@ · %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Last scan %@ · %@"
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Ļášŧ šçáñ %@ · %@···············]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
     "Later": {
       "extractionState": "manual",
       "localizations": {
@@ -10273,6 +10297,30 @@
       },
       "shouldGenerateSwiftSymbol": false
     },
+    "Only %@ free": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لا يتوفر سوى %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Only %@ free"
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Öñļý %@ ƒŕéé··········]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
     "Only finished scans are recorded: a cancelled scan covers part of the folder, so it is not offered as a run to compare. Records stay on this Mac and hold paths and totals, never file contents. Clear History… removes them all.": {
       "extractionState": "manual",
       "localizations": {
@@ -10388,6 +10436,30 @@
           "stringUnit": {
             "state": "translated",
             "value": "[Öþéñ ŧĥé šçáñ ŕéšúļŧš ƒöŕ %@··························]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "Open the scan results for %@ at %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "فتح نتائج فحص %@ في %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open the scan results for %@ at %@"
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Öþéñ ŧĥé šçáñ ŕéšúļŧš ƒöŕ %@ áŧ %@································]"
           }
         }
       },
@@ -12668,6 +12740,54 @@
           "stringUnit": {
             "state": "translated",
             "value": "[Šĥöŵ %@·····]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "Show All": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إظهار الكل"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show All"
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Šĥöŵ Áļļ······]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "Show Less": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إظهار أقل"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show Less"
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Šĥöŵ Ļéšš·······]"
           }
         }
       },

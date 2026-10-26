@@ -504,6 +504,8 @@
 	<string>عناصر كبيرة وقديمة وذاكرات تخزين مؤقت تستحق المراجعة</string>
 	<key>Largest files (%@)</key>
 	<string>أكبر الملفات (%@)</string>
+	<key>Last scan %@ · %@</key>
+	<string>آخر فحص %@ · %@</string>
 	<key>Later</key>
 	<string>الأحدث</string>
 	<key>Leave paths out</key>
@@ -648,6 +650,8 @@
 	<string>على القرص</string>
 	<key>One run recorded</key>
 	<string>تشغيل واحد مسجل</string>
+	<key>Only %@ free</key>
+	<string>لا يتوفر سوى %@</string>
 	<key>Only finished scans are recorded: a cancelled scan covers part of the folder, so it is not offered as a run to compare. Records stay on this Mac and hold paths and totals, never file contents. Clear History… removes them all.</key>
 	<string>لا تُسجّل إلا الفحوص المنتهية: الفحص الملغى يغطي جزءًا من المجلد، لذا لا يُعرض كتشغيل للمقارنة. تبقى السجلات على هذا الـ Mac وتحمل المسارات والإجماليات، لا محتويات الملفات. «مسح السجل…» يزيلها كلها.</string>
 	<key>Open Full Disk Access in System Settings</key>
@@ -658,6 +662,8 @@
 	<string>فتح إعدادات النظام…</string>
 	<key>Open the scan results for %@</key>
 	<string>فتح نتائج فحص %@</string>
+	<key>Open the scan results for %@ at %@</key>
+	<string>فتح نتائج فحص %@ في %@</string>
 	<key>Opens the Full Disk Access pane in System Settings</key>
 	<string>يفتح لوحة الوصول الكامل إلى القرص في إعدادات النظام</string>
 	<key>Opens the Moved tab</key>
@@ -848,6 +854,10 @@
 	<string>نصيب من الحجم المنطقي لهذا الفحص. اختر فئة لرؤية أكبر ملفاتها.</string>
 	<key>Show %@</key>
 	<string>إظهار %@</string>
+	<key>Show All</key>
+	<string>إظهار الكل</string>
+	<key>Show Less</key>
+	<string>إظهار أقل</string>
 	<key>Show More</key>
 	<string>إظهار المزيد</string>
 	<key>Show Moved</key>

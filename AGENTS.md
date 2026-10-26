@@ -37,9 +37,11 @@ contracts, shared-interface rules §7, non-negotiables §8).
 | `Tests/DiskCoreTests/` | engine tests |
 | `Tests/DiskCLITests/` | command-line parsing, report stability, exit statuses |
 | `Tests/QATests/` | independent verification that does not trust the engine's own tests |
-| `Scripts/` | build, bundle, release packaging, launch, offscreen render, localization, repo map |
-| `.github/workflows/` | `ci.yml`: build, test, bundle version check, CLI smoke, renders; `release.yml`: tagged unsigned zips (arm64, x86_64) and checksums |
-| `docs/` | `ARCHITECTURE.md` (frozen contracts), `LIVE-TREE.md`, `CLEANUP.md` (cleanup rules, tiers, and accounting), `ROADMAP.md` |
+| `Scripts/` | build, bundle, release packaging, launch, offscreen render, localization, repo map, Homebrew cask rendering |
+| `.github/workflows/` | `ci.yml`: build, test, bundle version check, CLI smoke, renders, cask audit; `release.yml`: tagged unsigned zips (arm64, x86_64), checksums, and the cask committed to `Casks/` |
+| `.github/homebrew/` | `willydisk.rb.tmpl`: the Homebrew cask template the release renders |
+| `Casks/` | `Casks/willydisk.rb`, the rendered cask Homebrew reads; this repository is its own tap |
+| `docs/` | `ARCHITECTURE.md` (frozen contracts), `LIVE-TREE.md`, `CLEANUP.md` (cleanup rules, tiers, and accounting), `HOMEBREW.md` (the tap, the cask, the release step), `ROADMAP.md` |
 
 ## Where things are
 
@@ -135,6 +137,7 @@ bash Scripts/localize.sh --check     # fail if those resources are stale
 bash Scripts/run.sh                  # build the bundle and launch it (the way to look at the UI)
 bash Scripts/bundle-app.sh           # assemble .build/WillyDisk.app; its version comes from VERSION
 bash Scripts/package-release.sh      # build the arm64 and Intel zips with their SHA-256s
+bash Scripts/homebrew-cask.sh check  # render the cask template; --audit runs Homebrew's checks
 bash Scripts/render-screens.sh       # offscreen PNGs (-S results|home|search|help|settings|categories|coverage|cleanup|duplicates|moved|reclaim|history|both; -l en|ar|en-XA), no window, no screen-recording permission
 bash Scripts/repo-map.sh             # one-screen structural inventory (--types adds declarations)
 ```

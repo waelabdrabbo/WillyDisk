@@ -128,3 +128,19 @@ jobs:
           name: renders
           path: .build/renders/ci/*.png
           if-no-files-found: warn
+
+  # The Homebrew cask is a template, so a release cannot discover that it broke
+  # until it tries to publish. Homebrew's own style and audit checks run here
+  # instead, on every change.
+  homebrew-cask:
+    runs-on: macos-26
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: The cask template renders and passes Homebrew's checks
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: 1
+        run: bash Scripts/homebrew-cask.sh check --audit

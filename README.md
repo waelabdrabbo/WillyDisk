@@ -53,6 +53,34 @@ breakdown by file category. Everything happens on your machine.
 
 ## Install
 
+### Homebrew
+
+```
+brew tap waelabdrabbo/willydisk https://github.com/waelabdrabbo/WillyDisk
+brew trust --tap waelabdrabbo/willydisk   # current Homebrew: a third-party tap must be trusted
+brew install --cask willydisk
+```
+
+The cask installs `WillyDisk.app` into `/Applications` and links the same binary into
+Homebrew's `bin` as `willydisk`, so the command line works without opening a window:
+
+```
+willydisk scan ~/Downloads
+```
+
+Older Homebrew versions have no `brew trust`; skip that line there. Once the cask is
+installed, `brew upgrade --cask willydisk` picks up each new release.
+
+**The app is unsigned and not notarized**, so macOS may refuse the first launch. If it
+does, approve it once in System Settings → Privacy & Security → Open Anyway.
+
+This repository is its own tap: Homebrew clones it and reads `Casks/willydisk.rb`, which
+the release pipeline renders from the published checksums. It is not in `homebrew/cask`
+because Homebrew requires a notarized build there. [`docs/HOMEBREW.md`](docs/HOMEBREW.md)
+has the whole arrangement.
+
+### Download
+
 Download the zip for your Mac from the
 [Releases page](https://github.com/waelabdrabbo/WillyDisk/releases) —
 `WillyDisk-<version>-arm64.zip` on Apple Silicon, `-x86_64.zip` on Intel
@@ -101,6 +129,7 @@ Other scripts:
 ```
 bash Scripts/bundle-app.sh      # build .build/WillyDisk.app without launching it
 bash Scripts/package-release.sh # build the arm64 and Intel zips with their SHA-256s
+bash Scripts/homebrew-cask.sh   # render the Homebrew cask the tap serves
 bash Scripts/render-screens.sh  # render the screens offscreen to PNGs in .build/renders
 bash Scripts/repo-map.sh        # print a structural inventory of the repository
 ```

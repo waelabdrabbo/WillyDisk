@@ -3,6 +3,9 @@ name: Release
 # Pushing a `v*` tag is the only way to publish. The tag must name the version in
 # VERSION, and the release page says plainly that the artifact is unsigned and
 # not notarized. There is no Developer ID certificate and no notarization step.
+# The same run renders the Homebrew cask from VERSION and these checksums and
+# commits it to `Casks/`, because this repository is its own tap, so `brew` and
+# the Releases page always agree.
 on:
   push:
     tags: ['v*']
@@ -84,6 +87,37 @@ jobs:
             grep -n '{{' "$RUNNER_TEMP/notes.md"
             exit 1
           fi
+
+      # The tap is this repository, so the cask is a file here. It is written
+      # before the release is published: a run that cannot commit it stops while
+      # the release is still absent, and re-running the job fixes both. The file
+      # is rendered from the checksums above, never hand-edited.
+      - name: Commit the cask the tap serves
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          version="$(tr -d '[:space:]' < VERSION)"
+          work="$RUNNER_TEMP/tap"
+          auth="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64)"
+
+          rm -rf "$work"
+          git -c http.extraheader="$auth" clone --depth 1 \
+            "https://github.com/${{ github.repository }}.git" "$work"
+          bash Scripts/homebrew-cask.sh render --assets .build/release --out "$work/Casks/willydisk.rb"
+
+          cd "$work"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config http.extraheader "$auth"
+          git add Casks/willydisk.rb
+          if git diff --cached --quiet; then
+            echo "The tap already serves WillyDisk $version."
+            exit 0
+          fi
+          git commit -m "willydisk $version"
+          git push origin HEAD
+          echo "Casks/willydisk.rb now serves WillyDisk $version."
 
       - name: Publish the release
         env:

@@ -684,6 +684,61 @@ public struct ResultsView: View {
     // MARK: - Body
 
     public var body: some View {
+        resultsScreen
+            .animation(reduceMotion ? nil : .easeInOut(duration: 0.2), value: viewModel.reclaimNotice)
+            .sheet(item: $activeSheet) { sheet in
+                sheetContent(for: sheet)
+            }
+            .interactiveDismissDisabled(
+                isTrashing || (activeSheet == .cleanup && !reclaimCandidates.isEmpty)
+            )
+            .resultsToolbarTitleHidden()
+            // The chart intentionally runs under the titlebar; the toolbar has no
+            // backing of its own on this screen.
+            .toolbarBackground(.hidden, for: .windowToolbar)
+            .focusedSceneValue(\.resultsCommands, resultsCommands)
+            .toolbar {
+                resultsToolbar
+            }
+    }
+
+    /// The results and the handlers that follow the scan while the screen is up:
+    /// the list's scope, the whole-tree walks it started, and the notice a move
+    /// to the Trash leaves behind.
+    private var resultsScreen: some View {
+        scopedResults
+            .onDisappear {
+                stopScreenWork()
+            }
+            .task(id: viewModel.scanRun) {
+                // Re-run for every scan and on Rescan: grant Full Disk Access in
+                // System Settings, hit Rescan, and the notice must disappear.
+                fullDiskAccessGranted = await FullDiskAccessProbe.isGranted()
+            }
+            .task {
+                // A screen opened on a largest list ranks the tree it was given, and
+                // one opened with a query already in the field searches at once
+                // rather than waiting out the debounce meant for typing.
+                refreshRanking()
+                guard !searchText.isEmpty else { return }
+                startSearch(searchText, debounce: false)
+            }
+            .overlay(alignment: .bottom) {
+                reclaimBanner
+            }
+            .onChange(of: viewModel.resultsRevision) { _, revision in
+                cleanupRefresh.revision = revision
+            }
+            .onChange(of: activeSheet) { _, sheet in
+                if sheet != .cleanup {
+                    cleanupNotice = nil
+                }
+            }
+    }
+
+    /// The content and the handlers for what the list is showing: the rows in
+    /// view, the open search, the mode, and the selection they share.
+    private var scopedResults: some View {
         Group {
             if summary != nil || viewModel.isScanning {
                 content
@@ -711,28 +766,7 @@ public struct ResultsView: View {
             pruneSelection()
         }
         .onChange(of: explorerMode) { _, newMode in
-            refreshRanking()
-            // The list's scope changed, so a selection, a hover, and a search
-            // that were about the old list would otherwise point at rows that are
-            // no longer on screen.
-            hover.url = nil
-            clearSelection()
-            // A drill from a search result is the one mode change that brings its
-            // own selection with it.
-            if let url = drillSelection {
-                selection.selectOnly(url)
-            }
-            drillSelection = nil
-            searchText = ""
-            hoveredCategory = nil
-            closeCategory()
-            // The chart shows a folder; the largest lists are about the whole
-            // scan. Returning the chart to the scanned location keeps the map and
-            // the list talking about the same thing.
-            if newMode != .folder {
-                breadcrumb.removeAll()
-            }
-            visibleItemLimit = DS.Size.explorerPageSize
+            applyModeChange(newMode)
         }
         .onChange(of: isLiveScan) { _, live in
             // A category opened while the walk was still running listed the
@@ -770,194 +804,165 @@ public struct ResultsView: View {
             // An open panel follows the selection; a closed one stays closed.
             quickLook.updateIfVisible(selectedNodes.map(\.url))
         }
-        .onDisappear {
-            // The panel belongs to the window, not to this view; leaving the
-            // results must not leave a preview of them on screen.
-            quickLook.close()
-            // A list that leaves the screen mid-scroll sends no further phase,
-            // and a held snapshot must not stay held for the next scan.
-            viewModel.setResultsScrolling(false)
-            // A whole-tree walk is worth stopping with the screen that asked for
-            // it, even though it is off the main actor.
-            searchRun?.cancel()
-            searchRun = nil
-            searchRefreshTask?.cancel()
-            searchRefreshTask = nil
-            rankingTask?.cancel()
-            rankingTask = nil
-            rankingRetryTask?.cancel()
-            rankingRetryTask = nil
+    }
+
+    /// The notice a move to the Trash leaves behind. The cleanup sheet presents
+    /// its own, so none is drawn under it.
+    @ViewBuilder
+    private var reclaimBanner: some View {
+        if let notice = viewModel.reclaimNotice, activeSheet != .cleanup {
+            ReclaimBanner(
+                tone: notice.tone,
+                message: notice.message,
+                action: notice.showsShowTrash ? .showTrash : nil,
+                onAction: openTrash,
+                onDismiss: viewModel.dismissReclaimNotice
+            )
+            .padding(.horizontal, DS.Spacing.large)
+            .padding(.bottom, DS.Spacing.small)
+            .transition(.move(edge: .bottom).combined(with: .opacity))
         }
-        .task(id: viewModel.scanRun) {
-            // Re-run for every scan and on Rescan: grant Full Disk Access in
-            // System Settings, hit Rescan, and the notice must disappear.
-            fullDiskAccessGranted = await FullDiskAccessProbe.isGranted()
-        }
-        .task {
-            // A screen opened on a largest list ranks the tree it was given, and
-            // one opened with a query already in the field searches at once
-            // rather than waiting out the debounce meant for typing.
-            refreshRanking()
-            guard !searchText.isEmpty else { return }
-            startSearch(searchText, debounce: false)
-        }
-        .overlay(alignment: .bottom) {
-            if let notice = viewModel.reclaimNotice, activeSheet != .cleanup {
-                ReclaimBanner(
-                    tone: notice.tone,
-                    message: notice.message,
-                    action: notice.showsShowTrash ? .showTrash : nil,
-                    onAction: openTrash,
-                    onDismiss: viewModel.dismissReclaimNotice
-                )
-                .padding(.horizontal, DS.Spacing.large)
-                .padding(.bottom, DS.Spacing.small)
-                .transition(.move(edge: .bottom).combined(with: .opacity))
+    }
+
+    /// The sheet the screen is presenting. A sheet whose source state has gone
+    /// draws nothing, as if it had been dismissed.
+    @ViewBuilder
+    private func sheetContent(for sheet: ResultsSheet) -> some View {
+        switch sheet {
+        case .reclaim:
+            ReclaimSheet(
+                candidates: reclaimCandidates,
+                refusal: reclaimRefusal,
+                isChecking: isCheckingReclaim,
+                isWorking: isTrashing,
+                onCancel: cancelReclaim,
+                onConfirm: confirmReclaim
+            )
+        case .coverage:
+            if let summary {
+                CoverageSheet(summary: summary, isLive: viewModel.isScanning)
+            }
+        case .cleanup:
+            cleanupSheet
+        case .history:
+            if let history = viewModel.history, let root = summary?.root ?? viewModel.currentRoot {
+                HistorySheet(history: history, root: root, rootName: LocationName.of(root))
             }
         }
-        .animation(reduceMotion ? nil : .easeInOut(duration: 0.2), value: viewModel.reclaimNotice)
-        .onChange(of: viewModel.resultsRevision) { _, revision in
-            cleanupRefresh.revision = revision
-        }
-        .onChange(of: activeSheet) { _, sheet in
-            if sheet != .cleanup {
-                cleanupNotice = nil
-            }
-        }
-        .sheet(item: $activeSheet) { sheet in
-            switch sheet {
-            case .reclaim:
-                ReclaimSheet(
-                    candidates: reclaimCandidates,
-                    refusal: reclaimRefusal,
-                    isChecking: isCheckingReclaim,
-                    isWorking: isTrashing,
-                    onCancel: cancelReclaim,
-                    onConfirm: confirmReclaim
-                )
-            case .coverage:
-                if let summary {
-                    CoverageSheet(summary: summary, isLive: viewModel.isScanning)
-                }
-            case .cleanup:
-                if let summary, let root = rootNode(in: summary), let tree = viewModel.liveTree {
-                    CleanupSheet(
-                        tree: tree,
-                        rootName: root.name,
-                        scannedAt: summary.finishedAt,
-                        refresh: cleanupRefresh,
-                        reclaimLog: viewModel.reclaimLog,
-                        reclaimCandidates: reclaimFromCleanup ? reclaimCandidates : [],
-                        reclaimRefusal: reclaimRefusal,
-                        isCheckingReclaim: isCheckingReclaim,
-                        isTrashing: isTrashing,
-                        notice: cleanupNotice,
-                        onDismissNotice: { cleanupNotice = nil },
-                        onBeginReclaim: { nodes in
-                            requestReclaim(nodes, fromCleanup: true)
-                        },
-                        onConfirmReclaim: confirmReclaim,
-                        onCancelReclaim: cancelReclaim,
-                        onRestore: { move in
-                            let report = await viewModel.restore(move)
-                            guard !report.failures.isEmpty else { return nil }
-                            return L10n.format(
-                                "Couldn’t put back everything. %@",
-                                L10n.list(report.failures)
-                            )
-                        },
-                        onClose: {
-                            reclaimCandidates = []
-                            reclaimRefusal = nil
-                            reclaimFromCleanup = false
-                            cleanupNotice = nil
-                            activeSheet = nil
-                        }
+    }
+
+    /// The cleanup sheet over the live tree, which is the only tree CleanupSheet
+    /// reads and the only one a move can edit.
+    @ViewBuilder
+    private var cleanupSheet: some View {
+        if let summary, let root = rootNode(in: summary), let tree = viewModel.liveTree {
+            CleanupSheet(
+                tree: tree,
+                rootName: root.name,
+                scannedAt: summary.finishedAt,
+                refresh: cleanupRefresh,
+                reclaimLog: viewModel.reclaimLog,
+                reclaimCandidates: reclaimFromCleanup ? reclaimCandidates : [],
+                reclaimRefusal: reclaimRefusal,
+                isCheckingReclaim: isCheckingReclaim,
+                isTrashing: isTrashing,
+                notice: cleanupNotice,
+                onDismissNotice: { cleanupNotice = nil },
+                onBeginReclaim: { nodes in
+                    requestReclaim(nodes, fromCleanup: true)
+                },
+                onConfirmReclaim: confirmReclaim,
+                onCancelReclaim: cancelReclaim,
+                onRestore: { move in
+                    let report = await viewModel.restore(move)
+                    guard !report.failures.isEmpty else { return nil }
+                    return L10n.format(
+                        "Couldn’t put back everything. %@",
+                        L10n.list(report.failures)
                     )
+                },
+                onClose: {
+                    reclaimCandidates = []
+                    reclaimRefusal = nil
+                    reclaimFromCleanup = false
+                    cleanupNotice = nil
+                    activeSheet = nil
                 }
-            case .history:
-                if let history = viewModel.history, let root = summary?.root ?? viewModel.currentRoot {
-                    HistorySheet(history: history, root: root, rootName: LocationName.of(root))
-                }
-            }
+            )
         }
-        .interactiveDismissDisabled(
-            isTrashing || (activeSheet == .cleanup && !reclaimCandidates.isEmpty)
-        )
-        .resultsToolbarTitleHidden()
-        // The chart intentionally runs under the titlebar; the toolbar has no
-        // backing of its own on this screen.
-        .toolbarBackground(.hidden, for: .windowToolbar)
-        .focusedSceneValue(\.resultsCommands, resultsCommands)
-        .toolbar {
-            // Home leaves the results for source selection. Moving up one folder is
-            // what the trail's ancestor crumbs are for, so there is no Back action.
-            ToolbarItem(placement: .navigation) {
-                Button {
-                    goHome()
-                } label: {
-                    Label(L10n.string("Home"), systemImage: "house")
-                }
-                .help(L10n.string("Return to source selection"))
-                .accessibilityLabel(L10n.string("Home"))
-                .accessibilityHint(L10n.string("Shows source selection; a scan that is running keeps running"))
+    }
+
+    /// The window toolbar: Home leads, and History, Cleanup, Coverage, Rescan,
+    /// and Export trail.
+    @ToolbarContentBuilder
+    private var resultsToolbar: some ToolbarContent {
+        // Home leaves the results for source selection. Moving up one folder is
+        // what the trail's ancestor crumbs are for, so there is no Back action.
+        ToolbarItem(placement: .navigation) {
+            Button {
+                goHome()
+            } label: {
+                Label(L10n.string("Home"), systemImage: "house")
             }
-            // A flexible spacer keeps Coverage, Rescan, and Export trailing while
-            // Home stays at the leading edge.
-            if #available(macOS 26.0, *) {
-                ToolbarSpacer(.flexible)
-            } else if #available(macOS 15.0, *) {
-                ToolbarItem(placement: .principal) { Spacer() }
+            .help(L10n.string("Return to source selection"))
+            .accessibilityLabel(L10n.string("Home"))
+            .accessibilityHint(L10n.string("Shows source selection; a scan that is running keeps running"))
+        }
+        // A flexible spacer keeps Coverage, Rescan, and Export trailing while
+        // Home stays at the leading edge.
+        if #available(macOS 26.0, *) {
+            ToolbarSpacer(.flexible)
+        } else if #available(macOS 15.0, *) {
+            ToolbarItem(placement: .principal) { Spacer() }
+        }
+
+        ToolbarItemGroup(placement: .primaryAction) {
+            Button {
+                showHistory()
+            } label: {
+                Label(L10n.string("History"), systemImage: "clock.arrow.circlepath")
             }
+            .help(L10n.string("Compare this location's recorded scans"))
+            .disabled(summary == nil || viewModel.history == nil)
 
-            ToolbarItemGroup(placement: .primaryAction) {
-                Button {
-                    showHistory()
-                } label: {
-                    Label(L10n.string("History"), systemImage: "clock.arrow.circlepath")
-                }
-                .help(L10n.string("Compare this location's recorded scans"))
-                .disabled(summary == nil || viewModel.history == nil)
-
-                Button {
-                    showCleanup()
-                } label: {
-                    Label(L10n.string("Cleanup"), systemImage: "sparkles")
-                }
-                .help(L10n.string("Large, old, and cache items worth reviewing"))
-                .disabled(summary == nil || viewModel.isScanning)
-
-                Button {
-                    showCoverage()
-                } label: {
-                    Label(L10n.string("Coverage"), systemImage: "info.circle")
-                }
-                .help(L10n.string("What this scan counted, and what it did not"))
-                .disabled(summary == nil)
-
-                Button {
-                    rescan()
-                } label: {
-                    Label(L10n.string("Rescan"), systemImage: "arrow.counterclockwise")
-                }
-                .help(L10n.string(viewModel.isScanning
-                      ? "A scan is already running — cancel it first to start again"
-                      : "Scan the current location again"))
-                .disabled(viewModel.isScanning)
-
-                Menu {
-                    Button(L10n.string("Export as JSON…")) { exportJSON() }
-                        .disabled(summary == nil)
-                    Button(L10n.string("Export as CSV…")) { exportCSV() }
-                        .disabled(summary == nil)
-                    Divider()
-                    Button(L10n.string("Export Diagnostics…")) { exportDiagnostics() }
-                        .disabled(viewModel.currentRoot == nil)
-                } label: {
-                    Label(L10n.string("Export"), systemImage: "square.and.arrow.up")
-                }
-                .help(L10n.string("Export the analysis report or diagnostics"))
+            Button {
+                showCleanup()
+            } label: {
+                Label(L10n.string("Cleanup"), systemImage: "sparkles")
             }
+            .help(L10n.string("Large, old, and cache items worth reviewing"))
+            .disabled(summary == nil || viewModel.isScanning)
+
+            Button {
+                showCoverage()
+            } label: {
+                Label(L10n.string("Coverage"), systemImage: "info.circle")
+            }
+            .help(L10n.string("What this scan counted, and what it did not"))
+            .disabled(summary == nil)
+
+            Button {
+                rescan()
+            } label: {
+                Label(L10n.string("Rescan"), systemImage: "arrow.counterclockwise")
+            }
+            .help(L10n.string(viewModel.isScanning
+                  ? "A scan is already running — cancel it first to start again"
+                  : "Scan the current location again"))
+            .disabled(viewModel.isScanning)
+
+            Menu {
+                Button(L10n.string("Export as JSON…")) { exportJSON() }
+                    .disabled(summary == nil)
+                Button(L10n.string("Export as CSV…")) { exportCSV() }
+                    .disabled(summary == nil)
+                Divider()
+                Button(L10n.string("Export Diagnostics…")) { exportDiagnostics() }
+                    .disabled(viewModel.currentRoot == nil)
+            } label: {
+                Label(L10n.string("Export"), systemImage: "square.and.arrow.up")
+            }
+            .help(L10n.string("Export the analysis report or diagnostics"))
         }
     }
 
@@ -1930,6 +1935,53 @@ public struct ResultsView: View {
     }
 
     // MARK: - Actions
+
+    /// Re-scopes the screen for a new list mode.
+    ///
+    /// The list's scope changes wholesale, so a selection, a hover, and a search
+    /// that were about the old list would otherwise point at rows that are no
+    /// longer on screen. A drill from a search result is the one mode change that
+    /// brings its own selection with it.
+    private func applyModeChange(_ newMode: ExplorerMode) {
+        refreshRanking()
+        hover.url = nil
+        clearSelection()
+        if let url = drillSelection {
+            selection.selectOnly(url)
+        }
+        drillSelection = nil
+        searchText = ""
+        hoveredCategory = nil
+        closeCategory()
+        // The chart shows a folder; the largest lists are about the whole scan.
+        // Returning the chart to the scanned location keeps the map and the list
+        // talking about the same thing.
+        if newMode != .folder {
+            breadcrumb.removeAll()
+        }
+        visibleItemLimit = DS.Size.explorerPageSize
+    }
+
+    /// Stops the work the screen started, so a screen that leaves does not leave
+    /// its preview, its scroll hold, or its whole-tree walks behind.
+    private func stopScreenWork() {
+        // The panel belongs to the window, not to this view; leaving the results
+        // must not leave a preview of them on screen.
+        quickLook.close()
+        // A list that leaves the screen mid-scroll sends no further phase, and a
+        // held snapshot must not stay held for the next scan.
+        viewModel.setResultsScrolling(false)
+        // A whole-tree walk is worth stopping with the screen that asked for it,
+        // even though it is off the main actor.
+        searchRun?.cancel()
+        searchRun = nil
+        searchRefreshTask?.cancel()
+        searchRefreshTask = nil
+        rankingTask?.cancel()
+        rankingTask = nil
+        rankingRetryTask?.cancel()
+        rankingRetryTask = nil
+    }
 
     /// A click selects the row. The modifiers are read at click time because a
     /// SwiftUI button's action does not carry them.

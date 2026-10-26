@@ -69,6 +69,10 @@ stream reports.
   and the chart share is `ChartHover` in `Screens/ResultsView.swift`, so a hover
   re-renders the list and the chart and leaves the rest of the screen alone.
 - Light and dark must both be polished; controls stay keyboard-accessible.
+- Keep a screen's `body` a short modifier chain: handler bodies go in methods,
+  modifier groups in computed views. The CI toolchain (`runs-on: macos-26`) can be
+  older than a local Xcode and reject a chain that compiles locally with "unable to
+  type-check this expression in reasonable time"; the split costs nothing at runtime.
 - Verbs are part of the control vocabulary: "Cancel Scan" stops a scan,
   "Cancel" dismisses a modal task, and "Dismiss" hides a notice.
 - Liquid Glass is an enhancement only: gate macOS 26 APIs behind

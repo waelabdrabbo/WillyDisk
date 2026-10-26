@@ -328,13 +328,16 @@ final class ScanViewModelQATests: XCTestCase {
         let settled = await waitUntil { vm.phase == .finished && vm.liveTree != nil }
         XCTAssertTrue(settled, "the big scan should settle before the next one starts")
 
-        let started = ContinuousClock().now
+        // The quantity under test is work, so this reads the thread's CPU time
+        // rather than the clock: a thread the scheduler parks between the two
+        // readings has done none of it. Freeing the tree instead costs tens of
+        // milliseconds of CPU, which is what the bound is set to catch.
+        let cpuBefore = clock_gettime_nsec_np(CLOCK_THREAD_CPUTIME_ID)
         vm.start(root: URL(fileURLWithPath: "/qa/next"))
-        let elapsed = ContinuousClock().now - started
-        let seconds = Double(elapsed.components.seconds) + Double(elapsed.components.attoseconds) / 1e18
+        let cpuSeconds = Double(clock_gettime_nsec_np(CLOCK_THREAD_CPUTIME_ID) - cpuBefore) / 1e9
 
         XCTAssertLessThan(
-            seconds, 0.03,
+            cpuSeconds, 0.01,
             "starting a scan must not walk the superseded measurement's tree on the main actor"
         )
     }

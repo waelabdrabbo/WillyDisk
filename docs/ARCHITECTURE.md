@@ -359,6 +359,15 @@ carries the root node itself in `largestDirectories`.
   `L10n` when Settings changes it; `system` clears the override so the catalog follows
   macOS. The override governs WillyDisk's own windows and date formatting, not AppKit's
   panels or the command line.
+- Resource bundles are located, not assumed. SwiftPM's `Bundle.module` answers only
+  from the directory `Bundle.main.bundleURL` names and the build path the module was
+  compiled under; inside an `.app` the first is the app itself, so a downloaded build
+  could not reach the bundles `Scripts/bundle-app.sh` installs in
+  `Contents/Resources`. `BundledResources` (`Sources/DiskLocalization/`) searches that
+  directory first, then the directory the binary runs from, then the place a test
+  bundle keeps them, and fails with every path it tried. Both resource bundles
+  (`WillyDisk_DiskUI`, `WillyDisk_DiskLocalization`) load through it, and
+  `Tests/QATests/ResourceBundleLayoutQATests` holds the app layout to that search.
 - The disk chart is `SunburstView` — custom SwiftUI shapes with ring/angle
   geometry, no third-party deps.
 

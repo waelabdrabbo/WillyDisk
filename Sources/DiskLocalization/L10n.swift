@@ -125,11 +125,23 @@ public enum L10n {
     /// `Bundle` will not localize.
     nonisolated(unsafe) private static var directTables: [String: [String: String]] = [:]
 
+    /// The bundle the catalog ships in, as this Mac laid it out rather than as
+    /// the build machine did. `BundledResources` explains why `Bundle.module`
+    /// cannot answer inside an installed app.
+    private static let resourceBundle: Bundle = {
+        let name = "WillyDisk_DiskLocalization"
+        guard let bundle = BundledResources.locate(name) else {
+            let attempted = BundledResources.attemptedPaths(name).joined(separator: ", ")
+            Swift.fatalError("could not find \(name).bundle; looked in: \(attempted)")
+        }
+        return bundle
+    }()
+
     /// Every language the resource bundle carries: the localizations Foundation
     /// recognizes, plus the `.lproj` directories SwiftPM copied, each under the
     /// catalog's spelling.
     private static var bundledLanguages: [String] {
-        var languages = Set(Bundle.module.localizations.map(canonicalLanguage))
+        var languages = Set(resourceBundle.localizations.map(canonicalLanguage))
         for directory in localizationDirectories {
             for entry in localizationEntries(in: directory) {
                 languages.insert(canonicalLanguage(entry.deletingPathExtension().lastPathComponent))
@@ -161,7 +173,7 @@ public enum L10n {
            let localized = Bundle(path: directory.path) {
             bundle = localized
         } else {
-            bundle = Bundle.module
+            bundle = resourceBundle
         }
         tables[language] = bundle
         return bundle
@@ -210,8 +222,8 @@ public enum L10n {
     /// separator differences, so a language the system does not list is still
     /// found. The caller holds `lock`.
     private static func localizationDirectory(for language: String) -> URL? {
-        let module = Bundle.module
-        if let path = module.path(forResource: language, ofType: "lproj") {
+        let bundle = resourceBundle
+        if let path = bundle.path(forResource: language, ofType: "lproj") {
             return URL(fileURLWithPath: path)
         }
         let wanted = normalizedLanguage(language)
@@ -228,11 +240,11 @@ public enum L10n {
     /// in. `resourceURL` is the usual answer; the bundle's own layout is asked
     /// too, so a bundle that does not report one is still searched.
     private static var localizationDirectories: [URL] {
-        let module = Bundle.module
+        let bundle = resourceBundle
         var directories: [URL] = []
-        if let resources = module.resourceURL { directories.append(resources) }
-        directories.append(module.bundleURL.appendingPathComponent("Contents/Resources"))
-        directories.append(module.bundleURL)
+        if let resources = bundle.resourceURL { directories.append(resources) }
+        directories.append(bundle.bundleURL.appendingPathComponent("Contents/Resources"))
+        directories.append(bundle.bundleURL)
         return directories
     }
 

@@ -142,8 +142,10 @@ fi
 cp "$BIN_PATH" "$STAGED_BIN"
 cp "$ICON_SRC" "$RESOURCES_DIR/AppIcon.icns"
 # The in-app mark lives in DiskUI's resource bundle, and the string catalog's
-# compiled `.lproj` tables live in DiskLocalization's. Both must sit beside the
-# executable for `Bundle.module` to resolve them exactly as the renderer does.
+# compiled `.lproj` tables live in DiskLocalization's. Both go into the app's
+# Contents/Resources, where macOS expects them and where `BundledResources`
+# looks first; SwiftPM's own `Bundle.module` only searches beside
+# `Bundle.main.bundleURL`, which inside an `.app` is the app itself.
 #
 # The bundle's layout depends on the toolchain: an older SwiftPM writes a flat
 # bundle (Info.plist and resources at its root), while the current one writes

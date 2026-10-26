@@ -1,4 +1,5 @@
 import AppKit
+import DiskLocalization
 import SwiftUI
 
 /// The app's mark as the one image the UI draws.
@@ -13,11 +14,14 @@ import SwiftUI
 @MainActor
 public enum AppMarkImage {
     public static let shared: NSImage = {
-        guard let url = Bundle.module.url(forResource: "AppMark", withExtension: "png"),
+        let name = "WillyDisk_DiskUI"
+        guard let bundle = BundledResources.locate(name),
+              let url = bundle.url(forResource: "AppMark", withExtension: "png"),
               let image = NSImage(contentsOf: url) else {
             // The mark is committed artwork, not something drawn at runtime, so a
             // missing resource is a packaging fault rather than a state to show.
-            fatalError("AppMark.png is missing from the DiskUI resource bundle")
+            let attempted = BundledResources.attemptedPaths(name).joined(separator: ", ")
+            fatalError("AppMark.png is missing from the DiskUI resource bundle; looked in: \(attempted)")
         }
         return image
     }()

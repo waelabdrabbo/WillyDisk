@@ -657,9 +657,13 @@ func render(_ options: Options) {
 
             let url = options.out.appendingPathComponent(
                 "\(kind.rawValue)-\(options.rendersWindow ? "window" : "content")-\(name)-\(options.locale)-\(Int(options.size.width))x\(Int(options.size.height)).png")
+            // The chart reveals itself when a results screen opens, which takes
+            // a little over half a second; a still taken mid-reveal would show a
+            // chart the app never rests at. Other screens settle in a few passes.
+            let settle: TimeInterval = (kind == .results || kind == .categories) ? 1.0 : 0.24
             let image = options.rendersWindow
-                ? renderWindow(screen, size: options.size, appearance: appearance)
-                : renderContent(screen, size: options.size)
+                ? renderWindow(screen, size: options.size, appearance: appearance, settle: settle)
+                : renderContent(screen, size: options.size, settle: settle)
             guard let png = image?.representation(using: .png, properties: [:]) else {
                 fail("could not encode \(url.lastPathComponent)")
             }
@@ -680,7 +684,7 @@ func render(_ options: Options) {
 /// the window chrome is drawn over it: an on-screen boundary that this catches
 /// and a content-only render does not.
 @MainActor
-func renderWindow<V: View>(_ screen: V, size: CGSize, appearance: ColorScheme) -> NSBitmapImageRep? {
+func renderWindow<V: View>(_ screen: V, size: CGSize, appearance: ColorScheme, settle: TimeInterval = 0.24) -> NSBitmapImageRep? {
     let window = NSWindow(contentRect: NSRect(origin: .zero, size: size),
                           styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
                           backing: .buffered,
@@ -693,7 +697,7 @@ func renderWindow<V: View>(_ screen: V, size: CGSize, appearance: ColorScheme) -
     window.toolbar = toolbar
     window.contentView = NSHostingView(rootView: screen)
 
-    for _ in 0..<12 {
+    for _ in 0..<Int((settle / 0.02).rounded()) {
         window.layoutIfNeeded()
         RunLoop.current.run(until: Date().addingTimeInterval(0.02))
     }
@@ -705,11 +709,11 @@ func renderWindow<V: View>(_ screen: V, size: CGSize, appearance: ColorScheme) -
 
 /// Renders the screen on its own, with no window around it.
 @MainActor
-func renderContent<V: View>(_ screen: V, size: CGSize) -> NSBitmapImageRep? {
+func renderContent<V: View>(_ screen: V, size: CGSize, settle: TimeInterval = 0.24) -> NSBitmapImageRep? {
     let host = NSHostingView(rootView: screen)
     host.frame = NSRect(origin: .zero, size: size)
-    // Preferences, and the state they feed, settle over a few passes.
-    for _ in 0..<12 {
+    // Preferences, the state they feed, and any entrance settle over these passes.
+    for _ in 0..<Int((settle / 0.02).rounded()) {
         host.layoutSubtreeIfNeeded()
         RunLoop.current.run(until: Date().addingTimeInterval(0.02))
     }

@@ -13,9 +13,13 @@ stream reports.
   `ResultsView` is screen C and also the live in-progress state; `HelpView` is the
   help sheet's content; `SettingsView` is the preferences window. Scanning is not a
   separate screen.
-- `Components/` — `SunburstView` (the disk chart: wedges drawn in one static layer,
-  with the hover emphasis painted over them), `CategoryRingView` (the scan by
-  category, one ring; opening a category charts its files with `SunburstView`),
+- `Components/` — `SunburstView` (the disk chart: wedges drawn in one canvas,
+  with the hover emphasis painted over them; `SunburstAnimation` carries the wedges
+  between layouts, keyed so a drill is a move rather than a replacement, and plays
+  each chart's entrance when the pane shows it — first look, return, or tab switch),
+  `CategoryRingView` (the scan by
+  category, one ring; it opens the same way; opening a category charts its files
+  with `SunburstView`),
   `WedgeEmphasis` (the one hover/selection overlay both charts paint),
   `CleanupSheet` (tiered cleanup candidates, duplicates, and the Moved tab that puts a
   move back; it presents the reclaim confirmation over itself so a move returns to the

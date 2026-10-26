@@ -1110,7 +1110,8 @@ public struct ResultsView: View {
                         maxChildren: chartChildLimit,
                         hoveredURL: $hover.url,
                         onCenterTap: chartCenterAction,
-                        centerHint: chartCenterHint
+                        centerHint: chartCenterHint,
+                        playsEntrance: true
                     ) { node in
                         chartSelect(node)
                     }
@@ -1141,7 +1142,10 @@ public struct ResultsView: View {
                     children: liveChildrenProvider,
                     hoveredURL: $hover.url,
                     onCenterTap: chartCenterAction,
-                    centerHint: chartCenterHint
+                    centerHint: chartCenterHint,
+                    // Every chart that enters this pane reveals itself, whether
+                    // it is the first one, a return, or the Other tab's.
+                    playsEntrance: true
                 ) { node in
                     chartSelect(node)
                 }

@@ -40,6 +40,21 @@ enum ChartFill: Equatable {
             return DS.Color.graphite
         }
     }
+
+    /// How the fill is drawn for a wedge at a (possibly fractional) `depth`.
+    ///
+    /// A tone follows the wedge while it moves between rings; the neutral fills
+    /// stand for what a wedge is, not where it sits, so they do not change.
+    func color(depth: Double) -> Color {
+        switch self {
+        case .tone(_, let step):
+            return ChartPalette.color(depth: depth, step: step)
+        case .aggregate:
+            return DS.Color.rule
+        case .neutral:
+            return DS.Color.graphite
+        }
+    }
 }
 
 /// Tone assignment for the sunburst chart.
@@ -72,13 +87,31 @@ enum ChartPalette {
 
     /// The fill for a wedge of `ring` wearing sibling `step`.
     static func color(ring: Int, step: Int) -> Color {
-        let index = ringIndex(ring)
+        color(depth: Double(ring), step: step)
+    }
+
+    /// The fill for a wedge drawn at a (possibly fractional) `depth`.
+    ///
+    /// A wedge moving between rings passes through the tones in between, so its
+    /// colour travels with it instead of switching when the layout changes. At a
+    /// whole ring this is exactly `color(ring:step:)`.
+    static func color(depth: Double, step: Int) -> Color {
+        let rings = DS.Sunburst.toneLightBrightness.count
+        let d = min(max(depth, 1), Double(rings))
+        let lower = min(Int(d.rounded(.down)), rings)
+        let upper = min(lower + 1, rings)
+        let mix = d - Double(lower)
         let offset = DS.Sunburst.toneStepOffset * Double(clampedStep(step) - 1)
+
+        func blend(_ tones: [Double]) -> Double {
+            tones[lower - 1] + (tones[upper - 1] - tones[lower - 1]) * mix
+        }
+
         return dynamic(
-            lightSaturation: DS.Sunburst.toneLightSaturation[index],
-            lightBrightness: clamp(DS.Sunburst.toneLightBrightness[index] + offset),
-            darkSaturation: DS.Sunburst.toneDarkSaturation[index],
-            darkBrightness: clamp(DS.Sunburst.toneDarkBrightness[index] + offset)
+            lightSaturation: blend(DS.Sunburst.toneLightSaturation),
+            lightBrightness: clamp(blend(DS.Sunburst.toneLightBrightness) + offset),
+            darkSaturation: blend(DS.Sunburst.toneDarkSaturation),
+            darkBrightness: clamp(blend(DS.Sunburst.toneDarkBrightness) + offset)
         )
     }
 
@@ -110,10 +143,6 @@ enum ChartPalette {
 
     private static func clampedStep(_ step: Int) -> Int {
         min(max(step, 0), 2)
-    }
-
-    private static func ringIndex(_ ring: Int) -> Int {
-        min(max(ring - 1, 0), DS.Sunburst.toneLightBrightness.count - 1)
     }
 
     private static func clamp(_ value: Double) -> Double {

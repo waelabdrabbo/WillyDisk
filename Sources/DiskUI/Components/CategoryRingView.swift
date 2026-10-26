@@ -17,6 +17,11 @@ struct CategoryRingView: View {
     @Binding var hovered: FileCategory?
     let onSelect: (FileCategory) -> Void
 
+    /// Seconds into the ring's entrance. Switching to Categories makes a new
+    /// ring, and a ring whose breakdown arrives late starts its entrance then.
+    @State private var elapsed: Double = 0
+    @State private var isRevealing = false
+
     var body: some View {
         GeometryReader { geometry in
             let side = min(geometry.size.width, geometry.size.height)
@@ -31,6 +36,31 @@ struct CategoryRingView: View {
                 }
             }
             .frame(width: geometry.size.width, height: geometry.size.height)
+        }
+        .overlay(alignment: .topLeading) {
+            if isRevealing {
+                SunburstTicker { dt in
+                    elapsed = min(CategoryRingEntrance.duration, elapsed + dt)
+                    if elapsed >= CategoryRingEntrance.duration { isRevealing = false }
+                }
+            }
+        }
+        // The ring opens as it appears. Reduce Motion shows it whole.
+        .onAppear {
+            guard !reduceMotion else { return }
+            isRevealing = true
+        }
+        .onChange(of: breakdown.isEmpty) { _, isEmpty in
+            // A scan that is still running has no breakdown when Categories is
+            // opened; the ring's entrance starts when there is a ring to open.
+            guard !isEmpty, !reduceMotion else { return }
+            elapsed = 0
+            isRevealing = true
+        }
+        .onChange(of: reduceMotion) { _, reduce in
+            guard reduce else { return }
+            elapsed = CategoryRingEntrance.duration
+            isRevealing = false
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(L10n.string("Scan by file category"))
@@ -61,28 +91,31 @@ struct CategoryRingView: View {
                 .frame(width: geometry.outerRadius * 2, height: geometry.outerRadius * 2)
 
             ForEach(Array(segments.enumerated()), id: \.element.id) { index, segment in
-                let shape = wedge(segment, geometry: geometry)
-                Button {
-                    onSelect(segment.category)
-                } label: {
-                    shape
-                        .fill(ChartPalette.categoryColor(index: index, count: segments.count))
+                let growth = reveal(for: segment)
+                if growth > 0 {
+                    let shape = wedge(segment, geometry: geometry, revealed: growth)
+                    Button {
+                        onSelect(segment.category)
+                    } label: {
+                        shape
+                            .fill(ChartPalette.categoryColor(index: index, count: segments.count))
+                    }
+                    .buttonStyle(.plain)
+                    .contentShape(shape)
+                    .help(helpText(for: segment.category))
+                    .accessibilityLabel(accessibilityLabel(for: segment.category))
+                    .accessibilityHint(L10n.string(selected == segment.category
+                                       ? "Closes this category and shows all categories"
+                                       : "Shows the largest files in this category"))
+                    .accessibilityAddTraits(selected == segment.category ? [.isSelected] : [])
                 }
-                .buttonStyle(.plain)
-                .contentShape(shape)
-                .help(helpText(for: segment.category))
-                .accessibilityLabel(accessibilityLabel(for: segment.category))
-                .accessibilityHint(L10n.string(selected == segment.category
-                                   ? "Closes this category and shows all categories"
-                                   : "Shows the largest files in this category"))
-                .accessibilityAddTraits(selected == segment.category ? [.isSelected] : [])
             }
 
             if hoveredSegment != nil || selectedSegment != nil {
                 WedgeEmphasis(
-                    active: hoveredSegment.map { wedge($0, geometry: geometry) },
+                    active: hoveredSegment.map { wedge($0, geometry: geometry, revealed: reveal(for: $0)) },
                     trail: [],
-                    selected: selectedSegment.map { wedge($0, geometry: geometry) },
+                    selected: selectedSegment.map { wedge($0, geometry: geometry, revealed: reveal(for: $0)) },
                     side: side,
                     animates: !reduceMotion,
                     activeID: activeCategory?.rawValue
@@ -107,11 +140,18 @@ struct CategoryRingView: View {
         }
     }
 
+    /// How much of `segment` has opened. Reduce Motion shows the ring whole.
+    private func reveal(for segment: CategoryRingLayout.Segment) -> Double {
+        guard !reduceMotion else { return 1 }
+        return CategoryRingEntrance.reveal(elapsed: elapsed, start: segment.start)
+    }
+
     private func wedge(
         _ segment: CategoryRingLayout.Segment,
-        geometry: SunburstGeometry
+        geometry: SunburstGeometry,
+        revealed: Double = 1
     ) -> SunburstWedge {
-        geometry.wedge(ring: 1, start: segment.start, end: segment.end)
+        geometry.wedge(depth: 1, start: segment.start, end: segment.end, revealed: revealed)
     }
 
     private func centerDisc(

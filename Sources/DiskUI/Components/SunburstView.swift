@@ -23,6 +23,11 @@ import DiskLocalization
 /// light the chart and the chart can light the list. Wedges are matched by node
 /// URL, never by `id` — an `id` is a ring/position path that changes as the tree
 /// changes shape.
+///
+/// A rebuilt layout is not a new picture: each wedge is keyed by what it stands
+/// for, so a wedge the new layout still draws moves there, one it drops fades
+/// out, and one it adds opens outwards. `SunburstAnimator` owns that motion;
+/// Reduce Motion adopts every layout at once.
 public struct SunburstView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     private let nodes: [ScanNode]
@@ -36,6 +41,10 @@ public struct SunburstView: View {
     /// Bumped when the data behind the nodes changed without their identities
     /// changing — a live tree's edit keeps an entry's id while its bytes move.
     private let revision: Int
+    /// Whether a fresh chart should start hidden and reveal itself instead of
+    /// appearing settled. The results screen asks for it on every chart it puts
+    /// in the pane, so a scan, a return, and a tab switch all reveal.
+    private let playsEntrance: Bool
     @Binding private var hoveredURL: URL?
     private let onSelect: (ScanNode) -> Void
     /// What clicking the spindle hole does — going up one level — or nil when
@@ -43,16 +52,23 @@ public struct SunburstView: View {
     private let onCenterTap: (() -> Void)?
     private let centerHint: String
 
-    /// The wedge under the pointer, so the centre can name it.
-    @State private var hoveredID: String?
+    /// The wedge under the pointer, so the centre can name it. Holds the wedge's
+    /// key, which survives a change of ring.
+    @State private var hoveredKey: String?
     /// The wedge the keyboard is on, so a keyboard user is told what a pointer
     /// user is told.
-    @FocusState private var focusedID: String?
+    @FocusState private var focusedKey: String?
     /// Holds the rings between changes of the data they are built from.
     @State private var segmentsCache = SunburstSegmentsCache()
     /// Whether the pointer is on the centre disc, which is a control when it can
     /// go up a level.
     @State private var centerHovered = false
+    /// Counts the frames the motion has drawn, which is what makes the picture
+    /// redraw while a wedge is moving.
+    @State private var animationFrame = 0
+    /// Whether the frame driver is mounted. It is only ever true while there is
+    /// something to draw between two layouts.
+    @State private var isAnimating = false
 
     public init(
         nodes: [ScanNode],
@@ -64,6 +80,7 @@ public struct SunburstView: View {
         hoveredURL: Binding<URL?> = .constant(nil),
         onCenterTap: (() -> Void)? = nil,
         centerHint: String = L10n.string("Go up one level"),
+        playsEntrance: Bool = false,
         onSelect: @escaping (ScanNode) -> Void
     ) {
         self.nodes = nodes
@@ -75,6 +92,7 @@ public struct SunburstView: View {
         self._hoveredURL = hoveredURL
         self.onCenterTap = onCenterTap
         self.centerHint = centerHint
+        self.playsEntrance = playsEntrance
         self.onSelect = onSelect
     }
 
@@ -83,25 +101,67 @@ public struct SunburstView: View {
         // part of drawing the chart — walking and ordering the node tree and
         // ranking every sibling group's colours — so they are derived once per
         // change of the data rather than once per redraw.
-        let layout = segmentsCache.layout(for: nodes, maxChildren: maxChildren, revision: revision) {
+        let layout = segmentsCache.layout(
+            for: nodes,
+            maxChildren: maxChildren,
+            revision: revision,
+            animated: !reduceMotion,
+            intro: playsEntrance
+        ) {
             SunburstLayout.segments(roots: nodes, maxChildren: maxChildren, children: children)
         }
-        return chartSurface(segments: layout.segments, revision: layout.revision)
+        return chartSurface(segments: layout.segments, revision: layout.revision, frame: animationFrame)
+            // The chart's first layout is not a change `onChange` can see, and an
+            // entrance starts moving on that very layout; the driver is started
+            // here so a replay is not left standing still.
+            .onAppear { updateAnimationState() }
             // Keyboard focus joins the same shared state a pointer hover does, so
             // a keyboard user sees the cross-pane link a pointer user sees, and
             // the published URL is the chart's *resolved* active wedge — the
             // pointer wins over focus — so the two panes never disagree.
-            .onChange(of: focusedID) { _, newID in
-                publish(url(for: hoveredID ?? newID, in: layout.segments))
+            .onChange(of: focusedKey) { _, newKey in
+                publish(url(for: hoveredKey ?? newKey, in: layout.segments))
+            }
+            // A rebuilt layout starts the frames that carry the wedges from where
+            // they were to where the new layout wants them.
+            .onChange(of: layout.revision) { _, _ in
+                updateAnimationState()
+            }
+            .onChange(of: reduceMotion) { _, reduce in
+                guard reduce else { return }
+                segmentsCache.motion.settle()
+                isAnimating = false
+                // The layer compares frames, not the motion: the settled shapes
+                // have to be redrawn without a frame tick to supersede them.
+                animationFrame &+= 1
+            }
+            .overlay(alignment: .topLeading) {
+                if isAnimating {
+                    SunburstTicker { dt in
+                        segmentsCache.motion.step(dt: dt)
+                        animationFrame &+= 1
+                        if segmentsCache.motion.isSettled { isAnimating = false }
+                    }
+                }
             }
             .accessibilityElement(children: .contain)
             .accessibilityLabel(L10n.string("Storage sunburst"))
     }
 
+    /// Starts the frame driver only when the layout left something moving.
+    private func updateAnimationState() {
+        guard !reduceMotion else {
+            segmentsCache.motion.settle()
+            isAnimating = false
+            return
+        }
+        if !segmentsCache.motion.isSettled { isAnimating = true }
+    }
+
     private var totalSize: Int64 { nodes.reduce(Int64(0)) { $0 + max($1.logicalSize, 0) } }
 
     @ViewBuilder
-    private func chartSurface(segments: [SunburstSegment], revision: Int) -> some View {
+    private func chartSurface(segments: [SunburstSegment], revision: Int, frame: Int) -> some View {
         GeometryReader { geo in
             let side = min(geo.size.width, geo.size.height)
             ZStack {
@@ -111,7 +171,7 @@ public struct SunburstView: View {
                     placeholder(message: L10n.string("Enlarge this pane to see the chart"),
                                 icon: "arrow.up.left.and.arrow.down.right")
                 } else {
-                    chart(side: side, segments: segments, revision: revision)
+                    chart(side: side, segments: segments, revision: revision, frame: frame)
                 }
             }
             .frame(width: geo.size.width, height: geo.size.height)
@@ -120,17 +180,15 @@ public struct SunburstView: View {
 
     // MARK: - Chart
 
-    private func chart(side: CGFloat, segments: [SunburstSegment], revision: Int) -> some View {
-        let geometry = SunburstGeometry(
-            side: side,
-            ringCount: segments.map(\.ring).max() ?? 1
-        )
+    private func chart(side: CGFloat, segments: [SunburstSegment], revision: Int, frame: Int) -> some View {
+        let motion = segmentsCache.motion
+        let geometry = SunburstGeometry(side: side, ringSpan: motion.ringSpan)
         // The wedge under the pointer or keyboard wins; otherwise the wedge the
         // parent asked for (a hovered explorer row) is the active one. A
         // counterpart is only resolved when its node is drawn here: the explorer
         // can hold nodes the chart left out, and a highlight is never invented for
         // a wedge that is not on screen.
-        let ownActive = segments.first { $0.id == (hoveredID ?? focusedID) }
+        let ownActive = segments.first { $0.key == (hoveredKey ?? focusedKey) }
         let counterpart = hoveredURL.flatMap { url in
             segments.first { $0.node?.url == url }
         }
@@ -154,27 +212,31 @@ public struct SunburstView: View {
             // The picture itself, which no hover changes.
             SunburstWedgeLayer(
                 segments: segments,
+                motion: motion,
                 revision: revision,
+                frame: frame,
                 side: side,
                 geometry: geometry,
-                selectedURL: selectedNodeURL,
-                focusedID: $focusedID,
+                selectedKey: selected?.key,
+                focusedKey: $focusedKey,
                 onSelect: onSelect
             )
             .equatable()
             // What the pointer or the keyboard emphasises, drawn over it: the
             // fade needs something to fade towards, but a selection draws its
-            // outline whether or not anything is hovered.
+            // outline whether or not anything is hovered. The shapes are the
+            // wedges' drawn ones, so the emphasis follows a wedge mid-move.
             if active != nil || selected != nil {
                 WedgeEmphasis(
-                    active: active.map { emphasisWedge($0, in: geometry) },
+                    active: active.flatMap { wedgeShape(forKey: $0.key, geometry: geometry) },
                     trail: active.map {
-                        lineage(of: $0, in: segments).map { emphasisWedge($0, in: geometry) }
+                        lineage(of: $0, in: segments)
+                            .compactMap { wedgeShape(forKey: $0.key, geometry: geometry) }
                     } ?? [],
-                    selected: selected.map { emphasisWedge($0, in: geometry) },
+                    selected: selected.flatMap { wedgeShape(forKey: $0.key, geometry: geometry) },
                     side: side,
                     animates: !reduceMotion,
-                    activeID: active?.id
+                    activeID: active?.key
                 )
             }
             centerDisc(radius: geometry.innerRadius, center: geometry.center, active: active)
@@ -188,8 +250,8 @@ public struct SunburstView: View {
         // resolved here, by the geometry, and selects what it landed on.
         .simultaneousGesture(
             SpatialTapGesture().onEnded { value in
-                guard let id = geometry.segmentID(at: value.location, in: segments),
-                      let segment = segments.first(where: { $0.id == id }),
+                guard let wedge = geometry.wedge(at: value.location, in: motion.drawn),
+                      let segment = segments.first(where: { $0.key == wedge.key }),
                       segment.ring > 1,
                       let node = segment.node else { return }
                 onSelect(node)
@@ -198,16 +260,30 @@ public struct SunburstView: View {
         .onContinuousHover(coordinateSpace: .local) { phase in
             switch phase {
             case .active(let point):
-                let id = geometry.segmentID(at: point, in: segments)
-                if id != hoveredID { hoveredID = id }
+                let key = geometry.wedge(at: point, in: motion.drawn)?.key
+                if key != hoveredKey { hoveredKey = key }
                 // Publish the resolved active wedge (pointer over keyboard), and
                 // an aggregate wedge — which has no node — names no counterpart.
-                publish(url(for: id ?? focusedID, in: segments))
+                publish(url(for: key ?? focusedKey, in: segments))
             case .ended:
-                if hoveredID != nil { hoveredID = nil }
-                publish(url(for: focusedID, in: segments))
+                if hoveredKey != nil { hoveredKey = nil }
+                publish(url(for: focusedKey, in: segments))
             }
         }
+    }
+
+    /// The shape a wedge is drawn with right now, reveal included.
+    private func wedgeShape(forKey key: String, geometry: SunburstGeometry) -> SunburstWedge? {
+        segmentsCache.motion.wedge(forKey: key).map { wedgeShape(for: $0, in: geometry) }
+    }
+
+    private func wedgeShape(for wedge: SunburstAnimatedWedge, in geometry: SunburstGeometry) -> SunburstWedge {
+        geometry.wedge(
+            depth: wedge.depth,
+            start: wedge.start,
+            end: wedge.end,
+            revealed: sunburstEase(wedge.grow)
+        )
     }
 
     /// The wedges that contain `segment` on the rings inside it — the groove
@@ -219,21 +295,16 @@ public struct SunburstView: View {
             .sorted { $0.ring < $1.ring }
     }
 
-    /// The drawn shape of `segment`, for the emphasis layer.
-    private func emphasisWedge(_ segment: SunburstSegment, in geometry: SunburstGeometry) -> SunburstWedge {
-        geometry.wedge(ring: segment.ring, start: segment.start, end: segment.end)
-    }
-
     /// Sets the shared hovered URL only when it actually changes, so sweeping
     /// the pointer does not re-render the screen on every mouse move.
     private func publish(_ url: URL?) {
         if hoveredURL != url { hoveredURL = url }
     }
 
-    /// The node URL of a wedge by `id`, for the chart's own hover and focus.
-    private func url(for id: String?, in segments: [SunburstSegment]) -> URL? {
-        guard let id else { return nil }
-        return segments.first { $0.id == id }?.node?.url
+    /// The node URL of a wedge by key, for the chart's own hover and focus.
+    private func url(for key: String?, in segments: [SunburstSegment]) -> URL? {
+        guard let key else { return nil }
+        return segments.first { $0.key == key }?.node?.url
     }
 
     @ViewBuilder
@@ -269,7 +340,7 @@ public struct SunburstView: View {
         // Keeps a long two-line name inside the disc instead of letting it spill
         // into the first ring.
         .clipShape(Circle())
-        .animation(reduceMotion ? nil : .snappy, value: active?.id)
+        .animation(reduceMotion ? nil : .snappy, value: active?.key)
 
         if let onCenterTap {
             Button(action: onCenterTap) {
@@ -323,7 +394,15 @@ public struct SunburstView: View {
 /// One wedge of the sunburst: a node, or a truthful group of the smallest
 /// children of a directory that has more than the chart draws individually.
 struct SunburstSegment: Identifiable, Equatable {
+    /// The wedge's identity in this layout: its ring and its path. It changes
+    /// when a drill moves the wedge, so it orders the chart; `key` is what the
+    /// motion follows.
     let id: String
+    /// What the wedge stands for, independent of where it is drawn: a node's
+    /// path, or the parent of an aggregate. A drill that moves a node from ring 2
+    /// to ring 1 keeps this key, so the chart animates the move instead of
+    /// replacing the wedge.
+    let key: String
     let node: ScanNode?
     let remainderCount: Int
     let ring: Int
@@ -525,6 +604,7 @@ enum SunburstLayout {
             result.append(
                 SunburstSegment(
                     id: "\(ring)\(prefix)",
+                    key: node.url.path,
                     node: node,
                     remainderCount: 0,
                     ring: ring,
@@ -557,6 +637,7 @@ enum SunburstLayout {
     ) -> SunburstSegment {
         SunburstSegment(
             id: "\(ring)\(parentPrefix)/remainder",
+            key: "remainder:\(parentPrefix)",
             node: nil,
             remainderCount: count,
             ring: ring,
@@ -575,49 +656,74 @@ struct SunburstGeometry {
     let center: CGPoint
     let innerRadius: CGFloat
     let outerRadius: CGFloat
-    let thickness: CGFloat
-    let ringCount: Int
+    /// How many rings the disc is divided into. Fractional while a rebuilt
+    /// chart re-divides itself, which is what lets a shallower tree settle
+    /// instead of snapping.
+    let ringSpan: Double
 
-    init(side: CGFloat, ringCount: Int) {
+    init(side: CGFloat, ringSpan: Double) {
         let outer = side / 2 * DS.Sunburst.outerRadiusFraction
         let inner = outer * DS.Sunburst.centerRadiusFraction
         self.center = CGPoint(x: side / 2, y: side / 2)
         self.outerRadius = outer
         self.innerRadius = inner
-        self.ringCount = max(ringCount, 1)
-        self.thickness = (outer - inner) / CGFloat(max(ringCount, 1))
+        self.ringSpan = max(ringSpan, 1)
     }
 
-    /// Radii of one ring: ring 1 is the innermost, each deeper generation moves out.
+    init(side: CGFloat, ringCount: Int) {
+        self.init(side: side, ringSpan: Double(ringCount))
+    }
+
+    /// Width of one ring at the current span.
+    var thickness: CGFloat {
+        (outerRadius - innerRadius) / CGFloat(max(ringSpan, 1))
+    }
+
+    /// The band at `depth`, where ring 1 is the innermost. `revealed` closes the
+    /// band onto its inner edge, which is how an entering wedge opens outwards.
+    /// The outer edge never passes the rim, so a wedge winding down to a
+    /// shallower tree is squeezed at the rim rather than drawn over the window.
+    func radii(depth: Double, revealed: Double = 1) -> (inner: CGFloat, outer: CGFloat) {
+        let d = max(depth, 0)
+        let inner = min(innerRadius * CGFloat(min(d, 1)) + CGFloat(max(d - 1, 0)) * thickness, outerRadius)
+        let band = innerRadius + (thickness - innerRadius) * CGFloat(min(d, 1))
+        let outer = min(inner + band * CGFloat(min(max(revealed, 0), 1)), outerRadius)
+        return (inner, outer)
+    }
+
+    /// Radii of one ring, as the chart drew before it could rebuild between
+    /// layouts.
     func radii(ring: Int) -> (inner: CGFloat, outer: CGFloat) {
-        let outer = outerRadius - CGFloat(ringCount - ring) * thickness
-        return (outer - thickness, outer)
-    }
-
-    /// The half-gap, in radians, that keeps `wedgeGap` points of enamel between
-    /// this ring's neighbours however far out the ring sits.
-    func angularGap(ring: Int) -> Double {
-        let band = radii(ring: ring)
-        return DS.Sunburst.angularGap(atRadius: (band.inner + band.outer) / 2)
+        radii(depth: Double(ring))
     }
 
     /// The shape of one wedge on `ring`, spanning `start...end`.
     func wedge(ring: Int, start: Double, end: Double) -> SunburstWedge {
-        let band = radii(ring: ring)
+        wedge(depth: Double(ring), start: start, end: end)
+    }
+
+    /// The shape of one wedge at a (possibly fractional) `depth`. `revealed` is
+    /// the `sunburstEase` of a wedge's reveal.
+    func wedge(depth: Double, start: Double, end: Double, revealed: Double = 1) -> SunburstWedge {
+        let band = radii(depth: depth, revealed: revealed)
         return SunburstWedge(
             center: center,
             innerRadius: band.inner,
             outerRadius: band.outer,
             startAngle: start,
             endAngle: end,
-            angularGap: angularGap(ring: ring),
+            angularGap: DS.Sunburst.angularGap(atRadius: max((band.inner + band.outer) / 2, 1)),
             radialGap: DS.Sunburst.radialGap
         )
     }
 
     /// The wedge a point in the chart's local space falls in, or nil outside the
-    /// rings or in a gap between wedges.
-    func segmentID(at point: CGPoint, in segments: [SunburstSegment]) -> String? {
+    /// rings, in a gap between wedges, or on a wedge that is still opening.
+    ///
+    /// Deepest drawn wedge first, so the test agrees with what is painted over
+    /// what; the band is the drawn one, reveal included, so a wedge cannot be
+    /// hovered where it is not yet drawn.
+    func wedge(at point: CGPoint, in wedges: [SunburstAnimatedWedge]) -> SunburstAnimatedWedge? {
         let dx = point.x - center.x
         let dy = point.y - center.y
         let distance = hypot(dx, dy)
@@ -626,11 +732,11 @@ struct SunburstGeometry {
         var angle = atan2(dx, -dy)
         if angle < 0 { angle += 2 * .pi }
 
-        for segment in segments {
-            let band = radii(ring: segment.ring)
+        for wedge in wedges.reversed() where wedge.alpha >= 0.3 && wedge.grow > 0 {
+            let band = radii(depth: wedge.depth, revealed: sunburstEase(wedge.grow))
             guard distance >= band.inner, distance <= band.outer else { continue }
-            if angle >= segment.start, angle <= segment.end { return segment.id }
-            if segment.end >= 2 * .pi, angle + 2 * .pi <= segment.end { return segment.id }
+            if angle >= wedge.start, angle <= wedge.end { return wedge }
+            if wedge.end >= 2 * .pi, angle + 2 * .pi <= wedge.end { return wedge }
         }
         return nil
     }
@@ -695,20 +801,29 @@ struct SunburstWedge: Shape, Equatable {
 /// hover fades and the outline it draws are painted over this layer by
 /// `WedgeEmphasis`, so a pointer sweep never re-makes the picture.
 ///
-/// Its comparison is by `revision` and `side` rather than by the segments
-/// themselves: `revision` is bumped whenever the rings are rebuilt, and comparing
-/// the segments would compare their nodes' subtrees.
+/// Its comparison is by `revision`, `frame`, `side` and the selection rather than
+/// by the segments themselves: `revision` is bumped whenever the rings are
+/// rebuilt, `frame` whenever the motion has advanced, and comparing the segments
+/// would compare their nodes' subtrees. The wedges it paints are read from the
+/// motion at draw time.
 private struct SunburstWedgeLayer: View, Equatable {
     let segments: [SunburstSegment]
+    let motion: SunburstAnimator
     let revision: Int
+    /// Counts the frames the motion has drawn.
+    let frame: Int
     let side: CGFloat
     let geometry: SunburstGeometry
-    let selectedURL: URL?
-    let focusedID: FocusState<String?>.Binding
+    /// The key of the wedge the chart's selection names, when it draws it.
+    let selectedKey: String?
+    let focusedKey: FocusState<String?>.Binding
     let onSelect: (ScanNode) -> Void
 
     nonisolated static func == (lhs: SunburstWedgeLayer, rhs: SunburstWedgeLayer) -> Bool {
-        lhs.revision == rhs.revision && lhs.side == rhs.side && lhs.selectedURL == rhs.selectedURL
+        lhs.revision == rhs.revision
+            && lhs.frame == rhs.frame
+            && lhs.side == rhs.side
+            && lhs.selectedKey == rhs.selectedKey
     }
 
     var body: some View {
@@ -719,10 +834,16 @@ private struct SunburstWedgeLayer: View, Equatable {
             // a couple of hundred of them.
             Canvas { context, size in
                 let rect = CGRect(origin: .zero, size: size)
-                for segment in segments {
-                    context.fill(wedgeShape(for: segment).path(in: rect),
-                                 with: .color(segment.fill.color.opacity(
-                                    fillOpacity(for: segment))))
+                for wedge in motion.drawn where wedge.alpha > 0.001 && wedge.grow > 0 {
+                    let shape = geometry.wedge(
+                        depth: wedge.depth,
+                        start: wedge.start,
+                        end: wedge.end,
+                        revealed: sunburstEase(wedge.grow)
+                    )
+                    context.fill(shape.path(in: rect),
+                                 with: .color(wedge.fill.color(depth: wedge.depth).opacity(
+                                    fillOpacity(for: wedge) * wedge.alpha)))
                 }
             }
             .frame(width: side, height: side)
@@ -730,17 +851,19 @@ private struct SunburstWedgeLayer: View, Equatable {
             // The top ring keeps a control per wedge: it is what the keyboard
             // and assistive technology reach, and it is small enough to rebuild
             // while a scan runs. Deeper wedges are hit through the chart's own
-            // tap gesture, resolved by the same geometry the hover uses.
+            // tap gesture, resolved by the same geometry the hover uses. The
+            // control wears the wedge's drawn shape, so focus and the pointer
+            // agree with what is painted even while it moves.
             ForEach(segments.filter { $0.ring == 1 }) { segment in
                 SunburstWedgeView(
-                    id: segment.id,
+                    id: segment.key,
                     node: segment.node,
                     label: segment.label,
                     size: segment.size,
-                    isSelected: segment.node.map { $0.url == selectedURL } ?? false,
-                    shape: wedgeShape(for: segment),
+                    isSelected: segment.key == selectedKey,
+                    shape: motion.wedge(forKey: segment.key).map(wedgeShape) ?? wedgeShape(for: segment),
                     side: side,
-                    focusedID: focusedID,
+                    focusedKey: focusedKey,
                     onSelect: onSelect
                 )
                 .equatable()
@@ -750,12 +873,16 @@ private struct SunburstWedgeLayer: View, Equatable {
     }
 
     private func wedgeShape(for segment: SunburstSegment) -> SunburstWedge {
-        geometry.wedge(ring: segment.ring, start: segment.start, end: segment.end)
+        geometry.wedge(depth: Double(segment.ring), start: segment.start, end: segment.end)
     }
 
-    private func fillOpacity(for segment: SunburstSegment) -> Double {
-        let isSelected = segment.node.map { $0.url == selectedURL } ?? false
-        return isSelected ? DS.Sunburst.selectedFillOpacity : DS.Sunburst.fillOpacity
+    private func wedgeShape(for wedge: SunburstAnimatedWedge) -> SunburstWedge {
+        geometry.wedge(depth: wedge.depth, start: wedge.start, end: wedge.end,
+                       revealed: sunburstEase(wedge.grow))
+    }
+
+    private func fillOpacity(for wedge: SunburstAnimatedWedge) -> Double {
+        wedge.key == selectedKey ? DS.Sunburst.selectedFillOpacity : DS.Sunburst.fillOpacity
     }
 }
 
@@ -770,10 +897,11 @@ private struct SunburstWedgeLayer: View, Equatable {
 ///
 /// Equality is by the node's path rather than by its `id`: the engine mints new
 /// ids for every node on every snapshot, and comparing those would rebuild every
-/// unchanged control once a second.
+/// unchanged control once a second. Its `id` is the wedge's key rather than its
+/// layout id, so a drill that moves the wedge to another ring keeps its focus.
 private struct SunburstWedgeView: View, Equatable {
-    /// The wedge's identity in the layout — a ring and path derivation, which is
-    /// also what the keyboard's focus is held by.
+    /// The wedge's identity across layouts, which is also what the keyboard's
+    /// focus is held by.
     let id: String
     /// The node this wedge stands for, or `nil` for the aggregate wedge. Carried
     /// for the click action and the wedge's accessible name, never compared.
@@ -783,7 +911,7 @@ private struct SunburstWedgeView: View, Equatable {
     let isSelected: Bool
     let shape: SunburstWedge
     let side: CGFloat
-    let focusedID: FocusState<String?>.Binding
+    let focusedKey: FocusState<String?>.Binding
     let onSelect: (ScanNode) -> Void
 
     nonisolated static func == (lhs: SunburstWedgeView, rhs: SunburstWedgeView) -> Bool {
@@ -817,7 +945,7 @@ private struct SunburstWedgeView: View, Equatable {
                 // the default focus effect would ring the whole chart.
                 .contentShape(shape)
                 .focusEffectDisabled()
-                .focused(focusedID, equals: id)
+                .focused(focusedKey, equals: id)
                 .help(L10n.format("%@ — %@", label, ByteFormat.string(size)))
                 .accessibilityLabel(L10n.format("%@, %@", label, ByteFormat.string(size)))
                 .accessibilityHint(L10n.string(node.isDirectory ? "Show this folder's contents" : "Show this file's details"))
@@ -847,7 +975,13 @@ private struct SunburstWedgeView: View, Equatable {
 /// sibling group and ranking every colour again. `revision` counts the rebuilds,
 /// which lets the wedge layer tell new rings from the ones it has already drawn
 /// without comparing the segments themselves.
+///
+/// The cache owns the chart's motion too, because a rebuild is what starts it:
+/// the animator is pointed at the new rings at the moment they replace the old
+/// ones, so the first frame of the change is already interpolated.
 private final class SunburstSegmentsCache {
+    let motion = SunburstAnimator()
+
     private var ids: [UUID] = []
     private var maxChildren = -1
     private var sourceRevision = -1
@@ -858,6 +992,8 @@ private final class SunburstSegmentsCache {
         for nodes: [ScanNode],
         maxChildren: Int,
         revision sourceRevision: Int,
+        animated: Bool,
+        intro: Bool,
         build: () -> [SunburstSegment]
     ) -> (segments: [SunburstSegment], revision: Int) {
         let ids = nodes.map(\.id)
@@ -869,6 +1005,11 @@ private final class SunburstSegmentsCache {
         self.maxChildren = maxChildren
         self.sourceRevision = sourceRevision
         revision += 1
+        if held.isEmpty {
+            motion.reset()
+        } else {
+            motion.setTarget(held, animated: animated, intro: intro)
+        }
         return (held, revision)
     }
 }

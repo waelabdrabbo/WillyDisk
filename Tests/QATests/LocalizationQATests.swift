@@ -135,7 +135,10 @@ final class LocalizationQATests: XCTestCase {
         for language in ["en", "ar", "en-XA"] {
             let table = L10n.bundledTable(language)
             XCTAssertGreaterThan(table.count, 500, "\(language) has no readable table in the bundle")
-            XCTAssertTrue(L10n.availableLanguages.contains(language), "\(language) is not offered")
+            XCTAssertTrue(
+                L10n.availableLanguages.contains(language),
+                "\(language) is not offered; offered: \(L10n.availableLanguages)"
+            )
         }
         let pseudo = L10n.bundledTable("en-XA")["Search this scan"]
         XCTAssertNotNil(pseudo, "the pseudolanguage table has no entry for the search field")

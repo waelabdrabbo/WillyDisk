@@ -126,16 +126,13 @@ public enum L10n {
     nonisolated(unsafe) private static var directTables: [String: [String: String]] = [:]
 
     /// Every language the resource bundle carries: the localizations Foundation
-    /// recognizes, plus the `.lproj` directories SwiftPM copied.
+    /// recognizes, plus the `.lproj` directories SwiftPM copied, each under the
+    /// catalog's spelling.
     private static var bundledLanguages: [String] {
-        var languages = Set(Bundle.module.localizations)
-        if let resources = Bundle.module.resourceURL,
-           let entries = try? FileManager.default.contentsOfDirectory(
-               at: resources,
-               includingPropertiesForKeys: nil
-           ) {
-            for entry in entries where entry.pathExtension.lowercased() == "lproj" {
-                languages.insert(entry.deletingPathExtension().lastPathComponent)
+        var languages = Set(Bundle.module.localizations.map(canonicalLanguage))
+        for directory in localizationDirectories {
+            for entry in localizationEntries(in: directory) {
+                languages.insert(canonicalLanguage(entry.deletingPathExtension().lastPathComponent))
             }
         }
         return languages.sorted()
@@ -208,29 +205,71 @@ public enum L10n {
     /// The bundled directory for a language.
     ///
     /// `Bundle.path(forResource:ofType:)` is the direct route, but Foundation
-    /// only answers it for localizations it recognises. The resource directory's
-    /// listing answers for every `.lproj` SwiftPM copied, so a language the
-    /// system does not list is still found. The caller holds `lock`.
+    /// only answers it for localizations it recognises. The directories SwiftPM
+    /// copied are searched too, and their names compared without case or
+    /// separator differences, so a language the system does not list is still
+    /// found. The caller holds `lock`.
     private static func localizationDirectory(for language: String) -> URL? {
         let module = Bundle.module
         if let path = module.path(forResource: language, ofType: "lproj") {
             return URL(fileURLWithPath: path)
         }
-        guard let resources = module.resourceURL,
-              let entries = try? FileManager.default.contentsOfDirectory(
-                  at: resources,
-                  includingPropertiesForKeys: nil
-              ) else { return nil }
         let wanted = normalizedLanguage(language)
-        return entries.first { entry in
-            guard entry.pathExtension.lowercased() == "lproj" else { return false }
-            return normalizedLanguage(entry.deletingPathExtension().lastPathComponent) == wanted
+        for directory in localizationDirectories {
+            for entry in localizationEntries(in: directory)
+            where normalizedLanguage(entry.deletingPathExtension().lastPathComponent) == wanted {
+                return entry
+            }
         }
+        return nil
+    }
+
+    /// The directories a SwiftPM resource bundle may keep its `.lproj` folders
+    /// in. `resourceURL` is the usual answer; the bundle's own layout is asked
+    /// too, so a bundle that does not report one is still searched.
+    private static var localizationDirectories: [URL] {
+        let module = Bundle.module
+        var directories: [URL] = []
+        if let resources = module.resourceURL { directories.append(resources) }
+        directories.append(module.bundleURL.appendingPathComponent("Contents/Resources"))
+        directories.append(module.bundleURL)
+        return directories
+    }
+
+    private static func localizationEntries(in directory: URL) -> [URL] {
+        let entries = (try? FileManager.default.contentsOfDirectory(
+            at: directory,
+            includingPropertiesForKeys: nil
+        )) ?? []
+        return entries.filter { $0.pathExtension.lowercased() == "lproj" }
     }
 
     /// A language identifier compared without case or separator differences, so
     /// `en-XA` and `en_xa` name the same directory.
     private static func normalizedLanguage(_ language: String) -> String {
         language.lowercased().replacingOccurrences(of: "_", with: "-")
+    }
+
+    /// A language name as the catalog spells it: `en`, `ar`, `en-XA`.
+    ///
+    /// A bundle may copy a localization directory under the system's spelling —
+    /// `en_XA` or `en-xa` — while the app asks for the catalog's. The language
+    /// is lowercased, a two-letter region uppercased, a four-letter script
+    /// titlecased, and the parts joined with hyphens.
+    private static func canonicalLanguage(_ name: String) -> String {
+        let parts = name.replacingOccurrences(of: "_", with: "-").split(separator: "-")
+        guard let language = parts.first, !language.isEmpty else { return name }
+        var canonical = [language.lowercased()]
+        for part in parts.dropFirst() {
+            switch part.count {
+            case 2:
+                canonical.append(part.uppercased())
+            case 4:
+                canonical.append(part.prefix(1).uppercased() + part.dropFirst().lowercased())
+            default:
+                canonical.append(part.lowercased())
+            }
+        }
+        return canonical.joined(separator: "-")
     }
 }

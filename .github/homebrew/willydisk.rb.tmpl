@@ -33,10 +33,15 @@ cask "willydisk" do
   ]
 
   caveats <<~EOS
-    WillyDisk is not signed by Apple and not notarized, so macOS may refuse the
-    first launch. If it does, approve it once in System Settings > Privacy &
-    Security > Open Anyway. Nothing is broken: there is no Developer ID behind
-    this build for macOS to check.
+    WillyDisk is not signed by Apple and not notarized, so macOS blocks the
+    first launch. That includes `willydisk` in a terminal, which is killed on
+    start until the app itself is approved once. Nothing is broken: there is no
+    Developer ID behind this build for macOS to check.
+
+    Approve it in System Settings > Privacy & Security > Open Anyway, or clear
+    the download flag first and open it again:
+
+      xattr -dr com.apple.quarantine #{appdir}/WillyDisk.app
 
     Full Disk Access is optional. Without it, WillyDisk measures what it can
     read and reports what it could not.

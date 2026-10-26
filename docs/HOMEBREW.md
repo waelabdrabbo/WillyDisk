@@ -162,10 +162,14 @@ only as good as the build it points at.
   non-official tap until it is trusted, which is why the install sequence starts
   with `brew trust --tap …`. The trust is recorded in
   `~/.homebrew/trust.json`, not in this repository.
-- **Gatekeeper.** Whether the downloaded bundle carries the quarantine flag
-  depends on the Homebrew version. Where it does, macOS refuses the first
-  launch and the user approves it once in System Settings → Privacy & Security
-  → Open Anyway; the caveats say so. Full Disk Access stays optional.
+- **Gatekeeper.** `brew install --cask` quarantines the bundle, so macOS blocks
+  the first launch until the app is approved once. The block covers the linked
+  command too: `willydisk` is killed on start, because it is the same
+  quarantined executable. Approving the app in System Settings → Privacy &
+  Security → Open Anyway clears it, as does
+  `xattr -dr com.apple.quarantine /Applications/WillyDisk.app`; the caveats
+  print both the fact and the command. A download straight from the Releases
+  page behaves the same way. Full Disk Access stays optional.
 
 ## Changing the cask
 

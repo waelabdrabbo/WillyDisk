@@ -71,8 +71,13 @@ willydisk scan ~/Downloads
 Older Homebrew versions have no `brew trust`; skip that line there. Once the cask is
 installed, `brew upgrade --cask willydisk` picks up each new release.
 
-**The app is unsigned and not notarized**, so macOS may refuse the first launch. If it
-does, approve it once in System Settings → Privacy & Security → Open Anyway.
+**The app is unsigned and not notarized**, so macOS blocks its first launch — including
+`willydisk` in a terminal, which is killed until the app itself is approved once. Approve
+it in System Settings → Privacy & Security → Open Anyway, or clear the download flag:
+
+```
+xattr -dr com.apple.quarantine /Applications/WillyDisk.app
+```
 
 This repository is its own tap: Homebrew clones it and reads `Casks/willydisk.rb`, which
 the release pipeline renders from the published checksums. It is not in `homebrew/cask`

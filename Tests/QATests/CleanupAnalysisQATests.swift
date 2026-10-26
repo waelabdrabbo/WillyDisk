@@ -213,6 +213,58 @@ final class CleanupAnalysisQATests: XCTestCase {
         XCTAssertLessThanOrEqual(report.visitedCount, policy.maxVisitedNodes + 1)
     }
 
+    func testProgressAccountsForPrunedFoldersAndFinishesAtOne() throws {
+        let old = now.addingTimeInterval(-400 * 24 * 3600)
+        // The cache folder is offered whole; the documents are big enough to be
+        // walked first, so the skipped cache subtree lands at the end of the walk.
+        let caches = directory("/scan/Library/Caches", children: (0..<60).map {
+            file("/scan/Library/Caches/cache-\($0).bin", size: 1, modified: old)
+        })
+        let documents = directory("/scan/Documents", children: (0..<40).map {
+            file("/scan/Documents/note-\($0).txt", size: 100, modified: old)
+        })
+        let root = directory("/scan", children: [
+            directory("/scan/Library", children: [caches]),
+            documents,
+        ])
+        let recorder = ProgressRecorder()
+
+        let report = try XCTUnwrap(CleanupAnalysis.analyze(
+            in: tree(root),
+            now: now,
+            progress: { recorder.record($0) }
+        ))
+
+        let fractions = recorder.fractions
+        XCTAssertFalse(report.stoppedAtLimit)
+        XCTAssertEqual(fractions.last, 1, "a finished walk reaches the end of the bar")
+        XCTAssertTrue(
+            zip(fractions, fractions.dropFirst()).allSatisfy { $0 < $1 },
+            "progress never goes backwards or repeats"
+        )
+        XCTAssertTrue(fractions.allSatisfy { (0...1).contains($0) })
+        XCTAssertTrue(
+            fractions.dropLast().contains { $0 >= 0.9 },
+            "the skipped cache subtree counts toward progress, not just its folder"
+        )
+    }
+
+    func testAStoppedWalkNeverClaimsTheWholeTree() throws {
+        let children = (0..<20).map { file("/scan/\($0).bin", size: 1, modified: now) }
+        let policy = CleanupPolicy(maxVisitedNodes: 5)
+        let recorder = ProgressRecorder()
+
+        let report = try XCTUnwrap(CleanupAnalysis.analyze(
+            in: tree(directory("/scan", children: children)),
+            policy: policy,
+            now: now,
+            progress: { recorder.record($0) }
+        ))
+
+        XCTAssertTrue(report.stoppedAtLimit)
+        XCTAssertLessThan(try XCTUnwrap(recorder.fractions.last), 1)
+    }
+
     func testCancellingStopsTheWalk() throws {
         let root = directory("/scan", children: [file("/scan/a.bin", size: 1, modified: now)])
         let live = try tree(root)
@@ -519,5 +571,23 @@ final class CleanupAnalysisQATests: XCTestCase {
             errorMessage: nil,
             children: []
         )
+    }
+
+    /// The fractions a walk reports, from the test's thread and the walk's.
+    private final class ProgressRecorder: @unchecked Sendable {
+        private let lock = NSLock()
+        private var recorded: [Double] = []
+
+        func record(_ fraction: Double) {
+            lock.lock()
+            recorded.append(fraction)
+            lock.unlock()
+        }
+
+        var fractions: [Double] {
+            lock.lock()
+            defer { lock.unlock() }
+            return recorded
+        }
     }
 }

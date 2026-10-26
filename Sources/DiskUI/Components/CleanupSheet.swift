@@ -38,6 +38,25 @@ final class CleanupHover {
     }
 }
 
+/// The fraction of the tree a cleanup walk has accounted for.
+///
+/// `CleanupAnalysis` runs off the main actor, so it publishes through this box
+/// instead of touching the sheet's state. Updates only move forward: a late
+/// report from an older walk cannot pull the bar back.
+@MainActor
+@Observable
+private final class CleanupWalkProgress {
+    private(set) var fraction: Double = 0
+
+    func advance(to value: Double) {
+        fraction = max(fraction, min(max(value, 0), 1))
+    }
+
+    func reset() {
+        fraction = 0
+    }
+}
+
 /// The cleanup row under the pointer once a scroll settles.
 ///
 /// Cleanup rows are not uniform, so each reports its own frame in the scroll
@@ -52,7 +71,7 @@ enum CleanupHoverTarget {
 
 /// The views of the cleanup report.
 public enum CleanupTab: String, CaseIterable, Identifiable, Sendable {
-    case old
+    case candidates
     case duplicates
     case moved
 
@@ -60,9 +79,19 @@ public enum CleanupTab: String, CaseIterable, Identifiable, Sendable {
 
     public var title: String {
         switch self {
-        case .old: L10n.string("Old")
+        case .candidates: L10n.string("Candidates")
         case .duplicates: L10n.string("Duplicates")
         case .moved: L10n.string("Moved")
+        }
+    }
+
+    /// The glyph beside the title, so the three destinations read apart before
+    /// the labels are read.
+    var symbol: String {
+        switch self {
+        case .candidates: "checklist"
+        case .duplicates: "doc.on.doc"
+        case .moved: "trash"
         }
     }
 }
@@ -95,6 +124,9 @@ public struct CleanupSheet: View {
     private let reclaimRefusal: ReclaimRefusal?
     private let isCheckingReclaim: Bool
     private let isTrashing: Bool
+    /// The outcome of a move made from this sheet, shown at its foot.
+    private let notice: ReclaimNotice?
+    private let onDismissNotice: () -> Void
     private let onBeginReclaim: ([ScanNode]) -> Void
     private let onConfirmReclaim: () -> Void
     private let onCancelReclaim: () -> Void
@@ -103,6 +135,7 @@ public struct CleanupSheet: View {
 
     @State private var report: CleanupReport?
     @State private var isAnalyzing: Bool
+    @State private var walkProgress = CleanupWalkProgress()
     @State private var selected: Set<URL> = []
     @State private var hover = CleanupHover()
     @State private var scrollMetrics = CleanupScrollMetrics()
@@ -111,6 +144,8 @@ public struct CleanupSheet: View {
     @State private var tab: CleanupTab
     @State private var restoringMoveID: UUID?
     @State private var restoreFailures: [UUID: String] = [:]
+    /// The logged items whose Trash copy the filesystem no longer has.
+    @State private var missingItemIDs: Set<UUID> = []
     /// Set when the tree changes while a walk is running; the loop takes it
     /// after the walk finishes, so a busy folder cannot cancel every walk.
     @State private var needsRefresh = false
@@ -131,11 +166,13 @@ public struct CleanupSheet: View {
         reclaimLog: ReclaimLog? = nil,
         previewMoves: [ReclaimMove] = [],
         previewDuplicateReport: DuplicateReport? = nil,
-        initialTab: CleanupTab = .old,
+        initialTab: CleanupTab = .candidates,
         reclaimCandidates: [ReclaimCandidate] = [],
         reclaimRefusal: ReclaimRefusal? = nil,
         isCheckingReclaim: Bool = false,
         isTrashing: Bool = false,
+        notice: ReclaimNotice? = nil,
+        onDismissNotice: @escaping () -> Void = {},
         onBeginReclaim: @escaping ([ScanNode]) -> Void = { _ in },
         onConfirmReclaim: @escaping () -> Void = {},
         onCancelReclaim: @escaping () -> Void = {},
@@ -154,6 +191,8 @@ public struct CleanupSheet: View {
         self.reclaimRefusal = reclaimRefusal
         self.isCheckingReclaim = isCheckingReclaim
         self.isTrashing = isTrashing
+        self.notice = notice
+        self.onDismissNotice = onDismissNotice
         self.onBeginReclaim = onBeginReclaim
         self.onConfirmReclaim = onConfirmReclaim
         self.onCancelReclaim = onCancelReclaim
@@ -163,7 +202,7 @@ public struct CleanupSheet: View {
         _isAnalyzing = State(initialValue: previewReport == nil)
         _duplicateCheck = State(initialValue: DuplicateCheck(preview: previewDuplicateReport))
         let previewTab: CleanupTab
-        if initialTab == .old,
+        if initialTab == .candidates,
            let previewReport,
            previewReport.groups.allSatisfy({ $0.candidates.isEmpty }),
            !previewReport.duplicateGroups.isEmpty {
@@ -182,12 +221,16 @@ public struct CleanupSheet: View {
                 .tint(DS.Color.signal)
                 .environment(hover)
                 .task { await analysisLoop() }
+                .task(id: moves) { await refreshTrashPresence() }
                 .onChange(of: refresh.revision) { _, _ in
                     needsRefresh = true
                 }
-                .onChange(of: tab) { _, _ in
+                .onChange(of: tab) { _, newTab in
                     hover.reset()
                     scrollMetrics.contentOffset = 0
+                    if newTab == .moved {
+                        Task { await refreshTrashPresence() }
+                    }
                 }
                 .onDisappear {
                     analysisTask?.cancel()
@@ -213,6 +256,21 @@ public struct CleanupSheet: View {
                 tabs(report)
             }
 
+            if let notice {
+                ReclaimBanner(
+                    tone: notice.tone,
+                    message: notice.message,
+                    action: notice.showsShowTrash ? .showMoved : nil,
+                    onAction: {
+                        tab = .moved
+                        onDismissNotice()
+                    },
+                    onDismiss: onDismissNotice
+                )
+                .padding(.horizontal, DS.Spacing.xxLarge)
+                .padding(.bottom, DS.Spacing.medium)
+            }
+
             Divider()
             footer
         }
@@ -222,6 +280,11 @@ public struct CleanupSheet: View {
 
     /// The move confirmation, over the sheet rather than instead of it: the
     /// list stays where it was, and both buttons come back to it.
+    ///
+    /// Its surface is the window background a native sheet gets, so the same
+    /// confirmation does not change colour when it is opened from cleanup
+    /// instead of from the results list. A shadow lifts it off the dimmed sheet
+    /// behind it; there is no card border.
     private var confirmation: some View {
         ZStack {
             Color.black.opacity(0.28)
@@ -236,15 +299,14 @@ public struct CleanupSheet: View {
                 onCancel: onCancelReclaim,
                 onConfirm: onConfirmReclaim
             )
-            .background(
-                DS.Color.enamel,
-                in: RoundedRectangle(cornerRadius: DS.Radius.panel, style: .continuous)
-            )
-            .overlay {
+            .background {
+                // The shadow belongs to the sheet's own surface. Applying it to
+                // the whole confirmation would shadow the item list inside it
+                // too, because the list is part of the same composited view.
                 RoundedRectangle(cornerRadius: DS.Radius.panel, style: .continuous)
-                    .strokeBorder(DS.Color.separator, lineWidth: DS.Spacing.hairline)
+                    .fill(DS.Color.windowBackground)
+                    .shadow(color: .black.opacity(0.22), radius: 24, y: 8)
             }
-            .shadow(color: .black.opacity(0.22), radius: 24, y: 8)
             .padding(DS.Spacing.xxLarge)
         }
         .transition(.opacity)
@@ -265,26 +327,43 @@ public struct CleanupSheet: View {
                 .foregroundStyle(DS.Color.accent)
                 .frame(width: 32)
                 .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: DS.Spacing.xxSmall) {
-                Text(L10n.string("Cleanup candidates"))
-                    .font(DS.Typography.title2)
-                Text(rootName)
-                    .font(DS.Typography.callout)
-                    .foregroundStyle(DS.Color.secondaryText)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
+            VStack(alignment: .leading, spacing: DS.Spacing.small) {
+                HStack(alignment: .center, spacing: DS.Spacing.large) {
+                    VStack(alignment: .leading, spacing: DS.Spacing.xxSmall) {
+                        Text(L10n.string("Cleanup"))
+                            .font(DS.Typography.title2)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                        Text(rootName)
+                            .font(DS.Typography.callout)
+                            .foregroundStyle(DS.Color.secondaryText)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                    }
+                    Spacer(minLength: DS.Spacing.small)
+                    if let report {
+                        tabBar(report)
+                            .layoutPriority(1)
+                    }
+                }
                 Text(L10n.format("Current contents. This scan finished %@. Nothing moves until you confirm.", DateFormat.short(scannedAt)))
                     .font(DS.Typography.caption)
                     .foregroundStyle(DS.Color.secondaryText)
             }
-            Spacer(minLength: 0)
         }
         .padding(DS.Spacing.xxLarge)
     }
 
     private var analyzing: some View {
         VStack(spacing: DS.Spacing.medium) {
-            ProgressView()
+            ProgressView(value: walkProgress.fraction)
+                .progressViewStyle(.linear)
+                .frame(width: DS.Size.progressBarMaxWidth)
+                .accessibilityLabel(L10n.string("Reading the scanned tree…"))
+                .accessibilityValue(L10n.format(
+                    "%lld percent",
+                    Int((walkProgress.fraction * 100).rounded())
+                ))
             Text(L10n.string("Reading the scanned tree…"))
                 .font(DS.Typography.callout)
                 .foregroundStyle(DS.Color.primaryText)
@@ -310,42 +389,95 @@ public struct CleanupSheet: View {
 
     // MARK: - Report
 
+    /// The selected destination owns the space between the header and the
+    /// footer. Its scroll view fills that space, so the header and footer stay
+    /// where they are when the content changes.
     private func tabs(_ report: CleanupReport) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            tabBar
-                .padding(.horizontal, DS.Spacing.xxLarge)
-                .padding(.vertical, DS.Spacing.medium)
-
-            Divider()
-
             switch tab {
-            case .old:
-                oldContent(report)
+            case .candidates:
+                candidatesContent(report)
             case .duplicates:
                 duplicatesContent(report)
             case .moved:
                 movedContent()
             }
         }
+        .frame(maxHeight: .infinity, alignment: .top)
     }
 
-    /// The sheet's two views, switched by the same native segmented control the
-    /// explorer uses, so "choose one view" has one control across the app.
-    private var tabBar: some View {
-        HStack(spacing: 0) {
-            Picker(L10n.string("Cleanup view"), selection: $tab) {
-                ForEach(CleanupTab.allCases) { option in
-                    Text(option.title).tag(option)
+    /// The report's three destinations, sized for the header.
+    ///
+    /// The count and the bytes are the whole view, not just the rows a cap
+    /// shows, so the strip and the section headers agree. The selected
+    /// destination is the one signal fill on the sheet; the others stay quiet
+    /// until the pointer or the keyboard reaches them.
+    private func tabBar(_ report: CleanupReport) -> some View {
+        HStack(spacing: DS.Spacing.xxSmall) {
+            ForEach(CleanupTab.allCases) { option in
+                CleanupTabButton(
+                    tab: option,
+                    detail: tabDetail(option, report: report),
+                    isSelected: tab == option
+                ) {
+                    guard tab != option else { return }
+                    tab = option
                 }
             }
-            .dsSegmentedSwitch()
-            .accessibilityLabel(L10n.string("Cleanup view"))
-            Spacer(minLength: 0)
+        }
+        .padding(DS.Spacing.xxSmall)
+        .background(
+            RoundedRectangle(cornerRadius: DS.Radius.medium, style: .continuous)
+                .fill(DS.Color.primaryText.opacity(DS.Opacity.controlSurface))
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: DS.Radius.medium, style: .continuous)
+                .strokeBorder(DS.Color.separator, lineWidth: DS.Stroke.hairline)
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(L10n.string("Cleanup view"))
+    }
+
+    /// What a destination holds, under its name.
+    ///
+    /// Candidates carry every match and its bytes. Duplicates carry the number
+    /// of files that share a size with another file, and after a content check
+    /// how many of those were confirmed identical ("2 of 8 files"); their bytes
+    /// are not shown because two copies share one reclaimable amount, and that
+    /// amount is not known until the contents are compared. Moved carries only
+    /// the items the Trash still holds; a restored or removed item stays in the
+    /// log but not in the count.
+    private func tabDetail(_ option: CleanupTab, report: CleanupReport) -> String {
+        switch option {
+        case .candidates:
+            let count = report.groups.reduce(0) { $0 + $1.matchCount }
+            let bytes = report.groups.reduce(Int64(0)) { $0 + $1.totalAllocatedSize }
+            return countAndSize(count, bytes)
+        case .duplicates:
+            return duplicateCountSummary(report)
+        case .moved:
+            let items = moves.flatMap { pendingItems(in: $0) }
+            let bytes = items.reduce(Int64(0)) { $0 + max(0, $1.allocatedSize) }
+            return inTrashDetail(items.count, bytes)
         }
     }
 
+    private func countAndSize(_ count: Int, _ bytes: Int64) -> String {
+        let countText = CountFormat.items(count)
+        guard count > 0, bytes > 0 else { return countText }
+        return L10n.format("%@ · %@", countText, ByteFormat.string(bytes))
+    }
+
+    /// The Moved tab counts what Put Back can still act on, not the log's
+    /// history, so its detail says where those items are.
+    private func inTrashDetail(_ count: Int, _ bytes: Int64) -> String {
+        let countText = L10n.format("%lld in the Trash", count)
+        guard count > 0, bytes > 0 else { return countText }
+        return L10n.format("%@ · %@", countText, ByteFormat.string(bytes))
+    }
+
     @ViewBuilder
-    private func oldContent(_ report: CleanupReport) -> some View {
+    private func candidatesContent(_ report: CleanupReport) -> some View {
         if report.groups.allSatisfy({ $0.candidates.isEmpty }) {
             VStack(spacing: DS.Spacing.small) {
                 stoppedNotice(report)
@@ -396,7 +528,6 @@ public struct CleanupSheet: View {
                     scrollMetrics.rowFrames = frames
                 }
             }
-            .frame(maxHeight: 400)
             .modifier(CleanupScrollHover(hover: hover, metrics: scrollMetrics))
         }
     }
@@ -438,7 +569,6 @@ public struct CleanupSheet: View {
                     scrollMetrics.rowFrames = frames
                 }
             }
-            .frame(maxHeight: 400)
             .modifier(CleanupScrollHover(hover: hover, metrics: scrollMetrics))
         }
     }
@@ -566,7 +696,25 @@ public struct CleanupSheet: View {
         }
     }
 
+    /// How many same-size files a check confirmed identical, out of the whole
+    /// candidate set. While the check is idle or running, the summary is the
+    /// candidate set itself.
+    private func duplicateCountSummary(_ report: CleanupReport) -> String {
+        if case .checked(let result) = duplicateCheck.state {
+            let confirmed = result.groups.reduce(0) { $0 + $1.candidates.count }
+            return L10n.format(
+                "%lld of %@",
+                confirmed,
+                CountFormat.files(report.duplicateFileCount)
+            )
+        }
+        return CountFormat.files(report.duplicateFileCount)
+    }
+
     private func duplicateGroupSummary(_ report: CleanupReport) -> String {
+        if case .checked = duplicateCheck.state {
+            return duplicateCountSummary(report)
+        }
         let groups = sizeGroupLabel(report.duplicateGroupCount)
         guard report.duplicateGroupCount > report.duplicateGroups.count else {
             return L10n.format("%@ · %@", groups, CountFormat.files(report.duplicateFileCount))
@@ -805,12 +953,24 @@ public struct CleanupSheet: View {
                 .padding(DS.Spacing.xxLarge)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .frame(maxHeight: 400)
         }
+    }
+
+    /// The log's pending items that the Trash still holds.
+    private func pendingItems(in move: ReclaimMove) -> [ReclaimMove.Item] {
+        move.items.filter { $0.isPending && !missingItemIDs.contains($0.id) }
+    }
+
+    /// The log's pending items whose Trash copy is gone.
+    private func missingItems(in move: ReclaimMove) -> [ReclaimMove.Item] {
+        move.items.filter { $0.isPending && missingItemIDs.contains($0.id) }
     }
 
     private func moveCard(_ move: ReclaimMove) -> some View {
         let allRestored = move.restoredItems == move.items.count
+        let pending = pendingItems(in: move)
+        let missing = missingItems(in: move)
+        let allMissing = !move.items.isEmpty && missing.count == move.items.count
         return VStack(alignment: .leading, spacing: DS.Spacing.xSmall) {
             HStack(alignment: .firstTextBaseline, spacing: DS.Spacing.small) {
                 Text(DateFormat.short(move.date))
@@ -823,7 +983,7 @@ public struct CleanupSheet: View {
                     .font(DS.Typography.caption)
                     .foregroundStyle(DS.Color.secondaryText)
                 Spacer(minLength: DS.Spacing.small)
-                if move.itemsInTrash > 0 {
+                if !pending.isEmpty {
                     if restoringMoveID == move.id {
                         ProgressView()
                             .controlSize(.small)
@@ -838,13 +998,18 @@ public struct CleanupSheet: View {
                     Text(L10n.string("Restored"))
                         .font(DS.Typography.caption)
                         .foregroundStyle(DS.Color.secondaryText)
+                } else if allMissing {
+                    Text(L10n.string("Not in the Trash"))
+                        .font(DS.Typography.caption)
+                        .foregroundStyle(DS.Color.secondaryText)
                 }
             }
 
             VStack(spacing: DS.Spacing.xSmall) {
                 ForEach(move.items) { item in
+                    let isMissing = item.isPending && missingItemIDs.contains(item.id)
                     HStack(spacing: DS.Spacing.small) {
-                        Image(systemName: item.isRestored ? "arrow.uturn.backward.circle" : "trash")
+                        Image(systemName: itemSymbol(item))
                             .font(DS.Typography.caption)
                             .foregroundStyle(DS.Color.secondaryText)
                             .accessibilityHidden(true)
@@ -863,6 +1028,10 @@ public struct CleanupSheet: View {
                         Spacer(minLength: DS.Spacing.small)
                         if item.isRestored, !allRestored {
                             Text(L10n.string("Restored"))
+                                .font(DS.Typography.caption)
+                                .foregroundStyle(DS.Color.secondaryText)
+                        } else if isMissing, !allMissing {
+                            Text(L10n.string("Not in the Trash"))
                                 .font(DS.Typography.caption)
                                 .foregroundStyle(DS.Color.secondaryText)
                         }
@@ -888,15 +1057,58 @@ public struct CleanupSheet: View {
         )
     }
 
+    private func itemSymbol(_ item: ReclaimMove.Item) -> String {
+        if item.isRestored { return "arrow.uturn.backward.circle" }
+        if item.isPending, missingItemIDs.contains(item.id) { return "trash.slash" }
+        return "trash"
+    }
+
     private func restore(_ move: ReclaimMove) {
         guard restoringMoveID == nil else { return }
         restoringMoveID = move.id
         restoreFailures[move.id] = nil
         Task {
-            let failure = await onRestore(move)
+            // The Trash may have changed since the tab opened; ask again before
+            // offering anything to the restorer.
+            await refreshTrashPresence()
+            guard let current = moves.first(where: { $0.id == move.id }) else {
+                restoringMoveID = nil
+                return
+            }
+            let pending = pendingItems(in: current)
+            guard !pending.isEmpty else {
+                restoringMoveID = nil
+                return
+            }
+            let request = ReclaimMove(
+                id: current.id,
+                date: current.date,
+                rootPath: current.rootPath,
+                items: pending
+            )
+            let failure = await onRestore(request)
             restoreFailures[move.id] = failure
             restoringMoveID = nil
         }
+    }
+
+    /// Checks the Trash for the items the log still calls pending.
+    ///
+    /// A Finder restore or an emptied Trash leaves the log untouched; the
+    /// filesystem is the source of truth. Only missing copies are recorded here:
+    /// a copy that is gone may have been put back or deleted, so it is not called
+    /// restored.
+    private func refreshTrashPresence() async {
+        guard let reclaimLog else {
+            missingItemIDs = []
+            return
+        }
+        let moves = reclaimLog.moves
+        let missing = await ReclaimTrash.missingItemIDs(in: moves)
+        // A log change during the check starts another check; this result
+        // describes the old snapshot.
+        guard !Task.isCancelled, moves == reclaimLog.moves else { return }
+        missingItemIDs = missing
     }
 
     // MARK: - Footer
@@ -975,8 +1187,9 @@ public struct CleanupSheet: View {
     /// One walk runs at a time. A watcher batch that arrives during a walk only
     /// sets `needsRefresh`: the walk is never cancelled for it, because a busy
     /// folder — the home folder is full of caches and logs — would otherwise
-    /// keep cancelling the first walk forever and leave the spinner up. When a
-    /// walk finishes, a pending refresh waits for the burst to settle and runs.
+    /// keep cancelling the first walk forever and leave the sheet with no report.
+    /// When a walk finishes, a pending refresh waits for the burst to settle and
+    /// runs.
     private func analysisLoop() async {
         guard previewReport == nil else { return }
         await walk()
@@ -1005,8 +1218,26 @@ public struct CleanupSheet: View {
 
         let tree = tree
         let policy = policy
+        // Only the first walk shows the bar; a refresh keeps the report up, so
+        // it has no use for a hundred updates to a hidden view.
+        let progress: @Sendable (Double) -> Void
+        if isFirstWalk {
+            walkProgress.reset()
+            progress = { [walkProgress] fraction in
+                Task { @MainActor in
+                    walkProgress.advance(to: fraction)
+                }
+            }
+        } else {
+            progress = { _ in }
+        }
         let task = Task.detached(priority: .userInitiated) {
-            CleanupAnalysis.analyze(in: tree, policy: policy, isCancelled: { Task.isCancelled })
+            CleanupAnalysis.analyze(
+                in: tree,
+                policy: policy,
+                isCancelled: { Task.isCancelled },
+                progress: progress
+            )
         }
         analysisTask = task
         let result = await withTaskCancellationHandler {
@@ -1033,10 +1264,10 @@ public struct CleanupSheet: View {
             duplicateCheck.cancel()
         }
 
-        // A scan with no old-style candidates but some same-size groups opens on
-        // the tab that has something to show.
+        // A scan with no candidates but some same-size groups opens on the tab
+        // that has something to show.
         if isFirstWalk,
-           tab == .old,
+           tab == .candidates,
            result.groups.allSatisfy({ $0.candidates.isEmpty }),
            !result.duplicateGroups.isEmpty {
             tab = .duplicates
@@ -1053,6 +1284,73 @@ public struct CleanupSheet: View {
         } else {
             for candidate in group.candidates { selected.insert(candidate.url) }
         }
+    }
+}
+
+/// One destination in the cleanup header: its glyph, its name, and what the
+/// view holds.
+///
+/// The selected destination is a signal fill with the one `onSignal` ink; the
+/// rest are quiet until hovered or focused.
+private struct CleanupTabButton: View {
+    let tab: CleanupTab
+    let detail: String
+    let isSelected: Bool
+    let action: () -> Void
+
+    @State private var isHovered = false
+    @FocusState private var isFocused: Bool
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: DS.Spacing.xSmall) {
+                Image(systemName: tab.symbol)
+                    .font(DS.Icon.detail)
+                    .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(tab.title)
+                        .font(DS.Typography.caption.weight(.semibold))
+                    Text(detail)
+                        .font(DS.Typography.caption)
+                        .monospacedDigit()
+                        .foregroundStyle(
+                            isSelected
+                                ? DS.Color.onSignal.opacity(0.86)
+                                : DS.Color.secondaryText
+                        )
+                }
+                .lineLimit(1)
+            }
+            .foregroundStyle(isSelected ? DS.Color.onSignal : DS.Color.primaryText)
+            .padding(.horizontal, DS.Spacing.small)
+            .padding(.vertical, DS.Spacing.xSmall)
+            .background(
+                RoundedRectangle(cornerRadius: DS.Radius.small, style: .continuous)
+                    .fill(background)
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: DS.Radius.small, style: .continuous)
+                    .strokeBorder(
+                        isSelected ? DS.Color.onSignal : DS.Color.signal,
+                        lineWidth: DS.Stroke.focus
+                    )
+                    .opacity(isFocused ? 1 : 0)
+                    .padding(DS.Spacing.hairline)
+            }
+            .contentShape(RoundedRectangle(cornerRadius: DS.Radius.small, style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .onHover { isHovered = $0 }
+        .focused($isFocused)
+        .focusEffectDisabled()
+        .accessibilityLabel(tab.title)
+        .accessibilityValue(detail)
+        .accessibilityAddTraits(isSelected ? [.isSelected] : [])
+    }
+
+    private var background: Color {
+        if isSelected { return DS.Color.signal }
+        return DS.Color.primaryText.opacity(isHovered ? DS.Opacity.rowHover : 0)
     }
 }
 

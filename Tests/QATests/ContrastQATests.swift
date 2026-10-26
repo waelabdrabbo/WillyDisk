@@ -38,6 +38,22 @@ final class ContrastQATests: XCTestCase {
         }
     }
 
+    /// The ink on a signal fill is text, not chrome: the selected cleanup tab
+    /// carries its label and count on it.
+    func testOnSignalTextMeetsTextContrastInBothAppearances() {
+        for name in [NSAppearance.Name.aqua, .darkAqua] {
+            let appearance = NSAppearance(named: name)!
+            var contrast = 0.0
+            appearance.performAsCurrentDrawingAppearance {
+                let fill = NSColor(DS.Color.signal).usingColorSpace(.sRGB)!
+                let foreground = NSColor(DS.Color.onSignal).usingColorSpace(.sRGB)!
+                contrast = self.contrast(foreground, over: fill)
+            }
+            XCTAssertGreaterThanOrEqual(contrast, 4.5,
+                "\(name.rawValue): text on signal must meet 4.5:1, got \(contrast)")
+        }
+    }
+
     /// Tertiary is a 1.88:1 text color. It survives only as the chart's
     /// fallback fill, so no view may reach for it again.
     func testTertiaryTextIsNotUsedInViews() throws {

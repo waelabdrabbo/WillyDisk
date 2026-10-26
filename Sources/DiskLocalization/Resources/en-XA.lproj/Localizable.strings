@@ -112,6 +112,10 @@
 	<string>[%lld çöúļð ñöŧ ƀé ɱöṽéð·····················]</string>
 	<key>%lld excluded</key>
 	<string>[%lld éẋçļúðéð···········]</string>
+	<key>%lld in the Trash</key>
+	<string>[%lld íñ ŧĥé Ŧŕášĥ···············]</string>
+	<key>%lld of %@</key>
+	<string>[%lld öƒ %@········]</string>
 	<key>%lld percent</key>
 	<string>[%lld þéŕçéñŧ··········]</string>
 	<key>%lld so far</key>
@@ -206,6 +210,8 @@
 	<string>[Çáñçéļ Šçáñ·········]</string>
 	<key>Cancel Scan (⌘.) stops the walk and keeps the totals gathered so far, marked as stopped early.</key>
 	<string>[Çáñçéļ Šçáñ (⌘.) šŧöþš ŧĥé ŵáļķ áñð ķééþš ŧĥé ŧöŧáļš ĝáŧĥéŕéð šö ƒáŕ, ɱáŕķéð áš šŧöþþéð éáŕļý.····························································································]</string>
+	<key>Candidates</key>
+	<string>[Çáñðíðáŧéš········]</string>
 	<key>Candidates are places to look, not a recommendation. A move goes through the same confirmation as everywhere else, and the space returns when the Trash is emptied.</key>
 	<string>[Çáñðíðáŧéš áŕé þļáçéš ŧö ļööķ, ñöŧ á ŕéçöɱɱéñðáŧíöñ. Á ɱöṽé ĝöéš ŧĥŕöúĝĥ ŧĥé šáɱé çöñƒíŕɱáŧíöñ áš éṽéŕýŵĥéŕé éļšé, áñð ŧĥé šþáçé ŕéŧúŕñš ŵĥéñ ŧĥé Ŧŕášĥ íš éɱþŧíéð.·································································································································································]</string>
 	<key>Capacity</key>
@@ -252,8 +258,6 @@
 	<string>[Çĥööšé ŵĥáŧ ŧĥé ñéẋŧ šçáñ íñçļúðéš································]</string>
 	<key>Cleanup</key>
 	<string>[Çļéáñúþ·····]</string>
-	<key>Cleanup candidates</key>
-	<string>[Çļéáñúþ çáñðíðáŧéš················]</string>
 	<key>Cleanup reads the finished scan for large and old files, cache folders, old downloads, and possible duplicates. Looking costs nothing; nothing moves until you confirm.</key>
 	<string>[Çļéáñúþ ŕéáðš ŧĥé ƒíñíšĥéð šçáñ ƒöŕ ļáŕĝé áñð öļð ƒíļéš, çáçĥé ƒöļðéŕš, öļð ðöŵñļöáðš, áñð þöššíƀļé ðúþļíçáŧéš. Ļööķíñĝ çöšŧš ñöŧĥíñĝ; ñöŧĥíñĝ ɱöṽéš úñŧíļ ýöú çöñƒíŕɱ.·····································································································································································]</string>
 	<key>Cleanup view</key>
@@ -608,6 +612,8 @@
 	<string>[Ñöñé ƒöúñð········]</string>
 	<key>None listed</key>
 	<string>[Ñöñé ļíšŧéð·········]</string>
+	<key>Not in the Trash</key>
+	<string>[Ñöŧ íñ ŧĥé Ŧŕášĥ··············]</string>
 	<key>Not on this Mac</key>
 	<string>[Ñöŧ öñ ŧĥíš Ɱáç·············]</string>
 	<key>Not selected</key>
@@ -636,8 +642,6 @@
 	<string>[Ñöŧĥíñĝ ŧö ŕéṽíéŵ···············]</string>
 	<key>Nothing to review here</key>
 	<string>[Ñöŧĥíñĝ ŧö ŕéṽíéŵ ĥéŕé····················]</string>
-	<key>Old</key>
-	<string>[Öļð····]</string>
 	<key>Old downloads</key>
 	<string>[Öļð ðöŵñļöáðš···········]</string>
 	<key>On disk</key>
@@ -656,6 +660,8 @@
 	<string>[Öþéñ ŧĥé šçáñ ŕéšúļŧš ƒöŕ %@··························]</string>
 	<key>Opens the Full Disk Access pane in System Settings</key>
 	<string>[Öþéñš ŧĥé Ƒúļļ Ðíšķ Áççéšš þáñé íñ Šýšŧéɱ Šéŧŧíñĝš················································]</string>
+	<key>Opens the Moved tab</key>
+	<string>[Öþéñš ŧĥé Ɱöṽéð ŧáƀ·················]</string>
 	<key>Opens the Trash in Finder</key>
 	<string>[Öþéñš ŧĥé Ŧŕášĥ íñ Ƒíñðéŕ·······················]</string>
 	<key>Opens the confirmation for the selected items</key>
@@ -844,6 +850,8 @@
 	<string>[Šĥöŵ %@·····]</string>
 	<key>Show More</key>
 	<string>[Šĥöŵ Ɱöŕé·······]</string>
+	<key>Show Moved</key>
+	<string>[Šĥöŵ Ɱöṽéð········]</string>
 	<key>Show Trash</key>
 	<string>[Šĥöŵ Ŧŕášĥ········]</string>
 	<key>Show all categories</key>

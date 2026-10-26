@@ -327,6 +327,9 @@ public enum DS {
         /// The live thing: selection, focus, progress, and the mark's live sector.
         /// The only accent in the app.
         public static let signal = dynamic(light: 0x0E6E70, dark: 0x56B7AE)
+        /// Text and glyphs on a `signal` fill: pale ink on the deep teal in
+        /// light, deep ink on the pale mint in dark.
+        public static let onSignal = dynamic(light: 0xFFFFFF, dark: 0x16191B)
         /// Destruction and failure. Never used for ordinary emphasis.
         public static let madder = dynamic(light: 0x8A3B2E, dark: 0xE08A73)
 
@@ -386,11 +389,12 @@ extension View {
         modifier(DSGlassControlModifier(cornerRadius: cornerRadius, interactive: interactive))
     }
 
-    /// The one segmented view switch: native, small, text-only, and hugging its
+    /// The explorer's view switch: native, small, text-only, and hugging its
     /// labels.
     ///
-    /// The explorer's mode bar and the cleanup sheet's tabs both use it, so the
-    /// same "choose one view" control cannot take two different shapes.
+    /// The cleanup sheet's header carries a different control — three
+    /// destinations with their own counts and sizes — so the two do not share a
+    /// shape.
     public func dsSegmentedSwitch() -> some View {
         self
             .pickerStyle(.segmented)

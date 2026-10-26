@@ -559,4 +559,53 @@ final class ReclaimQATests: XCTestCase {
         XCTAssertTrue(report.failures[0].contains("no longer in the Trash"), report.failures[0])
         XCTAssertFalse(FileManager.default.fileExists(atPath: item.path))
     }
+
+    func testTrashPresenceSeparatesPendingMissingAndRestoredItems() async throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("WillyDiskTrashPresence-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let present = root.appendingPathComponent("present.bin")
+        try Data([0]).write(to: present)
+        let absent = root.appendingPathComponent("absent.bin")
+
+        let move = ReclaimMove(
+            date: Date(),
+            rootPath: root.path,
+            items: [
+                ReclaimMove.Item(
+                    name: "present.bin",
+                    originalPath: root.appendingPathComponent("Old/present.bin").path,
+                    trashedPath: present.path,
+                    isDirectory: false,
+                    logicalSize: 1,
+                    allocatedSize: 1
+                ),
+                ReclaimMove.Item(
+                    name: "absent.bin",
+                    originalPath: root.appendingPathComponent("Old/absent.bin").path,
+                    trashedPath: absent.path,
+                    isDirectory: false,
+                    logicalSize: 1,
+                    allocatedSize: 1
+                ),
+                ReclaimMove.Item(
+                    name: "restored.bin",
+                    originalPath: root.appendingPathComponent("Old/restored.bin").path,
+                    trashedPath: absent.path,
+                    isDirectory: false,
+                    logicalSize: 1,
+                    allocatedSize: 1,
+                    restoredAt: Date()
+                ),
+            ]
+        )
+
+        let missing = await ReclaimTrash.missingItemIDs(in: [move])
+
+        XCTAssertEqual(missing, Set([move.items[1].id]))
+        XCTAssertFalse(missing.contains(move.items[0].id), "a Trash copy that is there is still pending")
+        XCTAssertFalse(missing.contains(move.items[2].id), "an item the app already put back is not missing")
+    }
 }

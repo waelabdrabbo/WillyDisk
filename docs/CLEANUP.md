@@ -1,6 +1,6 @@
 # Cleanup
 
-The review list behind **Cleanup candidates**. What it offers, what it refuses, how it
+The review list behind the **Cleanup** sheet. What it offers, what it refuses, how it
 measures, and what it deliberately does not do.
 
 ## Why
@@ -36,9 +36,11 @@ and the old list stays up until the new report is ready. A refresh drops a finis
 content check only when the duplicate candidates it read are no longer the same set.
 
 The app's sheet and `WillyDisk cleanup` are its two consumers. Only the sheet can send a
-finding to the Trash — the command line only lists — and the sheet closes once the person
-confirms, so the results screen's watcher applies the change to the tree like any other
-edit.
+finding to the Trash — the command line only lists — and the sheet stays open while the
+watched tree applies the move, so the moved row disappears from its list. A move made from
+the sheet reports its outcome inside the sheet, not on the results view behind it, and its
+action opens the sheet's Moved tab. If the results screen cannot follow the move, the
+sheet closes and the banner explains on the results screen.
 
 ## The report
 
@@ -79,6 +81,11 @@ says the report is a sample, and it is a sample biased toward where the bytes ar
 The cap exists because the sheet must finish: the walk is bounded work, off the main
 actor, and cancellable, but a pathological tree (a whole volume of system files) must
 still produce an answer. 10,000,000 entries cost roughly 2.4 s on the reference machine.
+
+The walk reports the share of the tree it has accounted for — the entries it examined
+plus the subtrees a whole-folder rule kept it out of — so the sheet can show a determinate
+bar instead of a spinner. A walk stopped at the cap reports the share it reached;
+only a walk that finished the tree reaches the end of the bar.
 
 ## Rules
 
@@ -123,6 +130,10 @@ Same size is a candidate, not a duplicate. Four steps:
 4. Only matching full digests become a group. Files that cannot be read are counted,
    never called duplicates; cancelling confirms nothing.
 
+After Check Contents, the Duplicates tab and the section header read "N of M files": N
+confirmed identical files out of the M same-size candidates. The "Compared" line and the
+hard-link and clone notes account for the candidates that were not confirmed duplicates.
+
 **Hard links are not duplicates.** When several paths resolve to one inode, none of them
 is offered: moving one frees nothing while another remains. The sheet counts those paths
 and says so. The scan's accounting still counts each path's bytes — the tree measures
@@ -158,7 +169,11 @@ space; emptying the Trash does, and the wording never claims otherwise.
 
 Every successful move is written to a small log (`ReclaimLog`, bounded to the last 20
 moves) holding each item's original path, where the system put it in the Trash, its
-sizes, and when it was moved. The sheet's **Moved** tab shows the log newest first.
+sizes, and when it was moved. The sheet's **Moved** tab shows the log newest first and
+asks the Trash which pending items are still there: its count and size cover only those.
+A copy that left the Trash without Put Back — restored in Finder, or the Trash emptied —
+is labelled **Not in the Trash**, stays in the log, and is neither counted nor offered
+for Put Back.
 
 **Put Back** returns items from the Trash to their original paths. It is a move, not a
 deletion, and it asks the filesystem again at the moment it runs: an item that is no

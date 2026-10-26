@@ -629,7 +629,7 @@ func render(_ options: Options) {
                         let tab: CleanupTab = switch kind {
                         case .duplicates: .duplicates
                         case .moved: .moved
-                        default: .old
+                        default: .candidates
                         }
                         let confirmation = kind == .reclaim
                             ? preview.groups.flatMap(\.candidates).prefix(3)

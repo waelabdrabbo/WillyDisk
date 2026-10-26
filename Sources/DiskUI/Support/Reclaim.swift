@@ -433,6 +433,33 @@ struct ReclaimRestorer {
     }
 }
 
+/// Which logged items are no longer in the Trash.
+///
+/// The log is a convenience, not the source of truth: an item can leave the Trash
+/// without the app's Put Back — restored in Finder, or the Trash emptied. A copy
+/// that is gone is not called restored, because it may have been deleted rather
+/// than put back; the sheet labels it "Not in the Trash" and stops offering it.
+enum ReclaimTrash {
+    static func missingItemIDs(in moves: [ReclaimMove]) async -> Set<UUID> {
+        await Task.detached(priority: .utility) {
+            var missing: Set<UUID> = []
+            for move in moves {
+                for item in move.items where item.isPending {
+                    guard let path = item.trashedPath else { continue }
+                    if !exists(path) { missing.insert(item.id) }
+                }
+            }
+            return missing
+        }.value
+    }
+
+    /// `lstat`, so a broken link is still an entry the Trash holds.
+    private static func exists(_ path: String) -> Bool {
+        var info = stat()
+        return path.withCString { lstat($0, &info) == 0 }
+    }
+}
+
 /// What one Put Back attempt over a move achieved.
 struct ReclaimRestoreReport: Equatable, Sendable {
     let restoredItemIDs: Set<UUID>

@@ -241,10 +241,32 @@ public struct ReclaimNotice: Equatable, Sendable {
 struct ReclaimBanner: View {
     enum Tone: Equatable, Sendable { case success, failure }
 
+    /// The one trailing action a notice can offer, in the words of the screen
+    /// that presents it: the results screen opens the Trash, while the cleanup
+    /// sheet opens its Moved tab.
+    enum Action: Equatable, Sendable {
+        case showTrash
+        case showMoved
+
+        var title: String {
+            switch self {
+            case .showTrash: L10n.string("Show Trash")
+            case .showMoved: L10n.string("Show Moved")
+            }
+        }
+
+        var hint: String {
+            switch self {
+            case .showTrash: L10n.string("Opens the Trash in Finder")
+            case .showMoved: L10n.string("Opens the Moved tab")
+            }
+        }
+    }
+
     let tone: Tone
     let message: String
-    let showsShowTrash: Bool
-    let onShowTrash: () -> Void
+    let action: Action?
+    let onAction: () -> Void
     let onDismiss: () -> Void
 
     @Environment(\.colorSchemeContrast) private var contrast
@@ -285,11 +307,11 @@ struct ReclaimBanner: View {
                 .font(DS.Typography.callout)
                 .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: DS.Spacing.small)
-            if showsShowTrash {
-                Button(L10n.string("Show Trash"), action: onShowTrash)
+            if let action {
+                Button(action.title, action: onAction)
                     .buttonStyle(.bordered)
                     .controlSize(.small)
-                    .accessibilityHint(L10n.string("Opens the Trash in Finder"))
+                    .accessibilityHint(action.hint)
             }
             IconActionButton(symbol: "xmark", help: L10n.string("Dismiss"), surface: .inline, action: onDismiss)
         }

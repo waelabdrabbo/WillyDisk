@@ -2077,6 +2077,30 @@
       },
       "shouldGenerateSwiftSymbol": false
     },
+    "%lld in the Trash": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld في سلة المهملات"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld in the Trash"
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[%lld íñ ŧĥé Ŧŕášĥ···············]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
     "%lld issues": {
       "extractionState": "manual",
       "localizations": {
@@ -2996,6 +3020,30 @@
                 }
               }
             }
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "%lld of %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld من %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld of %@"
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[%lld öƒ %@········]"
           }
         }
       },
@@ -4885,6 +4933,30 @@
       },
       "shouldGenerateSwiftSymbol": false
     },
+    "Candidates": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "المرشحون"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Candidates"
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Çáñðíðáŧéš········]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
     "Candidates are places to look, not a recommendation. A move goes through the same confirmation as everywhere else, and the space returns when the Trash is emptied.": {
       "extractionState": "manual",
       "localizations": {
@@ -5432,30 +5504,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "[Çļéáñúþ·····]"
-          }
-        }
-      },
-      "shouldGenerateSwiftSymbol": false
-    },
-    "Cleanup candidates": {
-      "extractionState": "manual",
-      "localizations": {
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "مرشحو التنظيف"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Cleanup candidates"
-          }
-        },
-        "en-XA": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "[Çļéáñúþ çáñðíðáŧéš················]"
           }
         }
       },
@@ -9793,6 +9841,30 @@
       },
       "shouldGenerateSwiftSymbol": false
     },
+    "Not in the Trash": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ليس في سلة المهملات"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not in the Trash"
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Ñöŧ íñ ŧĥé Ŧŕášĥ··············]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
     "Not on this Mac": {
       "extractionState": "manual",
       "localizations": {
@@ -10129,30 +10201,6 @@
       },
       "shouldGenerateSwiftSymbol": false
     },
-    "Old": {
-      "extractionState": "manual",
-      "localizations": {
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "القديمة"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Old"
-          }
-        },
-        "en-XA": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "[Öļð····]"
-          }
-        }
-      },
-      "shouldGenerateSwiftSymbol": false
-    },
     "Old downloads": {
       "extractionState": "manual",
       "localizations": {
@@ -10364,6 +10412,30 @@
           "stringUnit": {
             "state": "translated",
             "value": "[Öþéñš ŧĥé Ƒúļļ Ðíšķ Áççéšš þáñé íñ Šýšŧéɱ Šéŧŧíñĝš················································]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "Opens the Moved tab": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يفتح تبويب المنقولة"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opens the Moved tab"
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Öþéñš ŧĥé Ɱöṽéð ŧáƀ·················]"
           }
         }
       },
@@ -12620,6 +12692,30 @@
           "stringUnit": {
             "state": "translated",
             "value": "[Šĥöŵ Ɱöŕé·······]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "Show Moved": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "عرض المنقولة"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show Moved"
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Šĥöŵ Ɱöṽéð········]"
           }
         }
       },

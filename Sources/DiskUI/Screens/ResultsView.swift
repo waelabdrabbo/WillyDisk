@@ -126,6 +126,9 @@ public struct ResultsView: View {
     /// True while the confirmation is one the cleanup sheet presents over
     /// itself, rather than a sheet of its own.
     @State private var reclaimFromCleanup = false
+    /// The outcome of a move made from the cleanup sheet, shown inside that
+    /// sheet rather than behind it on the results screen.
+    @State private var cleanupNotice: ReclaimNotice?
     /// Lets the cleanup sheet follow the watched tree; see `CleanupRefresh`.
     @State private var cleanupRefresh = CleanupRefresh()
     /// A token that makes a slow guard probe land only on the request that asked
@@ -799,12 +802,12 @@ public struct ResultsView: View {
             startSearch(searchText, debounce: false)
         }
         .overlay(alignment: .bottom) {
-            if let notice = viewModel.reclaimNotice {
+            if let notice = viewModel.reclaimNotice, activeSheet != .cleanup {
                 ReclaimBanner(
                     tone: notice.tone,
                     message: notice.message,
-                    showsShowTrash: notice.showsShowTrash,
-                    onShowTrash: openTrash,
+                    action: notice.showsShowTrash ? .showTrash : nil,
+                    onAction: openTrash,
                     onDismiss: viewModel.dismissReclaimNotice
                 )
                 .padding(.horizontal, DS.Spacing.large)
@@ -815,6 +818,11 @@ public struct ResultsView: View {
         .animation(reduceMotion ? nil : .easeInOut(duration: 0.2), value: viewModel.reclaimNotice)
         .onChange(of: viewModel.resultsRevision) { _, revision in
             cleanupRefresh.revision = revision
+        }
+        .onChange(of: activeSheet) { _, sheet in
+            if sheet != .cleanup {
+                cleanupNotice = nil
+            }
         }
         .sheet(item: $activeSheet) { sheet in
             switch sheet {
@@ -843,6 +851,8 @@ public struct ResultsView: View {
                         reclaimRefusal: reclaimRefusal,
                         isCheckingReclaim: isCheckingReclaim,
                         isTrashing: isTrashing,
+                        notice: cleanupNotice,
+                        onDismissNotice: { cleanupNotice = nil },
                         onBeginReclaim: { nodes in
                             requestReclaim(nodes, fromCleanup: true)
                         },
@@ -860,6 +870,7 @@ public struct ResultsView: View {
                             reclaimCandidates = []
                             reclaimRefusal = nil
                             reclaimFromCleanup = false
+                            cleanupNotice = nil
                             activeSheet = nil
                         }
                     )
@@ -2113,11 +2124,17 @@ public struct ResultsView: View {
         let candidates = reclaimCandidates
         let fromCleanup = reclaimFromCleanup
         Task {
-            await viewModel.reclaim(candidates)
+            let notice = await viewModel.reclaim(candidates)
             isTrashing = false
             reclaimCandidates = []
             reclaimRefusal = nil
             reclaimFromCleanup = false
+            if fromCleanup, !viewModel.resultsAreStale {
+                // The cleanup sheet owns the outcome while it is open; the results
+                // banner would otherwise sit behind it.
+                cleanupNotice = notice
+                viewModel.dismissReclaimNotice()
+            }
             if !fromCleanup {
                 activeSheet = nil
             }

@@ -144,11 +144,11 @@ Details worth remembering:
   both paths at the moment it runs: a missing Trash copy or an occupied destination is
   refused and named, nothing is overwritten, and restored items are marked in the log. It
   is a move, never a deletion, and the app still does not empty the Trash.
-- The cleanup sheet has three tabs: Old for the rebuildable and personal rules,
-  Duplicates, and Moved. It opens on Old, or on Duplicates when Old has nothing to show,
-  and while it is open it follows the watched tree: a watcher batch queues another walk
-  after a short pause, one walk runs at a time, and the old list stays until the new
-  report is ready.
+- The cleanup sheet has three tabs: Candidates for the rebuildable and personal rules,
+  Duplicates, and Moved. It opens on Candidates, or on Duplicates when Candidates has
+  nothing to show, and while it is open it follows the watched tree: a watcher batch
+  queues another walk after a short pause, one walk runs at a time, and the old list
+  stays until the new report is ready.
   Duplicate candidates are same-size files of at least 1 MB that are stored locally,
   capped to the largest 20 size groups and 20 files per group; every file in a shared size
   is counted before the cap and a truncated group says so. A size match is not a
@@ -338,15 +338,15 @@ which every folder there has a match for), so the match list, the containing pat
 summary line, and the chart's search state are reviewable. Help, Settings, and the
 cleanup sheet are sheets or a preferences window, so `-S`
 captures their content. Settings renders with its own non-default sample options and two
-exclusions, so the switches and the list are both reviewable; cleanup and duplicates are
-the cleanup sheet's two tabs. They use one sample tree (sparse files with set ages, two
-identical copies, and one same-size different file), so the Old render shows the other
-sections and the Duplicates render shows a completed content check. History renders the
-sheet over the finished fixture scan plus two older recorded runs, so the comparison
-shows grown, new, and shrunk entries; it needs `-c` because it is a sheet. For any sheet
-without a screen state, the working practice is a temporary `@MainActor` QA test that
-hosts the view in `NSHostingView`, renders it with `cacheDisplay`, writes a PNG under
-`.build/renders/`, and is deleted before commit. Do not ship a renderer hook for a
+exclusions, so the switches and the list are both reviewable; cleanup, duplicates, and
+moved are the cleanup sheet's three tabs. They use one sample tree (sparse files with set
+ages, two identical copies, and one same-size different file), so the Candidates render
+shows the other sections and the Duplicates render shows a completed content check.
+History renders the sheet over the finished fixture scan plus two older recorded runs, so
+the comparison shows grown, new, and shrunk entries; it needs `-c` because it is a sheet.
+For any sheet without a screen state, the working practice is a temporary `@MainActor` QA
+test that hosts the view in `NSHostingView`, renders it with `cacheDisplay`, writes a PNG
+under `.build/renders/`, and is deleted before commit. Do not ship a renderer hook for a
 one-off visual check.
 
 ## Remaining work, in recommended order

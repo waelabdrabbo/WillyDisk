@@ -112,6 +112,10 @@
 	<string>%lld could not be moved</string>
 	<key>%lld excluded</key>
 	<string>%lld excluded</string>
+	<key>%lld in the Trash</key>
+	<string>%lld in the Trash</string>
+	<key>%lld of %@</key>
+	<string>%lld of %@</string>
 	<key>%lld percent</key>
 	<string>%lld percent</string>
 	<key>%lld so far</key>
@@ -206,6 +210,8 @@
 	<string>Cancel Scan</string>
 	<key>Cancel Scan (⌘.) stops the walk and keeps the totals gathered so far, marked as stopped early.</key>
 	<string>Cancel Scan (⌘.) stops the walk and keeps the totals gathered so far, marked as stopped early.</string>
+	<key>Candidates</key>
+	<string>Candidates</string>
 	<key>Candidates are places to look, not a recommendation. A move goes through the same confirmation as everywhere else, and the space returns when the Trash is emptied.</key>
 	<string>Candidates are places to look, not a recommendation. A move goes through the same confirmation as everywhere else, and the space returns when the Trash is emptied.</string>
 	<key>Capacity</key>
@@ -252,8 +258,6 @@
 	<string>Choose what the next scan includes</string>
 	<key>Cleanup</key>
 	<string>Cleanup</string>
-	<key>Cleanup candidates</key>
-	<string>Cleanup candidates</string>
 	<key>Cleanup reads the finished scan for large and old files, cache folders, old downloads, and possible duplicates. Looking costs nothing; nothing moves until you confirm.</key>
 	<string>Cleanup reads the finished scan for large and old files, cache folders, old downloads, and possible duplicates. Looking costs nothing; nothing moves until you confirm.</string>
 	<key>Cleanup view</key>
@@ -608,6 +612,8 @@
 	<string>None found</string>
 	<key>None listed</key>
 	<string>None listed</string>
+	<key>Not in the Trash</key>
+	<string>Not in the Trash</string>
 	<key>Not on this Mac</key>
 	<string>Not on this Mac</string>
 	<key>Not selected</key>
@@ -636,8 +642,6 @@
 	<string>Nothing to review</string>
 	<key>Nothing to review here</key>
 	<string>Nothing to review here</string>
-	<key>Old</key>
-	<string>Old</string>
 	<key>Old downloads</key>
 	<string>Old downloads</string>
 	<key>On disk</key>
@@ -656,6 +660,8 @@
 	<string>Open the scan results for %@</string>
 	<key>Opens the Full Disk Access pane in System Settings</key>
 	<string>Opens the Full Disk Access pane in System Settings</string>
+	<key>Opens the Moved tab</key>
+	<string>Opens the Moved tab</string>
 	<key>Opens the Trash in Finder</key>
 	<string>Opens the Trash in Finder</string>
 	<key>Opens the confirmation for the selected items</key>
@@ -844,6 +850,8 @@
 	<string>Show %@</string>
 	<key>Show More</key>
 	<string>Show More</string>
+	<key>Show Moved</key>
+	<string>Show Moved</string>
 	<key>Show Trash</key>
 	<string>Show Trash</string>
 	<key>Show all categories</key>

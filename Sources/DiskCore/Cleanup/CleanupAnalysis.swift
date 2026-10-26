@@ -179,11 +179,18 @@ public enum CleanupAnalysis {
     /// The walk reads the live tree, so a folder that changed or arrived since
     /// the scan is judged on what it holds now. Every number and date it uses was
     /// measured; nothing here touches the filesystem.
+    ///
+    /// `progress` is the fraction of the tree's entries the walk has accounted
+    /// for — the entries it examined, plus the subtrees a whole-folder rule kept
+    /// it out of — and is called on the walking task at most once per percentage
+    /// point. A walk stopped at `maxVisitedNodes` reports where it stopped and
+    /// never claims the whole tree.
     public static func analyze(
         in tree: LiveTree,
         policy: CleanupPolicy = .standard,
         now: Date = Date(),
-        isCancelled: @Sendable () -> Bool = { false }
+        isCancelled: @Sendable () -> Bool = { false },
+        progress: @Sendable (Double) -> Void = { _ in }
     ) -> CleanupReport? {
         var buckets = CleanupRule.allCases.map {
             BoundedGroup(rule: $0, capacity: policy.maxCandidatesPerGroup)
@@ -196,6 +203,34 @@ public enum CleanupAnalysis {
 
         var visited = 0
         var stoppedAtLimit = false
+        // Every entry below the root the walk has either examined or ruled out
+        // by offering its folder whole. A prune takes its whole subtree out of
+        // the pending count in one step, so a skipped cache folder does not
+        // leave the fraction short of the tree it accounted for.
+        let totalNodes = max(0, tree.nodeCount - 1)
+        var pendingNodes = totalNodes
+        var reportedPercent = 0
+        func publishProgress(force: Bool) {
+            let accounted = min(totalNodes, max(0, totalNodes - max(0, pendingNodes)))
+            let percent: Int
+            if force {
+                percent = 100
+            } else if totalNodes > 0 {
+                percent = min(99, accounted * 100 / totalNodes)
+            } else {
+                percent = 0
+            }
+            guard percent > reportedPercent else { return }
+            reportedPercent = percent
+            // The last step of a walk is its result, not another entry: hold the
+            // bar one point short until the walk has actually finished.
+            guard totalNodes > 0 else {
+                progress(1)
+                return
+            }
+            progress(force ? 1 : min(Double(accounted) / Double(totalNodes), 0.99))
+        }
+
         // The scan root itself is never offered: the reclaim guard would refuse
         // it, and a root that happens to be a cache is the reason the person is
         // looking, not a candidate. The walk starts at its entries, and each
@@ -209,19 +244,25 @@ public enum CleanupAnalysis {
         while let item = stack.popLast() {
             if isCancelled() { return nil }
             visited += 1
+            pendingNodes = max(0, pendingNodes - 1)
+            defer { publishProgress(force: false) }
             if visited > policy.maxVisitedNodes {
                 stoppedAtLimit = true
                 break
             }
 
             let node = item.entry
-            if node.isSymlink { continue }
+            if node.isSymlink {
+                pendingNodes = max(0, pendingNodes - Self.subtreeCount(of: node))
+                continue
+            }
 
             if node.kind == .directory {
                 if let rule = wholeFolderRule(name: node.name, parentName: item.parentName) {
                     if node.allocatedSize > 0 {
                         buckets[rule.displayOrder].offer(CandidateFacts(of: node))
                     }
+                    pendingNodes = max(0, pendingNodes - Self.subtreeCount(of: node))
                     continue
                 }
                 let inDownloads = item.inDownloads || node.name == "Downloads"
@@ -254,6 +295,12 @@ public enum CleanupAnalysis {
             }
         }
 
+        // A stopped walk reports where the cap ended it; only a walk that
+        // finished the tree reaches the end of the bar.
+        if !stoppedAtLimit {
+            publishProgress(force: true)
+        }
+
         let duplicates = duplicateSizes.finish(maxGroups: policy.maxDuplicateGroups, tree: tree)
         return CleanupReport(
             groups: buckets.map { $0.finish(tree: tree) },
@@ -280,6 +327,12 @@ public enum CleanupAnalysis {
         if name == "Devices", parentName == "CoreSimulator" { return .simulators }
         if name == "Logs", parentName == "Library" { return .logs }
         return nil
+    }
+
+    /// How many entries a prune of this entry accounts for: its files and
+    /// folders, not counting the entry itself.
+    private static func subtreeCount(of entry: LiveEntry) -> Int {
+        max(0, entry.fileCount + entry.directoryCount - 1)
     }
 
     /// A folder's entries ordered smallest first, so popping the stack visits the

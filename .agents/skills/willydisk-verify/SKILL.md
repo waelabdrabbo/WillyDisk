@@ -103,7 +103,7 @@ It opens no window and needs no Screen Recording permission.
 | `-o DIR` | output directory | `.build/renders` |
 | `-s WxH` | render size in points | `1000x720`, the app's default window |
 | `-a light\|dark\|both` | appearances | `both` |
-| `-S results\|home\|search\|help\|settings\|categories\|coverage\|cleanup\|duplicates\|history\|both` | screens: results, source selection, results with a whole-scan search open, help sheet content, Settings content, the coverage sheet, the cleanup sheet's Old and Duplicates tabs, results in Categories mode, the history comparison; `both` is home and results | `results` |
+| `-S results\|home\|search\|help\|settings\|categories\|coverage\|cleanup\|duplicates\|history\|both` | screens: results, source selection, results with a whole-scan search open, help sheet content, Settings content, the coverage sheet, the cleanup sheet's Candidates and Duplicates tabs, results in Categories mode, the history comparison; `both` is home and results | `results` |
 | `-l en\|ar\|en-XA` | interface language: English, the finished Arabic (right-to-left) translation, or the doubled-length pseudolanguage | `en` |
 | `-t DIR` | scan this directory instead of the fixture | generated fixture |
 | `-c` | capture the content alone, without the window | the window |

@@ -20,6 +20,8 @@ public struct ReclaimMove: Codable, Identifiable, Equatable, Sendable {
         self.items = items
     }
 
+    /// The log's pending count: items it believes are in the Trash. The
+    /// filesystem is asked again for the Moved tab and before Put Back.
     public var itemsInTrash: Int { items.filter(\.isPending).count }
     public var restoredItems: Int { items.filter(\.isRestored).count }
 
@@ -62,7 +64,8 @@ public struct ReclaimMove: Codable, Identifiable, Equatable, Sendable {
 
         public var isRestored: Bool { restoredAt != nil }
 
-        /// Still in the Trash, so Put Back can act on it.
+        /// The log still believes the item is in the Trash. The filesystem is
+        /// asked again before Put Back and when the Moved tab opens.
         public var isPending: Bool { restoredAt == nil && trashedPath != nil }
     }
 }

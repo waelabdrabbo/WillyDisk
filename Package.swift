@@ -9,6 +9,7 @@ let package = Package(
     ],
     products: [
         .executable(name: "WillyDisk", targets: ["WillyDiskApp"]),
+        .executable(name: "render-screens", targets: ["RenderScreens"]),
         .library(name: "DiskCore", targets: ["DiskCore"]),
         .library(name: "DiskLocalization", targets: ["DiskLocalization"]),
         .library(name: "DiskUI", targets: ["DiskUI"]),
@@ -57,6 +58,17 @@ let package = Package(
         .executableTarget(
             name: "WillyDiskApp",
             dependencies: ["DiskCore", "DiskUI", "DiskCLI", "DiskLocalization"]
+        ),
+
+        // RenderScreens — the offscreen renderer `Scripts/render-screens.sh` runs.
+        // It is tooling, not a shipped product, so it lives with the other scripts
+        // and SwiftPM builds it beside the UI's resource bundle. Building it here
+        // lets SwiftPM link the package on every build system; the older one keeps
+        // no library archives a hand-written `swiftc` could link.
+        .executableTarget(
+            name: "RenderScreens",
+            dependencies: ["DiskCore", "DiskUI", "DiskLocalization"],
+            path: "Scripts/RenderScreens"
         ),
 
         // Test targets: engine behavior in DiskCoreTests, the command line in

@@ -19,7 +19,7 @@ contracts, shared-interface rules §7, non-negotiables §8).
 
 | Path | What it holds |
 |---|---|
-| `Package.swift` | products: executable `WillyDisk`, libraries `DiskCore`, `DiskLocalization`, and `DiskUI`; target `DiskCLI` |
+| `Package.swift` | products: executable `WillyDisk`, executable `render-screens` (the offscreen renderer), libraries `DiskCore`, `DiskLocalization`, and `DiskUI`; target `DiskCLI` |
 | `VERSION` | the only source of the marketing version; the bundle script stamps it |
 | `Resources/` | the macOS icon: `AppIcon.icns` and its 1024 `AppIcon-1024.png` |
 | `Sources/DiskUI/Resources/AppMark.png` | the circular in-app mark the UI and About show |

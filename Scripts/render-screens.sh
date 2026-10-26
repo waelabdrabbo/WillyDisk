@@ -61,13 +61,10 @@ while getopts "o:s:a:S:t:T:l:ch" opt; do
 done
 
 BUILD_FLAGS=()
-SWIFTC_FLAGS=()
 
-# A sandboxed agent cannot nest SwiftPM's own sandbox and cannot write the shared
-# module cache, so it gets a cache inside the build directory instead.
+# A sandboxed agent cannot nest SwiftPM's own sandbox.
 use_sandboxless_flags() {
   BUILD_FLAGS=(--disable-sandbox)
-  SWIFTC_FLAGS=(-disable-sandbox -module-cache-path "$ROOT/.build/render-module-cache")
 }
 
 if [[ -n "${WILLYDISK_NO_SANDBOX:-}" ]]; then
@@ -86,26 +83,18 @@ if ! build_output=$(swift build --package-path "$ROOT" ${BUILD_FLAGS[@]+"${BUILD
   fi
 fi
 
-# The renderer goes in the build directory beside `WillyDisk_DiskUI.bundle`, so
-# the UI's `Bundle.module` resolves its resources exactly as it does in the app.
-# Ask SwiftPM for that directory: its layout differs across toolchains, so a
-# hard-coded `.build/debug` exists on some and not others. Modules sit at its
-# root in one layout and in `Modules/` in another, so both are search paths.
+# The renderer is the package's `render-screens` product. SwiftPM builds it in
+# the same directory as the UI's resource bundle, so its `Bundle.module` resolves
+# exactly as it does in the app, and it links the package itself — the older
+# build system keeps no library archives a hand-written `swiftc` could link.
+echo "==> Building the renderer"
+swift build --package-path "$ROOT" ${BUILD_FLAGS[@]+"${BUILD_FLAGS[@]}"} --product render-screens
+
 bin_path="$(swift build --package-path "$ROOT" ${BUILD_FLAGS[@]+"${BUILD_FLAGS[@]}"} --show-bin-path)"
-if [[ -z "$bin_path" ]]; then
-  echo "error: SwiftPM did not report a build directory" >&2
+if [[ -z "$bin_path" || ! -x "$bin_path/render-screens" ]]; then
+  echo "error: SwiftPM did not produce $bin_path/render-screens" >&2
   exit 1
 fi
-module_paths=(-I "$bin_path")
-if [[ -d "$bin_path/Modules" ]]; then
-  module_paths+=(-I "$bin_path/Modules")
-fi
-
-echo "==> Compiling the renderer"
-xcrun swiftc ${SWIFTC_FLAGS[@]+"${SWIFTC_FLAGS[@]}"} \
-  "${module_paths[@]}" -L "$bin_path" -lDiskUI -lDiskCore -lDiskLocalization \
-  -o "$bin_path/render-screens" \
-  "$ROOT/Scripts/RenderScreens/main.swift"
 
 echo "==> Rendering"
 "$bin_path/render-screens" --out "$OUT" --size "$SIZE" --appearance "$APPEARANCE" --screen "$SCREEN" --state "$STATE" --locale "$LOCALE" "${MODE[@]}" ${FIXTURE[@]+"${FIXTURE[@]}"}

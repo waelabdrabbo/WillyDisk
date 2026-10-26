@@ -38,12 +38,14 @@ Tests/
   DiskCLITests/             # command-line parsing, report, exit statuses
   QATests/                  # independent verification
 Scripts/bundle-app.sh       # builds the .app bundle
+Scripts/RenderScreens/      # the offscreen renderer (package executable)
 docs/                       # ARCHITECTURE.md, LIVE-TREE.md, CLEANUP.md, ROADMAP.md
 ```
 
-`Package.swift` products: executable `WillyDisk`; libraries `DiskCore`, `DiskLocalization`,
-`DiskUI`. `DiskCLI` is a target, not a product: it is linked into the one executable,
-whose `@main` chooses between the command line and the app.
+`Package.swift` products: executables `WillyDisk` and `render-screens` (the offscreen
+renderer); libraries `DiskCore`, `DiskLocalization`, `DiskUI`. `DiskCLI` is a target, not
+a product: it is linked into the one executable, whose `@main` chooses between the command
+line and the app.
 
 Commands:
 

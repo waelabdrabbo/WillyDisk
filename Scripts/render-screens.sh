@@ -88,11 +88,24 @@ fi
 
 # The renderer goes in the build directory beside `WillyDisk_DiskUI.bundle`, so
 # the UI's `Bundle.module` resolves its resources exactly as it does in the app.
+# Ask SwiftPM for that directory: its layout differs across toolchains, so a
+# hard-coded `.build/debug` exists on some and not others. Modules sit at its
+# root in one layout and in `Modules/` in another, so both are search paths.
+bin_path="$(swift build --package-path "$ROOT" ${BUILD_FLAGS[@]+"${BUILD_FLAGS[@]}"} --show-bin-path)"
+if [[ -z "$bin_path" ]]; then
+  echo "error: SwiftPM did not report a build directory" >&2
+  exit 1
+fi
+module_paths=(-I "$bin_path")
+if [[ -d "$bin_path/Modules" ]]; then
+  module_paths+=(-I "$bin_path/Modules")
+fi
+
 echo "==> Compiling the renderer"
 xcrun swiftc ${SWIFTC_FLAGS[@]+"${SWIFTC_FLAGS[@]}"} \
-  -I "$ROOT/.build/debug" -L "$ROOT/.build/debug" -lDiskUI -lDiskCore -lDiskLocalization \
-  -o "$ROOT/.build/debug/render-screens" \
+  "${module_paths[@]}" -L "$bin_path" -lDiskUI -lDiskCore -lDiskLocalization \
+  -o "$bin_path/render-screens" \
   "$ROOT/Scripts/RenderScreens/main.swift"
 
 echo "==> Rendering"
-"$ROOT/.build/debug/render-screens" --out "$OUT" --size "$SIZE" --appearance "$APPEARANCE" --screen "$SCREEN" --state "$STATE" --locale "$LOCALE" "${MODE[@]}" ${FIXTURE[@]+"${FIXTURE[@]}"}
+"$bin_path/render-screens" --out "$OUT" --size "$SIZE" --appearance "$APPEARANCE" --screen "$SCREEN" --state "$STATE" --locale "$LOCALE" "${MODE[@]}" ${FIXTURE[@]+"${FIXTURE[@]}"}

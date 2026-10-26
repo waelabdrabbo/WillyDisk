@@ -150,9 +150,14 @@ public final class ScanViewModel {
         }
 
         var moved: [ReclaimCandidate] = []
+        var trashedURLs: [URL: URL] = [:]
         var failures: [String] = []
 
-        for candidate in candidates {
+        // A path inside another selected path is covered by that move.
+        let byURL = Dictionary(candidates.map { ($0.url, $0) }, uniquingKeysWith: { first, _ in first })
+        let selection = ReclaimSelection.outermost(candidates.map(\.url)).compactMap { byURL[$0] }
+
+        for candidate in selection {
             var context = await ReclaimContextProbe.context(for: candidate.url, scanRoot: root)
             context.isScanning = isScanning
             if let refusal = ReclaimPolicy.refusal(for: candidate.url, in: context) {
@@ -160,11 +165,30 @@ public final class ScanViewModel {
                 continue
             }
             switch await reclaimController.trash(candidate.url) {
-            case .trashed:
+            case .trashed(let trashedURL):
                 moved.append(candidate)
+                if let trashedURL { trashedURLs[candidate.url] = trashedURL }
             case .failed(let reason):
                 failures.append(L10n.format("%@: %@", candidate.name, reason))
             }
+        }
+
+        if !moved.isEmpty, let reclaimLog {
+            let move = ReclaimMove(
+                date: Date(),
+                rootPath: root.standardizedFileURL.path,
+                items: moved.map { candidate in
+                    ReclaimMove.Item(
+                        name: candidate.name,
+                        originalPath: candidate.url.standardizedFileURL.path,
+                        trashedPath: trashedURLs[candidate.url]?.standardizedFileURL.path,
+                        isDirectory: candidate.isDirectory,
+                        logicalSize: candidate.logicalSize,
+                        allocatedSize: candidate.allocatedSize
+                    )
+                }
+            )
+            await reclaimLog.record(move)
         }
 
         if !moved.isEmpty, liveTree == nil || !isWatching {
@@ -176,6 +200,36 @@ public final class ScanViewModel {
         let notice = makeReclaimNotice(moved: moved, failures: failures)
         reclaimNotice = notice
         return notice
+    }
+
+    /// Puts the items of one logged move back where they came from.
+    ///
+    /// Each item is checked at the moment of the move: the log says where the
+    /// system put it, not where it still is. Items that cannot go back are
+    /// reported by name and reason; the ones that can are recorded as restored.
+    @discardableResult
+    func restore(_ move: ReclaimMove) async -> ReclaimRestoreReport {
+        var restored: Set<UUID> = []
+        var failures: [String] = []
+
+        for item in move.items where !item.isRestored {
+            switch await restorer.restore(item) {
+            case .restored:
+                restored.insert(item.id)
+            case .refused(let refusal):
+                failures.append(L10n.format("%@: %@", item.name, refusal.title))
+            case .failed(let reason):
+                failures.append(L10n.format("%@: %@", item.name, reason))
+            }
+        }
+
+        if !restored.isEmpty {
+            await reclaimLog?.markRestored(moveID: move.id, itemIDs: restored)
+        }
+        if !restored.isEmpty, liveTree == nil || !isWatching {
+            markResultsStale()
+        }
+        return ReclaimRestoreReport(restoredItemIDs: restored, failures: failures)
     }
 
     /// The guard's answer for one item, asked before the confirmation sheet
@@ -251,6 +305,11 @@ public final class ScanViewModel {
     /// test or a preview that drives a scan is not made to write into the user's
     /// history.
     public let history: ScanHistory?
+    /// Where this process remembers its own moves, so one can be undone while
+    /// the Trash still holds it. `nil` means moves are not remembered: a test or
+    /// a preview must not write into the user's log.
+    public let reclaimLog: ReclaimLog?
+    private let restorer: ReclaimRestorer
     private var scanTask: Task<Void, Never>?
     /// Bumped whenever a scan starts or is discarded, so work belonging to a
     /// superseded scan — a late event, or a cancel that was requested before the
@@ -314,15 +373,18 @@ public final class ScanViewModel {
         history: ScanHistory? = nil,
         watchPreferences: WatchPreferences = .shared,
         watcher: (any TreeWatching)? = nil,
-        updatePolicy: LiveUpdatePolicy = .standard
+        updatePolicy: LiveUpdatePolicy = .standard,
+        reclaimLog: ReclaimLog? = nil
     ) {
         self.engine = engine
         self.reclaimController = ReclaimController()
+        self.restorer = ReclaimRestorer()
         self.optionsStore = optionsStore
         self.watchPreferences = watchPreferences
         self.watcher = watcher
         self.updatePolicy = updatePolicy
         self.history = history
+        self.reclaimLog = reclaimLog
     }
 
     /// The trashing seam is injectable so the guard's decision and the system's
@@ -334,15 +396,19 @@ public final class ScanViewModel {
         history: ScanHistory? = nil,
         watchPreferences: WatchPreferences = .shared,
         watcher: (any TreeWatching)? = nil,
-        updatePolicy: LiveUpdatePolicy = .standard
+        updatePolicy: LiveUpdatePolicy = .standard,
+        reclaimLog: ReclaimLog? = nil,
+        restorer: ReclaimRestorer = ReclaimRestorer()
     ) {
         self.engine = engine
         self.reclaimController = reclaimController
+        self.restorer = restorer
         self.optionsStore = optionsStore
         self.watchPreferences = watchPreferences
         self.watcher = watcher
         self.updatePolicy = updatePolicy
         self.history = history
+        self.reclaimLog = reclaimLog
     }
 
     /// Connects (or replaces) the scanning engine. Called by the app shell once

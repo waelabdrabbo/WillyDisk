@@ -18,6 +18,9 @@ final class AppState: ObservableObject {
     /// The one view model the whole app shares.
     let scanViewModel: ScanViewModel
 
+    /// The app's moves, so one can be put back while the Trash still holds it.
+    let reclaimLog = ReclaimLog()
+
     /// Whether the Help sheet is up. The main window hosts it, so Help is
     /// reachable from either screen and never opens a second window.
     @Published var isShowingHelp = false
@@ -28,8 +31,13 @@ final class AppState: ObservableObject {
             optionsStore: scanOptions,
             history: ScanHistory(),
             watchPreferences: .shared,
-            watcher: ScanTreeWatcher()
+            watcher: ScanTreeWatcher(),
+            reclaimLog: reclaimLog
         )
+
+        // The log is a small file; reading it at launch means the Moved tab is
+        // ready the first time it is opened rather than filling in later.
+        Task { await reclaimLog.reload() }
 
         // The stored appearance is in place before the first window exists, so a
         // choice held over from the last launch is never painted over by the

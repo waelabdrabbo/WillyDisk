@@ -45,14 +45,16 @@ public struct ScanUsageError: Error, Equatable, Sendable {
 
 public enum ScanInvocation: Sendable, Equatable {
     case help
+    case cleanupHelp
     case scan(ScanCommand)
+    case cleanup(CleanupCommand)
 }
 
-/// Reads `WillyDisk scan …` into a `ScanCommand`.
+/// Reads `WillyDisk scan …` or `WillyDisk cleanup …` into its command.
 ///
 /// The parser accepts `--name value` and `--name=value`, and one positional
 /// folder. It does not consult the environment or the app's stored scan
-/// defaults: a script's scan is the command line it wrote, not the settings a
+/// defaults: a script's run is the command line it wrote, not the settings a
 /// person left in the app.
 public enum ScanCommandLine {
 
@@ -64,18 +66,27 @@ public enum ScanCommandLine {
         if first == "--help" || first == "-h" {
             return .help
         }
-        guard first == "scan" else {
-            throw ScanUsageError(L10n.format("unknown command '%@'; expected 'scan'", first))
+        switch first {
+        case "scan":
+            if args.dropFirst().contains(where: { $0 == "--help" || $0 == "-h" }) {
+                return .help
+            }
+            return .scan(try parseScan(Array(args.dropFirst())))
+        case "cleanup":
+            return try CleanupCommandLine.parse(Array(args.dropFirst()))
+        default:
+            throw ScanUsageError(
+                L10n.format("unknown command '%@'; expected 'scan' or 'cleanup'", first)
+            )
         }
-        if args.dropFirst().contains(where: { $0 == "--help" || $0 == "-h" }) {
-            return .help
-        }
+    }
 
+    private static func parseScan(_ args: [String]) throws -> ScanCommand {
         var depth = ScanCommand.defaultDepth
         var top = ScanCommand.defaultTop
         var json = false
         var rootPath: String?
-        var index = 1
+        var index = 0
 
         while index < args.count {
             let argument = args[index]
@@ -104,7 +115,7 @@ public enum ScanCommandLine {
         guard let path = rootPath, !path.isEmpty else {
             throw ScanUsageError(L10n.string("missing the folder to scan"))
         }
-        return .scan(ScanCommand(root: folderURL(path), depth: depth, top: top, json: json))
+        return ScanCommand(root: folderURL(path), depth: depth, top: top, json: json)
     }
 
     /// A one-line hint printed with a usage error or a failure to start.
@@ -152,7 +163,7 @@ public enum ScanCommandLine {
             ScanCommand.defaultDepth,
             ScanCommand.defaultTop,
             ScanRecord.currentSchemaVersion
-        )
+        ) + "\n\n" + L10n.string("See 'WillyDisk cleanup --help' to list cleanup candidates.")
     }
 
     // MARK: - Argument pieces

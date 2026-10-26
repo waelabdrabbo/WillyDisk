@@ -553,30 +553,6 @@
       },
       "shouldGenerateSwiftSymbol": false
     },
-    "%@ share a size with another file in this scan. Their contents have not been compared.": {
-      "extractionState": "manual",
-      "localizations": {
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ تتشارك الحجم مع ملف آخر في هذا الفحص. لم تُقارن محتوياتها."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ share a size with another file in this scan. Their contents have not been compared."
-          }
-        },
-        "en-XA": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "[%@ šĥáŕé á šížé ŵíŧĥ áñöŧĥéŕ ƒíļé íñ ŧĥíš šçáñ. Ŧĥéíŕ çöñŧéñŧš ĥáṽé ñöŧ ƀééñ çöɱþáŕéð.····················································································]"
-          }
-        }
-      },
-      "shouldGenerateSwiftSymbol": false
-    },
     "%@ so far": {
       "extractionState": "manual",
       "localizations": {
@@ -596,6 +572,30 @@
           "stringUnit": {
             "state": "translated",
             "value": "[%@ šö ƒáŕ·······]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "%@ stored on this Mac share a size with another file in this scan. Their contents have not been compared.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ مخزّنة على هذا الـ Mac تتشارك الحجم مع ملف آخر في هذا الفحص. لم تُقارن محتوياتها."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ stored on this Mac share a size with another file in this scan. Their contents have not been compared."
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[%@ šŧöŕéð öñ ŧĥíš Ɱáç šĥáŕé á šížé ŵíŧĥ áñöŧĥéŕ ƒíļé íñ ŧĥíš šçáñ. Ŧĥéíŕ çöñŧéñŧš ĥáṽé ñöŧ ƀééñ çöɱþáŕéð.·······································································································]"
           }
         }
       },
@@ -6085,6 +6085,30 @@
       },
       "shouldGenerateSwiftSymbol": false
     },
+    "Couldn’t put back everything. %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تعذّرت إعادة كل العناصر. %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn’t put back everything. %@"
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Çöúļðñ’ŧ þúŧ ƀáçķ éṽéŕýŧĥíñĝ. %@······························]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
     "Count a link's target, skipping links that leave the scan.": {
       "extractionState": "manual",
       "localizations": {
@@ -6368,6 +6392,30 @@
           "stringUnit": {
             "state": "translated",
             "value": "[Ðéŧáíļš·····]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "Device support": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "دعم الأجهزة"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Device support"
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Ðéṽíçé šúþþöŕŧ············]"
           }
         }
       },
@@ -6745,6 +6793,30 @@
       },
       "shouldGenerateSwiftSymbol": false
     },
+    "Entries": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "العناصر"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entries"
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Éñŧŕíéš·····]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
     "Every recorded run, for every location, is removed. Your files are not touched.": {
       "extractionState": "manual",
       "localizations": {
@@ -6764,6 +6836,30 @@
           "stringUnit": {
             "state": "translated",
             "value": "[Éṽéŕý ŕéçöŕðéð ŕúñ, ƒöŕ éṽéŕý ļöçáŧíöñ, íš ŕéɱöṽéð. Ýöúŕ ƒíļéš áŕé ñöŧ ŧöúçĥéð.·············································································]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "Every simulator device, offered whole. Xcode makes a new one on demand; the apps and the data inside these are gone with them.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "كل جهاز محاكي، يُعرض كاملًا. ينشئ Xcode واحدًا جديدًا عند الحاجة؛ وتزول معه التطبيقات والبيانات داخله."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Every simulator device, offered whole. Xcode makes a new one on demand; the apps and the data inside these are gone with them."
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Éṽéŕý šíɱúļáŧöŕ ðéṽíçé, öƒƒéŕéð ŵĥöļé. Ẋçöðé ɱáķéš á ñéŵ öñé öñ ðéɱáñð; ŧĥé áþþš áñð ŧĥé ðáŧá íñšíðé ŧĥéšé áŕé ĝöñé ŵíŧĥ ŧĥéɱ.····························································································································]"
           }
         }
       },
@@ -7273,30 +7369,6 @@
       },
       "shouldGenerateSwiftSymbol": false
     },
-    "Files of at least %@ that have not been modified in %@.": {
-      "extractionState": "manual",
-      "localizations": {
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ملفات بحجم %@ على الأقل لم تُعدّل خلال %@."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Files of at least %@ that have not been modified in %@."
-          }
-        },
-        "en-XA": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "[Ƒíļéš öƒ áŧ ļéášŧ %@ ŧĥáŧ ĥáṽé ñöŧ ƀééñ ɱöðíƒíéð íñ %@.·····················································]"
-          }
-        }
-      },
-      "shouldGenerateSwiftSymbol": false
-    },
     "Files of at least %@ that share a size with another file. Same size is not a duplicate: Check Contents reads their bytes and compares SHA-256 digests.": {
       "extractionState": "manual",
       "localizations": {
@@ -7340,6 +7412,30 @@
           "stringUnit": {
             "state": "translated",
             "value": "[Ƒíļéš ŧĥáŧ çĥáñĝéð················]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "Files that take at least %@ on disk and have not been modified in %@.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ملفات تشغل %@ على الأقل على القرص ولم تُعدّل خلال %@."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Files that take at least %@ on disk and have not been modified in %@."
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Ƒíļéš ŧĥáŧ ŧáķé áŧ ļéášŧ %@ öñ ðíšķ áñð ĥáṽé ñöŧ ƀééñ ɱöðíƒíéð íñ %@.···································································]"
           }
         }
       },
@@ -7729,30 +7825,6 @@
       },
       "shouldGenerateSwiftSymbol": false
     },
-    "Hard links stay separate paths here; moving one does not free space until every link is gone.": {
-      "extractionState": "manual",
-      "localizations": {
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "تبقى الروابط الصلبة مسارات منفصلة هنا؛ نقل أحدها لا يحرّر مساحة حتى يزول كل رابط."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Hard links stay separate paths here; moving one does not free space until every link is gone."
-          }
-        },
-        "en-XA": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "[Ĥáŕð ļíñķš šŧáý šéþáŕáŧé þáŧĥš ĥéŕé; ɱöṽíñĝ öñé ðöéš ñöŧ ƒŕéé šþáçé úñŧíļ éṽéŕý ļíñķ íš ĝöñé.···························································································]"
-          }
-        }
-      },
-      "shouldGenerateSwiftSymbol": false
-    },
     "Hard-linked files": {
       "extractionState": "manual",
       "localizations": {
@@ -8132,6 +8204,54 @@
           "stringUnit": {
             "state": "translated",
             "value": "[Íššúéš····]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "It is already back": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إنه رجع بالفعل"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "It is already back"
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Íŧ íš áļŕéáðý ƀáçķ················]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "It is no longer in the Trash": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لم يعد في سلة المهملات"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "It is no longer in the Trash"
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Íŧ íš ñö ļöñĝéŕ íñ ŧĥé Ŧŕášĥ··························]"
           }
         }
       },
@@ -8545,6 +8665,30 @@
       },
       "shouldGenerateSwiftSymbol": false
     },
+    "Log folders directly inside a Library, offered whole. Apps and macOS write new logs as they run.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "مجلدات السجلات داخل مجلد Library مباشرة، تُعرض كاملة. تكتب التطبيقات وmacOS سجلات جديدة أثناء عملها."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Log folders directly inside a Library, offered whole. Apps and macOS write new logs as they run."
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Ļöĝ ƒöļðéŕš ðíŕéçŧļý íñšíðé á Ļíƀŕáŕý, öƒƒéŕéð ŵĥöļé. Áþþš áñð ɱáçÖŠ ŵŕíŧé ñéŵ ļöĝš áš ŧĥéý ŕúñ.······························································································]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
     "Logical": {
       "extractionState": "manual",
       "localizations": {
@@ -8593,25 +8737,49 @@
       },
       "shouldGenerateSwiftSymbol": false
     },
-    "Looking for files of at least %@ that have not changed in %@, cache folders, old downloads, and files that share a size.": {
+    "Logs": {
       "extractionState": "manual",
       "localizations": {
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "جارٍ البحث عن ملفات بحجم %@ على الأقل لم تتغيّر خلال %@، ومجلدات تخزين مؤقت، وتنزيلات قديمة، وملفات تتشارك الحجم نفسه."
+            "value": "السجلات"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Looking for files of at least %@ that have not changed in %@, cache folders, old downloads, and files that share a size."
+            "value": "Logs"
           }
         },
         "en-XA": {
           "stringUnit": {
             "state": "translated",
-            "value": "[Ļööķíñĝ ƒöŕ ƒíļéš öƒ áŧ ļéášŧ %@ ŧĥáŧ ĥáṽé ñöŧ çĥáñĝéð íñ %@, çáçĥé ƒöļðéŕš, öļð ðöŵñļöáðš, áñð ƒíļéš ŧĥáŧ šĥáŕé á šížé.······················································································································]"
+            "value": "[Ļöĝš····]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "Looking for files that take at least %@ on disk and have not changed in %@, Xcode support and simulator folders, caches, logs, old downloads, and files that share a size.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "جارٍ البحث عن ملفات تشغل %@ على الأقل على القرص ولم تتغيّر خلال %@، ومجلدات دعم Xcode والمحاكيات، ومجلدات تخزين مؤقت، وسجلات، وتنزيلات قديمة، وملفات تتشارك الحجم نفسه."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Looking for files that take at least %@ on disk and have not changed in %@, Xcode support and simulator folders, caches, logs, old downloads, and files that share a size."
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Ļööķíñĝ ƒöŕ ƒíļéš ŧĥáŧ ŧáķé áŧ ļéášŧ %@ öñ ðíšķ áñð ĥáṽé ñöŧ çĥáñĝéð íñ %@, Ẋçöðé šúþþöŕŧ áñð šíɱúļáŧöŕ ƒöļðéŕš, çáçĥéš, ļöĝš, öļð ðöŵñļöáðš, áñð ƒíļéš ŧĥáŧ šĥáŕé á šížé.········································································································································································]"
           }
         }
       },
@@ -8809,6 +8977,30 @@
       },
       "shouldGenerateSwiftSymbol": false
     },
+    "Moved": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "المنقولة"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Moved"
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Ɱöṽéð····]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
     "Moved %@ to the Trash. Space is freed when you empty the Trash.": {
       "extractionState": "manual",
       "localizations": {
@@ -8852,6 +9044,54 @@
           "stringUnit": {
             "state": "translated",
             "value": "[Ɱöṽéð %@ ŧö ŧĥé Ŧŕášĥ; %@. %@···························]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "Moves made with this app appear here until the Trash is emptied.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تظهر هنا عمليات النقل التي أُجريت بهذا التطبيق حتى تُفرَّغ سلة المهملات."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Moves made with this app appear here until the Trash is emptied."
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Ɱöṽéš ɱáðé ŵíŧĥ ŧĥíš áþþ áþþéáŕ ĥéŕé úñŧíļ ŧĥé Ŧŕášĥ íš éɱþŧíéð.······························································]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "Moves these items out of the Trash, back to where they came from": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يُخرج هذه العناصر من سلة المهملات ويعيدها إلى مواضعها الأصلية"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Moves these items out of the Trash, back to where they came from"
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Ɱöṽéš ŧĥéšé íŧéɱš öúŧ öƒ ŧĥé Ŧŕášĥ, ƀáçķ ŧö ŵĥéŕé ŧĥéý çáɱé ƒŕöɱ······························································]"
           }
         }
       },
@@ -9217,49 +9457,25 @@
       },
       "shouldGenerateSwiftSymbol": false
     },
-    "No file is both at least %@ and unchanged for %@, no Caches or Derived Data folder is inside this scan, and no download is older than %@.": {
+    "No file takes at least %@ on disk and has not changed for %@, no Caches, Device Support, Simulators, or Logs folder is inside this scan, and no download is older than %@.": {
       "extractionState": "manual",
       "localizations": {
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "لا يوجد ملف بحجم %@ على الأقل وبلا تغيير خلال %@، ولا مجلد Caches أو Derived Data داخل هذا الفحص، ولا تنزيل أقدم من %@."
+            "value": "لا يوجد ملف يشغل %@ على الأقل على القرص وبلا تغيير خلال %@، ولا مجلد Caches أو Device Support أو Simulators أو Logs داخل هذا الفحص، ولا تنزيل أقدم من %@."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "No file is both at least %@ and unchanged for %@, no Caches or Derived Data folder is inside this scan, and no download is older than %@."
+            "value": "No file takes at least %@ on disk and has not changed for %@, no Caches, Device Support, Simulators, or Logs folder is inside this scan, and no download is older than %@."
           }
         },
         "en-XA": {
           "stringUnit": {
             "state": "translated",
-            "value": "[Ñö ƒíļé íš ƀöŧĥ áŧ ļéášŧ %@ áñð úñçĥáñĝéð ƒöŕ %@, ñö Çáçĥéš öŕ Ðéŕíṽéð Ðáŧá ƒöļðéŕ íš íñšíðé ŧĥíš šçáñ, áñð ñö ðöŵñļöáð íš öļðéŕ ŧĥáñ %@.·······································································································································]"
-          }
-        }
-      },
-      "shouldGenerateSwiftSymbol": false
-    },
-    "No file is both at least %@ and unchanged for %@, no Caches or Derived Data folder is inside this scan, no download is older than %@, and no two files of at least %@ share a size.": {
-      "extractionState": "manual",
-      "localizations": {
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "لا يوجد ملف بحجم %@ على الأقل وبلا تغيير خلال %@، ولا مجلد Caches أو Derived Data داخل هذا الفحص، ولا تنزيل أقدم من %@، ولا ملفان بحجم %@ على الأقل يتشاركان الحجم نفسه."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No file is both at least %@ and unchanged for %@, no Caches or Derived Data folder is inside this scan, no download is older than %@, and no two files of at least %@ share a size."
-          }
-        },
-        "en-XA": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "[Ñö ƒíļé íš ƀöŧĥ áŧ ļéášŧ %@ áñð úñçĥáñĝéð ƒöŕ %@, ñö Çáçĥéš öŕ Ðéŕíṽéð Ðáŧá ƒöļðéŕ íš íñšíðé ŧĥíš šçáñ, ñö ðöŵñļöáð íš öļðéŕ ŧĥáñ %@, áñð ñö ŧŵö ƒíļéš öƒ áŧ ļéášŧ %@ šĥáŕé á šížé.·················································································································································································]"
+            "value": "[Ñö ƒíļé ŧáķéš áŧ ļéášŧ %@ öñ ðíšķ áñð ĥáš ñöŧ çĥáñĝéð ƒöŕ %@, ñö Çáçĥéš, Ðéṽíçé Šúþþöŕŧ, Šíɱúļáŧöŕš, öŕ Ļöĝš ƒöļðéŕ íš íñšíðé ŧĥíš šçáñ, áñð ñö ðöŵñļöáð íš öļðéŕ ŧĥáñ %@.········································································································································································]"
           }
         }
       },
@@ -9505,25 +9721,25 @@
       },
       "shouldGenerateSwiftSymbol": false
     },
-    "No two files of at least %@ share a size in this scan.": {
+    "No two files on this Mac of at least %@ share a size in this scan.": {
       "extractionState": "manual",
       "localizations": {
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "لا ملفين بحجم %@ على الأقل يتشاركان الحجم نفسه في هذا الفحص."
+            "value": "لا ملفان على هذا الـ Mac بحجم %@ على الأقل يتشاركان الحجم نفسه في هذا الفحص."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "No two files of at least %@ share a size in this scan."
+            "value": "No two files on this Mac of at least %@ share a size in this scan."
           }
         },
         "en-XA": {
           "stringUnit": {
             "state": "translated",
-            "value": "[Ñö ŧŵö ƒíļéš öƒ áŧ ļéášŧ %@ šĥáŕé á šížé íñ ŧĥíš šçáñ.····················································]"
+            "value": "[Ñö ŧŵö ƒíļéš öñ ŧĥíš Ɱáç öƒ áŧ ļéášŧ %@ šĥáŕé á šížé íñ ŧĥíš šçáñ.································································]"
           }
         }
       },
@@ -9764,6 +9980,54 @@
           "stringUnit": {
             "state": "translated",
             "value": "[Ñöŧĥíñĝ ĥéŕé íš ƀíĝ éñöúĝĥ ŧö ðŕáŵ.·································]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "Nothing here is rebuilt for you. Choose each item yourself.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لا يُعاد إنشاء أي من هذه العناصر تلقائيًا. اختر كل عنصر بنفسك."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nothing here is rebuilt for you. Choose each item yourself."
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Ñöŧĥíñĝ ĥéŕé íš ŕéƀúíļŧ ƒöŕ ýöú. Çĥööšé éáçĥ íŧéɱ ýöúŕšéļƒ.·························································]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "Nothing moved yet": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لم يُنقل شيء بعد"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nothing moved yet"
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Ñöŧĥíñĝ ɱöṽéð ýéŧ···············]"
           }
         }
       },
@@ -10321,6 +10585,54 @@
       },
       "shouldGenerateSwiftSymbol": false
     },
+    "Paths that are hard links to another file are not offered as copies, because moving one frees nothing until every link is gone: %@.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "المسارات التي هي روابط صلبة لملف آخر لا تُعرض نُسخًا، لأن نقل أحدها لا يحرّر شيئًا حتى تزول كل الروابط: %@."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paths that are hard links to another file are not offered as copies, because moving one frees nothing until every link is gone: %@."
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Þáŧĥš ŧĥáŧ áŕé ĥáŕð ļíñķš ŧö áñöŧĥéŕ ƒíļé áŕé ñöŧ öƒƒéŕéð áš çöþíéš, ƀéçáúšé ɱöṽíñĝ öñé ƒŕééš ñöŧĥíñĝ úñŧíļ éṽéŕý ļíñķ íš ĝöñé: %@.·································································································································]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "Paths that share storage with another file are not offered as copies, because moving one frees nothing until the others go: %@.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "المسارات التي تتشارك التخزين مع ملف آخر لا تُعرض نُسخًا، لأن نقل أحدها لا يحرّر شيئًا حتى تزول الأخرى: %@."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paths that share storage with another file are not offered as copies, because moving one frees nothing until the others go: %@."
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Þáŧĥš ŧĥáŧ šĥáŕé šŧöŕáĝé ŵíŧĥ áñöŧĥéŕ ƒíļé áŕé ñöŧ öƒƒéŕéð áš çöþíéš, ƀéçáúšé ɱöṽíñĝ öñé ƒŕééš ñöŧĥíñĝ úñŧíļ ŧĥé öŧĥéŕš ĝö: %@.·····························································································································]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
     "Pick any folder or volume to scan": {
       "extractionState": "manual",
       "localizations": {
@@ -10364,6 +10676,54 @@
           "stringUnit": {
             "state": "translated",
             "value": "[Þöššíƀļé ðúþļíçáŧéš·················]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "Put Back": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إعادة"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Put Back"
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Þúŧ Ƀáçķ······]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "Put Back takes an item out of the Trash; it does not empty it. Space returns when the Trash is emptied.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "«إعادة» تُخرج العنصر من سلة المهملات ولا تُفرّغها. تعود المساحة عند إفراغ السلة."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Put Back takes an item out of the Trash; it does not empty it. Space returns when the Trash is emptied."
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Þúŧ Ƀáçķ ŧáķéš áñ íŧéɱ öúŧ öƒ ŧĥé Ŧŕášĥ; íŧ ðöéš ñöŧ éɱþŧý íŧ. Šþáçé ŕéŧúŕñš ŵĥéñ ŧĥé Ŧŕášĥ íš éɱþŧíéð.·····································································································]"
           }
         }
       },
@@ -10633,6 +10993,30 @@
       },
       "shouldGenerateSwiftSymbol": false
     },
+    "Rebuildable": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "قابلة لإعادة البناء"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rebuildable"
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Ŕéƀúíļðáƀļé·········]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
     "Recent": {
       "extractionState": "manual",
       "localizations": {
@@ -10772,6 +11156,30 @@
           "stringUnit": {
             "state": "translated",
             "value": "[Ŕéšéŧ ŧö Ðéƒáúļŧš···············]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "Restored": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "أُعيد"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restored"
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Ŕéšŧöŕéð······]"
           }
         }
       },
@@ -10988,6 +11396,30 @@
           "stringUnit": {
             "state": "translated",
             "value": "[Ŕööŧ····]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "Run 'WillyDisk cleanup --help' for usage.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "شغّل 'WillyDisk cleanup --help' لعرض الاستخدام."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Run 'WillyDisk cleanup --help' for usage."
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Ŕúñ 'ŴíļļýÐíšķ çļéáñúþ --ĥéļþ' ƒöŕ úšáĝé.·······································]"
           }
         }
       },
@@ -11905,6 +12337,30 @@
       },
       "shouldGenerateSwiftSymbol": false
     },
+    "See 'WillyDisk cleanup --help' to list cleanup candidates.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "راجع 'WillyDisk cleanup --help' لعرض مرشحي التنظيف."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "See 'WillyDisk cleanup --help' to list cleanup candidates."
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Šéé 'ŴíļļýÐíšķ çļéáñúþ --ĥéļþ' ŧö ļíšŧ çļéáñúþ çáñðíðáŧéš.························································]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
     "Select All": {
       "extractionState": "manual",
       "localizations": {
@@ -12673,6 +13129,30 @@
       },
       "shouldGenerateSwiftSymbol": false
     },
+    "Simulators": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "المحاكيات"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Simulators"
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Šíɱúļáŧöŕš········]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
     "Size": {
       "extractionState": "manual",
       "localizations": {
@@ -12692,6 +13172,30 @@
           "stringUnit": {
             "state": "translated",
             "value": "[Šížé····]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "Sizes": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الأحجام"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sizes"
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Šížéš····]"
           }
         }
       },
@@ -12812,6 +13316,30 @@
           "stringUnit": {
             "state": "translated",
             "value": "[Šöçķéŧš, ðéṽíçéš, áñð ƑÍƑÖš ĥöļð ñö ƒíļé ðáŧá áñð ŵéŕé šķíþþéð šáƒéļý.····································································]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "Something else is at its original location now": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "هناك شيء آخر في موقعه الأصلي الآن"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Something else is at its original location now"
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Šöɱéŧĥíñĝ éļšé íš áŧ íŧš öŕíĝíñáļ ļöçáŧíöñ ñöŵ············································]"
           }
         }
       },
@@ -13273,6 +13801,30 @@
       },
       "shouldGenerateSwiftSymbol": false
     },
+    "The app that made these rebuilds them. You can select a whole section here.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يعيد التطبيق الذي أنشأها بناءها. يمكنك تحديد قسم كامل هنا."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The app that made these rebuilds them. You can select a whole section here."
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Ŧĥé áþþ ŧĥáŧ ɱáðé ŧĥéšé ŕéƀúíļðš ŧĥéɱ. Ýöú çáñ šéļéçŧ á ŵĥöļé šéçŧíöñ ĥéŕé.·········································································]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
     "The chart maps one folder at a time. Clear the search to return to “%@”.": {
       "extractionState": "manual",
       "localizations": {
@@ -13609,6 +14161,30 @@
       },
       "shouldGenerateSwiftSymbol": false
     },
+    "The system did not report where it went": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لم يُبلغ النظام عن المكان الذي ذهب إليه"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The system did not report where it went"
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Ŧĥé šýšŧéɱ ðíð ñöŧ ŕéþöŕŧ ŵĥéŕé íŧ ŵéñŧ·····································]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
     "The system does not allow changes on this volume.": {
       "extractionState": "manual",
       "localizations": {
@@ -13724,6 +14300,30 @@
           "stringUnit": {
             "state": "translated",
             "value": "[Ŧĥéŕé íš ñö ƒíñíšĥéð šçáñ ŧö çĥéçķ ŧĥíš íŧéɱ áĝáíñšŧ. Ŕúñ á šçáñ, ŧĥéñ ŧŕý áĝáíñ.···············································································]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "These are moves this app made. Put Back returns an item to where it came from while the Trash still holds it.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "هذه عمليات النقل التي أجراها هذا التطبيق. تعيد «إعادة» العنصر إلى موقعه الأصلي ما دام في سلة المهملات."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "These are moves this app made. Put Back returns an item to where it came from while the Trash still holds it."
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Ŧĥéšé áŕé ɱöṽéš ŧĥíš áþþ ɱáðé. Þúŧ Ƀáçķ ŕéŧúŕñš áñ íŧéɱ ŧö ŵĥéŕé íŧ çáɱé ƒŕöɱ ŵĥíļé ŧĥé Ŧŕášĥ šŧíļļ ĥöļðš íŧ.···········································································································]"
           }
         }
       },
@@ -14689,6 +15289,30 @@
       },
       "shouldGenerateSwiftSymbol": false
     },
+    "Walk": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الاجتياز"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Walk"
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Ŵáļķ····]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
     "What coverage leaves out": {
       "extractionState": "manual",
       "localizations": {
@@ -14905,6 +15529,54 @@
       },
       "shouldGenerateSwiftSymbol": false
     },
+    "WillyDisk cleanup": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "WillyDisk cleanup"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "WillyDisk cleanup"
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[ŴíļļýÐíšķ çļéáñúþ···············]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "WillyDisk cleanup — list cleanup candidates inside one folder\n\nUSAGE\n  WillyDisk cleanup <folder> [--json] [--check-contents]\n  WillyDisk cleanup --help\n\nReads the folder with the same engine and accounting as `WillyDisk scan`,\nthen applies the cleanup rules the app's Cleanup sheet uses. It only lists:\nnothing is moved, trashed, or deleted, and no window opens.\n\nRULES\n  Caches, device support, simulators, and logs are offered as one folder\n  each, with the subtree left unwalked. A large old file must take at least\n  %@ on disk and be unchanged for %@; an old download must be unchanged for\n  %@. Duplicate candidates are same-size files of at least %@, listed for\n  the largest %lld size groups with at most %lld files each.\n\nOPTIONS\n  --json             Print the versioned CleanupRecord JSON (schema %lld)\n                     instead of the text report.\n  --check-contents   Read the size-matched candidates and compare SHA-256\n                     digests. Off by default: it reads every candidate.\n  -h, --help         Show this help and exit.\n\nEXIT STATUS\n  0    the analysis ran; the report states anything it could not read\n  1    the folder does not exist, or the report could not be written\n  2    the command line was not understood\n  130  interrupted; no report was written\n\nSizes are bytes on disk, not logical sizes: a cleanup finding is what moving\nit would free once the Trash is emptied, and this command never claims a\nsaving.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "WillyDisk cleanup — عرض مرشحي التنظيف داخل مجلد واحد\n\nالاستخدام\n  WillyDisk cleanup <folder> [--json] [--check-contents]\n  WillyDisk cleanup --help\n\nيقرأ المجلد بالمحرك والمحاسبة نفسيهما اللذين يستخدمهما 'WillyDisk scan'،\nثم يطبّق قواعد التنظيف التي تستخدمها ورقة التنظيف في التطبيق. إنه يعرض فقط:\nلا يُنقل شيء ولا يُوضع في سلة المهملات ولا يُحذف، ولا تُفتح نافذة.\n\nالقواعد\n  تُعرض مجلدات Caches ودعم الأجهزة والمحاكيات والسجلات كمجلد واحد لكل منها،\n  دون التجوّل داخل محتواها. يجب أن يشغل الملف الكبير القديم %@ على الأقل على\n  القرص وألا يتغيّر خلال %@؛ ويجب ألا يتغيّر التنزيل القديم خلال %@.\n  مرشحو التكرار ملفات متساوية الحجم بحجم %@ على الأقل، وتُعرض لأكبر %lld\n  مجموعة حجم وبحد أقصى %lld ملف لكل منها.\n\nالخيارات\n  --json             طباعة سجل CleanupRecord بصيغة JSON ذي إصدار (المخطط\n                     %lld) بدلًا من التقرير النصي.\n  --check-contents   قراءة المرشحين المتساويي الحجم ومقارنة ملخصات SHA-256.\n                     معطّل افتراضيًا: فهو يقرأ كل مرشح.\n  -h, --help         عرض هذه المساعدة والخروج.\n\nحالة الخروج\n  0    تمّ التحليل؛ ويبيّن التقرير ما تعذّرت قراءته\n  1    المجلد غير موجود، أو تعذّرت كتابة التقرير\n  2    لم يُفهم سطر الأوامر\n  130  أُلغي؛ لم يُكتب أي تقرير\n\nالأحجام هي بايتات على القرص، لا أحجامًا منطقية: نتيجة التنظيف هي ما يحرّره\nنقلها بعد إفراغ سلة المهملات، وهذا الأمر لا يدّعي أي توفير."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "WillyDisk cleanup — list cleanup candidates inside one folder\n\nUSAGE\n  WillyDisk cleanup <folder> [--json] [--check-contents]\n  WillyDisk cleanup --help\n\nReads the folder with the same engine and accounting as `WillyDisk scan`,\nthen applies the cleanup rules the app's Cleanup sheet uses. It only lists:\nnothing is moved, trashed, or deleted, and no window opens.\n\nRULES\n  Caches, device support, simulators, and logs are offered as one folder\n  each, with the subtree left unwalked. A large old file must take at least\n  %@ on disk and be unchanged for %@; an old download must be unchanged for\n  %@. Duplicate candidates are same-size files of at least %@, listed for\n  the largest %lld size groups with at most %lld files each.\n\nOPTIONS\n  --json             Print the versioned CleanupRecord JSON (schema %lld)\n                     instead of the text report.\n  --check-contents   Read the size-matched candidates and compare SHA-256\n                     digests. Off by default: it reads every candidate.\n  -h, --help         Show this help and exit.\n\nEXIT STATUS\n  0    the analysis ran; the report states anything it could not read\n  1    the folder does not exist, or the report could not be written\n  2    the command line was not understood\n  130  interrupted; no report was written\n\nSizes are bytes on disk, not logical sizes: a cleanup finding is what moving\nit would free once the Trash is emptied, and this command never claims a\nsaving."
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[ŴíļļýÐíšķ çļéáñúþ — ļíšŧ çļéáñúþ çáñðíðáŧéš íñšíðé öñé ƒöļðéŕ\n\nÚŠÁĜÉ\n  ŴíļļýÐíšķ çļéáñúþ <ƒöļðéŕ> [--ĵšöñ] [--çĥéçķ-çöñŧéñŧš]\n  ŴíļļýÐíšķ çļéáñúþ --ĥéļþ\n\nŔéáðš ŧĥé ƒöļðéŕ ŵíŧĥ ŧĥé šáɱé éñĝíñé áñð áççöúñŧíñĝ áš `ŴíļļýÐíšķ šçáñ`,\nŧĥéñ áþþļíéš ŧĥé çļéáñúþ ŕúļéš ŧĥé áþþ'š Çļéáñúþ šĥééŧ úšéš. Íŧ öñļý ļíšŧš:\nñöŧĥíñĝ íš ɱöṽéð, ŧŕášĥéð, öŕ ðéļéŧéð, áñð ñö ŵíñðöŵ öþéñš.\n\nŔÚĻÉŠ\n  Çáçĥéš, ðéṽíçé šúþþöŕŧ, šíɱúļáŧöŕš, áñð ļöĝš áŕé öƒƒéŕéð áš öñé ƒöļðéŕ\n  éáçĥ, ŵíŧĥ ŧĥé šúƀŧŕéé ļéƒŧ úñŵáļķéð. Á ļáŕĝé öļð ƒíļé ɱúšŧ ŧáķé áŧ ļéášŧ\n  %@ öñ ðíšķ áñð ƀé úñçĥáñĝéð ƒöŕ %@; áñ öļð ðöŵñļöáð ɱúšŧ ƀé úñçĥáñĝéð ƒöŕ\n  %@. Ðúþļíçáŧé çáñðíðáŧéš áŕé šáɱé-šížé ƒíļéš öƒ áŧ ļéášŧ %@, ļíšŧéð ƒöŕ\n  ŧĥé ļáŕĝéšŧ %lld šížé ĝŕöúþš ŵíŧĥ áŧ ɱöšŧ %lld ƒíļéš éáçĥ.\n\nÖÞŦÍÖÑŠ\n  --ĵšöñ             Þŕíñŧ ŧĥé ṽéŕšíöñéð ÇļéáñúþŔéçöŕð ĴŠÖÑ (šçĥéɱá %lld)\n                     íñšŧéáð öƒ ŧĥé ŧéẋŧ ŕéþöŕŧ.\n  --çĥéçķ-çöñŧéñŧš   Ŕéáð ŧĥé šížé-ɱáŧçĥéð çáñðíðáŧéš áñð çöɱþáŕé ŠĤÁ-256\n                     ðíĝéšŧš. Öƒƒ ƀý ðéƒáúļŧ: íŧ ŕéáðš éṽéŕý çáñðíðáŧé.\n  -ĥ, --ĥéļþ         Šĥöŵ ŧĥíš ĥéļþ áñð éẋíŧ.\n\nÉẊÍŦ ŠŦÁŦÚŠ\n  0    ŧĥé áñáļýšíš ŕáñ; ŧĥé ŕéþöŕŧ šŧáŧéš áñýŧĥíñĝ íŧ çöúļð ñöŧ ŕéáð\n  1    ŧĥé ƒöļðéŕ ðöéš ñöŧ éẋíšŧ, öŕ ŧĥé ŕéþöŕŧ çöúļð ñöŧ ƀé ŵŕíŧŧéñ\n  2    ŧĥé çöɱɱáñð ļíñé ŵáš ñöŧ úñðéŕšŧööð\n  130  íñŧéŕŕúþŧéð; ñö ŕéþöŕŧ ŵáš ŵŕíŧŧéñ\n\nŠížéš áŕé ƀýŧéš öñ ðíšķ, ñöŧ ļöĝíçáļ šížéš: á çļéáñúþ ƒíñðíñĝ íš ŵĥáŧ ɱöṽíñĝ\níŧ ŵöúļð ƒŕéé öñçé ŧĥé Ŧŕášĥ íš éɱþŧíéð, áñð ŧĥíš çöɱɱáñð ñéṽéŕ çļáíɱš á\nšáṽíñĝ.]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
     "WillyDisk does not move system locations. Choose an item inside the scanned folder instead.": {
       "extractionState": "manual",
       "localizations": {
@@ -15001,6 +15673,30 @@
       },
       "shouldGenerateSwiftSymbol": false
     },
+    "Xcode's device support folders, one per system version, offered whole. Xcode downloads the one it needs again the next time a device on that version is connected.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "مجلدات دعم الأجهزة في Xcode، واحد لكل إصدار نظام، تُعرض كاملة. يعيد Xcode تنزيل ما يحتاجه منها عند توصيل جهاز يعمل بذلك الإصدار."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Xcode's device support folders, one per system version, offered whole. Xcode downloads the one it needs again the next time a device on that version is connected."
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Ẋçöðé'š ðéṽíçé šúþþöŕŧ ƒöļðéŕš, öñé þéŕ šýšŧéɱ ṽéŕšíöñ, öƒƒéŕéð ŵĥöļé. Ẋçöðé ðöŵñļöáðš ŧĥé öñé íŧ ñééðš áĝáíñ ŧĥé ñéẋŧ ŧíɱé á ðéṽíçé öñ ŧĥáŧ ṽéŕšíöñ íš çöññéçŧéð.································································································································································]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
     "Yes": {
       "extractionState": "manual",
       "localizations": {
@@ -15073,6 +15769,30 @@
       },
       "shouldGenerateSwiftSymbol": false
     },
+    "Your files": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ملفاتك"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your files"
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Ýöúŕ ƒíļéš········]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
     "`tmutil` could not list this volume's snapshots.": {
       "extractionState": "manual",
       "localizations": {
@@ -15140,6 +15860,54 @@
           "stringUnit": {
             "state": "translated",
             "value": "[áñð %lld ɱöŕé···········]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "bytes on disk": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "بايتات على القرص"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "bytes on disk"
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[ƀýŧéš öñ ðíšķ···········]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "complete": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اكتمل"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "complete"
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[çöɱþļéŧé······]"
           }
         }
       },
@@ -15260,6 +16028,30 @@
           "stringUnit": {
             "state": "translated",
             "value": "[éŕŕöŕ: ŧĥé ŕéþöŕŧ çöúļð ñöŧ ƀé ŵŕíŧŧéñ: %@········································]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "error: the scan did not produce a tree to review.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "خطأ: لم يُنتج الفحص شجرة للمراجعة."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "error: the scan did not produce a tree to review."
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[éŕŕöŕ: ŧĥé šçáñ ðíð ñöŧ þŕöðúçé á ŧŕéé ŧö ŕéṽíéŵ.···············································]"
           }
         }
       },
@@ -15409,6 +16201,30 @@
       },
       "shouldGenerateSwiftSymbol": false
     },
+    "missing the folder to review": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "المجلد المطلوب مراجعته غير موجود"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "missing the folder to review"
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[ɱíššíñĝ ŧĥé ƒöļðéŕ ŧö ŕéṽíéŵ··························]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
     "missing the folder to scan": {
       "extractionState": "manual",
       "localizations": {
@@ -15452,6 +16268,30 @@
           "stringUnit": {
             "state": "translated",
             "value": "[ñö çöɱɱáñð ĝíṽéñ··············]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "only one folder can be reviewed; '%@' is extra": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يمكن مراجعة مجلد واحد فقط؛ '%@' زائد"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "only one folder can be reviewed; '%@' is extra"
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[öñļý öñé ƒöļðéŕ çáñ ƀé ŕéṽíéŵéð; '%@' íš éẋŧŕá············································]"
           }
         }
       },
@@ -15529,6 +16369,54 @@
       },
       "shouldGenerateSwiftSymbol": false
     },
+    "sample: stopped at the cap": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "عيّنة: توقّف عند الحد"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "sample: stopped at the cap"
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[šáɱþļé: šŧöþþéð áŧ ŧĥé çáþ························]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "showing the largest %lld": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "عرض أكبر %lld"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "showing the largest %lld"
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[šĥöŵíñĝ ŧĥé ļáŕĝéšŧ %lld······················]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
     "stays on this volume": {
       "extractionState": "manual",
       "localizations": {
@@ -15601,25 +16489,25 @@
       },
       "shouldGenerateSwiftSymbol": false
     },
-    "unknown command '%@'; expected 'scan'": {
+    "unknown command '%@'; expected 'scan' or 'cleanup'": {
       "extractionState": "manual",
       "localizations": {
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "أمر غير معروف '%@'؛ المتوقع 'scan'"
+            "value": "أمر غير معروف '%@'؛ المتوقع 'scan' أو 'cleanup'"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "unknown command '%@'; expected 'scan'"
+            "value": "unknown command '%@'; expected 'scan' or 'cleanup'"
           }
         },
         "en-XA": {
           "stringUnit": {
             "state": "translated",
-            "value": "[úñķñöŵñ çöɱɱáñð '%@'; éẋþéçŧéð 'šçáñ'···································]"
+            "value": "[úñķñöŵñ çöɱɱáñð '%@'; éẋþéçŧéð 'šçáñ' öŕ 'çļéáñúþ'················································]"
           }
         }
       },

@@ -151,6 +151,7 @@ final class LocalizationGuardQATests: XCTestCase {
             }
         }
         used.insert(ScanCommandLine.helpKey)
+        used.insert(CleanupCommandLine.helpKey)
         let unused = Set(Self.catalog.keys).subtracting(used)
         XCTAssertTrue(unused.isEmpty, "catalog keys with no call site: \(unused.sorted())")
     }

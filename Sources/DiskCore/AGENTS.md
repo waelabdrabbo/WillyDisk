@@ -87,6 +87,30 @@ whether that folder belongs to the scan. Its rules mirror the request: canonical
 the folders, and `LiveTreeUpdater` applies the measured edits to the tree. A
 `ScanSummary` is never edited.
 
+## Cleanup (`Cleanup/`)
+
+`CleanupRule` and its `CleanupTier` are the catalog: a rule's identity, its safety tier,
+and its display order. `CleanupAnalysis` makes one pass over a `LiveTree`, largest
+entries first, and keeps the largest matches per rule while counting every one; a folder a
+rule offers is one finding and its subtree is not walked. `CleanupPolicy` holds the
+thresholds, and both a threshold and a reported size are local bytes (`allocatedSize`),
+because a cleanup finding is what emptying the Trash returns. The rules carry no strings
+and touch no filesystem; `DiskUI` and `DiskCLI` supply the wording.
+
+`DuplicateHasher` reads a 128 KB prefix of each size-matched candidate and only reads a
+file whole when another file shares its size and prefix; files are read a few at a time.
+It excludes every path of an inode that has more than one link (a hard link is not a
+copy) and every path whose blocks are shared with another file (an APFS clone), counts
+unreadable files instead of calling them duplicates, and returns nil on cancellation.
+`isCancelled` must be safe to call from the reading threads — `Task.isCancelled` is not,
+so callers pass a flag.
+
+`ReclaimLog` records the moves this app made: one JSON file, the last 20 batches, each
+item's original path and where the system put it in the Trash, and whether it was put
+back. It is a convenience for undo, not the source of truth — the restore path asks the
+filesystem again — and a file this release cannot read is set aside, never overwritten.
+`docs/CLEANUP.md` has the rules, the tiers, the accounting, and Put Back.
+
 ## Testing
 
 Engine tests live in `Tests/DiskCoreTests/`. Exercise permission denials and I/O faults

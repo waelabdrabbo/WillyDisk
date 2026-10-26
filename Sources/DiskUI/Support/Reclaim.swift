@@ -276,6 +276,40 @@ enum ReclaimContextProbe {
     }
 }
 
+/// Reduces a selection to the outermost paths.
+///
+/// A move acts on a path and everything under it, so a child of a selected
+/// folder is already covered. Counting it again would overstate the selection
+/// and hand the same bytes to the Trash twice; the inner path is neither
+/// totalled nor listed in the confirmation.
+enum ReclaimSelection {
+    /// The selected URLs no member of which is inside another, in the order they
+    /// arrived. Repeated URLs count once.
+    static func outermost(_ urls: [URL]) -> [URL] {
+        let paths = urls.map { $0.standardizedFileURL.path }
+        let selected = Set(paths)
+        var seen = Set<String>()
+        var result: [URL] = []
+        for (url, path) in zip(urls, paths) {
+            guard seen.insert(path).inserted else { continue }
+            guard !hasSelectedAncestor(of: path, among: selected) else { continue }
+            result.append(url)
+        }
+        return result
+    }
+
+    private static func hasSelectedAncestor(of path: String, among selected: Set<String>) -> Bool {
+        var parent = (path as NSString).deletingLastPathComponent
+        while !parent.isEmpty {
+            if selected.contains(parent) { return true }
+            let next = (parent as NSString).deletingLastPathComponent
+            if next == parent { return false }
+            parent = next
+        }
+        return false
+    }
+}
+
 /// Moves one item to the Trash. The seam exists so tests can prove the exact URL
 /// without touching a real Trash.
 protocol FileTrashing: Sendable {
@@ -317,4 +351,97 @@ struct ReclaimController {
             return .failed(reason)
         }
     }
+}
+
+/// Why an item cannot be put back where it came from.
+enum ReclaimRestoreRefusal: Equatable, Sendable {
+    case alreadyRestored
+    case noTrashPath
+    case missingFromTrash
+    case destinationOccupied
+
+    var title: String {
+        switch self {
+        case .alreadyRestored: L10n.string("It is already back")
+        case .noTrashPath: L10n.string("The system did not report where it went")
+        case .missingFromTrash: L10n.string("It is no longer in the Trash")
+        case .destinationOccupied: L10n.string("Something else is at its original location now")
+        }
+    }
+}
+
+/// What one Put Back request did.
+enum ReclaimRestoreOutcome: Equatable, Sendable {
+    case restored(URL)
+    case refused(ReclaimRestoreRefusal)
+    case failed(String)
+}
+
+/// The filesystem seam, so tests prove the exact two paths without a real Trash.
+protocol FileRestoring: Sendable {
+    func restore(_ source: URL, to destination: URL) async throws
+}
+
+struct SystemFileRestorer: FileRestoring {
+    func restore(_ source: URL, to destination: URL) async throws {
+        try await Task.detached(priority: .userInitiated) {
+            try FileManager.default.moveItem(at: source, to: destination)
+        }.value
+    }
+}
+
+/// Takes an item back out of the Trash.
+///
+/// Both questions it asks — is the item still there, is the old place free — are
+/// asked at the moment of the move, because the log only says what was true when
+/// the item was moved.
+struct ReclaimRestorer {
+    private let restorer: any FileRestoring
+
+    init(restorer: any FileRestoring = SystemFileRestorer()) {
+        self.restorer = restorer
+    }
+
+    func restore(_ item: ReclaimMove.Item) async -> ReclaimRestoreOutcome {
+        guard !item.isRestored else { return .refused(.alreadyRestored) }
+        guard let trashedPath = item.trashedPath else { return .refused(.noTrashPath) }
+
+        let source = URL(fileURLWithPath: trashedPath)
+        let destination = URL(fileURLWithPath: item.originalPath)
+        let state = await Task.detached(priority: .userInitiated) {
+            (source: Self.exists(source), destination: Self.exists(destination))
+        }.value
+        guard state.source else { return .refused(.missingFromTrash) }
+        guard !state.destination else { return .refused(.destinationOccupied) }
+
+        do {
+            try await restorer.restore(source, to: destination)
+            return .restored(destination)
+        } catch {
+            let error = error as NSError
+            return .failed(error.localizedFailureReason ?? error.localizedDescription)
+        }
+    }
+
+    /// `lstat`, so a broken link is still an entry the move can act on.
+    private static func exists(_ url: URL) -> Bool {
+        var info = stat()
+        return url.withUnsafeFileSystemRepresentation { path in
+            guard let path else { return false }
+            return lstat(path, &info) == 0
+        }
+    }
+}
+
+/// What one Put Back attempt over a move achieved.
+struct ReclaimRestoreReport: Equatable, Sendable {
+    let restoredItemIDs: Set<UUID>
+    let failures: [String]
+
+    init(restoredItemIDs: Set<UUID> = [], failures: [String] = []) {
+        self.restoredItemIDs = restoredItemIDs
+        self.failures = failures
+    }
+
+    var isEmpty: Bool { restoredItemIDs.isEmpty && failures.isEmpty }
 }

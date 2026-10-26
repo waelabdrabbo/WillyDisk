@@ -121,21 +121,45 @@ Details worth remembering:
   only way in.
 - Cleanup candidates come from the finished tree the summary already carries, never
   from a second filesystem pass. `CleanupPolicy` states the thresholds (500 MB and a
-  year for large-and-old, six months for downloads), keeps at most 100 per section, and
-  stops after 2,000,000 nodes; a truncated section and a stopped walk both say so.
-  Caches are recognised by path (`Library/Caches`, Xcode `DerivedData`), offered as one
-  folder with the subtree left unwalked, and the scan root is never suggested. Every
-  move goes through the reclaim confirmation; the analysis itself deletes nothing.
-- The cleanup sheet has two tabs: Old for large-and-old, cache, and old-download
-  candidates, and Duplicates. It opens on Old, or on Duplicates when Old has nothing to
-  show. Duplicate candidates are same-size files of at least 1 MB, capped to the largest
-  20 size groups and 20 files per group; every match is counted and a truncated group
-  says so. A size match is not a duplicate: Check Contents streams SHA-256 digests off
-  the main actor with byte progress and cancel, and only matching contents are listed. A
-  cancelled check confirms nothing, unreadable files are counted rather than called
-  identical, and the sheet claims no saving. Moving a copy goes through the reclaim
-  confirmation; hard links remain separate paths and moving one frees nothing until the
-  other links are gone.
+  year for large-and-old, six months for downloads), and a threshold applies to the
+  bytes an item occupies on this Mac: an evicted iCloud file or a sparse file is not a
+  candidate, because moving it would free nothing. Every size the sheet shows is the
+  space a move would return. Each section keeps at most 100, and the walk stops after
+  10,000,000 nodes. It visits each folder's largest entries first, so a stopped walk is
+  a sample of the big end of the tree, and both a truncated section and a stopped walk
+  say so. Four rebuildable rules offer one folder each with the subtree left unwalked —
+  `Library/Caches` and Xcode `DerivedData`, Xcode's `* DeviceSupport` sets,
+  `CoreSimulator/Devices`, and `Library/Logs` — and two personal rules list files: old
+  downloads and large-and-old ones. The sheet groups the sections by tier and offers
+  "Select All" only in a rebuildable one. The scan root is never suggested. Every move
+  goes through the reclaim confirmation; the analysis itself deletes nothing.
+- `WillyDisk cleanup <folder> [--json] [--check-contents]` runs the same rules from
+  `DiskCore` with no UI loaded. The text report follows the interface language; `--json`
+  prints the versioned `CleanupRecord` with English keys and rule identifiers, and
+  `--check-contents` is the opt-in content check. It lists only: no move, no Trash, and
+  no saving claim.
+- Every successful move is logged (the most recent 20 batches) with each item's original
+  path and where the system put it in the Trash, and the cleanup sheet's Moved tab lists
+  them newest first. Put Back returns items from the Trash to their old place, checking
+  both paths at the moment it runs: a missing Trash copy or an occupied destination is
+  refused and named, nothing is overwritten, and restored items are marked in the log. It
+  is a move, never a deletion, and the app still does not empty the Trash.
+- The cleanup sheet has three tabs: Old for the rebuildable and personal rules,
+  Duplicates, and Moved. It opens on Old, or on Duplicates when Old has nothing to show,
+  and while it is open it follows the watched tree: a watcher batch queues another walk
+  after a short pause, one walk runs at a time, and the old list stays until the new
+  report is ready.
+  Duplicate candidates are same-size files of at least 1 MB that are stored locally,
+  capped to the largest 20 size groups and 20 files per group; every file in a shared size
+  is counted before the cap and a truncated group says so. A size match is not a
+  duplicate: Check Contents reads a 128 KB prefix of every candidate before the whole
+  file, a few files at a time, off the main actor with byte progress and cancel, and only
+  matching contents are listed. A cancelled check confirms nothing, unreadable files are
+  counted rather than called identical, and paths that resolve to the same inode are
+  disclosed as hard links and never offered as copies either, just like paths whose blocks
+  are shared with another file (an APFS clone); the sheet claims no saving. Moving a
+  copy goes through the reclaim confirmation; hard links remain separate paths and moving
+  one frees nothing until the other links are gone.
 - Explorer selection is held as URLs, not node values, so a live snapshot can replace
   the nodes underneath it. Entering a folder, changing mode, a breadcrumb jump,
   Rescan, and Home clear it; search and filtering do not. Each scan revision prunes
@@ -350,6 +374,8 @@ charts render in CI.
 ### 3. Reclaim past the Trash
 
 Today the only removal path is Move to Trash, and Trash frees nothing until it is emptied.
+Put Back (returning an item from the Trash to where it came from) ships with the move log;
+this item is about deletion, not about undoing.
 The fuller flow is permanent delete, a secure erase that overwrites before removing, and
 an optional copy to another folder or an external drive first — all behind the existing
 confirmation, cancellable, and reporting bytes moved and errors rather than a savings
@@ -394,9 +420,18 @@ the update screen does not call an unsigned download verified or trusted.
 
 - Startup disk is a volume group with firmlinks; never reconcile a `/` scan against
   the `/` capacity figure. The coverage sheet explains, it does not subtract.
-- Hard links are not deduplicated. The exact overlap is disclosed; which link is
-  “first” is arbitrary under concurrent traversal.
+- Hard links are not deduplicated. Each path counts in every total, and which link is
+  “first” is arbitrary under concurrent traversal. Cleanup offers none of a multi-link
+  file's paths: moving one frees nothing while another remains.
 - Dataless files are counted at logical size, with local bytes reported separately.
+- A cleanup finding is sized by local bytes, and its threshold applies to them. A file
+  that is not stored on this Mac is not a finding: moving it frees nothing, and reading
+  it would download it. The scan's accounting still counts dataless files at logical
+  size, so cleanup is a promise about reclaimable space, not a second measurement.
+- A hard link is not a duplicate, and neither is an APFS clone. Duplicate checking offers
+  none of a multi-link file's paths and none of a clone's, because moving one frees
+  nothing until the other references go; the counts are disclosed. The tree still counts
+  each path's bytes, which is the accounting the explorer already uses.
 - Snapshots are listed by name only. macOS exposes no snapshot size; do not estimate
   one.
 - Trash does not free space until it is emptied; result wording must say so.

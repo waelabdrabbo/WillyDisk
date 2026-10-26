@@ -15,6 +15,12 @@ imports `DiskUI`, AppKit, or SwiftUI.
 - `ScanReport.swift` — the deterministic text report and the `ScanRecord` JSON. Every
   list is re-sorted size-first, path-second, because the engine ranks by size only and
   equal sizes can arrive in any order from a concurrent walk.
+- `CleanupCommand.swift` — the `cleanup <folder> [--json] [--check-contents]` invocation
+  and its help. The rules themselves are `DiskCore`'s.
+- `CleanupOutput.swift` — the cleanup text report and the versioned `CleanupRecord` JSON
+  (schema 1). Keys and rule identifiers stay English; sizes are bytes on disk.
+- `CleanupNames.swift` — rule and tier names for the CLI, so it prints the same catalog
+  keys as the sheet without linking `DiskUI`.
 
 ## Rules
 
@@ -24,6 +30,9 @@ imports `DiskUI`, AppKit, or SwiftUI.
   written, `2` usage, `130` cancelled. A cancelled scan prints no report.
 - stdout carries the report and nothing else; diagnostics go to stderr, so
   `WillyDisk scan … --json | jq` stays clean.
+- `cleanup` only lists: there is no move, no Trash, and no claim about freed space. It
+  shares the scan's exit statuses, and `--check-contents` is opt-in because it reads
+  every candidate.
 - JSON is the versioned `ScanRecord` DTO, encoded with `.sortedKeys` and `.iso8601`.
   Two runs of an unchanged folder differ only in the record's `id` and its two
   timestamps — those are the run's identity, not a measurement. The record carries no

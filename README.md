@@ -31,9 +31,18 @@ breakdown by file category. Everything happens on your machine.
   `--json` record stays machine-readable and untranslated.
 - **Cancellable.** A scan can be stopped at any point and still reports what it found.
 - **Export.** Results export to JSON or CSV.
+- **Cleanup review.** A finished scan offers candidates worth reviewing: caches, Xcode
+  device support and simulators, logs, old downloads, large old files, and same-size
+  duplicates whose contents it can check. Sections are grouped by what the app rebuilds
+  and what is yours, and only the first can be selected whole. Nothing is deleted: a
+  move goes to the Trash through a confirmation, space returns when the Trash is
+  emptied, and a move can be put back while the Trash still holds it.
 - **Command-line scan.** `WillyDisk scan <folder>` measures a folder with the same
   engine the app uses, with no window. `--json` prints the versioned `ScanRecord` the
   history feature stores.
+- **Command-line cleanup.** `WillyDisk cleanup <folder>` lists the same candidates
+  without a window; `--json` prints the versioned `CleanupRecord`, and
+  `--check-contents` reads the duplicates. It only lists.
 - **No third-party dependencies.** SwiftUI and AppKit only.
 
 ## Requirements
@@ -111,6 +120,18 @@ is scanned. `--json` prints the versioned `ScanRecord` instead of the text repor
 command exits 0 when the scan finishes, 2 on a usage error, and 130 after an interrupt;
 `WillyDisk scan --help` lists every flag. The bundled
 `.build/WillyDisk.app/Contents/MacOS/WillyDisk` takes the same arguments.
+
+The cleanup review runs the same way, and only lists:
+
+```
+swift run WillyDisk cleanup ~/Downloads
+swift run WillyDisk cleanup ~/Downloads --json | jq .
+swift run WillyDisk cleanup ~/Downloads --check-contents
+```
+
+`--check-contents` is opt-in because it reads every candidate's bytes; sizes in the
+report are bytes on disk, not logical sizes. `WillyDisk cleanup --help` lists the
+rules and flags.
 
 ## Architecture
 

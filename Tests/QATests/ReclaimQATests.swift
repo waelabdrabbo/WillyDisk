@@ -7,6 +7,29 @@ import XCTest
 @MainActor
 final class ReclaimQATests: XCTestCase {
 
+    // MARK: - Selection
+
+    func testANestedSelectionMovesOnlyTheOutermostPath() {
+        let folder = URL(fileURLWithPath: "/Users/me/Library/Caches/com.example")
+        let inner = folder.appendingPathComponent("blob.bin")
+        let sibling = URL(fileURLWithPath: "/Users/me/Downloads/old.dmg")
+
+        let result = ReclaimSelection.outermost([inner, folder, sibling, folder])
+
+        XCTAssertEqual(result.map(\.path), [folder.path, sibling.path])
+    }
+
+    func testAPathThatOnlySharesAPrefixIsNotNested() {
+        let cache = URL(fileURLWithPath: "/scan/cache")
+        let cache2 = URL(fileURLWithPath: "/scan/cache2/old.bin")
+        let inside = URL(fileURLWithPath: "/scan/cache/old.bin")
+
+        let result = ReclaimSelection.outermost([cache, cache2, inside])
+
+        XCTAssertEqual(result.map(\.path), [cache.path, cache2.path],
+                       "a longer name and a sibling folder are not inside the selection")
+    }
+
     // MARK: - Fixtures
 
     private final class RecordingEngine: ScanEngine, @unchecked Sendable {
@@ -286,10 +309,15 @@ final class ReclaimQATests: XCTestCase {
     private func finishedViewModel(
         root: URL,
         file: ScanNode,
-        controller: ReclaimController
+        controller: ReclaimController,
+        reclaimLog: ReclaimLog? = nil
     ) async -> ScanViewModel {
         let engine = RecordingEngine()
-        let vm = ScanViewModel(engine: engine, reclaimController: controller)
+        let vm = ScanViewModel(
+            engine: engine,
+            reclaimController: controller,
+            reclaimLog: reclaimLog
+        )
         vm.start(root: root)
         engine.finishLast(summary: makeSummary(root: root, files: [file]))
         let done = await waitUntil { vm.phase == .finished }
@@ -387,5 +415,148 @@ final class ReclaimQATests: XCTestCase {
         XCTAssertFalse(vm.resultsAreStale)
         XCTAssertEqual(notice.tone, .failure)
         XCTAssertTrue(notice.message.contains("The item is in use"), notice.message)
+    }
+
+    // MARK: - The move log and Put Back
+
+    func testAMoveIsRecordedWithWhereTheSystemPutIt() async throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("WillyDiskReclaimRoot-\(UUID().uuidString)", isDirectory: true)
+        let item = root.appendingPathComponent("installer.dmg")
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        try Data("x".utf8).write(to: item)
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let log = ReclaimLog(store: ReclaimLogStore(url: root.appendingPathComponent("log.json")))
+        let vm = await finishedViewModel(
+            root: root,
+            file: makeNode(item),
+            controller: ReclaimController(trasher: FakeTrasher()),
+            reclaimLog: log
+        )
+
+        _ = await vm.reclaim([ReclaimCandidate(node: makeNode(item))])
+
+        let move = try XCTUnwrap(log.moves.first)
+        XCTAssertEqual(move.items.count, 1)
+        XCTAssertEqual(move.items.first?.name, "installer.dmg")
+        XCTAssertEqual(move.items.first?.originalPath, item.standardizedFileURL.path)
+        XCTAssertEqual(move.items.first?.trashedPath, "/Trash/installer.dmg")
+        XCTAssertEqual(move.items.first?.isPending, true)
+        XCTAssertEqual(move.rootPath, root.standardizedFileURL.path)
+    }
+
+    func testPutBackReturnsTheFileAndMarksTheMove() async throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("WillyDiskReclaimRoot-\(UUID().uuidString)", isDirectory: true)
+        let trash = root.appendingPathComponent("Trash", isDirectory: true)
+        try FileManager.default.createDirectory(at: trash, withIntermediateDirectories: true)
+        let item = root.appendingPathComponent("photo.jpg")
+        let trashed = trash.appendingPathComponent("photo.jpg")
+        try Data("x".utf8).write(to: trashed)
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let log = ReclaimLog(store: ReclaimLogStore(url: root.appendingPathComponent("log.json")))
+        let move = ReclaimMove(
+            date: Date(),
+            rootPath: root.path,
+            items: [
+                ReclaimMove.Item(
+                    name: "photo.jpg",
+                    originalPath: item.path,
+                    trashedPath: trashed.path,
+                    isDirectory: false,
+                    logicalSize: 1,
+                    allocatedSize: 1
+                ),
+            ]
+        )
+        await log.record(move)
+
+        let vm = await finishedViewModel(
+            root: root,
+            file: makeNode(item),
+            controller: ReclaimController(trasher: FakeTrasher()),
+            reclaimLog: log
+        )
+        let report = await vm.restore(move)
+
+        XCTAssertEqual(report.restoredItemIDs, [move.items[0].id])
+        XCTAssertTrue(report.failures.isEmpty, "\(report.failures)")
+        XCTAssertTrue(FileManager.default.fileExists(atPath: item.path))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: trashed.path))
+        XCTAssertEqual(log.moves.first?.items.first?.isRestored, true)
+    }
+
+    func testPutBackRefusesWhenTheOldPlaceIsTaken() async throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("WillyDiskReclaimRoot-\(UUID().uuidString)", isDirectory: true)
+        let trash = root.appendingPathComponent("Trash", isDirectory: true)
+        try FileManager.default.createDirectory(at: trash, withIntermediateDirectories: true)
+        let item = root.appendingPathComponent("photo.jpg")
+        let trashed = trash.appendingPathComponent("photo.jpg")
+        try Data("new".utf8).write(to: item)
+        try Data("old".utf8).write(to: trashed)
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let move = ReclaimMove(
+            date: Date(),
+            rootPath: root.path,
+            items: [
+                ReclaimMove.Item(
+                    name: "photo.jpg",
+                    originalPath: item.path,
+                    trashedPath: trashed.path,
+                    isDirectory: false,
+                    logicalSize: 1,
+                    allocatedSize: 1
+                ),
+            ]
+        )
+        let vm = await finishedViewModel(
+            root: root,
+            file: makeNode(item),
+            controller: ReclaimController(trasher: FakeTrasher())
+        )
+        let report = await vm.restore(move)
+
+        XCTAssertTrue(report.restoredItemIDs.isEmpty)
+        XCTAssertEqual(report.failures.count, 1)
+        XCTAssertTrue(report.failures[0].contains("Something else"), report.failures[0])
+        XCTAssertEqual(try String(contentsOf: item, encoding: .utf8), "new", "the item there is untouched")
+    }
+
+    func testPutBackRefusesWhenTheTrashCopyIsGone() async throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("WillyDiskReclaimRoot-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let item = root.appendingPathComponent("photo.jpg")
+        let move = ReclaimMove(
+            date: Date(),
+            rootPath: root.path,
+            items: [
+                ReclaimMove.Item(
+                    name: "photo.jpg",
+                    originalPath: item.path,
+                    trashedPath: root.appendingPathComponent("Trash/photo.jpg").path,
+                    isDirectory: false,
+                    logicalSize: 1,
+                    allocatedSize: 1
+                ),
+            ]
+        )
+        let vm = await finishedViewModel(
+            root: root,
+            file: makeNode(item),
+            controller: ReclaimController(trasher: FakeTrasher())
+        )
+        let report = await vm.restore(move)
+
+        XCTAssertTrue(report.restoredItemIDs.isEmpty)
+        XCTAssertEqual(report.failures.count, 1)
+        XCTAssertTrue(report.failures[0].contains("no longer in the Trash"), report.failures[0])
+        XCTAssertFalse(FileManager.default.fileExists(atPath: item.path))
     }
 }

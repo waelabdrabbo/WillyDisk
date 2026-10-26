@@ -26,11 +26,12 @@ contracts, shared-interface rules §7, non-negotiables §8).
 | `Sources/DiskCore/Models/` | frozen value model: `FileCategory`, `ScanNode`, `ScanSummary` |
 | `Sources/DiskCore/History/` | `ScanRecord` (versioned DTO), `ScanHistoryStore`, `ScanComparison` |
 | `Sources/DiskCore/Live/` | the live results tree: one compact arena of measured entries, the edits a filesystem change becomes, the updater that applies a folder re-listing, and the build from a finished scan |
+| `Sources/DiskCore/Cleanup/` | `CleanupRule` + `CleanupTier`, `CleanupPolicy`, `CleanupAnalysis` (bounded, tiered rules), the explicit SHA-256 duplicate check, and `ReclaimLog` (the moves behind Put Back) |
 | `Sources/DiskCore/Scanning/Contracts.swift` | frozen `ScanRequest`, `ScanEvent`, `ScanProgress`, `ScanEngine`, `ScanIssueKind` |
 | `Sources/DiskLocalization/` | the string catalog and `L10n`; generated `.lproj` tables under `Resources/` |
 | `Sources/DiskCore/Scanning/` (the rest) | the scan engine and its filesystem plumbing |
 | `Sources/DiskCore/Watching/` | FSEvents watcher and the scope that filters events to the scanned tree |
-| `Sources/DiskCLI/` | the `WillyDisk scan` front end: parsing, text report, `ScanRecord` JSON |
+| `Sources/DiskCLI/` | the `WillyDisk scan` and `cleanup` front end: parsing, text reports, `ScanRecord`/`CleanupRecord` JSON |
 | `Sources/DiskUI/` | screens, components, design system |
 | `Sources/WillyDiskApp/` | `@main` executable, window, wiring, CLI/GUI dispatch |
 | `Tests/DiskCoreTests/` | engine tests |
@@ -38,7 +39,7 @@ contracts, shared-interface rules §7, non-negotiables §8).
 | `Tests/QATests/` | independent verification that does not trust the engine's own tests |
 | `Scripts/` | build, bundle, release packaging, launch, offscreen render, localization, repo map |
 | `.github/workflows/` | `ci.yml`: build, test, bundle version check, CLI smoke, renders; `release.yml`: tagged unsigned zips (arm64, x86_64) and checksums |
-| `docs/` | `ARCHITECTURE.md` |
+| `docs/` | `ARCHITECTURE.md` (frozen contracts), `LIVE-TREE.md`, `CLEANUP.md` (cleanup rules, tiers, and accounting), `ROADMAP.md` |
 
 ## Where things are
 
@@ -83,10 +84,12 @@ to), `Formatters`, `LocationName` (a location's display name), `VolumeInfo` (mou
 volumes), `RecentLocations`, `FullDiskAccess` + `FullDiskAccessProbe` (TCC),
 `ScanIssuesPresentation`, `ScanSlotPresentation`, `ReportExport` (JSON/CSV via
 `NSSavePanel`), `AccessNoticeDismissal`, `ScanOptions` + `ScanOptionsStore` (the one
-shared, persisted set of choices the next scan and Rescan use), `CleanupAnalysis` +
-`DuplicateAnalysis` (bounded cleanup heuristics and the explicit SHA-256 content check),
-`ScanHistory` (the observable view of the record store), `WatchPreferences` (the stored
-keep-current toggle), and `TreeWatching` (the watcher seam tests substitute).
+shared, persisted set of choices the next scan and Rescan use), `CleanupPresentation`
+(rule and tier wording for the sheet), `DuplicateCheck` (the sheet's cancellable content
+check over `DiskCore`'s hasher), `ReclaimLog` (the app's persisted moves, and the restorer
+behind Put Back), `ScanHistory` (the observable view of the record store),
+`WatchPreferences` (the stored keep-current toggle), and `TreeWatching` (the watcher seam
+tests substitute).
 
 **`DiskLocalization` — every user-visible string.**
 `L10n.swift` is the one lookup path: `L10n.string(_:)` and `L10n.format(_:_:)` resolve the
@@ -108,10 +111,12 @@ history, the watch preferences, and the FSEvents watcher,
 panel, `AppDelegate.swift` is the lifecycle delegate.
 
 **`DiskCLI` — the command line.**
-`ScanCommand.swift` parses `scan <folder> --depth --top --json` and holds the help text;
-`ScanCLI.swift` decides CLI vs app, drives `FileScanEngine`, and maps the terminal event
-to an exit status (SIGINT/SIGTERM call `ScanEngine.cancel()`); `ScanReport.swift` renders
-the deterministic text report and the `ScanRecord` JSON. It depends on `DiskCore` and
+`ScanCommand.swift` parses `scan <folder> --depth --top --json` and `cleanup <folder>
+[--json] [--check-contents]`, and holds both help texts; `ScanCLI.swift` decides CLI vs
+app, drives `FileScanEngine`, and maps the terminal event to an exit status
+(SIGINT/SIGTERM call `ScanEngine.cancel()`); `ScanReport.swift` renders the deterministic
+scan report and the `ScanRecord` JSON, and `CleanupOutput.swift` the cleanup report and
+the `CleanupRecord` JSON. It depends on `DiskCore` and
 the Foundation-only `DiskLocalization`, so a scan never loads AppKit or SwiftUI.
 `--depth` and `--top` change what is printed, never what is scanned or recorded. The
 report and help follow the user's language; the JSON stays machine data.
@@ -123,13 +128,14 @@ swift build                          # compile
 swift test                           # full suite
 swift test --filter FileScanEngineTests   # one test class
 swift run WillyDisk scan <folder> --json  # command-line scan: no window, no UI loaded
+swift run WillyDisk cleanup <folder> --json  # the cleanup rules, same engine; lists only
 python3 Scripts/pseudolanguage.py    # regenerate en-XA from the English values
 bash Scripts/localize.sh             # recompile the catalog into the shipped .lproj tables
 bash Scripts/localize.sh --check     # fail if those resources are stale
 bash Scripts/run.sh                  # build the bundle and launch it (the way to look at the UI)
 bash Scripts/bundle-app.sh           # assemble .build/WillyDisk.app; its version comes from VERSION
 bash Scripts/package-release.sh      # build the arm64 and Intel zips with their SHA-256s
-bash Scripts/render-screens.sh       # offscreen PNGs (-S results|home|search|help|settings|categories|coverage|cleanup|duplicates|history|both; -l en|ar|en-XA), no window, no screen-recording permission
+bash Scripts/render-screens.sh       # offscreen PNGs (-S results|home|search|help|settings|categories|coverage|cleanup|duplicates|moved|reclaim|history|both; -l en|ar|en-XA), no window, no screen-recording permission
 bash Scripts/repo-map.sh             # one-screen structural inventory (--types adds declarations)
 ```
 

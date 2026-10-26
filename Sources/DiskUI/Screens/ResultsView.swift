@@ -123,9 +123,11 @@ public struct ResultsView: View {
     @State private var activeSheet: ResultsSheet?
     @State private var isCheckingReclaim = false
     @State private var isTrashing = false
-    /// A selection chosen in the cleanup sheet, held until that sheet has
-    /// finished dismissing so the confirmation can be presented on its own.
-    @State private var pendingReclaimNodes: [ScanNode] = []
+    /// True while the confirmation is one the cleanup sheet presents over
+    /// itself, rather than a sheet of its own.
+    @State private var reclaimFromCleanup = false
+    /// Lets the cleanup sheet follow the watched tree; see `CleanupRefresh`.
+    @State private var cleanupRefresh = CleanupRefresh()
     /// A token that makes a slow guard probe land only on the request that asked
     /// for it, never on a later selection the sheet is now about.
     @State private var reclaimRequestID = UUID()
@@ -811,7 +813,10 @@ public struct ResultsView: View {
             }
         }
         .animation(reduceMotion ? nil : .easeInOut(duration: 0.2), value: viewModel.reclaimNotice)
-        .sheet(item: $activeSheet, onDismiss: presentPendingReclaim) { sheet in
+        .onChange(of: viewModel.resultsRevision) { _, revision in
+            cleanupRefresh.revision = revision
+        }
+        .sheet(item: $activeSheet) { sheet in
             switch sheet {
             case .reclaim:
                 ReclaimSheet(
@@ -819,7 +824,7 @@ public struct ResultsView: View {
                     refusal: reclaimRefusal,
                     isChecking: isCheckingReclaim,
                     isWorking: isTrashing,
-                    onCancel: { activeSheet = nil },
+                    onCancel: cancelReclaim,
                     onConfirm: confirmReclaim
                 )
             case .coverage:
@@ -832,11 +837,31 @@ public struct ResultsView: View {
                         tree: tree,
                         rootName: root.name,
                         scannedAt: summary.finishedAt,
-                        onMove: { nodes in
-                            pendingReclaimNodes = nodes
-                            activeSheet = nil
+                        refresh: cleanupRefresh,
+                        reclaimLog: viewModel.reclaimLog,
+                        reclaimCandidates: reclaimFromCleanup ? reclaimCandidates : [],
+                        reclaimRefusal: reclaimRefusal,
+                        isCheckingReclaim: isCheckingReclaim,
+                        isTrashing: isTrashing,
+                        onBeginReclaim: { nodes in
+                            requestReclaim(nodes, fromCleanup: true)
                         },
-                        onClose: { activeSheet = nil }
+                        onConfirmReclaim: confirmReclaim,
+                        onCancelReclaim: cancelReclaim,
+                        onRestore: { move in
+                            let report = await viewModel.restore(move)
+                            guard !report.failures.isEmpty else { return nil }
+                            return L10n.format(
+                                "Couldn’t put back everything. %@",
+                                L10n.list(report.failures)
+                            )
+                        },
+                        onClose: {
+                            reclaimCandidates = []
+                            reclaimRefusal = nil
+                            reclaimFromCleanup = false
+                            activeSheet = nil
+                        }
                     )
                 }
             case .history:
@@ -845,7 +870,9 @@ public struct ResultsView: View {
                 }
             }
         }
-        .interactiveDismissDisabled(isTrashing)
+        .interactiveDismissDisabled(
+            isTrashing || (activeSheet == .cleanup && !reclaimCandidates.isEmpty)
+        )
         .resultsToolbarTitleHidden()
         // The chart intentionally runs under the titlebar; the toolbar has no
         // backing of its own on this screen.
@@ -2047,8 +2074,11 @@ public struct ResultsView: View {
     /// The guard's answer is asked off the main thread and arrives with the
     /// sheet already up: a refused item still gets an explanation rather than a
     /// context menu entry that silently does nothing.
-    private func requestReclaim(_ nodes: [ScanNode]) {
-        let candidates = nodes.map(ReclaimCandidate.init)
+    private func requestReclaim(_ nodes: [ScanNode], fromCleanup: Bool = false) {
+        let byURL = Dictionary(nodes.map { ($0.url, $0) }, uniquingKeysWith: { first, _ in first })
+        let candidates = ReclaimSelection.outermost(nodes.map(\.url))
+            .compactMap { byURL[$0] }
+            .map(ReclaimCandidate.init)
         guard !candidates.isEmpty else { return }
 
         let requestID = UUID()
@@ -2056,7 +2086,12 @@ public struct ResultsView: View {
         reclaimCandidates = candidates
         reclaimRefusal = nil
         isCheckingReclaim = true
-        activeSheet = .reclaim
+        reclaimFromCleanup = fromCleanup
+        // The cleanup sheet presents this confirmation itself, over the list, so
+        // nothing has to close for it to appear.
+        if !fromCleanup {
+            activeSheet = .reclaim
+        }
 
         Task {
             var refusal: ReclaimRefusal?
@@ -2076,15 +2111,40 @@ public struct ResultsView: View {
         guard !isTrashing else { return }
         isTrashing = true
         let candidates = reclaimCandidates
+        let fromCleanup = reclaimFromCleanup
         Task {
             await viewModel.reclaim(candidates)
             isTrashing = false
-            activeSheet = nil
+            reclaimCandidates = []
+            reclaimRefusal = nil
+            reclaimFromCleanup = false
+            if !fromCleanup {
+                activeSheet = nil
+            }
             // A moved row is still in the settled results until the next scan, so
             // the selection must not keep pointing at it.
             if viewModel.resultsAreStale {
                 clearSelection()
+                // Without a watcher the cleanup list cannot follow the move, so
+                // it would keep offering items that are already gone.
+                if fromCleanup {
+                    activeSheet = nil
+                }
             }
+        }
+    }
+
+    /// Closes the confirmation without moving anything.
+    private func cancelReclaim() {
+        // A guard answer still in flight must not land on a later request.
+        reclaimRequestID = UUID()
+        reclaimCandidates = []
+        reclaimRefusal = nil
+        isCheckingReclaim = false
+        if reclaimFromCleanup {
+            reclaimFromCleanup = false
+        } else {
+            activeSheet = nil
         }
     }
 
@@ -2124,16 +2184,6 @@ public struct ResultsView: View {
     private func showHistory() {
         guard summary != nil, viewModel.history != nil else { return }
         activeSheet = .history
-    }
-
-    /// Opens the reclaim confirmation for a selection the cleanup sheet made,
-    /// once that sheet has actually gone. Swapping one sheet for another in the
-    /// same update makes the second presentation unreliable.
-    private func presentPendingReclaim() {
-        guard !pendingReclaimNodes.isEmpty else { return }
-        let nodes = pendingReclaimNodes
-        pendingReclaimNodes = []
-        requestReclaim(nodes)
     }
 
     private func exportJSON() {

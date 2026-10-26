@@ -63,12 +63,15 @@ final class ScanCommandTests: XCTestCase {
         for arguments in [["WillyDisk", "--help"], ["WillyDisk", "-h"], ["WillyDisk", "scan", "--help"]] {
             XCTAssertEqual(try ScanCommandLine.parse(arguments), .help, "\(arguments)")
         }
+        for arguments in [["WillyDisk", "cleanup", "--help"], ["WillyDisk", "cleanup", "-h"]] {
+            XCTAssertEqual(try ScanCommandLine.parse(arguments), .cleanupHelp, "\(arguments)")
+        }
     }
 
     func testUsageErrors() {
         let cases: [(arguments: [String], message: String)] = [
             (["WillyDisk"], "no command"),
-            (["WillyDisk", "list"], "expected 'scan'"),
+            (["WillyDisk", "list"], "expected 'scan' or 'cleanup'"),
             (["WillyDisk", "scan"], "missing the folder"),
             (["WillyDisk", "scan", root.path, root.path + "2"], "only one folder"),
             (["WillyDisk", "scan", root.path, "--bogus"], "unknown option '--bogus'"),
@@ -77,6 +80,9 @@ final class ScanCommandTests: XCTestCase {
             (["WillyDisk", "scan", root.path, "--depth", "-1"], "at least 0"),
             (["WillyDisk", "scan", root.path, "--top", "0"], "at least 1"),
             (["WillyDisk", "scan", root.path, "--top=5.5"], "at least 1"),
+            (["WillyDisk", "cleanup"], "missing the folder"),
+            (["WillyDisk", "cleanup", root.path, "--bogus"], "unknown option '--bogus'"),
+            (["WillyDisk", "cleanup", root.path, root.path + "2"], "only one folder"),
         ]
         for item in cases {
             let error = usageError(item.arguments)
@@ -92,6 +98,7 @@ final class ScanCommandTests: XCTestCase {
         XCTAssertFalse(ScanCLI.handles(["WillyDisk"]))
         XCTAssertFalse(ScanCLI.handles(["WillyDisk", "somewhere"]))
         XCTAssertTrue(ScanCLI.handles(["WillyDisk", "scan", "/tmp"]))
+        XCTAssertTrue(ScanCLI.handles(["WillyDisk", "cleanup", "/tmp"]))
         XCTAssertTrue(ScanCLI.handles(["WillyDisk", "--help"]))
         XCTAssertTrue(ScanCLI.handles(["WillyDisk", "-h"]))
     }

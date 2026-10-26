@@ -1,5 +1,6 @@
 import XCTest
 import Foundation
+import Darwin
 @testable import DiskCore
 @testable import DiskUI
 
@@ -72,6 +73,64 @@ final class DuplicateAnalysisQATests: XCTestCase {
         XCTAssertTrue(report.groups.isEmpty)
         XCTAssertEqual(report.comparedFileCount, 1)
         XCTAssertEqual(report.unreadableFileCount, 1)
+        XCTAssertEqual(report.candidateFileCount, 2)
+    }
+
+    func testAHardLinkIsNotACopy() throws {
+        let original = try write("original.bin", byte: 0x77, size: Int(megabyte) + 1)
+        let link = root.appendingPathComponent("link.bin")
+        try FileManager.default.linkItem(at: original, to: link)
+
+        let report = try XCTUnwrap(DuplicateHasher.check(groups: [sizeGroup([original, link])]))
+
+        XCTAssertTrue(report.groups.isEmpty, "the same file under two names is not a duplicate")
+        XCTAssertEqual(report.comparedFileCount, 0)
+        XCTAssertEqual(report.hardLinkFileCount, 2)
+        XCTAssertEqual(report.candidateFileCount, 2)
+    }
+
+    func testAHardLinkedPairIsNotOfferedEvenWithAnIndependentCopy() throws {
+        let original = try write("original.bin", byte: 0x78, size: Int(megabyte) + 1)
+        let copy = try write("copy.bin", byte: 0x78, size: Int(megabyte) + 1)
+        let link = root.appendingPathComponent("link.bin")
+        try FileManager.default.linkItem(at: original, to: link)
+
+        let report = try XCTUnwrap(DuplicateHasher.check(groups: [sizeGroup([link, original, copy])]))
+
+        XCTAssertTrue(report.groups.isEmpty, "the linked pair is not offered, and the copy is then alone")
+        XCTAssertEqual(report.hardLinkFileCount, 2)
+        XCTAssertEqual(report.comparedFileCount, 1)
+        XCTAssertEqual(report.candidateFileCount, 3)
+    }
+
+    func testAFullReadCatchesWhatThePrefixCannot() throws {
+        var first = Data(repeating: 0x31, count: 2 * 1024 * 1024)
+        var second = first
+        second[second.count - 1] = 0x32
+        let a = root.appendingPathComponent("a.bin")
+        let b = root.appendingPathComponent("b.bin")
+        try first.write(to: a)
+        try second.write(to: b)
+
+        let report = try XCTUnwrap(DuplicateHasher.check(groups: [sizeGroup([a, b])]))
+
+        XCTAssertTrue(report.groups.isEmpty, "matching prefixes are not matching contents")
+        XCTAssertEqual(report.comparedFileCount, 2)
+        XCTAssertEqual(report.candidateFileCount, 2)
+    }
+
+    func testACloneIsNotACopy() throws {
+        let original = try write("original.bin", byte: 0x90, size: Int(megabyte) + 1)
+        let clone = root.appendingPathComponent("clone.bin")
+        guard clonefile(original.path, clone.path, 0) == 0 else {
+            throw XCTSkip("this volume does not support clones")
+        }
+
+        let report = try XCTUnwrap(DuplicateHasher.check(groups: [sizeGroup([original, clone])]))
+
+        XCTAssertTrue(report.groups.isEmpty, "a clone shares its blocks, so moving one frees nothing")
+        XCTAssertEqual(report.cloneFileCount, 2)
+        XCTAssertEqual(report.comparedFileCount, 0)
         XCTAssertEqual(report.candidateFileCount, 2)
     }
 

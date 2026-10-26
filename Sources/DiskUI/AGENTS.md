@@ -17,8 +17,9 @@ stream reports.
   with the hover emphasis painted over them), `CategoryRingView` (the scan by
   category, one ring; opening a category charts its files with `SunburstView`),
   `WedgeEmphasis` (the one hover/selection overlay both charts paint),
-  `CleanupSheet` (large/old, cache, download, and duplicate candidates that go to the
-  reclaim confirmation), `HistorySheet` (the recorded runs of a location, two compared),
+  `CleanupSheet` (tiered cleanup candidates, duplicates, and the Moved tab that puts a
+  move back; it presents the reclaim confirmation over itself so a move returns to the
+  same list, and only a rebuildable section can be selected whole), `HistorySheet` (the recorded runs of a location, two compared),
   `AccessNoticeRow`, `FlowLayout`, `ScanOptionToggle` (one scan option, shared by the
   source screen's sheet and Settings), `ResultsStatusBadges` (the stale marker),
   `ControlStyles` (the shared row hover, inline and icon actions, and warning notice),
@@ -39,10 +40,10 @@ stream reports.
   save panel), `DiagnosticsExport` (scan settings, timing, issue counts, and build
   facts; never a file name, path, or content),
   `CategoryBreakdown` (sizes by category), `CategoryFiles` (a category's largest
-  files, walked off the main actor), `CleanupAnalysis` (bounded large/old, cache, and
-  download heuristics over the finished tree, including same-size duplicate
-  candidates), `DuplicateAnalysis` (the explicit SHA-256 content check and its
-  cancellable controller), `ScanOptions` + `ScanOptionsStore` (the one shared,
+  files, walked off the main actor), `CleanupPresentation` (rule and tier wording for
+  the sheet, over `DiskCore`'s rules), `DuplicateCheck` (the sheet's cancellable content
+  check over `DiskCore`'s hasher), `ReclaimLog` (the app's moves, updated after a move or
+  a Put Back), `ScanOptions` + `ScanOptionsStore` (the one shared,
   persisted set of choices the next scan and Rescan use), `ScanHistory` (the observable
   view of the record store; finished scans are recorded through it, off the main actor),
   `WatchPreferences` (the stored keep-current choice), and `TreeWatching` (the watcher
@@ -116,15 +117,19 @@ WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S results -l ar -
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a light -S results -l en-XA -o .build/renders/<change>
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S cleanup -c -o .build/renders/<change>
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S duplicates -c -o .build/renders/<change>
+WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S moved -c -o .build/renders/<change>
+WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S reclaim -c -o .build/renders/<change>
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S history -c -o .build/renders/<change>
 ```
 
 `-S` picks the screen: `results` (default), `home` (source selection), `search` (the
 results screen with a whole-scan query open), `categories` (the results screen in
 Categories mode), `coverage` (the coverage sheet), `help` and `settings` (the sheet and
-preferences contents), `cleanup` and `duplicates` (the cleanup sheet's two tabs; they
-scan the same sample tree), `history` (the comparison sheet over that scan plus two older
-sample runs), or `both` (home and results). `-l` picks the interface language: `en`
+preferences contents), `cleanup`, `duplicates`, and `moved` (the cleanup sheet's three
+tabs; they scan the same sample tree, and `moved` shows two sample batches), `reclaim`
+(that sheet with its move confirmation over it), `history`
+(the comparison sheet over that scan plus two older sample runs), or `both` (home and
+results). `-l` picks the interface language: `en`
 (default), `ar` for the finished right-to-left translation, or `en-XA` for the
 doubled-length pseudolanguage. The locale is part of the PNG's name.
 

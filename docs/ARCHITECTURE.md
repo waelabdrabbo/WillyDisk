@@ -24,9 +24,10 @@ Sources/
     Watching/               # FSEvents watcher + the scope that filters its events
     Live/                   # the live results tree: arena, edits, updater, build from a scan
     History/                # scan records, the per-run store, the comparison
+    Cleanup/                # cleanup rules + policy, the SHA-256 content check, and the move log
   DiskLocalization/         # string catalog + L10n (Foundation only)
     Localizable.xcstrings   #   source of truth; compiled into Resources/*.lproj
-  DiskCLI/                  # `WillyDisk scan` front end (DiskCore + DiskLocalization)
+  DiskCLI/                  # `WillyDisk scan` and `cleanup` front end (DiskCore + DiskLocalization)
   DiskUI/                   # SwiftUI + design system
     DesignSystem/
     Components/
@@ -37,7 +38,7 @@ Tests/
   DiskCLITests/             # command-line parsing, report, exit statuses
   QATests/                  # independent verification
 Scripts/bundle-app.sh       # builds the .app bundle
-docs/                       # ARCHITECTURE.md, LIVE-TREE.md, ROADMAP.md
+docs/                       # ARCHITECTURE.md, LIVE-TREE.md, CLEANUP.md, ROADMAP.md
 ```
 
 `Package.swift` products: executable `WillyDisk`; libraries `DiskCore`, `DiskLocalization`,

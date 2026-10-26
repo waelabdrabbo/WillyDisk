@@ -22,7 +22,7 @@ final class CleanupAnalysisQATests: XCTestCase {
         ])
 
         let report = try XCTUnwrap(CleanupAnalysis.analyze(in: tree(root), now: now))
-        let group = try XCTUnwrap(report.groups.first { $0.kind == .largeAndOld })
+        let group = try XCTUnwrap(report.groups.first { $0.rule == .largeAndOld })
 
         XCTAssertEqual(group.matchCount, 1)
         XCTAssertEqual(group.candidates.map(\.name), ["big-old.bin"])
@@ -38,7 +38,7 @@ final class CleanupAnalysisQATests: XCTestCase {
         ])
 
         let report = try XCTUnwrap(CleanupAnalysis.analyze(in: tree(root), now: now))
-        let group = try XCTUnwrap(report.groups.first { $0.kind == .largeAndOld })
+        let group = try XCTUnwrap(report.groups.first { $0.rule == .largeAndOld })
         XCTAssertTrue(
             group.candidates.isEmpty,
             "a folder's size is its children's; only files are offered as large and old"
@@ -57,8 +57,8 @@ final class CleanupAnalysisQATests: XCTestCase {
         let root = directory("/scan", children: [library, document])
 
         let report = try XCTUnwrap(CleanupAnalysis.analyze(in: tree(root), now: now))
-        let cacheGroup = try XCTUnwrap(report.groups.first { $0.kind == .caches })
-        let largeGroup = try XCTUnwrap(report.groups.first { $0.kind == .largeAndOld })
+        let cacheGroup = try XCTUnwrap(report.groups.first { $0.rule == .caches })
+        let largeGroup = try XCTUnwrap(report.groups.first { $0.rule == .largeAndOld })
 
         XCTAssertEqual(cacheGroup.candidates.map(\.name), ["Caches"])
         XCTAssertEqual(cacheGroup.candidates.first?.isDirectory, true)
@@ -75,7 +75,7 @@ final class CleanupAnalysisQATests: XCTestCase {
         let root = directory("/Users/me/Library/Caches", children: [sub])
 
         let report = try XCTUnwrap(CleanupAnalysis.analyze(in: tree(root), now: now))
-        XCTAssertTrue(try XCTUnwrap(report.groups.first { $0.kind == .caches }).candidates.isEmpty)
+        XCTAssertTrue(try XCTUnwrap(report.groups.first { $0.rule == .caches }).candidates.isEmpty)
     }
 
     func testDerivedDataIsRecognisedAsACache() throws {
@@ -90,7 +90,7 @@ final class CleanupAnalysisQATests: XCTestCase {
         let report = try XCTUnwrap(
             CleanupAnalysis.analyze(in: tree(directory("/scan", children: [library])), now: now)
         )
-        let cacheGroup = try XCTUnwrap(report.groups.first { $0.kind == .caches })
+        let cacheGroup = try XCTUnwrap(report.groups.first { $0.rule == .caches })
         XCTAssertEqual(cacheGroup.candidates.map(\.name), ["DerivedData"])
     }
 
@@ -110,7 +110,7 @@ final class CleanupAnalysisQATests: XCTestCase {
         let report = try XCTUnwrap(
             CleanupAnalysis.analyze(in: tree(directory("/scan", children: [downloads, documents])), now: now)
         )
-        let group = try XCTUnwrap(report.groups.first { $0.kind == .downloads })
+        let group = try XCTUnwrap(report.groups.first { $0.rule == .downloads })
 
         XCTAssertEqual(group.matchCount, 1)
         XCTAssertEqual(group.candidates.map(\.name), ["old.zip"])
@@ -161,6 +161,7 @@ final class CleanupAnalysisQATests: XCTestCase {
         XCTAssertEqual(group.candidates.count, 2)
         XCTAssertTrue(group.isTruncated)
         XCTAssertEqual(report.duplicateCandidateCount, 4)
+        XCTAssertEqual(report.duplicateFileCount, 4)
     }
 
     func testDuplicateGroupCapKeepsTheLargestSizesAndCountsEveryGroup() throws {
@@ -191,7 +192,7 @@ final class CleanupAnalysisQATests: XCTestCase {
         let policy = CleanupPolicy(maxCandidatesPerGroup: 2)
 
         let report = try XCTUnwrap(CleanupAnalysis.analyze(in: tree(root), policy: policy, now: now))
-        let group = try XCTUnwrap(report.groups.first { $0.kind == .largeAndOld })
+        let group = try XCTUnwrap(report.groups.first { $0.rule == .largeAndOld })
 
         XCTAssertEqual(group.matchCount, 3)
         XCTAssertEqual(group.candidates.map(\.name), ["c.bin", "b.bin"])
@@ -250,7 +251,195 @@ final class CleanupAnalysisQATests: XCTestCase {
         XCTAssertGreaterThan(policy.duplicateMinimum, 0)
         XCTAssertGreaterThan(policy.maxDuplicateGroups, 0)
         XCTAssertGreaterThan(policy.maxDuplicateFilesPerGroup, 1)
-        XCTAssertGreaterThan(policy.maxVisitedNodes, 0)
+        XCTAssertEqual(policy.maxVisitedNodes, 10_000_000,
+                       "the cleanup walk is the only pass that has to see every entry")
+    }
+
+    // MARK: - Local bytes
+
+    func testAnEvictedFileIsNotALargeOldCandidate() throws {
+        let old = now.addingTimeInterval(-400 * 24 * 3600)
+        let root = directory("/scan", children: [
+            file("/scan/evicted.bin", size: 600 * megabyte, allocated: 0, modified: old),
+        ])
+
+        let report = try XCTUnwrap(CleanupAnalysis.analyze(in: tree(root), now: now))
+
+        XCTAssertTrue(report.isEmpty, "moving an item with no local bytes frees nothing")
+    }
+
+    func testAFileMustFreeTheThresholdToBeOffered() throws {
+        let old = now.addingTimeInterval(-400 * 24 * 3600)
+        let root = directory("/scan", children: [
+            file("/scan/sparse.bin", size: 600 * megabyte, allocated: 400 * megabyte, modified: old),
+        ])
+
+        let report = try XCTUnwrap(CleanupAnalysis.analyze(in: tree(root), now: now))
+        let group = try XCTUnwrap(report.groups.first { $0.rule == .largeAndOld })
+
+        XCTAssertEqual(group.matchCount, 0, "it is at least 500 MB logically, but not on disk")
+    }
+
+    func testAnOfferedFileReportsTheBytesItWouldFree() throws {
+        let old = now.addingTimeInterval(-400 * 24 * 3600)
+        let root = directory("/scan", children: [
+            file("/scan/thin.bin", size: 600 * megabyte, allocated: 550 * megabyte, modified: old),
+        ])
+
+        let report = try XCTUnwrap(CleanupAnalysis.analyze(in: tree(root), now: now))
+        let group = try XCTUnwrap(report.groups.first { $0.rule == .largeAndOld })
+
+        XCTAssertEqual(group.candidates.first?.logicalSize, 600 * megabyte)
+        XCTAssertEqual(group.candidates.first?.allocatedSize, 550 * megabyte)
+        XCTAssertEqual(group.totalAllocatedSize, 550 * megabyte)
+        XCTAssertEqual(group.totalLogicalSize, 600 * megabyte)
+    }
+
+    // MARK: - The walk
+
+    func testTheWalkVisitsTheLargestFoldersFirst() throws {
+        let old = now.addingTimeInterval(-400 * 24 * 3600)
+        let root = directory("/scan", children: [
+            directory("/scan/a-big", children: [
+                file("/scan/a-big/big.bin", size: 600 * megabyte, modified: old),
+            ]),
+            directory("/scan/z-small", children: [
+                file("/scan/z-small/small.bin", size: 10 * megabyte, modified: old),
+            ]),
+        ])
+        let policy = CleanupPolicy(maxVisitedNodes: 2)
+
+        let report = try XCTUnwrap(CleanupAnalysis.analyze(in: tree(root), policy: policy, now: now))
+        let group = try XCTUnwrap(report.groups.first { $0.rule == .largeAndOld })
+
+        XCTAssertTrue(report.stoppedAtLimit)
+        XCTAssertEqual(group.candidates.map(\.name), ["big.bin"],
+                       "the node cap must cut the small end of the tree, not the first name")
+    }
+
+    // MARK: - Duplicate counts
+
+    func testTheDuplicateFileCountIsExactBeforeTheGroupCap() throws {
+        let root = directory("/scan", children: [
+            file("/scan/a.bin", size: 10 * megabyte, modified: now),
+            file("/scan/b.bin", size: 10 * megabyte, modified: now),
+            file("/scan/c.bin", size: 10 * megabyte, modified: now),
+            file("/scan/d.bin", size: 5 * megabyte, modified: now),
+            file("/scan/e.bin", size: 5 * megabyte, modified: now),
+        ])
+        let policy = CleanupPolicy(maxDuplicateGroups: 1)
+
+        let report = try XCTUnwrap(CleanupAnalysis.analyze(in: tree(root), policy: policy, now: now))
+
+        XCTAssertEqual(report.duplicateGroupCount, 2)
+        XCTAssertEqual(report.duplicateGroups.count, 1)
+        XCTAssertEqual(report.duplicateFileCount, 5,
+                       "every file in a shared size counts, including the capped group")
+        XCTAssertEqual(report.duplicateCandidateCount, 3,
+                       "the shown group holds three paths")
+    }
+
+    func testEvictedFilesAreNotDuplicateCandidates() throws {
+        let root = directory("/scan", children: [
+            file("/scan/a.bin", size: 2 * megabyte, allocated: 0, modified: now),
+            file("/scan/b.bin", size: 2 * megabyte, allocated: 0, modified: now),
+        ])
+
+        let report = try XCTUnwrap(CleanupAnalysis.analyze(in: tree(root), now: now))
+
+        XCTAssertTrue(report.duplicateGroups.isEmpty, "reading one would download it")
+        XCTAssertEqual(report.duplicateGroupCount, 0)
+        XCTAssertEqual(report.duplicateFileCount, 0)
+    }
+
+    // MARK: - The rebuildable rules
+
+    func testDeviceSupportIsOfferedWholeAndItsSubtreeIsNotWalked() throws {
+        let old = now.addingTimeInterval(-400 * 24 * 3600)
+        let deviceSupport = directory("/scan/Library/Developer/Xcode/iOS DeviceSupport", children: [
+            directory("/scan/Library/Developer/Xcode/iOS DeviceSupport/17.0", children: [
+                file("/scan/Library/Developer/Xcode/iOS DeviceSupport/17.0/device.bin",
+                     size: 700 * megabyte, modified: old),
+            ]),
+        ])
+        let xcode = directory("/scan/Library/Developer/Xcode", children: [deviceSupport])
+        let developer = directory("/scan/Library/Developer", children: [xcode])
+        let root = directory("/scan", children: [directory("/scan/Library", children: [developer])])
+
+        let report = try XCTUnwrap(CleanupAnalysis.analyze(in: tree(root), now: now))
+
+        let group = try XCTUnwrap(report.groups.first { $0.rule == .developerSupport })
+        XCTAssertEqual(group.candidates.map(\.name), ["iOS DeviceSupport"])
+        XCTAssertEqual(group.tier, .rebuildable)
+        XCTAssertTrue(
+            try XCTUnwrap(report.groups.first { $0.rule == .largeAndOld }).candidates.isEmpty,
+            "the folder is one finding; its large old file is not listed again"
+        )
+    }
+
+    func testSimulatorDevicesAreOfferedWhole() throws {
+        let old = now.addingTimeInterval(-400 * 24 * 3600)
+        let devices = directory("/scan/Library/Developer/CoreSimulator/Devices", children: [
+            directory("/scan/Library/Developer/CoreSimulator/Devices/SIM", children: [
+                file("/scan/Library/Developer/CoreSimulator/Devices/SIM/data.bin",
+                     size: 700 * megabyte, modified: old),
+            ]),
+        ])
+        let coreSimulator = directory("/scan/Library/Developer/CoreSimulator", children: [devices])
+        let root = directory("/scan", children: [
+            directory("/scan/Library", children: [
+                directory("/scan/Library/Developer", children: [coreSimulator]),
+            ]),
+        ])
+
+        let report = try XCTUnwrap(CleanupAnalysis.analyze(in: tree(root), now: now))
+
+        let group = try XCTUnwrap(report.groups.first { $0.rule == .simulators })
+        XCTAssertEqual(group.candidates.map(\.name), ["Devices"])
+        XCTAssertEqual(group.tier, .rebuildable)
+    }
+
+    func testLibraryLogsAreOfferedWhole() throws {
+        let old = now.addingTimeInterval(-400 * 24 * 3600)
+        let logs = directory("/scan/Library/Logs", children: [
+            file("/scan/Library/Logs/app.log", size: 700 * megabyte, modified: old),
+        ])
+        let root = directory("/scan", children: [directory("/scan/Library", children: [logs])])
+
+        let report = try XCTUnwrap(CleanupAnalysis.analyze(in: tree(root), now: now))
+
+        let group = try XCTUnwrap(report.groups.first { $0.rule == .logs })
+        XCTAssertEqual(group.candidates.map(\.name), ["Logs"])
+        XCTAssertEqual(group.tier, .rebuildable)
+        XCTAssertTrue(
+            try XCTUnwrap(report.groups.first { $0.rule == .largeAndOld }).candidates.isEmpty
+        )
+    }
+
+    func testAFolderNamedLogsOutsideALibraryIsNotALogFolder() throws {
+        let old = now.addingTimeInterval(-400 * 24 * 3600)
+        let root = directory("/scan", children: [
+            directory("/scan/Logs", children: [
+                file("/scan/Logs/app.log", size: 700 * megabyte, modified: old),
+            ]),
+        ])
+
+        let report = try XCTUnwrap(CleanupAnalysis.analyze(in: tree(root), now: now))
+
+        XCTAssertTrue(try XCTUnwrap(report.groups.first { $0.rule == .logs }).candidates.isEmpty)
+        XCTAssertEqual(
+            try XCTUnwrap(report.groups.first { $0.rule == .largeAndOld }).candidates.map(\.name),
+            ["app.log"],
+            "an ordinary folder named Logs is walked like any other"
+        )
+    }
+
+    func testRulesDeclareTheirTiersInDisplayOrder() {
+        let rules = CleanupRule.allCases
+        XCTAssertEqual(rules.map(\.tier), [
+            .rebuildable, .rebuildable, .rebuildable, .rebuildable, .personal, .personal,
+        ])
+        XCTAssertEqual(rules.map(\.displayOrder), Array(rules.indices))
     }
 
     // MARK: - Fixtures
@@ -313,7 +502,7 @@ final class CleanupAnalysisQATests: XCTestCase {
         )
     }
 
-    private func file(_ path: String, size: Int64, modified: Date?) -> ScanNode {
+    private func file(_ path: String, size: Int64, allocated: Int64? = nil, modified: Date?) -> ScanNode {
         ScanNode(
             id: UUID(),
             url: URL(fileURLWithPath: path),
@@ -322,7 +511,7 @@ final class CleanupAnalysisQATests: XCTestCase {
             isSymlink: false,
             category: .other,
             logicalSize: size,
-            allocatedSize: size,
+            allocatedSize: allocated ?? size,
             fileCount: 1,
             directoryCount: 0,
             modifiedAt: modified,

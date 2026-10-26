@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import Darwin
 import DiskCore
 import DiskUI
 import DiskLocalization
@@ -56,6 +57,8 @@ enum ScreenKind: String, CaseIterable {
     case coverage
     case cleanup
     case duplicates
+    case moved
+    case reclaim
     case history
 }
 
@@ -111,9 +114,11 @@ func parse(_ arguments: [String]) -> Options {
             case "coverage": options.screens = [.coverage]
             case "cleanup": options.screens = [.cleanup]
             case "duplicates": options.screens = [.duplicates]
+            case "moved": options.screens = [.moved]
+            case "reclaim": options.screens = [.reclaim]
             case "history": options.screens = [.history]
             case "both": options.screens = [.results, .home]
-            case let other: fail("--screen expects home, results, search, help, settings, categories, coverage, cleanup, duplicates, history or both, not \(other)")
+            case let other: fail("--screen expects home, results, search, help, settings, categories, coverage, cleanup, duplicates, moved, reclaim, history or both, not \(other)")
             }
         case "--locale":
             let language = next("--locale")
@@ -196,44 +201,114 @@ func makeFixture(at root: URL) {
     }
 }
 
+/// The policy the cleanup render previews.
+///
+/// Cleanup sizes are local bytes, so the fixture writes real ones rather than
+/// sparse placeholders; this policy is scaled to a fixture small enough to write
+/// for a screenshot.
+let cleanupPreviewPolicy = CleanupPolicy(
+    largeFileMinimum: 5_000_000,
+    largeFileAge: 30 * 24 * 3600,
+    downloadAge: 30 * 24 * 3600
+)
+
 /// Writes a tree the cleanup analysis has something to say about.
 ///
-/// The files are sparse — `truncate` sets a logical size without writing the
-/// bytes — so the render costs nothing but st_size. Dates are set relative to the
-/// moment of the render so the default policy sees a large old file, an old
-/// download, and a cache folder.
+/// The bytes are written rather than truncated, because a cleanup candidate is
+/// measured by what it occupies on disk and a sparse file occupies almost
+/// nothing. Dates are set relative to the moment of the render so
+/// `cleanupPreviewPolicy` sees a large old file, an old download, and a cache
+/// folder.
 func makeCleanupFixture(at root: URL) {
     let manager = FileManager.default
     let now = Date()
 
-    func sparse(_ path: String, size: Int64, ageDays: Double, firstByte: UInt8? = nil) {
+    func write(_ path: String, size: Int, ageDays: Double, byte: UInt8 = 0) {
         let url = root.appendingPathComponent(path)
         try? manager.createDirectory(at: url.deletingLastPathComponent(),
                                      withIntermediateDirectories: true)
-        manager.createFile(atPath: url.path, contents: nil)
-        if let handle = try? FileHandle(forWritingTo: url) {
-            if let firstByte {
-                try? handle.write(contentsOf: Data([firstByte]))
-            }
-            try? handle.truncate(atOffset: UInt64(size))
-            try? handle.close()
-        }
+        manager.createFile(atPath: url.path, contents: Data(repeating: byte, count: size))
         try? manager.setAttributes(
             [.modificationDate: now.addingTimeInterval(-ageDays * 86_400)],
             ofItemAtPath: url.path
         )
     }
 
-    sparse("Documents/old-archive.dmg", size: 800_000_000, ageDays: 800)
-    sparse("Downloads/holiday.mov", size: 620_000_000, ageDays: 200)
-    sparse("Downloads/recent.zip", size: 40_000_000, ageDays: 2)
-    sparse("Library/Caches/com.example.app/blob.bin", size: 900_000_000, ageDays: 800)
-    sparse("Documents/notes.txt", size: 2_000, ageDays: 2)
-    // Two identical files and one same-size different file, so the duplicate
-    // section has a confirmed pair and a size match the check rejects.
-    sparse("Documents/copy-a.bin", size: 12_000_000, ageDays: 10)
-    sparse("Documents/copy-b.bin", size: 12_000_000, ageDays: 10)
-    sparse("Documents/copy-c.bin", size: 12_000_000, ageDays: 10, firstByte: 0xFF)
+    write("Documents/old-archive.dmg", size: 8_000_000, ageDays: 800)
+    write("Downloads/holiday.mov", size: 6_000_000, ageDays: 200)
+    write("Downloads/recent.zip", size: 1_000_000, ageDays: 2)
+    write("Library/Caches/com.example.app/blob.bin", size: 9_000_000, ageDays: 800)
+    write("Library/Developer/Xcode/iOS DeviceSupport/17.0/device.bin", size: 7_000_000, ageDays: 400)
+    write("Library/Developer/CoreSimulator/Devices/SIM-UDID/data/sim.bin", size: 6_000_000, ageDays: 400)
+    write("Library/Logs/com.example.log", size: 2_000_000, ageDays: 40)
+    write("Documents/notes.txt", size: 2_000, ageDays: 2)
+    // Two identical files, one same-size different file, and a hard link, so the
+    // duplicate section has a confirmed pair, a size match the check rejects, and
+    // the hard-link disclosure.
+    write("Documents/copy-a.bin", size: 12_000_000, ageDays: 10, byte: 0xAA)
+    write("Documents/copy-b.bin", size: 12_000_000, ageDays: 10, byte: 0xAA)
+    write("Documents/copy-c.bin", size: 12_000_000, ageDays: 10, byte: 0xFF)
+    write("Documents/linked.bin", size: 10_000_000, ageDays: 10, byte: 0x77)
+    try? manager.linkItem(
+        at: root.appendingPathComponent("Documents/linked.bin"),
+        to: root.appendingPathComponent("Documents/linked-link.bin")
+    )
+    // Two clones of the third copy, so the duplicate section shows the
+    // shared-storage disclosure beside its confirmed pair.
+    let source = root.appendingPathComponent("Documents/copy-c.bin")
+    for name in ["clone-a.bin", "clone-b.bin"] {
+        let clone = root.appendingPathComponent("Documents/\(name)")
+        _ = clonefile(source.path, clone.path, 0)
+    }
+}
+
+// MARK: - Moves fixture
+
+/// Two moves for the Moved tab: one still in the Trash, one partly put back.
+func makePreviewMoves(root: URL) -> [ReclaimMove] {
+    let now = Date()
+    let caches = root.appendingPathComponent("Library/Caches").path
+    let download = root.appendingPathComponent("Downloads/holiday.mov").path
+    let archive = root.appendingPathComponent("Documents/old-archive.dmg").path
+    return [
+        ReclaimMove(
+            date: now.addingTimeInterval(-900),
+            rootPath: root.path,
+            items: [
+                ReclaimMove.Item(
+                    name: "Caches",
+                    originalPath: caches,
+                    trashedPath: NSHomeDirectory() + "/.Trash/Caches",
+                    isDirectory: true,
+                    logicalSize: 9_000_000,
+                    allocatedSize: 9_000_000
+                ),
+                ReclaimMove.Item(
+                    name: "holiday.mov",
+                    originalPath: download,
+                    trashedPath: NSHomeDirectory() + "/.Trash/holiday.mov",
+                    isDirectory: false,
+                    logicalSize: 6_000_000,
+                    allocatedSize: 6_000_000
+                ),
+            ]
+        ),
+        ReclaimMove(
+            date: now.addingTimeInterval(-86_400),
+            rootPath: root.path,
+            items: [
+                ReclaimMove.Item(
+                    name: "old-archive.dmg",
+                    originalPath: archive,
+                    trashedPath: NSHomeDirectory() + "/.Trash/old-archive.dmg",
+                    isDirectory: false,
+                    logicalSize: 8_000_000,
+                    allocatedSize: 8_000_000,
+                    restoredAt: now.addingTimeInterval(-3_600)
+                ),
+            ]
+        ),
+    ]
 }
 
 // MARK: - History fixture
@@ -388,7 +463,9 @@ func render(_ options: Options) {
     let needsFixture = options.screens.contains { $0 != .help }
     // The cleanup sheet needs candidates the standard fixture does not have, so
     // it renders from its own tree; the other screens keep the shared fixture.
-    let isCleanupRender = options.screens.contains(.cleanup) || options.screens.contains(.duplicates)
+    let isCleanupRender = options.screens.contains(.cleanup)
+        || options.screens.contains(.duplicates)
+        || options.screens.contains(.reclaim)
     let fixtureName = isCleanupRender ? "Sample Disk" : "fixture"
     let fixture = options.fixture ?? options.out.appendingPathComponent(fixtureName)
     if needsFixture, options.fixture == nil {
@@ -540,19 +617,36 @@ func render(_ options: Options) {
                             rootName: LocationName.of(summary.root)
                         )
                     }
-                case .cleanup, .duplicates:
+                case .cleanup, .duplicates, .moved, .reclaim:
                     if let summary = viewModel.summary,
                        let root = rootNode(in: summary),
                        let tree = LiveTree(scanning: summary),
-                       let preview = CleanupAnalysis.analyze(in: tree, now: Date()) {
+                       let preview = CleanupAnalysis.analyze(
+                           in: tree,
+                           policy: cleanupPreviewPolicy,
+                           now: Date()
+                       ) {
+                        let tab: CleanupTab = switch kind {
+                        case .duplicates: .duplicates
+                        case .moved: .moved
+                        default: .old
+                        }
+                        let confirmation = kind == .reclaim
+                            ? preview.groups.flatMap(\.candidates).prefix(3)
+                                .map { ReclaimCandidate(node: $0.node) }
+                            : []
                         CleanupSheet(
                             tree: tree,
                             rootName: root.name,
                             scannedAt: summary.finishedAt,
+                            policy: cleanupPreviewPolicy,
                             previewReport: preview,
+                            previewMoves: kind == .moved ? makePreviewMoves(root: summary.root) : [],
                             previewDuplicateReport: DuplicateHasher.check(groups: preview.duplicateGroups),
-                            initialTab: kind == .duplicates ? .duplicates : .old,
-                            onMove: { _ in },
+                            initialTab: tab,
+                            reclaimCandidates: Array(confirmation),
+                            onBeginReclaim: { _ in },
+                            onRestore: { _ in nil },
                             onClose: {}
                         )
                     }

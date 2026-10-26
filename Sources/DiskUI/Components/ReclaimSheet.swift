@@ -16,7 +16,7 @@ public struct ReclaimCandidate: Identifiable, Equatable, Sendable {
 
     public var id: URL { url }
 
-    init(node: ScanNode) {
+    public init(node: ScanNode) {
         url = node.url
         name = node.name
         isDirectory = node.isDirectory

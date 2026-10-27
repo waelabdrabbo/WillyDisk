@@ -531,6 +531,7 @@ public struct SourceSelectionView: View {
                     InlineActionButton(
                         L10n.string(isShowingAllRecents ? "Show Less" : "Show All"),
                         systemImage: isShowingAllRecents ? "chevron.up" : "chevron.down",
+                        iconPlacement: .trailing,
                         fillsWidth: true
                     ) {
                         isShowingAllRecents.toggle()

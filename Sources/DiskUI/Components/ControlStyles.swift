@@ -39,8 +39,18 @@ struct InlineActionButton: View {
         case warning
     }
 
+    /// Which side of the label the glyph sits on.
+    ///
+    /// A leading glyph names the object an action works on; a disclosure
+    /// chevron goes after the label, where the reader looks for more.
+    enum IconPlacement: Equatable {
+        case leading
+        case trailing
+    }
+
     let title: String
     let systemImage: String?
+    let iconPlacement: IconPlacement
     let tone: Tone
     let fillsWidth: Bool
     let action: () -> Void
@@ -50,12 +60,14 @@ struct InlineActionButton: View {
     init(
         _ title: String,
         systemImage: String? = nil,
+        iconPlacement: IconPlacement = .leading,
         tone: Tone = .accent,
         fillsWidth: Bool = false,
         action: @escaping () -> Void
     ) {
         self.title = title
         self.systemImage = systemImage
+        self.iconPlacement = iconPlacement
         self.tone = tone
         self.fillsWidth = fillsWidth
         self.action = action
@@ -65,17 +77,27 @@ struct InlineActionButton: View {
         tone == .accent ? DS.Color.accent : DS.Color.warning
     }
 
+    @ViewBuilder
+    private var icon: some View {
+        if let systemImage {
+            Image(systemName: systemImage)
+                .font(DS.Icon.detail)
+                .accessibilityHidden(true)
+        }
+    }
+
     var body: some View {
         Button(action: action) {
             HStack(spacing: DS.Spacing.xxSmall) {
-                if let systemImage {
-                    Image(systemName: systemImage)
-                        .font(DS.Icon.detail)
-                        .accessibilityHidden(true)
+                if iconPlacement == .leading {
+                    icon
                 }
                 Text(title)
                     .font(DS.Typography.callout)
                     .lineLimit(1)
+                if iconPlacement == .trailing {
+                    icon
+                }
             }
             .foregroundStyle(tint)
             .padding(.horizontal, DS.Spacing.xSmall)

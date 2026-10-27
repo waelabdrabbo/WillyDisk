@@ -312,6 +312,10 @@ public enum DS {
         /// The platter: panels, the chart's centre disc, and the mark's groove on
         /// the icon.
         public static let enamel = dynamic(light: 0xF2F3F1, dark: 0x171A1B)
+        /// The explorer's whole-height panel: a step below the window's own
+        /// surface, so the column reads as part of the window rather than as a
+        /// card floating on it.
+        public static let sidebar = dynamic(light: 0xE9EBE7, dark: 0x2A2E2F)
         /// Secondary text, glyphs at rest, and the chart's middle tone: the quiet
         /// step between ink and rule.
         public static let graphite = dynamic(light: 0x5F676C, dark: 0xA9B1B2)

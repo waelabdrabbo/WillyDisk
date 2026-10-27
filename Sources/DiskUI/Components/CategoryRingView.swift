@@ -341,7 +341,7 @@ struct CategoryShareList: View {
                     .foregroundStyle(DS.Color.secondaryText)
                     .frame(width: DS.Spacing.large, alignment: .center)
             }
-            .padding(.horizontal, DS.Spacing.small)
+            .padding(.horizontal, DS.Spacing.medium)
             .padding(.vertical, DS.Spacing.small)
             .dsHoverableRow(isHovered: isHovered, radius: DS.Radius.medium)
             .contentShape(Rectangle())

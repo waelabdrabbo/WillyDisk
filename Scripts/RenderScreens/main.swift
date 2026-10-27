@@ -567,9 +567,11 @@ func render(_ options: Options) {
         for kind in options.screens {
             // The window's own background sits behind the screen, exactly as it
             // does in the app, so a render is not composited against whatever the
-            // reader opens it with.
+            // reader opens it with. It runs under the titlebar as the app's window
+            // background does, which is why the toolbar has no band of its own.
             let screen = ZStack {
                 DS.Color.windowBackground
+                    .ignoresSafeArea()
                 switch kind {
                 case .results: ResultsView(viewModel: viewModel)
                 case .home: SourceSelectionView(viewModel: viewModel)

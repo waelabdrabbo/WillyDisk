@@ -158,6 +158,7 @@ bash Scripts/localize.sh --check     # fail if those resources are stale
 bash Scripts/run.sh                  # build the bundle and launch it (the way to look at the UI)
 bash Scripts/bundle-app.sh           # assemble .build/WillyDisk.app; its version comes from VERSION
 bash Scripts/package-release.sh      # build the arm64 and Intel zips with their SHA-256s
+bash Scripts/release.sh 1.0.2        # bump VERSION, push, wait for CI, tag, publish (curl + python3)
 bash Scripts/homebrew-cask.sh check  # render the cask template; --audit runs Homebrew's checks
 bash Scripts/render-screens.sh       # offscreen PNGs (-S results|home|search|help|settings|update|update-ready|categories|coverage|cleanup|duplicates|moved|reclaim|history|both; -l en|ar|en-XA), no window, no screen-recording permission
 bash Scripts/repo-map.sh             # one-screen structural inventory (--types adds declarations)

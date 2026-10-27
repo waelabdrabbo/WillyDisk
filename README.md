@@ -146,11 +146,12 @@ and fails loudly if the stamp is wrong. See
 Other scripts:
 
 ```
-bash Scripts/bundle-app.sh      # build .build/WillyDisk.app without launching it
-bash Scripts/package-release.sh # build the arm64 and Intel zips with their SHA-256s
-bash Scripts/homebrew-cask.sh   # render the Homebrew cask the tap serves
-bash Scripts/render-screens.sh  # render the screens offscreen to PNGs in .build/renders
-bash Scripts/repo-map.sh        # print a structural inventory of the repository
+bash Scripts/bundle-app.sh       # build .build/WillyDisk.app without launching it
+bash Scripts/package-release.sh  # build the arm64 and Intel zips with their SHA-256s
+bash Scripts/release.sh 1.0.2    # bump VERSION, push, wait for CI, tag, publish a release
+bash Scripts/homebrew-cask.sh    # render the Homebrew cask the tap serves
+bash Scripts/render-screens.sh   # render the screens offscreen to PNGs in .build/renders
+bash Scripts/repo-map.sh         # print a structural inventory of the repository
 ```
 
 ## Command-line scan

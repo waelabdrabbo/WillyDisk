@@ -880,6 +880,8 @@
 	<string>Searching…</string>
 	<key>See 'WillyDisk cleanup --help' to list cleanup candidates.</key>
 	<string>See 'WillyDisk cleanup --help' to list cleanup candidates.</string>
+	<key>See the release page for what's new.</key>
+	<string>See the release page for what's new.</string>
 	<key>Select All</key>
 	<string>Select All</string>
 	<key>Select All But One</key>

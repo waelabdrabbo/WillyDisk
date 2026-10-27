@@ -233,9 +233,19 @@ public struct UpdateSheet: View {
                 .foregroundStyle(DS.Color.secondaryText)
 
             VStack(alignment: .leading, spacing: DS.Spacing.small) {
-                Text(L10n.string("Release Notes"))
-                    .font(DS.Typography.headline)
-                    .accessibilityAddTraits(.isHeader)
+                HStack(alignment: .center) {
+                    Text(L10n.string("Release Notes"))
+                        .font(DS.Typography.headline)
+                        .accessibilityAddTraits(.isHeader)
+                    Spacer(minLength: DS.Spacing.small)
+                    InlineActionButton(
+                        L10n.string("Open Release Page"),
+                        systemImage: "arrow.up.forward.square",
+                        iconPlacement: .trailing
+                    ) {
+                        actions.openPage(offer.pageURL)
+                    }
+                }
                 notes(offer.notes)
             }
 
@@ -280,13 +290,19 @@ public struct UpdateSheet: View {
     }
 
     private func notes(_ notes: String) -> some View {
-        let blocks = UpdateNoteBlock.parse(notes)
+        let blocks = UpdateNoteBlock.changes(in: notes)
         return ScrollView {
             VStack(alignment: .leading, spacing: DS.Spacing.small) {
                 if blocks.isEmpty {
-                    Text(L10n.string("No release notes."))
-                        .font(DS.Typography.callout)
-                        .foregroundStyle(DS.Color.secondaryText)
+                    if notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        Text(L10n.string("No release notes."))
+                            .font(DS.Typography.callout)
+                            .foregroundStyle(DS.Color.secondaryText)
+                    } else {
+                        Text(L10n.string("See the release page for what's new."))
+                            .font(DS.Typography.callout)
+                            .foregroundStyle(DS.Color.secondaryText)
+                    }
                 } else {
                     ForEach(blocks) { block in
                         noteBlock(block)
@@ -546,6 +562,35 @@ private struct UpdateNoteBlock: Identifiable {
     let id: Int
     let kind: Kind
     let text: String
+
+    /// The release page carries install steps, checksums, and build notes after
+    /// the change summary. The sheet is already doing the install, so it shows
+    /// only the publisher's change section and links to the full page.
+    static func changes(in notes: String) -> [UpdateNoteBlock] {
+        let blocks = parse(notes)
+        guard let start = blocks.firstIndex(where: {
+            guard case .heading = $0.kind else { return false }
+            return isChangesHeading($0.text)
+        }) else {
+            return []
+        }
+        let after = blocks[(start + 1)...]
+        let end = after.firstIndex(where: {
+            if case .heading = $0.kind { return true }
+            return false
+        }) ?? after.endIndex
+        return Array(after[..<end])
+    }
+
+    private static func isChangesHeading(_ text: String) -> Bool {
+        let normalized = text
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+            .replacingOccurrences(of: "’", with: "'")
+        return normalized == "what's changed"
+            || normalized == "what's new"
+            || normalized == "what is new"
+    }
 
     static func parse(_ notes: String) -> [UpdateNoteBlock] {
         var blocks: [UpdateNoteBlock] = []

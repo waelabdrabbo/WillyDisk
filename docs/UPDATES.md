@@ -226,7 +226,8 @@ asset downloads. It sends no file name, path, scan result, history, or preferenc
 There is no telemetry, no account, and no token. The daily check is a preference;
 the menu item always works, and the app never downloads or installs without a click.
 The release notes are publisher text in English and are shown as such, not passed
-through the app's localization.
+through the app's localization. The sheet renders only the change section; the
+release page carries the full notes, install steps, and checksums.
 
 ## UI
 
@@ -235,8 +236,10 @@ The sheet is one window on the main view, hosted by `UpdateSheetHost` and backed
 
 `checking → upToDate | newerThanLatest | unknownCurrentVersion | noBuildForThisMac | incompleteRelease | available → downloading → verifying → ready → installing | failed`
 
-- Available: current and new version, release notes, download size, the
-  checksum/unsigned wording, Download, Later, Skip This Version.
+- Available: current and new version, the **What's Changed** section from the
+  release body, download size, the checksum/unsigned wording, Open Release Page,
+  Download, Later, Skip This Version. The sheet does not render the whole release
+  page; install steps and checksums stay there.
 - Downloading: real byte progress with Cancel; closing the sheet cancels the task
   and returns to the offer.
 - Checking: the checksum, extraction, and bundle checks run; the sheet stays put.

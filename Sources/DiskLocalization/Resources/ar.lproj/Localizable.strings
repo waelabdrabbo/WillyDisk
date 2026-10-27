@@ -880,6 +880,8 @@
 	<string>جارٍ البحث…</string>
 	<key>See 'WillyDisk cleanup --help' to list cleanup candidates.</key>
 	<string>راجع 'WillyDisk cleanup --help' لعرض مرشحي التنظيف.</string>
+	<key>See the release page for what's new.</key>
+	<string>راجع صفحة الإصدار لمعرفة الجديد.</string>
 	<key>Select All</key>
 	<string>تحديد الكل</string>
 	<key>Select All But One</key>

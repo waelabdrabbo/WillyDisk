@@ -13057,6 +13057,30 @@
       },
       "shouldGenerateSwiftSymbol": false
     },
+    "See the release page for what's new.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "راجع صفحة الإصدار لمعرفة الجديد."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "See the release page for what's new."
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Šéé ŧĥé ŕéļéášé þáĝé ƒöŕ ŵĥáŧ'š ñéŵ.··································]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
     "Select All": {
       "extractionState": "manual",
       "localizations": {

@@ -609,7 +609,7 @@ func render(_ options: Options) {
                                 version: "1.0.2",
                                 currentVersion: "1.0.1",
                                 notes: """
-                                ## What is new
+                                ## What's Changed
 
                                 - The explorer is a full-height sidebar.
                                 - Cleaning up old downloads is easier to review.

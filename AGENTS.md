@@ -19,7 +19,7 @@ contracts, shared-interface rules §7, non-negotiables §8).
 
 | Path | What it holds |
 |---|---|
-| `Package.swift` | products: executable `WillyDisk`, executable `render-screens` (the offscreen renderer), libraries `DiskCore`, `DiskLocalization`, and `DiskUI`; target `DiskCLI` |
+| `Package.swift` | products: executable `WillyDisk`, executable `render-screens` (the offscreen renderer), libraries `DiskCore`, `DiskLocalization`, and `DiskUI`; targets `DiskCLI` and `DiskUpdate` (the latter the internal release-feed and verification library) |
 | `VERSION` | the only source of the marketing version; the bundle script stamps it |
 | `Resources/` | the macOS icon: `AppIcon.icns` and its 1024 `AppIcon-1024.png` |
 | `Sources/DiskUI/Resources/AppMark.png` | the circular in-app mark the UI and About show |
@@ -32,16 +32,18 @@ contracts, shared-interface rules §7, non-negotiables §8).
 | `Sources/DiskCore/Scanning/` (the rest) | the scan engine and its filesystem plumbing |
 | `Sources/DiskCore/Watching/` | FSEvents watcher and the scope that filters events to the scanned tree |
 | `Sources/DiskCLI/` | the `WillyDisk scan` and `cleanup` front end: parsing, text reports, `ScanRecord`/`CleanupRecord` JSON |
+| `Sources/DiskUpdate/` | the release feed, version comparison, `.sha256` check, and staged-bundle verification (Foundation + CryptoKit; no UI) |
 | `Sources/DiskUI/` | screens, components, design system |
 | `Sources/WillyDiskApp/` | `@main` executable, window, wiring, CLI/GUI dispatch |
 | `Tests/DiskCoreTests/` | engine tests |
 | `Tests/DiskCLITests/` | command-line parsing, report stability, exit statuses |
+| `Tests/DiskUpdateTests/` | feed decoding, version ordering, checksum, staged-bundle validation |
 | `Tests/QATests/` | independent verification that does not trust the engine's own tests |
 | `Scripts/` | build, bundle, release packaging, launch, offscreen render, localization, repo map, Homebrew cask rendering |
 | `.github/workflows/` | `ci.yml`: build, test, bundle version check, CLI smoke, renders, cask audit; `release.yml`: tagged unsigned zips (arm64, x86_64), checksums, and the cask committed to `Casks/` |
 | `.github/homebrew/` | `willydisk.rb.tmpl`: the Homebrew cask template the release renders |
 | `Casks/` | `Casks/willydisk.rb`, the rendered cask Homebrew reads; this repository is its own tap |
-| `docs/` | `ARCHITECTURE.md` (frozen contracts), `LIVE-TREE.md`, `CLEANUP.md` (cleanup rules, tiers, and accounting), `HOMEBREW.md` (the tap, the cask, the release step), `ROADMAP.md` |
+| `docs/` | `ARCHITECTURE.md` (frozen contracts), `LIVE-TREE.md`, `CLEANUP.md` (cleanup rules, tiers, and accounting), `HOMEBREW.md` (the tap, the cask, the release step), `UPDATES.md` (the self-update design and verification rules), `ROADMAP.md` |
 
 ## Where things are
 
@@ -64,6 +66,15 @@ and a `ScanSummary` is never edited.
 arena and its measured edits, `LiveTreeUpdater.swift` turns a changed folder into those
 edits (with `LiveTreePolicy` keeping the scan's rules), and `LiveTree+ScanSummary.swift`
 builds one from a finished scan. `docs/LIVE-TREE.md` is the design and the migration.
+
+**`DiskUpdate` — the release feed and the update checks.**
+`ReleaseFeed.swift` reads GitHub's `releases/latest` through a `FeedTransport` seam and
+keeps the ETag; `ReleaseVersion.swift` orders versions; `UpdateRelease.swift` names the
+two assets for this Mac and decides newer/older; `Checksum.swift` parses the published
+`.sha256` and hashes in chunks; `UpdateVerifier.swift` expands the zip with `ditto` and
+checks identifier, version, executable, minimum macOS, architecture, and signature.
+Foundation + CryptoKit only; the controller, sheet, and install transaction are not built
+yet. `docs/UPDATES.md` is the contract and the install plan.
 
 **`DiskUI` — SwiftUI.**
 `ScanViewModel.swift` is the `@MainActor @Observable` state machine that consumes
@@ -129,6 +140,7 @@ report and help follow the user's language; the JSON stays machine data.
 swift build                          # compile
 swift test                           # full suite
 swift test --filter FileScanEngineTests   # one test class
+swift test --filter DiskUpdateTests        # release feed, version, checksum, verification
 swift run WillyDisk scan <folder> --json  # command-line scan: no window, no UI loaded
 swift run WillyDisk cleanup <folder> --json  # the cleanup rules, same engine; lists only
 python3 Scripts/pseudolanguage.py    # regenerate en-XA from the English values
@@ -184,7 +196,8 @@ add `--disable-sandbox` to a plain `swift build` or `swift test`.
 
 `docs/ROADMAP.md` records what is shipped, the remaining work in recommended order,
 the decisions that must not be re-litigated, and a suggested opening prompt for a
-fresh session.
+fresh session. `docs/UPDATES.md` is the update contract: feed, verification, install
+transaction, permissions, and Homebrew.
 
 `.agents/skills/willydisk-verify/` holds the end-to-end verification procedure (build,
 test, bundle, launch, offscreen capture, and the SDK-stamp trap). It is offered as a

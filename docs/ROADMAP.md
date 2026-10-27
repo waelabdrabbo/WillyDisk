@@ -17,8 +17,8 @@ decisions. This is a handoff document, not a specification of frozen interfaces 
   watched-tree refresh (`b8be044`), global search over the whole finished scan
   (`e7d6fff`), and the localization pass (`7c7c067`). This docs handoff follows it.
 - Build: `swift build --disable-sandbox`.
-- Tests: 221 QATests + 86 DiskCoreTests (1 skipped, `ScanBenchmarkTests` needs
-  `WILLYDISK_BENCH_ROOT`) + 17 DiskCLITests, 0 failures.
+- Tests: 289 QATests + 153 DiskCoreTests (3 skipped; the benchmark tests need
+  `WILLYDISK_BENCH_ROOT`) + 30 DiskCLITests + 71 DiskUpdateTests, 0 failures.
 - CI: `.github/workflows/ci.yml` builds, tests, checks that the bundle reports
   `VERSION`, runs the bundled binary's `scan` and its usage exit status, and uploads
   the offscreen renders on every push. `.github/workflows/release.yml` runs on a `v*`
@@ -29,7 +29,14 @@ decisions. This is a handoff document, not a specification of frozen interfaces 
   `.sha256`. The bundles are ad-hoc signed, which is what lets them run on Apple
   Silicon, and they are unsigned in the Developer ID sense and not notarized. The
   release notes and README state that plainly, with the one-time approval step and
-  the source-build alternative. No tag has been pushed yet.
+  the source-build alternative. `v1.0.0` and `v1.0.1` are tagged; `v1.0.1` is
+  published and the repository is public, so the release assets and the tap are
+  reachable without credentials.
+- The working tree adds the update core (`Sources/DiskUpdate/`): version ordering,
+  the GitHub release feed with ETag, asset selection, the `.sha256` check, `ditto`
+  extraction, and staged-bundle identity, architecture, and signature validation,
+  with `Tests/DiskUpdateTests/` and `docs/UPDATES.md`. The download, consent sheet,
+  and install transaction are not built.
 - The app is a working single-window analyzer: choose a volume, folder, or quick
   preset, watch a progressive scan, read the sunburst and explorer, search the whole
   scan by name and drill from a result to its folder, inspect
@@ -297,6 +304,7 @@ Details worth remembering:
 ```bash
 swift build --disable-sandbox
 swift test --disable-sandbox
+swift test --disable-sandbox --filter DiskUpdateTests
 swift run --disable-sandbox WillyDisk scan . --depth 1 --top 5
 swift run --disable-sandbox WillyDisk scan . --json | jq -e '.schemaVersion == 1'
 python3 Scripts/pseudolanguage.py --check
@@ -416,6 +424,15 @@ verified against the release's published SHA-256 before it replaces anything; a 
 check or download changes nothing and says why; the app never updates without consent;
 the update screen does not call an unsigned download verified or trusted.
 
+The feed and verification core are implemented in `Sources/DiskUpdate/`: version
+comparison, `releases/latest` with ETag, selection of the two assets by architecture and
+exact name, the published `.sha256` check, `ditto` extraction, and staged-bundle
+identity, minimum-macOS, architecture, and `codesign` validation. `Tests/DiskUpdateTests/`
+holds the suite and `docs/UPDATES.md` is the contract. Remaining: the controller and
+sheet, the download, the helper-based install transaction, and the cask's
+`auto_updates` change. The install transaction is gated on a real Full Disk Access test
+after an ad-hoc-signed update; that is the platform cost this item has to settle.
+
 ## Decisions to preserve
 
 - Startup disk is a volume group with firmlinks; never reconcile a `/` scan against
@@ -465,6 +482,12 @@ the update screen does not call an unsigned download verified or trusted.
 - Releases are two thin archives, arm64 and x86_64, not one universal build, and each
   carries its own SHA-256. The release notes say which Mac gets which; do not fold them
   into one download without a reason recorded here.
+- Self-update is hand-rolled: no third-party package, no Developer ID, no silent
+  install. The feed is GitHub's public `releases/latest`; the release's published
+  SHA-256 and the staged bundle's identity, architecture, and ad-hoc signature are
+  checked before anything is replaced. A checksum match is integrity, never a claim
+  that the build is trusted. Automatic checking is a preference; installation is
+  always a click. `docs/UPDATES.md` is the contract.
 - The interface stays native AppKit and SwiftUI, so VoiceOver, Quick Look, menus, text
   editing and window chrome are the system's. A custom-drawn canvas is not an acceptable
   substitute for a chart or a list.

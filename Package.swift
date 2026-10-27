@@ -43,12 +43,23 @@ let package = Package(
             exclude: ["AGENTS.md"]
         ),
 
-        // DiskUI — SwiftUI design system + screens. Depends on the shared models.
-        // The directory's AGENTS.md carries agent-facing notes, not package resources.
-        // `Resources/AppMark.png` is the mark `Scripts/make-icon.swift` draws.
+        // DiskUpdate — the release feed, version comparison, checksum, and
+        // staged-bundle verification. Foundation and CryptoKit only: no UI, no
+        // localization, no third-party package. The controller and sheet live in
+        // DiskUI; this target must stay usable without AppKit.
+        .target(
+            name: "DiskUpdate",
+            dependencies: [],
+            exclude: ["AGENTS.md"]
+        ),
+
+        // DiskUI — SwiftUI design system + screens. Depends on the shared models
+        // and the update core. The directory's AGENTS.md carries agent-facing
+        // notes, not package resources. `Resources/AppMark.png` is the mark
+        // `Scripts/make-icon.swift` draws.
         .target(
             name: "DiskUI",
-            dependencies: ["DiskCore", "DiskLocalization"],
+            dependencies: ["DiskCore", "DiskLocalization", "DiskUpdate"],
             exclude: ["AGENTS.md"],
             resources: [.process("Resources")]
         ),
@@ -80,6 +91,10 @@ let package = Package(
         .testTarget(
             name: "DiskCLITests",
             dependencies: ["DiskCLI", "DiskCore", "DiskLocalization"]
+        ),
+        .testTarget(
+            name: "DiskUpdateTests",
+            dependencies: ["DiskUpdate"]
         ),
         .testTarget(
             name: "QATests",

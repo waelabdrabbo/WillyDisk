@@ -28,6 +28,7 @@ Sources/
   DiskLocalization/         # string catalog + L10n (Foundation only)
     Localizable.xcstrings   #   source of truth; compiled into Resources/*.lproj
   DiskCLI/                  # `WillyDisk scan` and `cleanup` front end (DiskCore + DiskLocalization)
+  DiskUpdate/               # release feed, version comparison, checksum, staged-bundle checks
   DiskUI/                   # SwiftUI + design system
     DesignSystem/
     Components/
@@ -36,16 +37,17 @@ Sources/
 Tests/
   DiskCoreTests/            # engine tests
   DiskCLITests/             # command-line parsing, report, exit statuses
+  DiskUpdateTests/          # feed, version, checksum, staged-bundle verification
   QATests/                  # independent verification
 Scripts/bundle-app.sh       # builds the .app bundle
 Scripts/RenderScreens/      # the offscreen renderer (package executable)
-docs/                       # ARCHITECTURE.md, LIVE-TREE.md, CLEANUP.md, ROADMAP.md
+docs/                       # ARCHITECTURE.md, LIVE-TREE.md, CLEANUP.md, UPDATES.md, ROADMAP.md
 ```
 
 `Package.swift` products: executables `WillyDisk` and `render-screens` (the offscreen
-renderer); libraries `DiskCore`, `DiskLocalization`, `DiskUI`. `DiskCLI` is a target, not
-a product: it is linked into the one executable, whose `@main` chooses between the command
-line and the app.
+renderer); libraries `DiskCore`, `DiskLocalization`, `DiskUI`. `DiskCLI` and `DiskUpdate`
+are targets, not products: they are linked into the one executable, whose `@main` chooses
+between the command line and the app.
 
 Commands:
 
@@ -338,6 +340,14 @@ carries the root node itself in `largestDirectories`.
   narrow what was scanned or recorded. SIGINT/SIGTERM call `ScanEngine.cancel()`; a
   cancelled run prints no report and exits 130. Exit statuses are 0 (finished), 1
   (missing folder or unwritable report), 2 (usage), and 130 (cancelled).
+- Self-update is a separate, Foundation-only target, not part of scanning. `DiskUpdate`
+  reads GitHub's public `releases/latest` through a `FeedTransport` seam, compares
+  `ReleaseVersion` values, selects the two assets by architecture and exact name, checks
+  the published `.sha256`, and validates the expanded bundle's identifier, version,
+  executable, minimum macOS, architecture, and ad-hoc signature before anything replaces
+  the app. It sends no scan data, and installation is never automatic. The consent sheet
+  and install transaction are not built; `docs/UPDATES.md` is the design and the platform
+  constraints.
 - Design tokens live in `DiskUI/DesignSystem/DesignSystem.swift` (spacing scale,
   corner radii, typography roles, semantic colors). UI never hard-codes magic numbers.
 - Localization is a contract of its own. Every user-visible string is a catalog key in
@@ -403,7 +413,9 @@ carries the root node itself in `largestDirectories`.
 - `Package.swift`, `Scripts/**`, the localization catalog, and this document are shared
   too. A new or changed catalog key changes every screen and the command line, so treat
   it as a shared surface: explain the wording change and run
-  `bash Scripts/localize.sh` in the same change.
+  `bash Scripts/localize.sh` in the same change. The internal `DiskUpdate` target was
+  added to `Package.swift`; `Sources/DiskCore/Models/**` and
+  `Sources/DiskCore/Scanning/Contracts.swift` are untouched.
 - Everything else is ordinary code. Keep it consistent with the files around it.
 
 ## 8. Non-negotiables
@@ -414,7 +426,8 @@ graceful permission failures; no automatic deletion (confirmation + clear identi
 progress/statistics; no invented reconciliation between a folder scan and a
 volume's used space; no dead controls; no placeholder/mock data in the shipped app; no
 user-visible literal outside the string catalog; no count built by concatenating a
-number and a noun when the catalog can resolve its plural.
+number and a noun when the catalog can resolve its plural. The updater never replaces
+the app without a click, and never calls a checksum match proof that a build is trusted.
 
 **Comments are evergreen.** A code comment must never cite a task, issue, or bug
 number, and must never narrate the bug a change fixed. Comments explain only current

@@ -2,7 +2,9 @@
 
 SwiftUI + AppKit presentation layer. It consumes `DiskCore` and never
 re-implements scanning: `ScanViewModel` drives a `ScanEngine` and renders what the event
-stream reports.
+stream reports. It also links the Foundation-only `DiskUpdate` core for the update
+sheet and controller; those two are not built yet, and the feed/verification rules stay
+in `DiskUpdate` rather than being repeated here.
 
 ## Structure
 

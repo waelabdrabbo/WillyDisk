@@ -128,10 +128,12 @@ which is all the push needs.
 described in `docs/ARCHITECTURE.md` §5: they look for their string catalog under
 `WillyDisk.app/WillyDisk_DiskLocalization.bundle` and fall back to a path on the
 build machine, so an installed copy crashes before it draws a window or prints a
-report. The tap is empty until the first release that carries the fix.
+report. `v1.0.1` is the first release that carries the fix; it is casked and
+published, and the repository is public, so `brew install --cask willydisk` works
+for anyone who trusts the tap.
 
-Bump `VERSION`, tag `v<version>`, and the run writes the cask. Until that has
-happened, `brew tap` succeeds and reports no casks.
+Bump `VERSION`, tag `v<version>`, and the run renders the next cask and publishes
+its archives.
 
 ## Re-rendering by hand
 
@@ -152,10 +154,12 @@ only as good as the build it points at.
 
 - `brew install --cask willydisk` puts `WillyDisk.app` in `/Applications` and
   links `willydisk` into `$(brew --prefix)/bin`.
-- `brew upgrade --cask willydisk` — the app has no self-updater, so this is the
-  only way updates arrive. The cask carries a `livecheck` pointed at the
+- `brew upgrade --cask willydisk` — the cask carries a `livecheck` pointed at the
   repository's releases, so `brew livecheck --cask willydisk` follows the tag
-  stream as well as `brew upgrade` does.
+  stream. The app does not yet have a user-facing self-updater; when the update
+  sheet and install transaction ship, the cask will declare `auto_updates true` so
+  Homebrew compares the installed bundle's version instead of downgrading it. See
+  [UPDATES.md](UPDATES.md).
 - `brew uninstall --cask willydisk` removes the app and the `bin` link;
   `--zap` also removes the history and preferences listed above.
 - **Trust.** Current Homebrew versions refuse to load a cask from a

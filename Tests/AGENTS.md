@@ -1,6 +1,6 @@
 # Tests — agent notes
 
-Three targets with different jobs.
+Four targets with different jobs.
 
 - `DiskCoreTests/` — engine behavior. Uses `@testable import DiskCore` and the
   `FileSystemAccess` seam in `Sources/DiskCore/Scanning/FileScanner.swift` to exercise
@@ -12,6 +12,12 @@ Three targets with different jobs.
   `ScanRecord` JSON (schema, ordering, stable bytes apart from the run identity). The
   scan itself runs the real `FileScanEngine` against a small temporary tree; the
   cancellation and terminal-event paths use a scripted `ScanEngine`.
+- `DiskUpdateTests/` — the release feed and the checks an update must pass: version
+  ordering, GitHub payload rejection, asset selection by architecture, `.sha256`
+  parsing and streaming hash, `ditto` extraction, and staged-bundle identity,
+  minimum-macOS, architecture, and signature checks. The feed tests use a fake
+  `FeedTransport`; nothing here touches the network. `ditto` and `lipo` are the
+  system tools the suite runs; `codesign` is reached only by a real signed bundle.
 - `QATests/` — independent verification of shipped behavior that deliberately does not
   trust the engine's own tests. It cross-checks the scanner against external ground truth
   (`find` / `du`) and probes the non-negotiables, covering scan correctness, the
@@ -28,4 +34,5 @@ reliable total exists.
 swift test                                  # every target
 swift test --filter ScanCommandTests        # one class
 swift test --filter ScanCorrectnessQATests  # one class
+swift test --filter DiskUpdateTests         # the feed and update checks
 ```

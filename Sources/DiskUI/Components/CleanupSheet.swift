@@ -216,7 +216,7 @@ public struct CleanupSheet: View {
     public var body: some View {
         ZStack {
             content
-                .frame(width: 720, height: 640)
+                .dsFittedFrame(width: 720, height: 640)
                 .background(DS.Color.windowBackground)
                 .tint(DS.Color.signal)
                 .environment(hover)

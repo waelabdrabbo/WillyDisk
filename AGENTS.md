@@ -43,7 +43,7 @@ contracts, shared-interface rules §7, non-negotiables §8).
 | `.github/workflows/` | `ci.yml`: build, test, bundle version check, CLI smoke, renders, cask audit; `release.yml`: tagged unsigned zips (arm64, x86_64), checksums, and the cask committed to `Casks/` |
 | `.github/homebrew/` | `willydisk.rb.tmpl`: the Homebrew cask template the release renders |
 | `Casks/` | `Casks/willydisk.rb`, the rendered cask Homebrew reads; this repository is its own tap |
-| `docs/` | `ARCHITECTURE.md` (frozen contracts), `LIVE-TREE.md`, `CLEANUP.md` (cleanup rules, tiers, and accounting), `HOMEBREW.md` (the tap, the cask, the release step), `UPDATES.md` (the self-update design and verification rules), `ROADMAP.md` |
+| `docs/` | `ARCHITECTURE.md` (frozen contracts), `LIVE-TREE.md`, `MEMORY.md` (the one-tree memory pass, measured; decision C keeps the arena linear), `CLEANUP.md` (cleanup rules, tiers, and accounting), `HOMEBREW.md` (the tap, the cask, the release step), `UPDATES.md` (the self-update design and verification rules), `ROADMAP.md` |
 
 ## Where things are
 
@@ -65,7 +65,9 @@ and a `ScanSummary` is never edited.
 `Live/` holds the tree the results screen reads: `LiveTree.swift` is the compact
 arena and its measured edits, `LiveTreeUpdater.swift` turns a changed folder into those
 edits (with `LiveTreePolicy` keeping the scan's rules), and `LiveTree+ScanSummary.swift`
-builds one from a finished scan. `docs/LIVE-TREE.md` is the design and the migration.
+builds one from a finished scan. `docs/LIVE-TREE.md` is the design and the migration;
+`docs/MEMORY.md` is the memory record — the one-tree pass, measured, and the decision to
+keep the arena linear with no stored-entry cap.
 
 **`DiskUpdate` — the release feed and the update checks.**
 `ReleaseFeed.swift` reads GitHub's `releases/latest` through a `FeedTransport` seam;
@@ -207,7 +209,9 @@ add `--disable-sandbox` to a plain `swift build` or `swift test`.
 `docs/ROADMAP.md` records what is shipped, the remaining work in recommended order,
 the decisions that must not be re-litigated, and a suggested opening prompt for a
 fresh session. `docs/UPDATES.md` is the update contract: feed, verification, install
-transaction, permissions, and Homebrew.
+transaction, permissions, and Homebrew. `docs/MEMORY.md` is the memory record:
+the measured baseline, the implemented one-tree rule, and the decision to keep the arena
+linear (no cap) with its reopen trigger.
 
 `.agents/skills/willydisk-verify/` holds the end-to-end verification procedure (build,
 test, bundle, launch, offscreen capture, and the SDK-stamp trap). It is offered as a

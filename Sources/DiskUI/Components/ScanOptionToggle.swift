@@ -1,4 +1,5 @@
 import SwiftUI
+import DiskLocalization
 
 /// One scan option: the consequence spelled out beside its switch.
 ///
@@ -26,7 +27,7 @@ struct ScanOptionToggle: View {
                 .toggleStyle(.switch)
                 .labelsHidden()
                 .accessibilityLabel(title)
-                .accessibilityValue(isOn ? "on" : "off")
+                .accessibilityValue(L10n.string(isOn ? "On" : "Off"))
         }
     }
 }

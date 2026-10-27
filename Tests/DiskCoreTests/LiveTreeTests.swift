@@ -28,7 +28,13 @@ final class LiveTreeTests: XCTestCase {
         )
     }
 
-    private func folder(_ name: String, _ children: [ScanNode], url: URL? = nil) -> ScanNode {
+    private func folder(
+        _ name: String,
+        _ children: [ScanNode],
+        url: URL? = nil,
+        accessible: Bool = true,
+        error: String? = nil
+    ) -> ScanNode {
         ScanNode(
             id: UUID(),
             url: url ?? rootURL.appendingPathComponent(name, isDirectory: true),
@@ -41,8 +47,8 @@ final class LiveTreeTests: XCTestCase {
             fileCount: children.reduce(0) { $0 + $1.fileCount },
             directoryCount: 1 + children.reduce(0) { $0 + $1.directoryCount },
             modifiedAt: nil,
-            isAccessible: true,
-            errorMessage: nil,
+            isAccessible: accessible,
+            errorMessage: error,
             children: children
         )
     }
@@ -61,6 +67,28 @@ final class LiveTreeTests: XCTestCase {
             ],
             url: rootURL
         )
+    }
+
+    /// root/Open/a.bin, root/Private (unreadable), root/Mixed/{Denied (unreadable), Fine},
+    /// root/notes.txt. Two folders in the tree could not be read.
+    private func coverageRoot() -> ScanNode {
+        folder(
+            "tree",
+            [
+                folder("Open", [file("a.bin", 10)]),
+                folder("Private", [], accessible: false, error: "Permission denied"),
+                folder("Mixed", [
+                    folder("Denied", [], accessible: false, error: "Permission denied"),
+                    folder("Fine", []),
+                ]),
+                file("notes.txt", 5),
+            ],
+            url: rootURL
+        )
+    }
+
+    private func makeCoverageTree() throws -> LiveTree {
+        try XCTUnwrap(LiveTree(scanning: summary(coverageRoot())))
     }
 
     private func summary(_ root: ScanNode) -> ScanSummary {
@@ -332,6 +360,74 @@ final class LiveTreeTests: XCTestCase {
         XCTAssertEqual(try XCTUnwrap(tree.entry(for: empty)).logicalSize, 1_000)
         XCTAssertEqual(try XCTUnwrap(tree.entry(for: empty)).fileCount, 1)
         XCTAssertEqual(try XCTUnwrap(tree.entry(for: empty)).directoryCount, 1)
+    }
+
+    // MARK: - Folder coverage
+
+    func testUnreadableFoldersAreCountedPerSubtree() throws {
+        let tree = try makeCoverageTree()
+
+        XCTAssertEqual(tree.unreadableFolderCount(for: LiveTree.rootID), 2)
+        XCTAssertEqual(tree.unreadableFolderCount(atPath: "/scan/tree/Private"), 1)
+        XCTAssertEqual(tree.unreadableFolderCount(atPath: "/scan/tree/Mixed"), 1)
+        XCTAssertEqual(tree.unreadableFolderCount(atPath: "/scan/tree/Mixed/Denied"), 1)
+        XCTAssertEqual(tree.unreadableFolderCount(atPath: "/scan/tree/Mixed/Fine"), 0)
+        XCTAssertEqual(tree.unreadableFolderCount(atPath: "/scan/tree/notes.txt"), 0)
+        XCTAssertEqual(tree.unreadableFolderCount(atPath: "/scan/tree/Open"), 0)
+    }
+
+    func testTouchingAFolderMovesItsUnreadableCount() throws {
+        let tree = try makeCoverageTree()
+        let open = try id(tree, "/scan/tree/Open")
+        let notes = try id(tree, "/scan/tree/notes.txt")
+
+        tree.apply([.touch(id: open, modifiedAt: nil, isAccessible: false, errorMessage: "Permission denied")])
+        XCTAssertEqual(tree.unreadableFolderCount(for: LiveTree.rootID), 3)
+        XCTAssertEqual(tree.unreadableFolderCount(for: open), 1)
+
+        // A file is not a folder, even when its metadata says it was denied.
+        tree.apply([.touch(id: notes, modifiedAt: nil, isAccessible: false, errorMessage: "Permission denied")])
+        XCTAssertEqual(tree.unreadableFolderCount(for: LiveTree.rootID), 3)
+        XCTAssertEqual(tree.unreadableFolderCount(for: notes), 0)
+
+        tree.apply([.touch(id: open, modifiedAt: nil, isAccessible: true, errorMessage: nil)])
+        XCTAssertEqual(tree.unreadableFolderCount(for: LiveTree.rootID), 2)
+        XCTAssertEqual(tree.unreadableFolderCount(for: open), 0)
+    }
+
+    func testGroupEditsKeepUnreadableCounts() throws {
+        let tree = try makeCoverageTree()
+        let new = folder("New", [folder("Inner", [], accessible: false)], accessible: false)
+
+        tree.apply([.insertNew(parent: LiveTree.rootID, node: new)])
+        let newID = try id(tree, "/scan/tree/New")
+        XCTAssertEqual(tree.unreadableFolderCount(for: LiveTree.rootID), 4)
+        XCTAssertEqual(tree.unreadableFolderCount(for: newID), 2)
+        XCTAssertEqual(tree.unreadableFolderCount(atPath: "/scan/tree/New/Inner"), 1)
+
+        let fine = try id(tree, "/scan/tree/Mixed/Fine")
+        let privateFolder = try id(tree, "/scan/tree/Private")
+        tree.apply([.move(id: privateFolder, toParent: fine, name: "Private")])
+        XCTAssertEqual(tree.unreadableFolderCount(for: LiveTree.rootID), 4)
+        XCTAssertEqual(tree.unreadableFolderCount(for: fine), 1)
+        XCTAssertEqual(tree.unreadableFolderCount(atPath: "/scan/tree/Mixed/Fine/Private"), 1)
+
+        tree.apply([.remove(id: newID)])
+        XCTAssertEqual(tree.unreadableFolderCount(for: LiveTree.rootID), 2)
+
+        let mixed = try id(tree, "/scan/tree/Mixed")
+        tree.apply([.remove(id: mixed)])
+        XCTAssertEqual(tree.unreadableFolderCount(for: LiveTree.rootID), 0)
+        XCTAssertNil(tree.unreadableFolderCount(atPath: "/scan/tree/Mixed/Fine/Private"))
+    }
+
+    func testReplacingAFolderReconcilesItsUnreadableCount() throws {
+        let tree = try makeCoverageTree()
+
+        tree.apply([.insert(parent: LiveTree.rootID, node: folder("Private", []))])
+
+        XCTAssertEqual(tree.unreadableFolderCount(for: LiveTree.rootID), 1)
+        XCTAssertEqual(tree.unreadableFolderCount(atPath: "/scan/tree/Private"), 0)
     }
 
     func testAFolderCannotMoveInsideItself() throws {

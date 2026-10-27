@@ -81,7 +81,7 @@ public struct UpdateSheet: View {
             Divider()
             footer
         }
-        .frame(width: 640, height: 600)
+        .dsFittedFrame(width: 640, height: 600)
         .background(DS.Color.windowBackground)
         .tint(DS.Color.signal)
     }

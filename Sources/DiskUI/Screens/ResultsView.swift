@@ -1942,6 +1942,18 @@ public struct ResultsView: View {
                 detailRow(L10n.string("Access"), node.errorMessage ?? L10n.string("Inaccessible"))
                     .foregroundStyle(DS.Color.warning)
             }
+            if node.isDirectory {
+                let inside = unreadableInside(node)
+                if inside > 0 {
+                    detailRow(L10n.string("Not counted inside"), CountFormat.folders(inside))
+                        .foregroundStyle(DS.Color.warning)
+                    Text(L10n.string("Their contents are missing from this folder's size."))
+                        .font(DS.Typography.caption)
+                        .foregroundStyle(DS.Color.secondaryText)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.leading, DS.Size.detailLabelWidth + DS.Spacing.medium)
+                }
+            }
 
             if isSearchActive {
                 Button {
@@ -2049,6 +2061,16 @@ public struct ResultsView: View {
     }
 
     @ViewBuilder
+    /// How many folders inside this one could not be read, not counting the
+    /// folder itself — its own access failure is the row above.
+    private func unreadableInside(_ node: ScanNode) -> Int {
+        guard node.isDirectory,
+              let count = viewModel.liveTree?.unreadableFolderCount(atPath: node.url.path) else {
+            return 0
+        }
+        return max(0, count - (node.isAccessible ? 0 : 1))
+    }
+
     private func detailRow(_ label: String, _ value: String) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: DS.Spacing.medium) {
             Text(label)

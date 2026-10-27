@@ -47,10 +47,12 @@ struct FileSystemAccess: Sendable {
 /// ## Truthfulness
 ///
 /// Totals are accumulated once per entry into a single lock-protected state, and
-/// the same state produces every `.partial` snapshot and the terminal summary, so
-/// a snapshot can never disagree with the final result. A directory is claimed by
-/// exactly one worker before it is walked, so a subtree reachable under two paths
-/// (firmlinks, directory hard links) is counted once.
+/// the same state produces every `.partial` snapshot and the terminal summary's
+/// issues, accounting, and ranked lists. A walk that fills a `LiveTree` reports
+/// that tree's own totals in the terminal summary, so the record and the tree
+/// agree; a walk that does not carries the complete value tree in the summary. A
+/// directory is claimed by exactly one worker before it is walked, so a subtree
+/// reachable under two paths (firmlinks, directory hard links) is counted once.
 enum FileScanner {
 
     /// Number of entries kept in `ScanSummary.largestFiles` / `.largestDirectories`.
@@ -100,16 +102,23 @@ enum FileScanner {
 
     // MARK: - Entry point
 
-    /// Walks `request`. When `liveTree` is given, the walk fills a `LiveTree` as
-    /// it goes and reports it just before the terminal event, once the tree is
+    /// Walks `request`. When the tree callbacks are given, the walk fills a
+    /// `LiveTree` as it goes: `liveTreeCreated` is called as soon as the tree
+    /// exists (before the first snapshot, so a screen can read it while the walk
+    /// runs), and `liveTreeReady` just before the terminal event, once the tree is
     /// known to agree with the summary. It is reported before `.finished` so a
     /// consumer that reacts to the terminal event can always take it.
+    ///
+    /// A walk that fills a tree does not also keep the tree in its summary: the
+    /// ranked directory entries carry no subfolders and `rootChildren` stays
+    /// empty. The tree is the tree; the summary is the record.
     static func run(
         request: ScanRequest,
         access: FileSystemAccess = .live,
         cadence: SnapshotCadence = .production,
         concurrency: Int = FileScanner.defaultConcurrency,
-        liveTree: (@Sendable (LiveTree) -> Void)? = nil,
+        liveTreeCreated: (@Sendable (LiveTree) -> Void)? = nil,
+        liveTreeReady: (@Sendable (LiveTree) -> Void)? = nil,
         emit: @escaping @Sendable (ScanEvent) -> Void
     ) async {
         let startDate = Date()
@@ -224,9 +233,10 @@ enum FileScanner {
         }
 
         let rootResolvedPath = access.resolvedPath(rootPath)
-        let tree = liveTree == nil
+        let tree = liveTreeCreated == nil && liveTreeReady == nil
             ? nil
             : LiveTree(rootName: rootName, rootURL: request.root, isSymlink: rootIsSymlink)
+        if let tree { liveTreeCreated?(tree) }
         let context = ScanContext(
             request: request,
             access: access,
@@ -256,11 +266,13 @@ enum FileScanner {
         if context.workUnits > 0 {
             emit(.progress(context.progress(finishedAt: Date())))
         }
-        let summary = context.summary(finishedAt: Date())
+        let summary = context.summary(finishedAt: Date(), reconciledWith: tree)
         // The tree is only handed on when it agrees with the summary the same
-        // walk produced; otherwise the caller keeps the summary alone.
-        if let tree, let liveTree, tree.matches(summary) {
-            liveTree(tree)
+        // walk produced; otherwise the caller keeps the summary alone. The
+        // terminal summary reports the tree's own totals when it has one, so the
+        // record and the screen cannot disagree.
+        if let tree, let liveTreeReady, tree.matches(summary) {
+            liveTreeReady(tree)
         }
         emit(.finished(summary))
     }
@@ -450,7 +462,9 @@ enum FileScanner {
         let isSymlink: Bool
         let stat: FileStat
         /// The live tree's entry for this folder, when the walk is filling one.
-        let slot: LiveNodeID?
+        /// It is assigned after the whole listing is inserted, so a folder and
+        /// its siblings become visible together.
+        var slot: LiveNodeID?
     }
 
     /// Where a directory sits relative to the scan root, which is what decides
@@ -661,8 +675,10 @@ enum FileScanner {
         ///
         /// The whole group is published together: a screen colours the entries by
         /// their place among their siblings, so half a group on screen would take
-        /// places that move when the other half arrives.
+        /// places that move when the other half arrives. A walk that fills a
+        /// `LiveTree` does not use these records; the tree carries the group.
         func openRootChildren(directories: [PendingDirectory], files: [ScanNode]) {
+            guard liveTree == nil else { return }
             guard !directories.isEmpty || !files.isEmpty else { return }
             lock.withLock { state in
                 for directory in directories where state.rootChildren[directory.path] == nil {
@@ -693,6 +709,7 @@ enum FileScanner {
             entries: [ScanNode],
             folders: [PendingDirectory] = []
         ) {
+            guard liveTree == nil else { return }
             lock.withLock { state in
                 guard var record = state.rootChildren[rootChild] else { return }
                 record.logical += logical
@@ -721,6 +738,7 @@ enum FileScanner {
         /// Notes that a scan-root folder could not be read, which its record
         /// carries until the folder finishes.
         func noteRootChildAccess(path: String, isAccessible: Bool, errorMessage: String?) {
+            guard liveTree == nil else { return }
             lock.withLock { state in
                 guard var record = state.rootChildren[path] else { return }
                 record.isAccessible = isAccessible
@@ -733,6 +751,7 @@ enum FileScanner {
         /// a screen can open a folder that has just been walked. The bytes it
         /// accounts for were credited by the directory that read them.
         func addRootChildEntry(of path: String, entry: ScanNode) {
+            guard liveTree == nil else { return }
             lock.withLock { state in
                 guard var record = state.rootChildren[path] else { return }
                 record.entries[entry.url.path] = entry
@@ -742,6 +761,7 @@ enum FileScanner {
 
         /// Replaces a scan-root folder's record with its finished node.
         func finishRootChild(_ node: ScanNode, path: String) {
+            guard liveTree == nil else { return }
             lock.withLock { state in
                 guard var record = state.rootChildren[path] else { return }
                 record.finished = node
@@ -752,6 +772,7 @@ enum FileScanner {
         /// Drops the root's live records once its own node exists: its `children`
         /// are the complete list, and the summary reports one or the other.
         func closeRootChildren() {
+            guard liveTree == nil else { return }
             lock.withLock { state in
                 state.rootChildren.removeAll(keepingCapacity: false)
                 state.rootFiles.removeAll(keepingCapacity: false)
@@ -895,31 +916,44 @@ enum FileScanner {
             emit(.partial(summary(from: state, finishedAt: stamp)))
         }
 
-        func summary(finishedAt: Date) -> ScanSummary {
-            lock.withLock { summary(from: $0, finishedAt: finishedAt) }
+        func summary(finishedAt: Date, reconciledWith tree: LiveTree? = nil) -> ScanSummary {
+            lock.withLock { summary(from: $0, finishedAt: finishedAt, reconciledWith: tree) }
         }
 
         func progress(finishedAt: Date) -> ScanProgress {
             lock.withLock { progress(from: $0, finishedAt: finishedAt) }
         }
 
-        private func summary(from state: WalkState, finishedAt: Date) -> ScanSummary {
+        private func summary(
+            from state: WalkState,
+            finishedAt: Date,
+            reconciledWith tree: LiveTree? = nil
+        ) -> ScanSummary {
+            // A tree that was filled by this walk is the screen's measurement.
+            // Its totals repeat the same entries the summary counted; taking them
+            // here keeps the record and the tree from disagreeing if one side ever
+            // misses an insertion.
+            let fileCount = tree?.fileCount ?? state.totalFiles
+            let directoryCount = tree?.directoryCount ?? state.totalDirs
+            let totalLogical = tree?.totalLogicalSize ?? state.totalLogical
+            let totalAllocated = tree?.totalAllocatedSize ?? state.totalAllocated
+            let categoryBreakdown = tree?.categorySizes() ?? state.categoryBreakdown
             return ScanSummary(
                 root: request.root,
-                totalLogicalSize: state.totalLogical,
-                totalAllocatedSize: state.totalAllocated,
-                fileCount: state.totalFiles,
-                directoryCount: state.totalDirs,
+                totalLogicalSize: totalLogical,
+                totalAllocatedSize: totalAllocated,
+                fileCount: fileCount,
+                directoryCount: directoryCount,
                 inaccessibleCount: state.inaccessibleCount,
                 errorCount: state.errorCount,
                 permissionDeniedCount: state.permissionDeniedCount,
                 surfacedIssueCount: state.surfacedIssueCount,
                 startedAt: startDate,
                 finishedAt: finishedAt,
-                categoryBreakdown: state.categoryBreakdown,
+                categoryBreakdown: categoryBreakdown,
                 largestFiles: state.largestFiles.sortedDescending(),
                 largestDirectories: state.largestDirectories.sortedDescending(),
-                rootChildren: rootChildren(from: state),
+                rootChildren: tree == nil ? rootChildren(from: state) : [],
                 accounting: ScanAccounting(
                     hardlinkFileCount: state.hardlinkFileCount,
                     hardlinkExtraLogicalSize: state.hardlinkExtraLogical,
@@ -940,8 +974,10 @@ enum FileScanner {
         /// Every entry the root holds is reported, not a capped sample of them:
         /// a screen colours the entries by their place among their siblings, so
         /// the list has to be the whole group for those colours to hold still
-        /// while the scan runs.
+        /// while the scan runs. A walk that fills a live tree has no such records
+        /// to report: the tree carries the root's entries.
         private func rootChildren(from state: WalkState) -> [ScanNode] {
+            guard liveTree == nil else { return [] }
             let directories = state.rootChildren.values
             let files = Array(state.rootFiles.values)
             guard !directories.isEmpty || !files.isEmpty else { return [] }
@@ -1083,8 +1119,7 @@ enum FileScanner {
                         name: entry.name,
                         stat: childStat,
                         isSymlink: false,
-                        checkClock: checkClock,
-                        liveParent: liveSlot
+                        checkClock: checkClock
                     ) {
                         subdirectories.append(pending)
                     }
@@ -1103,8 +1138,7 @@ enum FileScanner {
                     switch resolveSymlink(
                         name: entry.name,
                         path: childPath,
-                        stat: childStat,
-                        liveParent: liveSlot
+                        stat: childStat
                     ) {
                     case .child(let node, let targetStat):
                         noteEntry(path: childPath, file: node, stat: targetStat, checkClock: checkClock)
@@ -1127,7 +1161,22 @@ enum FileScanner {
             }
 
             if let liveSlot, let liveTree {
-                liveTree.insertDiscovered(children, under: liveSlot)
+                // A listing is inserted as one group, subfolders included, so a
+                // screen reading between the listing and the walk never sees a
+                // folder holding half of what it holds. The tree needs the
+                // folders' ids to attach what is inside them.
+                let fileNodeCount = children.count
+                var group = children
+                group.reserveCapacity(fileNodeCount + subdirectories.count)
+                for folder in subdirectories {
+                    group.append(emptyDirectoryNode(for: folder))
+                }
+                let ids = liveTree.insertDiscoveredGroup(group, under: liveSlot)
+                for index in subdirectories.indices {
+                    let idIndex = fileNodeCount + index
+                    if idIndex < ids.count { subdirectories[index].slot = ids[idIndex] }
+                }
+                children.removeAll(keepingCapacity: false)
             }
 
             // The work this directory has done on its own entries is credited
@@ -1195,7 +1244,7 @@ enum FileScanner {
                                     // A root child's own entries are listed the
                                     // moment each finishes, so a screen can open
                                     // them while the folder is still being walked.
-                                    if relation == .rootChild {
+                                    if self.liveTree == nil, relation == .rootChild {
                                         self.addRootChildEntry(of: path, entry: node)
                                     }
                                     produced.append(node)
@@ -1207,7 +1256,7 @@ enum FileScanner {
 
                     for await produced in group {
                         for node in produced {
-                            children.append(node)
+                            if liveTree == nil { children.append(node) }
                             fileCount += node.fileCount
                             directoryCount += node.directoryCount
                             logical += node.logicalSize
@@ -1241,7 +1290,9 @@ enum FileScanner {
                 modifiedAt: stat.modifiedAt,
                 isAccessible: isAccessible,
                 errorMessage: errorMessage,
-                children: children.sorted { $0.logicalSize > $1.logicalSize }
+                children: liveTree == nil
+                    ? children.sorted { $0.logicalSize > $1.logicalSize }
+                    : []
             )
             recordDirectory(node, path: path, checkClock: true)
             switch relation {
@@ -1260,8 +1311,7 @@ enum FileScanner {
             name: String,
             stat: FileStat,
             isSymlink: Bool,
-            checkClock: Bool,
-            liveParent: LiveNodeID?
+            checkClock: Bool
         ) -> PendingDirectory? {
             // A bulk read reports the *underlying* volume's device for a mount
             // point, so a mount point's real device has to be read directly —
@@ -1281,13 +1331,7 @@ enum FileScanner {
                 return true
             }
             guard claimed else { return nil }
-            let slot = liveTree?.insertDiscoveredDirectory(
-                under: liveParent ?? LiveTree.rootID,
-                name: name,
-                isSymlink: isSymlink,
-                modifiedAt: stat.modifiedAt
-            )
-            return PendingDirectory(path: path, name: name, isSymlink: isSymlink, stat: stat, slot: slot)
+            return PendingDirectory(path: path, name: name, isSymlink: isSymlink, stat: stat, slot: nil)
         }
 
         /// Claims a directory reached through a followed symlink.
@@ -1303,8 +1347,7 @@ enum FileScanner {
         private func resolveSymlink(
             name: String,
             path: String,
-            stat: FileStat,
-            liveParent: LiveNodeID?
+            stat: FileStat
         ) -> SymlinkOutcome? {
             guard request.followSymlinks else {
                 // Default safe behavior: represent the link as a zero-sized leaf, never follow.
@@ -1337,14 +1380,8 @@ enum FileScanner {
                     recordSkippedSymbolicLink()
                     return nil
                 }
-                let slot = liveTree?.insertDiscoveredDirectory(
-                    under: liveParent ?? LiveTree.rootID,
-                    name: name,
-                    isSymlink: true,
-                    modifiedAt: target.modifiedAt
-                )
                 return .directory(
-                    PendingDirectory(path: path, name: name, isSymlink: true, stat: target, slot: slot)
+                    PendingDirectory(path: path, name: name, isSymlink: true, stat: target, slot: nil)
                 )
             }
 
@@ -1372,6 +1409,27 @@ enum FileScanner {
         }
 
         // MARK: Node factories
+
+        /// The empty node a folder enters the tree as: it counts itself and owns
+        /// no bytes until its entries are inserted under it.
+        private func emptyDirectoryNode(for directory: PendingDirectory) -> ScanNode {
+            ScanNode(
+                id: UUID(),
+                url: FileScanner.nodeURL(directory.path, isDirectory: true),
+                name: directory.name,
+                isDirectory: true,
+                isSymlink: directory.isSymlink,
+                category: FileCategorizer.category(name: directory.name, isDirectory: true),
+                logicalSize: 0,
+                allocatedSize: 0,
+                fileCount: 0,
+                directoryCount: 1,
+                modifiedAt: directory.stat.modifiedAt,
+                isAccessible: true,
+                errorMessage: nil,
+                children: []
+            )
+        }
 
         private func makeFileNode(name: String, path: String, stat: FileStat) -> ScanNode {
             ScanNode(

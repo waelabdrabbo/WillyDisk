@@ -172,6 +172,8 @@
 	<string>[Áƀöúŧ ŴíļļýÐíšķ·············]</string>
 	<key>Access</key>
 	<string>[Áççéšš····]</string>
+	<key>Accounting</key>
+	<string>[Áççöúñŧíñĝ········]</string>
 	<key>Actions apply to the whole selection.</key>
 	<string>[Áçŧíöñš áþþļý ŧö ŧĥé ŵĥöļé šéļéçŧíöñ.···································]</string>
 	<key>Add Path…</key>
@@ -424,8 +426,8 @@
 	<string>[Éẋþöŕŧ ŧĥé áñáļýšíš ŕéþöŕŧ öŕ ðíáĝñöšŧíçš·······································]</string>
 	<key>File</key>
 	<string>[Ƒíļé····]</string>
-	<key>File ▸ Export writes a JSON report with the accounting disclosures, or a CSV of the ranked items.</key>
-	<string>[Ƒíļé ▸ Éẋþöŕŧ ŵŕíŧéš á ĴŠÖÑ ŕéþöŕŧ ŵíŧĥ ŧĥé áççöúñŧíñĝ ðíšçļöšúŕéš, öŕ á ÇŠṼ öƒ ŧĥé ŕáñķéð íŧéɱš.·······························································································]</string>
+	<key>File ▸ Export writes a JSON report with the accounting disclosures, or a CSV of the ranked items and those disclosures.</key>
+	<string>[Ƒíļé ▸ Éẋþöŕŧ ŵŕíŧéš á ĴŠÖÑ ŕéþöŕŧ ŵíŧĥ ŧĥé áççöúñŧíñĝ ðíšçļöšúŕéš, öŕ á ÇŠṼ öƒ ŧĥé ŕáñķéð íŧéɱš áñð ŧĥöšé ðíšçļöšúŕéš.·····················································································································]</string>
 	<key>Files</key>
 	<string>[Ƒíļéš····]</string>
 	<key>Files and folders</key>
@@ -514,6 +516,8 @@
 	<string>[Íñšŧáļļíñĝ áñð Ŕéļáúñçĥíñĝ…·························]</string>
 	<key>Issues</key>
 	<string>[Íššúéš····]</string>
+	<key>Issues surfaced</key>
+	<string>[Íššúéš šúŕƒáçéð·············]</string>
 	<key>It is already back in place</key>
 	<string>[Íŧ íš áļŕéáðý ƀáçķ íñ þļáçé·························]</string>
 	<key>It is no longer in the Trash</key>
@@ -654,6 +658,8 @@
 	<string>[Ñöñé ļíšŧéð·········]</string>
 	<key>Not checked yet.</key>
 	<string>[Ñöŧ çĥéçķéð ýéŧ.··············]</string>
+	<key>Not counted inside</key>
+	<string>[Ñöŧ çöúñŧéð íñšíðé················]</string>
 	<key>Not in the Trash</key>
 	<string>[Ñöŧ íñ ŧĥé Ŧŕášĥ··············]</string>
 	<key>Not on this Mac</key>
@@ -684,8 +690,12 @@
 	<string>[Ñöŧĥíñĝ ŧö ŕéṽíéŵ···············]</string>
 	<key>Nothing to review here</key>
 	<string>[Ñöŧĥíñĝ ŧö ŕéṽíéŵ ĥéŕé····················]</string>
+	<key>Off</key>
+	<string>[Öƒƒ····]</string>
 	<key>Old downloads</key>
 	<string>[Öļð ðöŵñļöáðš···········]</string>
+	<key>On</key>
+	<string>[Öñ····]</string>
 	<key>On disk</key>
 	<string>[Öñ ðíšķ·····]</string>
 	<key>One run recorded</key>
@@ -778,6 +788,8 @@
 	<string>[Ŕéšçáñ····]</string>
 	<key>Reset to Defaults</key>
 	<string>[Ŕéšéŧ ŧö Ðéƒáúļŧš···············]</string>
+	<key>Restricted locations</key>
+	<string>[Ŕéšŧŕíçŧéð ļöçáŧíöñš··················]</string>
 	<key>Results</key>
 	<string>[Ŕéšúļŧš·····]</string>
 	<key>Results changed since this scan. Rescan.</key>
@@ -1060,6 +1072,8 @@
 	<string>[Ŧĥé ⓘ ƀúŧŧöñ öþéñš Çöṽéŕáĝé: ŵĥáŧ ŧĥé šçáñ çöúñŧéð, ŵĥáŧ íŧ šķíþþéð, áñð ŧĥé ṽöļúɱé'š öŵñ ƒíĝúŕéš šíðé ƀý šíðé.·············································································································]</string>
 	<key>Their contents are missing from the totals. %@ were reported.</key>
 	<string>[Ŧĥéíŕ çöñŧéñŧš áŕé ɱíššíñĝ ƒŕöɱ ŧĥé ŧöŧáļš. %@ ŵéŕé ŕéþöŕŧéð.···························································]</string>
+	<key>Their contents are missing from this folder's size.</key>
+	<string>[Ŧĥéíŕ çöñŧéñŧš áŕé ɱíššíñĝ ƒŕöɱ ŧĥíš ƒöļðéŕ'š šížé.·················································]</string>
 	<key>There is no finished scan to check this item against. Run a scan, then try again.</key>
 	<string>[Ŧĥéŕé íš ñö ƒíñíšĥéð šçáñ ŧö çĥéçķ ŧĥíš íŧéɱ áĝáíñšŧ. Ŕúñ á šçáñ, ŧĥéñ ŧŕý áĝáíñ.···············································································]</string>
 	<key>There is no published release.</key>
@@ -1118,6 +1132,8 @@
 	<string>[Ŧöþ Ƒíļéš·······]</string>
 	<key>Top Folders</key>
 	<string>[Ŧöþ Ƒöļðéŕš·········]</string>
+	<key>Total</key>
+	<string>[Ŧöŧáļ····]</string>
 	<key>Totals and categories are exact: a scan measures every entry it scanned. Folders and files are %@, matched by path. An entry is marked New only when the earlier run would have recorded it: it is absent from a list that held everything it found, or larger than a truncated list's cut-off. A later entry at or below that cut-off is not compared.</key>
 	<string>[Ŧöŧáļš áñð çáŧéĝöŕíéš áŕé éẋáçŧ: á šçáñ ɱéášúŕéš éṽéŕý éñŧŕý íŧ šçáññéð. Ƒöļðéŕš áñð ƒíļéš áŕé %@, ɱáŧçĥéð ƀý þáŧĥ. Áñ éñŧŕý íš ɱáŕķéð Ñéŵ öñļý ŵĥéñ ŧĥé éáŕļíéŕ ŕúñ ŵöúļð ĥáṽé ŕéçöŕðéð íŧ: íŧ íš áƀšéñŧ ƒŕöɱ á ļíšŧ ŧĥáŧ ĥéļð éṽéŕýŧĥíñĝ íŧ ƒöúñð, öŕ ļáŕĝéŕ ŧĥáñ á ŧŕúñçáŧéð ļíšŧ'š çúŧ-öƒƒ. Á ļáŧéŕ éñŧŕý áŧ öŕ ƀéļöŵ ŧĥáŧ çúŧ-öƒƒ íš ñöŧ çöɱþáŕéð.·····················································································································································································································································································································································]</string>
 	<key>Totals are exact. Folders and files are %@, matched by path. No savings are claimed.</key>
@@ -1152,6 +1168,8 @@
 	<string>[Úšé ŧĥé áŕŕöŵ ķéýš ŧö ɱöṽé ŧĥŕöúĝĥ ŧĥé ļíšŧ, Šþáçé ŧö þŕéṽíéŵ, áñð Ŕéŧúŕñ ŧö öþéñ.················································································]</string>
 	<key>Used by the volume</key>
 	<string>[Úšéð ƀý ŧĥé ṽöļúɱé················]</string>
+	<key>Value</key>
+	<string>[Ṽáļúé····]</string>
 	<key>Video</key>
 	<string>[Ṽíðéö····]</string>
 	<key>View Results</key>

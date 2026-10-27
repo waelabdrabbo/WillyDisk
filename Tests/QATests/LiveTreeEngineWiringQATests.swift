@@ -47,6 +47,10 @@ final class LiveTreeEngineWiringQATests: XCTestCase {
                 return held
             }
         }
+
+        func liveTreeInProgress() async -> LiveTree? {
+            lock.withLock { tree }
+        }
     }
 
     private func waitUntil(
@@ -100,6 +104,43 @@ final class LiveTreeEngineWiringQATests: XCTestCase {
         let installed = await waitUntil { viewModel.phase == .finished && viewModel.liveTree != nil }
         XCTAssertTrue(installed, "the screen should install the tree the engine built")
         XCTAssertTrue(viewModel.liveTree === tree, "and it should be that tree, not one made from the summary")
+        engine.finish()
+    }
+
+    func testTheScreenInstallsTheTreeBeforeTheWalkEnds() async {
+        let name = "LiveTreeWiringQA-\(UUID().uuidString)"
+        addTeardownBlock { UserDefaults().removePersistentDomain(forName: name) }
+        let defaults = UserDefaults(suiteName: name)!
+        let preferences = WatchPreferences(defaults: defaults)
+
+        let rootURL = URL(fileURLWithPath: "/scan/in-progress", isDirectory: true)
+        let tree = LiveTree(rootName: "in-progress", rootURL: rootURL)
+        let engine = ProvidingEngine(tree: tree)
+        let viewModel = ScanViewModel(
+            engine: engine,
+            watchPreferences: preferences,
+            watcher: nil
+        )
+
+        viewModel.start(root: rootURL, options: .standard)
+        engine.emit(.started(root: rootURL))
+
+        let installed = await waitUntil {
+            viewModel.phase == .scanning && viewModel.liveTree === tree
+        }
+        XCTAssertTrue(
+            installed,
+            "the screen should read the tree while the walk is still filling it"
+        )
+
+        engine.emit(.cancelled(partial: nil))
+        let cancelled = await waitUntil { viewModel.phase == .cancelled }
+        XCTAssertTrue(cancelled)
+        XCTAssertTrue(
+            viewModel.liveTree === tree,
+            "a stopped scan keeps its measured tree as a read-only surface"
+        )
+        XCTAssertFalse(viewModel.isWatching)
         engine.finish()
     }
 }

@@ -17,8 +17,24 @@ decisions. This is a handoff document, not a specification of frozen interfaces 
   watched-tree refresh (`b8be044`), global search over the whole finished scan
   (`e7d6fff`), and the localization pass (`7c7c067`). This docs handoff follows it.
 - Build: `swift build --disable-sandbox`.
-- Tests: 339 QATests + 153 DiskCoreTests (3 skipped; the benchmark tests need
+- Tests: 344 QATests + 159 DiskCoreTests (3 skipped; the benchmark tests need
   `WILLYDISK_BENCH_ROOT`) + 30 DiskCLITests + 83 DiskUpdateTests, 0 failures.
+- The one-tree memory pass (`docs/MEMORY.md` stages 1–4) is in the working tree: the
+  engine exposes its live tree while it walks, the summary carries no subtrees, and the
+  measured full-disk peak fell from 2,755 MB to 636 MB (`$HOME` 2,435 → 537 MB,
+  `/Applications` 413 → 118 MB). The stored-entry ceiling is deliberately deferred:
+  decision C in `docs/MEMORY.md` — no cap, no grouped entries, memory linear at the
+  arena's own cost, with a measured trigger for reopening it.
+- Coverage opens with ⌘I, and a folder's inspector says how many folders inside it could
+  not be read. The count is maintained by the live tree's edits, so a folder's size is
+  never presented as complete when it is a floor. The results header does not carry a
+  coverage status line; that placement was rejected.
+- The CSV report carries the scan's totals, access counts, and accounting rows before
+  the ranked items, with a `Value` column for the counts that are not files or folders.
+  A comma in a name is quoted once. Fixed sheets cap themselves to the screen's visible
+  frame, and the empty states were audited: every surface already says what it is.
+- The accessibility pass so far localizes the scan-option switch values and makes each
+  coverage row a single VoiceOver element; a full VoiceOver and focus pass remains.
 - CI: `.github/workflows/ci.yml` builds, tests, checks that the bundle reports
   `VERSION`, runs the bundled binary's `scan` and its usage exit status, and uploads
   the offscreen renders on every push. `.github/workflows/release.yml` runs on a `v*`
@@ -259,7 +275,8 @@ Details worth remembering:
   uses the engine's clock and reports no totals until a snapshot exists; a quiet refresh
   reports the completed run still on screen as `refreshing`. The save panel says what
   the file does and does not contain. Report export (JSON/CSV) is the separate document
-  that names paths.
+  that names paths; its CSV carries the totals, access counts, and accounting rows, then
+  the ranked items.
 - The command line is a front end over the same `FileScanEngine`, not a second scanner:
   `DiskCLI` depends on `DiskCore` only, and the executable's `@main` routes
   `WillyDisk scan …` (or a leading option such as `--help`) before SwiftUI is touched,
@@ -395,12 +412,17 @@ one-off visual check.
 ### 1. Performance and polish
 
 - Performance guardrails for million-file scans; the benchmark test is currently
-  skipped unless an environment variable points at a root. The ceiling should become
-  structural, not only measured: a per-directory node cap with small files folded into
-  one expandable node, so a multi-million-file tree cannot grow the resident set without
-  bound. That changes which files the explorer can open, so it needs its own design note.
-- Polish: coverage discoverability, folder-level coverage disclosure, CSV accounting
-  (JSON has it, CSV does not), empty states, window sizing, accessibility audit.
+  skipped unless an environment variable points at a root. The one-tree half is done
+  (`docs/MEMORY.md` stages 1–4): the engine exposes its live tree while it walks and the
+  summary is the record, so a scan no longer keeps the tree twice. The stored-entry
+  ceiling is **deferred by decision C**: memory stays linear at about 90–115 bytes per
+  entry, there is no grouping, expansion, or updater change, and no file becomes
+  unsearchable. `docs/MEMORY.md` keeps the budget/cap design and the measured trigger
+  for reopening the decision (a scan above 6M entries, a walk-built peak above 1 GB, a
+  memory-pressure report, or a release that markets scans beyond the envelope).
+- Polish: coverage discoverability (⌘I and the folder inspector exist; the toolbar icon
+  is still easy to miss), the remaining accessibility audit (the switch-value and
+  coverage-row fixes are in).
 
 ### 2. Reclaim past the Trash
 
@@ -492,6 +514,16 @@ Management, and the relaunch, then a release that carries the updater.
 - Live updates change the screen, not History. History records the finished runs the
   user started; the tree following the disk must not write records or push them out of
   the 20-per-location record.
+- One scan produces one tree. A producer that fills a `LiveTree` leaves
+  `ScanSummary.rootChildren` empty and its ranked directory entries without subtrees;
+  a producer that only reports summaries keeps the complete value tree. The terminal
+  summary reports the tree's own totals. `docs/MEMORY.md` is the design and the measured
+  envelope.
+- Memory is linear by decision, not by oversight (decision C). There is no stored-entry
+  cap and there are no grouped entries: the arena is about 90–115 bytes per entry, and
+  the measured peaks are 118 MB for `/Applications`, 537 MB for `$HOME`, and 636 MB for
+  a 4.63M-entry `/`. Do not add grouping without reopening the decision; the trigger and
+  the preserved cap design are in `docs/MEMORY.md`.
 - History compares measurements, never claims savings. Only a finished scan the user
   started is recorded, and a stored run's options travel with it so a difference in what each
   walk included is disclosed rather than read as a change on disk.
@@ -514,6 +546,10 @@ Management, and the relaunch, then a release that carries the updater.
   drawing them would sum the same bytes twice and state a whole the app cannot explain.
   The chart pane says the chart maps one folder at a time and comes back when the field is
   cleared.
+- Coverage is not advertised by a status line in the results header. It opens from the
+  toolbar's ⓘ, Scan ▸ Coverage…, ⌘I, and the folder inspector's "not counted inside"
+  row. Do not reintroduce a header chip without asking; that placement was tried and
+  rejected.
 - No Apple Developer account, no Developer ID, no notarization. The bundle stays ad-hoc
   signed and every release artifact is plainly unsigned. Do not add signing or
   notarization steps that need credentials, and never describe the app as signed,
@@ -548,9 +584,10 @@ Management, and the relaunch, then a release that carries the updater.
 
 ## Suggested opening prompt
 
-> Read `docs/ROADMAP.md`. Verify `HEAD` and run the build and tests. Implement item 1,
-> the performance guardrails: first write the design note for a per-directory node cap
-> that folds small files into one expandable node, then give the benchmark a structural
-> ceiling as well as a measured one. Keep frozen contracts untouched unless the note
-> argues for a change, and update `docs/ARCHITECTURE.md` with it. Do not commit unless I
-> ask.
+> Read `docs/ROADMAP.md` and `docs/MEMORY.md`. Verify `HEAD` and run the build and tests.
+> The one-tree half of item 1 is implemented and measured, the stored-entry ceiling is
+> deliberately deferred by decision C, coverage opens with ⌘I and the folder inspector,
+> the CSV carries the accounting, and the fixed sheets fit the screen; do not rebuild
+> those. Take the remaining polish — coverage discoverability beyond ⌘I (no header chip:
+> that placement was rejected) and the accessibility audit — and keep the measured
+> envelope and the reopen trigger in `docs/MEMORY.md` current. Do not commit until I ask.

@@ -172,6 +172,8 @@
 	<string>حول WillyDisk</string>
 	<key>Access</key>
 	<string>الوصول</string>
+	<key>Accounting</key>
+	<string>المحاسبة</string>
 	<key>Actions apply to the whole selection.</key>
 	<string>تُطبّق الإجراءات على التحديد كله.</string>
 	<key>Add Path…</key>
@@ -424,8 +426,8 @@
 	<string>تصدير تقرير التحليل أو التشخيصات</string>
 	<key>File</key>
 	<string>ملف</string>
-	<key>File ▸ Export writes a JSON report with the accounting disclosures, or a CSV of the ranked items.</key>
-	<string>«ملف ▸ تصدير» يكتب تقرير JSON مع إفصاحات المحاسبة، أو CSV للعناصر المرتبة.</string>
+	<key>File ▸ Export writes a JSON report with the accounting disclosures, or a CSV of the ranked items and those disclosures.</key>
+	<string>«ملف ▸ تصدير» يكتب تقرير JSON مع إفصاحات المحاسبة، أو CSV للعناصر المرتبة مع تلك الإفصاحات.</string>
 	<key>Files</key>
 	<string>الملفات</string>
 	<key>Files and folders</key>
@@ -514,6 +516,8 @@
 	<string>جارٍ التثبيت وإعادة التشغيل…</string>
 	<key>Issues</key>
 	<string>المشكلات</string>
+	<key>Issues surfaced</key>
+	<string>المشكلات المعروضة</string>
 	<key>It is already back in place</key>
 	<string>إنه في مكانه بالفعل</string>
 	<key>It is no longer in the Trash</key>
@@ -654,6 +658,8 @@
 	<string>لا شيء مُدرج</string>
 	<key>Not checked yet.</key>
 	<string>لم يتم التحقق بعد.</string>
+	<key>Not counted inside</key>
+	<string>غير محسوب بالداخل</string>
 	<key>Not in the Trash</key>
 	<string>ليس في سلة المهملات</string>
 	<key>Not on this Mac</key>
@@ -684,8 +690,12 @@
 	<string>لا شيء للمراجعة</string>
 	<key>Nothing to review here</key>
 	<string>لا شيء للمراجعة هنا</string>
+	<key>Off</key>
+	<string>غير مفعّل</string>
 	<key>Old downloads</key>
 	<string>تنزيلات قديمة</string>
+	<key>On</key>
+	<string>مفعّل</string>
 	<key>On disk</key>
 	<string>على القرص</string>
 	<key>One run recorded</key>
@@ -778,6 +788,8 @@
 	<string>إعادة الفحص</string>
 	<key>Reset to Defaults</key>
 	<string>إعادة التعيين إلى الافتراضات</string>
+	<key>Restricted locations</key>
+	<string>المواقع المقيّدة</string>
 	<key>Results</key>
 	<string>النتائج</string>
 	<key>Results changed since this scan. Rescan.</key>
@@ -1060,6 +1072,8 @@
 	<string>زر ⓘ يفتح «التغطية»: ما احتسبه الفحص وما تخطّاه وأرقام وحدة التخزين نفسها جنبًا إلى جنب.</string>
 	<key>Their contents are missing from the totals. %@ were reported.</key>
 	<string>محتوياتها ناقصة من الإجماليات. تم الإبلاغ عن %@.</string>
+	<key>Their contents are missing from this folder's size.</key>
+	<string>محتوياتها غير مشمولة في حجم هذا المجلد.</string>
 	<key>There is no finished scan to check this item against. Run a scan, then try again.</key>
 	<string>لا يوجد فحص منتهٍ للتحقق من هذا العنصر. نفّذ فحصًا ثم أعد المحاولة.</string>
 	<key>There is no published release.</key>
@@ -1118,6 +1132,8 @@
 	<string>أكبر الملفات</string>
 	<key>Top Folders</key>
 	<string>أكبر المجلدات</string>
+	<key>Total</key>
+	<string>الإجمالي</string>
 	<key>Totals and categories are exact: a scan measures every entry it scanned. Folders and files are %@, matched by path. An entry is marked New only when the earlier run would have recorded it: it is absent from a list that held everything it found, or larger than a truncated list's cut-off. A later entry at or below that cut-off is not compared.</key>
 	<string>الإجماليات والفئات دقيقة: يقيس الفحص كل عنصر مرّ به. المجلدات والملفات هي %@، وتُطابَق بالمسار. لا يُوسم العنصر «جديدًا» إلا حين كان التشغيل الأقدم سيسجله: أي غائبًا عن قائمة احتوت كل ما وجدته، أو أكبر من حد قطع قائمة مقتطعة. ولا يُقارن عنصر لاحق عند حد القطع هذا أو دونه.</string>
 	<key>Totals are exact. Folders and files are %@, matched by path. No savings are claimed.</key>
@@ -1152,6 +1168,8 @@
 	<string>استخدم مفاتيح الأسهم للتنقل في القائمة، والمسافة للمعاينة، وReturn للفتح.</string>
 	<key>Used by the volume</key>
 	<string>المستخدَم على وحدة التخزين</string>
+	<key>Value</key>
+	<string>القيمة</string>
 	<key>Video</key>
 	<string>الفيديو</string>
 	<key>View Results</key>

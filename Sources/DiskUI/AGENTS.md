@@ -97,9 +97,10 @@ rather than being repeated.
   "Cancel" dismisses a modal task, and "Dismiss" hides a notice.
 - Liquid Glass is an enhancement only: gate macOS 26 APIs behind
   `if #available(macOS 26.0, *)`. Never call a newer API unguarded.
-- A watched change edits the live tree; it never re-scans. The tree arrives with the
-  engine's terminal event (`LiveTreeScanning`); an engine that only reports summaries
-  leaves `ScanViewModel` to build it from the finished summary off the main actor
+- A watched change edits the live tree; it never re-scans. The engine exposes the tree
+  while it fills it (`LiveTreeScanning.liveTreeInProgress`) and the screen installs it
+  at the first `.started`/`.partial`; an engine that only reports summaries leaves
+  `ScanViewModel` to build it from the finished summary off the main actor
   (`isBuildingLiveTree`). `ScanViewModel` feeds the folders the watcher reports to
   `LiveTreeUpdater` after `LiveUpdatePolicy.quietPeriod`, and bumps `resultsRevision`
   when a batch changed anything.
@@ -112,16 +113,24 @@ rather than being repeated.
   screen that cannot follow — a scan that could not become a tree, or the watch
   switched off — and an applied batch clears it. Nothing is re-measured, so there is no
   refresh budget and `isLiveScan` is just `isScanning`.
-- A finished `ScanSummary` carries the scanned root's whole tree as nested `ScanNode`
-  values, so dropping one costs time proportional to the scan. Never release a
+- A finished `ScanSummary` from a producer that only reports summaries carries the
+  scanned root's whole tree as nested `ScanNode` values; one from the live engine
+  carries ranked entries without subtrees, and the tree is what the screen reads. Both
+  are large, so dropping one costs time proportional to the scan. Never release a
   superseded summary, snapshot, or live tree on the main actor: `ScanViewModel.retire`
   hands it to a detached task, which is what keeps starting the next scan from
   stalling on the previous one's teardown.
 - `.partial` snapshots are advisory — the engine may throttle or omit them — and are
   never terminal. Update in place; the terminal `.finished` replaces them. The scan
-  root's entries arrive ready-made in `ScanSummary.rootChildren`, folders included
-  while their subtrees are still being walked: never assemble them from the capped
-  lists by matching paths.
+  root's entries arrive in the live tree while the walk runs; a producer that reports
+  summaries only puts them in `ScanSummary.rootChildren`. Never assemble them from the
+  capped lists by matching paths.
+- Fixed sheet and window sizes go through `dsFittedFrame`: the design size is an ideal,
+  not a promise, and a 1280×800 Mac has less visible height than the Settings window's
+  760 points plus chrome.
+- Coverage opens with ⌘I; there is deliberately no status line in the results header.
+  The folder inspector's "not counted inside" row reads
+  `LiveTree.unreadableFolderCount`; never recompute it by walking a subtree on screen.
 - Search is a list scope, not a chart: a chart partitions one folder's bytes, and a
   search's matches overlap. The chart pane says so while a query is open.
 - `Screens/ResultsView.swift`, `Components/SunburstView.swift`, and

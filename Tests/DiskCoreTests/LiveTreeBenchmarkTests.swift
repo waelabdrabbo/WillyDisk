@@ -17,6 +17,11 @@ import Darwin
 /// WILLYDISK_BENCH_ROOT=/Applications swift test --filter LiveTreeBenchmarkTests
 /// WILLYDISK_BENCH_ROOT=/ swift test --filter LiveTreeBenchmarkTests
 /// ```
+///
+/// `WILLYDISK_BENCH_MAX_RSS_MB` is optional: when set for the walk-built test, the
+/// benchmark fails if the process's peak resident memory is above that many
+/// megabytes. It is what turns the memory envelope recorded in `docs/MEMORY.md`
+/// into a check a reference machine can run; it never runs in CI.
 final class LiveTreeBenchmarkTests: XCTestCase {
 
     func testBuildsTheTreeFromARealScan() async throws {
@@ -154,11 +159,31 @@ final class LiveTreeBenchmarkTests: XCTestCase {
         let measured = try XCTUnwrap(summary)
         let tree = try XCTUnwrap(handed, "the walk should hand its tree over")
         XCTAssertTrue(tree.matches(measured))
+        XCTAssertTrue(measured.rootChildren.isEmpty, "the tree carries the root's entries")
+        XCTAssertTrue(
+            measured.largestDirectories.allSatisfy { $0.children.isEmpty },
+            "the summary must not retain a second tree"
+        )
+        XCTAssertEqual(
+            tree.unreadableFolderCount(for: LiveTree.rootID),
+            measured.inaccessibleCount,
+            "the tree's folder-coverage count matches the scan's inaccessible total"
+        )
+
+        let resident = Self.residentMegabytes()
+        if let limitText = ProcessInfo.processInfo.environment["WILLYDISK_BENCH_MAX_RSS_MB"],
+           let limit = Int(limitText) {
+            XCTAssertLessThanOrEqual(
+                resident,
+                limit,
+                "the walk-built scan peaked above WILLYDISK_BENCH_MAX_RSS_MB"
+            )
+        }
 
         print(
             "LIVETREE engine root=\(root) scan=\(Self.format(scan)) "
                 + "take=\(Self.format(take)) nodes=\(tree.nodeCount) "
-                + "resident=\(Self.residentMegabytes())MB"
+                + "resident=\(resident)MB"
         )
     }
 

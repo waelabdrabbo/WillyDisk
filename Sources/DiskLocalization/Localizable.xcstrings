@@ -4477,6 +4477,30 @@
       },
       "shouldGenerateSwiftSymbol": false
     },
+    "Accounting": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "المحاسبة"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Accounting"
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Áççöúñŧíñĝ········]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
     "Actions apply to the whole selection.": {
       "extractionState": "manual",
       "localizations": {
@@ -7585,25 +7609,25 @@
       },
       "shouldGenerateSwiftSymbol": false
     },
-    "File ▸ Export writes a JSON report with the accounting disclosures, or a CSV of the ranked items.": {
+    "File ▸ Export writes a JSON report with the accounting disclosures, or a CSV of the ranked items and those disclosures.": {
       "extractionState": "manual",
       "localizations": {
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "«ملف ▸ تصدير» يكتب تقرير JSON مع إفصاحات المحاسبة، أو CSV للعناصر المرتبة."
+            "value": "«ملف ▸ تصدير» يكتب تقرير JSON مع إفصاحات المحاسبة، أو CSV للعناصر المرتبة مع تلك الإفصاحات."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "File ▸ Export writes a JSON report with the accounting disclosures, or a CSV of the ranked items."
+            "value": "File ▸ Export writes a JSON report with the accounting disclosures, or a CSV of the ranked items and those disclosures."
           }
         },
         "en-XA": {
           "stringUnit": {
             "state": "translated",
-            "value": "[Ƒíļé ▸ Éẋþöŕŧ ŵŕíŧéš á ĴŠÖÑ ŕéþöŕŧ ŵíŧĥ ŧĥé áççöúñŧíñĝ ðíšçļöšúŕéš, öŕ á ÇŠṼ öƒ ŧĥé ŕáñķéð íŧéɱš.·······························································································]"
+            "value": "[Ƒíļé ▸ Éẋþöŕŧ ŵŕíŧéš á ĴŠÖÑ ŕéþöŕŧ ŵíŧĥ ŧĥé áççöúñŧíñĝ ðíšçļöšúŕéš, öŕ á ÇŠṼ öƒ ŧĥé ŕáñķéð íŧéɱš áñð ŧĥöšé ðíšçļöšúŕéš.·····················································································································]"
           }
         }
       },
@@ -8660,6 +8684,30 @@
           "stringUnit": {
             "state": "translated",
             "value": "[Íššúéš····]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "Issues surfaced": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "المشكلات المعروضة"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Issues surfaced"
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Íššúéš šúŕƒáçéð·············]"
           }
         }
       },
@@ -10345,6 +10393,30 @@
       },
       "shouldGenerateSwiftSymbol": false
     },
+    "Not counted inside": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "غير محسوب بالداخل"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not counted inside"
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Ñöŧ çöúñŧéð íñšíðé················]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
     "Not in the Trash": {
       "extractionState": "manual",
       "localizations": {
@@ -10705,6 +10777,30 @@
       },
       "shouldGenerateSwiftSymbol": false
     },
+    "Off": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "غير مفعّل"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Off"
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Öƒƒ····]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
     "Old downloads": {
       "extractionState": "manual",
       "localizations": {
@@ -10724,6 +10820,30 @@
           "stringUnit": {
             "state": "translated",
             "value": "[Öļð ðöŵñļöáðš···········]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "On": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "مفعّل"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On"
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Öñ····]"
           }
         }
       },
@@ -11828,6 +11948,30 @@
           "stringUnit": {
             "state": "translated",
             "value": "[Ŕéšéŧ ŧö Ðéƒáúļŧš···············]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "Restricted locations": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "المواقع المقيّدة"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restricted locations"
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Ŕéšŧŕíçŧéð ļöçáŧíöñš··················]"
           }
         }
       },
@@ -15385,6 +15529,30 @@
       },
       "shouldGenerateSwiftSymbol": false
     },
+    "Their contents are missing from this folder's size.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "محتوياتها غير مشمولة في حجم هذا المجلد."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Their contents are missing from this folder's size."
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Ŧĥéíŕ çöñŧéñŧš áŕé ɱíššíñĝ ƒŕöɱ ŧĥíš ƒöļðéŕ'š šížé.·················································]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
     "There is no finished scan to check this item against. Run a scan, then try again.": {
       "extractionState": "manual",
       "localizations": {
@@ -16081,6 +16249,30 @@
       },
       "shouldGenerateSwiftSymbol": false
     },
+    "Total": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الإجمالي"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Total"
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Ŧöŧáļ····]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
     "Totals and categories are exact: a scan measures every entry it scanned. Folders and files are %@, matched by path. An entry is marked New only when the earlier run would have recorded it: it is absent from a list that held everything it found, or larger than a truncated list's cut-off. A later entry at or below that cut-off is not compared.": {
       "extractionState": "manual",
       "localizations": {
@@ -16484,6 +16676,30 @@
           "stringUnit": {
             "state": "translated",
             "value": "[Úšéð ƀý ŧĥé ṽöļúɱé················]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "Value": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "القيمة"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Value"
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Ṽáļúé····]"
           }
         }
       },

@@ -50,7 +50,7 @@ public struct SettingsView: View {
         // A new identity after a language change rebuilds every row, including
         // the labels and the section headers that were built in the old one.
         .id(language)
-        .frame(width: 460, height: 760)
+        .dsFittedFrame(width: 460, height: 760)
         .onChange(of: appearance) { _, choice in
             AppAppearance.apply(choice)
         }

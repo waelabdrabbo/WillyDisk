@@ -106,6 +106,7 @@ private struct WillyDiskCommands: Commands {
             Button(L10n.string("Coverage…")) {
                 resultsCommands?.showCoverage()
             }
+            .keyboardShortcut("i", modifiers: .command)
             .disabled(!(resultsCommands?.canShowCoverage ?? false))
 
             Button(L10n.string("Cleanup…")) {

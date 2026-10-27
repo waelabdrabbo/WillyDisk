@@ -126,11 +126,18 @@ public struct ScanSummary: Sendable {
     public let finishedAt: Date
     public let categoryBreakdown: [FileCategory: Int64]   // by logical size
     public let largestFiles: [ScanNode]                   // top N, default 100
-    public let largestDirectories: [ScanNode]             // top N, default 100
-    public let rootChildren: [ScanNode]                   // the root's own entries, live ones included
+    public let largestDirectories: [ScanNode]             // top N, default 100; subtrees only without a LiveTree
+    public let rootChildren: [ScanNode]                   // the root's own entries; empty when a LiveTree is supplied
     public let accounting: ScanAccounting                 // what the totals double-count or omit
 }
 ```
+
+A producer that also fills a `LiveTree` reports the tree through
+`LiveTreeScanning`: that tree is the entries, and this summary is the record. In
+that mode `rootChildren` is empty and `largestDirectories` carries ranked entries
+without their subtrees, so one scan never retains the tree twice. A producer that
+only reports summaries keeps the complete value tree in `largestDirectories`.
+`docs/MEMORY.md` is the measured design.
 
 The totals count every entry the walk reached. They deliberately do not deduplicate:
 the first link of a hard-linked inode contributes its bytes to the total, and each
@@ -231,7 +238,8 @@ each with the bytes counted under it so far, which is finished work that grows,
 never a projection. A screen colours an entry by its place among its siblings, so
 the group is reported complete and ordered by the paths it holds, and a colour
 once on screen does not move as the scan proceeds. It is empty once the summary
-carries the root node itself in `largestDirectories`.
+carries the root node itself in `largestDirectories`, and empty throughout a walk
+that fills a `LiveTree`, where the tree carries the root's entries instead.
 
 ## 5. UI contract (DiskUI)
 
@@ -239,8 +247,10 @@ carries the root node itself in `largestDirectories`.
   phases from `AsyncStream<ScanEvent>`; it calls `DiskCore` only — never
   re-implements scanning.
 - `ScanEvent.partial` lets the results screen render progressively while a scan
-  runs: the same `ScanSummary` shape (tree, largest items, category breakdown)
-  updates in place, then the terminal `.finished` summary replaces it. Snapshots
+  runs: the same `ScanSummary` shape (totals, largest items, category breakdown)
+  updates in place, then the terminal `.finished` summary replaces it. The screen's
+  entries come from the live tree the engine exposes while it walks; a producer
+  that reports summaries only keeps the entries in the summary. Snapshots
   are advisory — the engine may throttle or omit them — and `.partial` is never
   terminal. Because a scan may surface them far faster than a screen can usefully
   redraw, the view model takes them at a bounded cadence, where the newest
@@ -260,8 +270,15 @@ carries the root node itself in `largestDirectories`.
   traversal, and `/System/Volumes/Data/…` mapped back to `/…` for a `/` scan.
   `LiveTree` holds the scan as a compact arena of measured entries, and the engine
   fills it while it walks (`LiveTreeScanning`): a folder's entries are inserted in one
-  batch when its listing is done, and the tree is handed to the screen just before
-  `.finished`, only when it agrees with the summary the same walk produced.
+  batch when its listing is done, the tree is readable while the walk runs, and the
+  terminal summary carries the tree's own totals and no subtrees of its own. The
+  screen installs the in-progress tree, so its rows and chart come from measured entries
+  from the first snapshot onward; the scan's own counters remain the engine's
+  "scanned so far" progress. The tree is handed over just before `.finished`, and a
+  producer that only reports summaries still leaves the screen to build one from the
+  finished summary. The tree also keeps a side count of unreadable folders per subtree,
+  under the same edits; the folder inspector reads it so a size that is a floor says so
+  without walking the subtree.
   `LiveTreeUpdater` reconciles each changed folder after that — a file from its own
   `stat`, a vanished entry removed, a folder that arrived measured once with the engine
   — under the scan's own `LiveTreePolicy`, so an edit can never put in the tree

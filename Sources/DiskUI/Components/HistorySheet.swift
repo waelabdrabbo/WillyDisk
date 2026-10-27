@@ -57,7 +57,7 @@ public struct HistorySheet: View {
             Divider()
             footer
         }
-        .frame(width: 900, height: 680)
+        .dsFittedFrame(width: 900, height: 680)
         .background(DS.Color.windowBackground)
         .tint(DS.Color.signal)
         .task {

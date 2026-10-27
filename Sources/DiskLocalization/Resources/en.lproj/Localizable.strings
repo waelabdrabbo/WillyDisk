@@ -172,6 +172,8 @@
 	<string>About WillyDisk</string>
 	<key>Access</key>
 	<string>Access</string>
+	<key>Accounting</key>
+	<string>Accounting</string>
 	<key>Actions apply to the whole selection.</key>
 	<string>Actions apply to the whole selection.</string>
 	<key>Add Path…</key>
@@ -424,8 +426,8 @@
 	<string>Export the analysis report or diagnostics</string>
 	<key>File</key>
 	<string>File</string>
-	<key>File ▸ Export writes a JSON report with the accounting disclosures, or a CSV of the ranked items.</key>
-	<string>File ▸ Export writes a JSON report with the accounting disclosures, or a CSV of the ranked items.</string>
+	<key>File ▸ Export writes a JSON report with the accounting disclosures, or a CSV of the ranked items and those disclosures.</key>
+	<string>File ▸ Export writes a JSON report with the accounting disclosures, or a CSV of the ranked items and those disclosures.</string>
 	<key>Files</key>
 	<string>Files</string>
 	<key>Files and folders</key>
@@ -514,6 +516,8 @@
 	<string>Installing and Relaunching…</string>
 	<key>Issues</key>
 	<string>Issues</string>
+	<key>Issues surfaced</key>
+	<string>Issues surfaced</string>
 	<key>It is already back in place</key>
 	<string>It is already back in place</string>
 	<key>It is no longer in the Trash</key>
@@ -654,6 +658,8 @@
 	<string>None listed</string>
 	<key>Not checked yet.</key>
 	<string>Not checked yet.</string>
+	<key>Not counted inside</key>
+	<string>Not counted inside</string>
 	<key>Not in the Trash</key>
 	<string>Not in the Trash</string>
 	<key>Not on this Mac</key>
@@ -684,8 +690,12 @@
 	<string>Nothing to review</string>
 	<key>Nothing to review here</key>
 	<string>Nothing to review here</string>
+	<key>Off</key>
+	<string>Off</string>
 	<key>Old downloads</key>
 	<string>Old downloads</string>
+	<key>On</key>
+	<string>On</string>
 	<key>On disk</key>
 	<string>On disk</string>
 	<key>One run recorded</key>
@@ -778,6 +788,8 @@
 	<string>Rescan</string>
 	<key>Reset to Defaults</key>
 	<string>Reset to Defaults</string>
+	<key>Restricted locations</key>
+	<string>Restricted locations</string>
 	<key>Results</key>
 	<string>Results</string>
 	<key>Results changed since this scan. Rescan.</key>
@@ -1060,6 +1072,8 @@
 	<string>The ⓘ button opens Coverage: what the scan counted, what it skipped, and the volume's own figures side by side.</string>
 	<key>Their contents are missing from the totals. %@ were reported.</key>
 	<string>Their contents are missing from the totals. %@ were reported.</string>
+	<key>Their contents are missing from this folder's size.</key>
+	<string>Their contents are missing from this folder's size.</string>
 	<key>There is no finished scan to check this item against. Run a scan, then try again.</key>
 	<string>There is no finished scan to check this item against. Run a scan, then try again.</string>
 	<key>There is no published release.</key>
@@ -1118,6 +1132,8 @@
 	<string>Top Files</string>
 	<key>Top Folders</key>
 	<string>Top Folders</string>
+	<key>Total</key>
+	<string>Total</string>
 	<key>Totals and categories are exact: a scan measures every entry it scanned. Folders and files are %@, matched by path. An entry is marked New only when the earlier run would have recorded it: it is absent from a list that held everything it found, or larger than a truncated list's cut-off. A later entry at or below that cut-off is not compared.</key>
 	<string>Totals and categories are exact: a scan measures every entry it scanned. Folders and files are %@, matched by path. An entry is marked New only when the earlier run would have recorded it: it is absent from a list that held everything it found, or larger than a truncated list's cut-off. A later entry at or below that cut-off is not compared.</string>
 	<key>Totals are exact. Folders and files are %@, matched by path. No savings are claimed.</key>
@@ -1152,6 +1168,8 @@
 	<string>Use the arrow keys to move through the list, Space to preview, and Return to open.</string>
 	<key>Used by the volume</key>
 	<string>Used by the volume</string>
+	<key>Value</key>
+	<string>Value</string>
 	<key>Video</key>
 	<string>Video</string>
 	<key>View Results</key>

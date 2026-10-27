@@ -158,6 +158,7 @@ public struct CoverageSheet: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
+        .accessibilityElement(children: .combine)
     }
 
     private var snapshotSection: some View {

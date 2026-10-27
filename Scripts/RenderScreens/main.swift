@@ -56,6 +56,7 @@ enum ScreenKind: String, CaseIterable {
     case update
     case updateReady = "update-ready"
     case categories
+    case treemap
     case coverage
     case cleanup
     case duplicates
@@ -115,6 +116,7 @@ func parse(_ arguments: [String]) -> Options {
             case "update": options.screens = [.update]
             case "update-ready": options.screens = [.updateReady]
             case "categories": options.screens = [.categories]
+            case "treemap": options.screens = [.treemap]
             case "coverage": options.screens = [.coverage]
             case "cleanup": options.screens = [.cleanup]
             case "duplicates": options.screens = [.duplicates]
@@ -122,7 +124,7 @@ func parse(_ arguments: [String]) -> Options {
             case "reclaim": options.screens = [.reclaim]
             case "history": options.screens = [.history]
             case "both": options.screens = [.results, .home]
-            case let other: fail("--screen expects home, results, search, help, settings, update, update-ready, categories, coverage, cleanup, duplicates, moved, reclaim, history or both, not \(other)")
+            case let other: fail("--screen expects home, results, search, help, settings, update, update-ready, categories, treemap, coverage, cleanup, duplicates, moved, reclaim, history or both, not \(other)")
             }
         case "--locale":
             let language = next("--locale")
@@ -145,7 +147,7 @@ func parse(_ arguments: [String]) -> Options {
             options.rendersWindow = false
         case "--help", "-h":
             print("""
-            usage: render-screens --out DIR [--size WxH] [--appearance light|dark|both] [--screen home|results|search|help|settings|update|update-ready|categories|coverage|cleanup|duplicates|history|both] [--fixture DIR] [--state finished|scanning] [--locale en|ar|en-XA] [--window|--content]
+            usage: render-screens --out DIR [--size WxH] [--appearance light|dark|both] [--screen home|results|search|help|settings|update|update-ready|categories|treemap|coverage|cleanup|duplicates|history|both] [--fixture DIR] [--state finished|scanning] [--locale en|ar|en-XA] [--window|--content]
 
               --out        directory the PNGs are written to
               --size       render size in points (default 1000x720)
@@ -153,7 +155,8 @@ func parse(_ arguments: [String]) -> Options {
               --screen     which screens to render (default results); both is
                            home and results, search is the results screen with a
                            whole-scan search open, categories is the results
-                           screen in Categories mode, coverage is the coverage
+                           screen in Categories mode, treemap is the results
+                           screen drawn as the treemap, coverage is the coverage
                            sheet, help and settings are the sheet and preferences
                            contents, update is the software-update sheet,
                            update-ready is its downloaded-and-ready state, cleanup
@@ -471,6 +474,14 @@ func applyLocale(_ locale: String) {
 
 @MainActor
 func render(_ options: Options) {
+    // The chart is a stored preference the results screen reads, so the treemap
+    // render exercises the app's own path rather than a preview-only hook. The
+    // prefs domain belongs to this throwaway binary, not to the user's app.
+    UserDefaults.standard.set(
+        (options.screens.contains(.treemap) ? AppChartStyle.treemap : .sunburst).rawValue,
+        forKey: AppChartStyle.defaultsKey
+    )
+
     // Help, Settings, and the update sheet are static content: they need no scan,
     // so those renders are quick and cannot fail on the fixture.
     let needsScan = options.screens.contains {
@@ -593,6 +604,7 @@ func render(_ options: Options) {
                     .ignoresSafeArea()
                 switch kind {
                 case .results: ResultsView(viewModel: viewModel)
+                case .treemap: ResultsView(viewModel: viewModel)
                 case .home: SourceSelectionView(viewModel: viewModel)
                 case .help: HelpView()
                 case .settings:
@@ -721,7 +733,8 @@ func render(_ options: Options) {
             // The chart reveals itself when a results screen opens, which takes
             // a little over half a second; a still taken mid-reveal would show a
             // chart the app never rests at. Other screens settle in a few passes.
-            let settle: TimeInterval = (kind == .results || kind == .categories) ? 1.0 : 0.24
+            let settle: TimeInterval = (kind == .results || kind == .categories || kind == .treemap)
+                ? 1.0 : 0.24
             let image = options.rendersWindow
                 ? renderWindow(screen, size: options.size, appearance: appearance, settle: settle)
                 : renderContent(screen, size: options.size, settle: settle)

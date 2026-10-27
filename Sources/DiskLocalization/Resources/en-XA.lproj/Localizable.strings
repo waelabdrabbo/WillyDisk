@@ -226,6 +226,8 @@
 	<string>[Çĥáñĝé····]</string>
 	<key>Changes the interface language right away.</key>
 	<string>[Çĥáñĝéš ŧĥé íñŧéŕƒáçé ļáñĝúáĝé ŕíĝĥŧ áŵáý.········································]</string>
+	<key>Chart</key>
+	<string>[Çĥáŕŧ····]</string>
 	<key>Check Contents</key>
 	<string>[Çĥéçķ Çöñŧéñŧš············]</string>
 	<key>Check for Updates…</key>
@@ -994,6 +996,12 @@
 	<string>[Šŧöŕáĝé šúñƀúŕšŧ··············]</string>
 	<key>Storage sunburst, %@</key>
 	<string>[Šŧöŕáĝé šúñƀúŕšŧ, %@··················]</string>
+	<key>Storage treemap</key>
+	<string>[Šŧöŕáĝé ŧŕééɱáþ·············]</string>
+	<key>Storage treemap, %@</key>
+	<string>[Šŧöŕáĝé ŧŕééɱáþ, %@·················]</string>
+	<key>Sunburst</key>
+	<string>[Šúñƀúŕšŧ······]</string>
 	<key>Symbolic link</key>
 	<string>[Šýɱƀöļíç ļíñķ···········]</string>
 	<key>Symbolic links are moved themselves; the items they point to stay where they are.</key>
@@ -1006,6 +1014,8 @@
 	<string>[Ŧĥé áþþ ŧĥáŧ ɱáðé ŧĥéšé ŕéƀúíļðš ŧĥéɱ. Ýöú çáñ šéļéçŧ á ŵĥöļé šéçŧíöñ ĥéŕé.·········································································]</string>
 	<key>The chart maps one folder at a time. Clear the search to return to “%@”.</key>
 	<string>[Ŧĥé çĥáŕŧ ɱáþš öñé ƒöļðéŕ áŧ á ŧíɱé. Çļéáŕ ŧĥé šéáŕçĥ ŧö ŕéŧúŕñ ŧö “%@”.······································································]</string>
+	<key>The chart maps the folder you are in. Click a folder to enter it; click a file to select it. The sunburst's centre goes up one folder, and Settings chooses between the sunburst and the treemap.</key>
+	<string>[Ŧĥé çĥáŕŧ ɱáþš ŧĥé ƒöļðéŕ ýöú áŕé íñ. Çļíçķ á ƒöļðéŕ ŧö éñŧéŕ íŧ; çļíçķ á ƒíļé ŧö šéļéçŧ íŧ. Ŧĥé šúñƀúŕšŧ'š çéñŧŕé ĝöéš úþ öñé ƒöļðéŕ, áñð Šéŧŧíñĝš çĥööšéš ƀéŧŵééñ ŧĥé šúñƀúŕšŧ áñð ŧĥé ŧŕééɱáþ.·······························································································································································································]</string>
 	<key>The download did not match the published checksum. Nothing was changed.</key>
 	<string>[Ŧĥé ðöŵñļöáð ðíð ñöŧ ɱáŧçĥ ŧĥé þúƀļíšĥéð çĥéçķšúɱ. Ñöŧĥíñĝ ŵáš çĥáñĝéð.·····································································]</string>
 	<key>The download is not a valid WillyDisk build. Nothing was changed.</key>
@@ -1038,8 +1048,8 @@
 	<string>[Ŧĥé šñáþšĥöŧ ļíšŧ çöúļð ñöŧ ƀé ŕéáð.··································]</string>
 	<key>The startup disk is a volume group, so a scan of / is not reconciled against the disk's capacity.</key>
 	<string>[Ŧĥé šŧáŕŧúþ ðíšķ íš á ṽöļúɱé ĝŕöúþ, šö á šçáñ öƒ / íš ñöŧ ŕéçöñçíļéð áĝáíñšŧ ŧĥé ðíšķ'š çáþáçíŧý.·······························································································]</string>
-	<key>The sunburst maps the folder you are in. Click a folder wedge to enter it; click a file wedge to select the file, and click the centre to go up one folder.</key>
-	<string>[Ŧĥé šúñƀúŕšŧ ɱáþš ŧĥé ƒöļðéŕ ýöú áŕé íñ. Çļíçķ á ƒöļðéŕ ŵéðĝé ŧö éñŧéŕ íŧ; çļíçķ á ƒíļé ŵéðĝé ŧö šéļéçŧ ŧĥé ƒíļé, áñð çļíçķ ŧĥé çéñŧŕé ŧö ĝö úþ öñé ƒöļðéŕ.·························································································································································]</string>
+	<key>The sunburst shows the folder as rings. The treemap fills the pane with boxes, which is easier to read in a folder of many similar files.</key>
+	<string>[Ŧĥé šúñƀúŕšŧ šĥöŵš ŧĥé ƒöļðéŕ áš ŕíñĝš. Ŧĥé ŧŕééɱáþ ƒíļļš ŧĥé þáñé ŵíŧĥ ƀöẋéš, ŵĥíçĥ íš éášíéŕ ŧö ŕéáð íñ á ƒöļðéŕ öƒ ɱáñý šíɱíļáŕ ƒíļéš.·······································································································································]</string>
 	<key>The system did not report where it went</key>
 	<string>[Ŧĥé šýšŧéɱ ðíð ñöŧ ŕéþöŕŧ ŵĥéŕé íŧ ŵéñŧ·····································]</string>
 	<key>The system does not allow changes on this volume.</key>
@@ -1122,6 +1132,8 @@
 	<string>[Ŧöŧáļš áŕé šŧíļļ ĝŕöŵíñĝ······················]</string>
 	<key>Trash</key>
 	<string>[Ŧŕášĥ····]</string>
+	<key>Treemap</key>
+	<string>[Ŧŕééɱáþ·····]</string>
 	<key>Try Again</key>
 	<string>[Ŧŕý Áĝáíñ·······]</string>
 	<key>Type</key>

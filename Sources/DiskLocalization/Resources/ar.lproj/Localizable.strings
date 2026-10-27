@@ -226,6 +226,8 @@
 	<string>التغيّر</string>
 	<key>Changes the interface language right away.</key>
 	<string>يغيّر لغة الواجهة فورًا.</string>
+	<key>Chart</key>
+	<string>المخطط</string>
 	<key>Check Contents</key>
 	<string>فحص المحتويات</string>
 	<key>Check for Updates…</key>
@@ -994,6 +996,12 @@
 	<string>مخطط التخزين الشمسي</string>
 	<key>Storage sunburst, %@</key>
 	<string>مخطط التخزين الشمسي، %@</string>
+	<key>Storage treemap</key>
+	<string>خريطة التخزين الشجرية</string>
+	<key>Storage treemap, %@</key>
+	<string>خريطة التخزين الشجرية، %@</string>
+	<key>Sunburst</key>
+	<string>شمسي</string>
 	<key>Symbolic link</key>
 	<string>رابط رمزي</string>
 	<key>Symbolic links are moved themselves; the items they point to stay where they are.</key>
@@ -1006,6 +1014,8 @@
 	<string>يعيد التطبيق الذي أنشأها بناءها. يمكنك تحديد قسم كامل هنا.</string>
 	<key>The chart maps one folder at a time. Clear the search to return to “%@”.</key>
 	<string>يرسم المخطط مجلدًا واحدًا في كل مرة. امسح البحث للعودة إلى «%@».</string>
+	<key>The chart maps the folder you are in. Click a folder to enter it; click a file to select it. The sunburst's centre goes up one folder, and Settings chooses between the sunburst and the treemap.</key>
+	<string>يعرض المخطط المجلد الذي أنت فيه. انقر مجلدًا لدخوله، أو ملفًا لتحديده. تنقلك نقطة مركز المخطط الشمسي إلى المجلد الأعلى، ويمكنك الاختيار بين المخطط الشمسي والخريطة الشجرية من الإعدادات.</string>
 	<key>The download did not match the published checksum. Nothing was changed.</key>
 	<string>لا يطابق التنزيل بصمة SHA-256 المنشورة. لم يتغيّر شيء.</string>
 	<key>The download is not a valid WillyDisk build. Nothing was changed.</key>
@@ -1038,8 +1048,8 @@
 	<string>تعذّرت قراءة قائمة اللقطات.</string>
 	<key>The startup disk is a volume group, so a scan of / is not reconciled against the disk's capacity.</key>
 	<string>قرص بدء التشغيل مجموعة وحدات تخزين، لذا لا يُسوّى فحص / مقابل سعة القرص.</string>
-	<key>The sunburst maps the folder you are in. Click a folder wedge to enter it; click a file wedge to select the file, and click the centre to go up one folder.</key>
-	<string>يرسم المخطط الشمسي المجلد الذي أنت فيه. انقر على قطاع مجلد للدخول إليه؛ وانقر على قطاع ملف لتحديده، وانقر على المركز للصعود مستوى واحدًا.</string>
+	<key>The sunburst shows the folder as rings. The treemap fills the pane with boxes, which is easier to read in a folder of many similar files.</key>
+	<string>يعرض المخطط الشمسي المجلد كحلقات، وتملأ الخريطة الشجرية اللوحة بمربعات، وهو أوضح في مجلد يضم ملفات كثيرة متشابهة.</string>
 	<key>The system did not report where it went</key>
 	<string>لم يُبلغ النظام عن المكان الذي ذهب إليه</string>
 	<key>The system does not allow changes on this volume.</key>
@@ -1122,6 +1132,8 @@
 	<string>الإجماليات لا تزال تتزايد</string>
 	<key>Trash</key>
 	<string>سلة المهملات</string>
+	<key>Treemap</key>
+	<string>خريطة شجرية</string>
 	<key>Try Again</key>
 	<string>إعادة المحاولة</string>
 	<key>Type</key>

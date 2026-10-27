@@ -381,8 +381,16 @@ carries the root node itself in `largestDirectories`.
   bundle keeps them, and fails with every path it tried. Both resource bundles
   (`WillyDisk_DiskUI`, `WillyDisk_DiskLocalization`) load through it, and
   `Tests/QATests/ResourceBundleLayoutQATests` holds the app layout to that search.
-- The disk chart is `SunburstView` — custom SwiftUI shapes with ring/angle
-  geometry, no third-party deps.
+- The disk chart has two drawings of one tree, chosen by `AppChartStyle` in Settings
+  (stored under `appChartStyle`, the sunburst by default): `SunburstView` — custom
+  SwiftUI shapes with ring/angle geometry — and `TreemapView`, a squarified layout of
+  nested boxes. Both read the same selection and hover values, key their shapes by node
+  path, and paint one shared emphasis layer, so switching charts changes the drawing
+  and nothing else about the screen. `ChartGrouping` is the one rule that decides which
+  children a chart draws and what the aggregate stands for; the charts' density differs
+  because the sunburst's budget is angular and the treemap's is areal, but a node both
+  draw wears the same `ChartFill`. `TreemapLayout` is pure and `Sendable`, so a wide
+  folder's boxes are laid out off the main actor. No third-party deps.
 
 ## 6. Compatibility rules (all agents)
 

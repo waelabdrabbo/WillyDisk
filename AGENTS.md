@@ -85,8 +85,9 @@ contract.
 `Screens/SourceSelectionView.swift` is screen A, `Screens/ResultsView.swift` is screen C
 (and the live in-progress state), `Screens/HelpView.swift` is the help sheet's content,
 `Screens/SettingsView.swift` is the preferences window. `Components/SunburstView.swift`
-is the disk chart; `AccessNoticeRow`, `FlowLayout`, and `ScanOptionToggle` are the other
-views.
+and `Components/TreemapView.swift` are the disk chart's two drawings, chosen by
+`AppChartStyle` in Settings; `AccessNoticeRow`, `FlowLayout`, and `ScanOptionToggle` are
+the other views.
 `Components/HistorySheet.swift` is the scan-history comparison, backed by
 `Support/ScanHistory.swift` (the `@Observable` view of the record store).
 `Components/UpdateSheet.swift` is the software-update sheet, including the ready state's
@@ -159,7 +160,7 @@ bash Scripts/run.sh                  # build the bundle and launch it (the way t
 bash Scripts/bundle-app.sh           # assemble .build/WillyDisk.app; its version comes from VERSION
 bash Scripts/package-release.sh      # build the arm64 and Intel zips with their SHA-256s
 bash Scripts/homebrew-cask.sh check  # render the cask template; --audit runs Homebrew's checks
-bash Scripts/render-screens.sh       # offscreen PNGs (-S results|home|search|help|settings|update|update-ready|categories|coverage|cleanup|duplicates|moved|reclaim|history|both; -l en|ar|en-XA), no window, no screen-recording permission
+bash Scripts/render-screens.sh       # offscreen PNGs (-S results|home|search|help|settings|update|update-ready|categories|treemap|coverage|cleanup|duplicates|moved|reclaim|history|both; -l en|ar|en-XA), no window, no screen-recording permission
 bash Scripts/repo-map.sh             # one-screen structural inventory (--types adds declarations)
 ```
 
@@ -188,9 +189,9 @@ add `--disable-sandbox` to a plain `swift build` or `swift test`.
 - **Never glob `**/*`.** It reaches ignored paths and reports thousands of entries,
   most of them `.build` byproducts. Enumerate with `git ls-files`, and search with the
   `grep` tool, which honours `.gitignore`.
-- **`Sources/DiskUI/Screens/ResultsView.swift` and `Components/SunburstView.swift` are
-  large.** Grep for the view or modifier you need instead of reading them whole. So is
-  `Sources/DiskCore/Scanning/FileScanner.swift`.
+- **`Sources/DiskUI/Screens/ResultsView.swift`, `Components/SunburstView.swift`, and
+  `Components/TreemapView.swift` are large.** Grep for the view or modifier you need
+  instead of reading them whole. So is `Sources/DiskCore/Scanning/FileScanner.swift`.
 - **Screenshots are not committed.** `Scripts/render-screens.sh` writes them into
   `.build/renders`, which is gitignored — there is nothing to read in the repository.
 - A user-visible string belongs in `Sources/DiskLocalization/Localizable.xcstrings` and

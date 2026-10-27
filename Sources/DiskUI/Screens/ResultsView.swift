@@ -22,6 +22,9 @@ public struct ResultsView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.layoutDirection) private var layoutDirection
     @State private var viewModel: ScanViewModel
+    /// The chart the user chose in Settings. The Settings window writes the same
+    /// key, so the two cannot disagree and the change lands without a relaunch.
+    @AppStorage(AppChartStyle.defaultsKey) private var chartStyle: AppChartStyle = .sunburst
 
     // Chart / explorer navigation
     @State private var breadcrumb: [ScanNode] = []
@@ -621,6 +624,78 @@ public struct ResultsView: View {
             return DS.Sunburst.maxChildrenPerNode
         }
     }
+
+    /// The chart for one list of entries, drawn the way the Settings window asks.
+    ///
+    /// The sunburst and the treemap read the same selection and the same hover,
+    /// and both select through `chartSelect`, so choosing one changes the drawing
+    /// and nothing else about the screen.
+    @ViewBuilder
+    private func entryChart(
+        nodes: [ScanNode],
+        centerLabel: String,
+        inputID: String,
+        revision: Int = 0,
+        liveTree: LiveTree? = nil
+    ) -> some View {
+        switch chartStyle {
+        case .sunburst:
+            SunburstView(
+                nodes: nodes,
+                centerLabel: centerLabel,
+                selectedNodeURL: selectedNodes.count == 1 ? selectedNodes[0].url : nil,
+                maxChildren: chartChildLimit,
+                revision: revision,
+                children: liveChildrenProvider,
+                hoveredURL: $hover.url,
+                onCenterTap: chartCenterAction,
+                centerHint: chartCenterHint,
+                // Every chart that enters this pane reveals itself, whether it is
+                // the first one, a return, or the Other tab's.
+                playsEntrance: true
+            ) { node in
+                chartSelect(node)
+            }
+        case .treemap:
+            TreemapView(
+                nodes: nodes,
+                centerLabel: centerLabel,
+                inputID: inputID,
+                selectedNodeURL: selectedNodes.count == 1 ? selectedNodes[0].url : nil,
+                // The treemap's density is its own: it is the chart for dense
+                // folders, and following the explorer's page would fold a wide
+                // folder into one aggregate box.
+                maxChildren: DS.Treemap.maxChildrenPerNode,
+                source: liveTree.map { LiveTreemapSource($0) } ?? SnapshotTreemapSource(),
+                hoveredURL: $hover.url,
+                playsEntrance: true
+            ) { node in
+                chartSelect(node)
+            }
+        }
+    }
+
+    /// The folder the chart and the explorer are showing, as a path that
+    /// survives the live tree replacing its nodes.
+    private var focusPath: String {
+        breadcrumb.last?.url.path ?? summary?.root.path ?? ""
+    }
+
+    /// What the treemap rebuilds its boxes on. The path covers navigation and the
+    /// results revision covers the tree — every partial snapshot and every
+    /// watched change — so the chart never has to hash every entry to know
+    /// whether it changed.
+    private var folderChartInputID: String {
+        "folder:\(focusPath):\(viewModel.resultsRevision)"
+    }
+
+    /// The same for the category chart, whose files land from their own walk
+    /// rather than from the results revision.
+    private func categoryChartInputID(_ category: FileCategory, _ files: CategoryFiles) -> String {
+        "category:\(category.rawValue):\(files.matchCount):\(files.files.count):"
+            + (files.files.first?.id.uuidString ?? "")
+    }
+
     private var remainingRowCount: Int { max(visibleRows.count - rowLimit, 0) }
 
     /// The inputs that decide which rows are on screen. When any of them changes
@@ -1136,20 +1211,13 @@ public struct ResultsView: View {
             } else if explorerMode == .categories {
                 if let category = drilledCategory, let files = categoryFiles, !files.files.isEmpty {
                     // The category's node is its files, so the chart is the same
-                    // sunburst the folder view uses: one wedge per listed file,
-                    // hover and selection shared with the rows below.
-                    SunburstView(
+                    // chart the folder view uses: one box or wedge per listed
+                    // file, hover and selection shared with the rows below.
+                    entryChart(
                         nodes: files.files,
                         centerLabel: category.displayName,
-                        selectedNodeURL: selectedNodes.count == 1 ? selectedNodes[0].url : nil,
-                        maxChildren: chartChildLimit,
-                        hoveredURL: $hover.url,
-                        onCenterTap: chartCenterAction,
-                        centerHint: chartCenterHint,
-                        playsEntrance: true
-                    ) { node in
-                        chartSelect(node)
-                    }
+                        inputID: categoryChartInputID(category, files)
+                    )
                     .padding(DS.Spacing.medium)
                 } else if let category = drilledCategory, categoryFiles?.files.isEmpty == true {
                     categoryEmptyChart(category)
@@ -1168,22 +1236,13 @@ public struct ResultsView: View {
             } else if currentChildren.isEmpty {
                 emptyChart
             } else {
-                SunburstView(
+                entryChart(
                     nodes: currentChildren,
                     centerLabel: breadcrumb.last?.name ?? scannedRootName ?? L10n.string("Root"),
-                    selectedNodeURL: selectedNodes.count == 1 ? selectedNodes[0].url : nil,
-                    maxChildren: chartChildLimit,
+                    inputID: folderChartInputID,
                     revision: viewModel.resultsRevision,
-                    children: liveChildrenProvider,
-                    hoveredURL: $hover.url,
-                    onCenterTap: chartCenterAction,
-                    centerHint: chartCenterHint,
-                    // Every chart that enters this pane reveals itself, whether
-                    // it is the first one, a return, or the Other tab's.
-                    playsEntrance: true
-                ) { node in
-                    chartSelect(node)
-                }
+                    liveTree: viewModel.liveTree
+                )
                 .padding(DS.Spacing.medium)
             }
             scanStatusStrip

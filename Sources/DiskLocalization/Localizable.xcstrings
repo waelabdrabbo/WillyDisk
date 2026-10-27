@@ -5125,6 +5125,30 @@
       },
       "shouldGenerateSwiftSymbol": false
     },
+    "Chart": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "المخطط"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chart"
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Çĥáŕŧ····]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
     "Check Contents": {
       "extractionState": "manual",
       "localizations": {
@@ -14593,6 +14617,78 @@
       },
       "shouldGenerateSwiftSymbol": false
     },
+    "Storage treemap": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "خريطة التخزين الشجرية"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Storage treemap"
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Šŧöŕáĝé ŧŕééɱáþ·············]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "Storage treemap, %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "خريطة التخزين الشجرية، %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Storage treemap, %@"
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Šŧöŕáĝé ŧŕééɱáþ, %@·················]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "Sunburst": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "شمسي"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sunburst"
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Šúñƀúŕšŧ······]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
     "Symbolic link": {
       "extractionState": "manual",
       "localizations": {
@@ -14732,6 +14828,30 @@
           "stringUnit": {
             "state": "translated",
             "value": "[Ŧĥé çĥáŕŧ ɱáþš öñé ƒöļðéŕ áŧ á ŧíɱé. Çļéáŕ ŧĥé šéáŕçĥ ŧö ŕéŧúŕñ ŧö “%@”.······································································]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "The chart maps the folder you are in. Click a folder to enter it; click a file to select it. The sunburst's centre goes up one folder, and Settings chooses between the sunburst and the treemap.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يعرض المخطط المجلد الذي أنت فيه. انقر مجلدًا لدخوله، أو ملفًا لتحديده. تنقلك نقطة مركز المخطط الشمسي إلى المجلد الأعلى، ويمكنك الاختيار بين المخطط الشمسي والخريطة الشجرية من الإعدادات."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The chart maps the folder you are in. Click a folder to enter it; click a file to select it. The sunburst's centre goes up one folder, and Settings chooses between the sunburst and the treemap."
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Ŧĥé çĥáŕŧ ɱáþš ŧĥé ƒöļðéŕ ýöú áŕé íñ. Çļíçķ á ƒöļðéŕ ŧö éñŧéŕ íŧ; çļíçķ á ƒíļé ŧö šéļéçŧ íŧ. Ŧĥé šúñƀúŕšŧ'š çéñŧŕé ĝöéš úþ öñé ƒöļðéŕ, áñð Šéŧŧíñĝš çĥööšéš ƀéŧŵééñ ŧĥé šúñƀúŕšŧ áñð ŧĥé ŧŕééɱáþ.·······························································································································································································]"
           }
         }
       },
@@ -15121,25 +15241,25 @@
       },
       "shouldGenerateSwiftSymbol": false
     },
-    "The sunburst maps the folder you are in. Click a folder wedge to enter it; click a file wedge to select the file, and click the centre to go up one folder.": {
+    "The sunburst shows the folder as rings. The treemap fills the pane with boxes, which is easier to read in a folder of many similar files.": {
       "extractionState": "manual",
       "localizations": {
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "يرسم المخطط الشمسي المجلد الذي أنت فيه. انقر على قطاع مجلد للدخول إليه؛ وانقر على قطاع ملف لتحديده، وانقر على المركز للصعود مستوى واحدًا."
+            "value": "يعرض المخطط الشمسي المجلد كحلقات، وتملأ الخريطة الشجرية اللوحة بمربعات، وهو أوضح في مجلد يضم ملفات كثيرة متشابهة."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The sunburst maps the folder you are in. Click a folder wedge to enter it; click a file wedge to select the file, and click the centre to go up one folder."
+            "value": "The sunburst shows the folder as rings. The treemap fills the pane with boxes, which is easier to read in a folder of many similar files."
           }
         },
         "en-XA": {
           "stringUnit": {
             "state": "translated",
-            "value": "[Ŧĥé šúñƀúŕšŧ ɱáþš ŧĥé ƒöļðéŕ ýöú áŕé íñ. Çļíçķ á ƒöļðéŕ ŵéðĝé ŧö éñŧéŕ íŧ; çļíçķ á ƒíļé ŵéðĝé ŧö šéļéçŧ ŧĥé ƒíļé, áñð çļíçķ ŧĥé çéñŧŕé ŧö ĝö úþ öñé ƒöļðéŕ.·························································································································································]"
+            "value": "[Ŧĥé šúñƀúŕšŧ šĥöŵš ŧĥé ƒöļðéŕ áš ŕíñĝš. Ŧĥé ŧŕééɱáþ ƒíļļš ŧĥé þáñé ŵíŧĥ ƀöẋéš, ŵĥíçĥ íš éášíéŕ ŧö ŕéáð íñ á ƒöļðéŕ öƒ ɱáñý šíɱíļáŕ ƒíļéš.·······································································································································]"
           }
         }
       },
@@ -16124,6 +16244,30 @@
           "stringUnit": {
             "state": "translated",
             "value": "[Ŧŕášĥ····]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "Treemap": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "خريطة شجرية"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Treemap"
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Ŧŕééɱáþ·····]"
           }
         }
       },

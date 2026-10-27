@@ -15,14 +15,17 @@ rather than being repeated.
   `ResultsView` is screen C and also the live in-progress state; `HelpView` is the
   help sheet's content; `SettingsView` is the preferences window. Scanning is not a
   separate screen.
-- `Components/` — `SunburstView` (the disk chart: wedges drawn in one canvas,
-  with the hover emphasis painted over them; `SunburstAnimation` carries the wedges
-  between layouts, keyed so a drill is a move rather than a replacement, and plays
-  each chart's entrance when the pane shows it — first look, return, or tab switch),
-  `CategoryRingView` (the scan by
-  category, one ring; it opens the same way; opening a category charts its files
-  with `SunburstView`),
-  `WedgeEmphasis` (the one hover/selection overlay both charts paint),
+- `Components/` — `SunburstView` and `TreemapView`, the disk chart's two drawings
+  (`AppChartStyle` chooses one; both read the same selection and hover). The sunburst
+  draws wedges in one canvas and `SunburstAnimation` carries them between layouts,
+  keyed so a drill is a move rather than a replacement; the treemap squarifies boxes of
+  the same tree with `TreemapLayout` (pure and `Sendable`, so a wide folder lays out off
+  the main actor), carries them with `TreemapAnimation`, and names them on the box and
+  in the readout. Each chart plays its entrance when the pane shows it — first look,
+  return, or tab switch. `ChartGrouping` is the one rule that folds a folder's children
+  into a truthful aggregate, `ChartEmphasis` is the one hover/selection overlay every
+  chart paints, and `CategoryRingView` is the scan by category, one ring; it opens the
+  same way, and opening a category charts its files with whichever chart is chosen,
   `CleanupSheet` (tiered cleanup candidates, duplicates, and the Moved tab that puts a
   move back; it presents the reclaim confirmation over itself so a move returns to the
   same list, and only a rebuildable section can be selected whole), `HistorySheet` (the recorded runs of a location, two compared),
@@ -36,7 +39,8 @@ rather than being repeated.
   the chart fills, `FileCategory+UI.swift` the category symbols and labels,
   `AppAppearance.swift` the stored system/light/dark preference the Settings window
   edits, `AppLanguage.swift` the stored System/English/العربية interface-language
-  choice, `GrooveMark.swift` the packaged circular mark
+  choice, `AppChartStyle.swift` the stored sunburst/treemap choice, `GrooveMark.swift`
+  the packaged circular mark
   (`Resources/AppMark.png`) that the hero, the chart placeholder, Help, and About draw
   from — it is an image, not a shape drawn in code.
 - `Support/` — non-view helpers: `ExplorerQuery` (sorting/filtering), `ScanSearch`
@@ -71,6 +75,10 @@ rather than being repeated.
 - Leading and trailing are logical: layout mirrors when the interface language is
   right-to-left. Do not pin a pane to `.left` or `.right`; review `-l ar` and
   `-l en-XA` renders, which is where longer translations and truncation show up.
+- The treemap is drawn by hand, so it is laid out left to right in every language: a
+  `Canvas` does not mirror in a right-to-left environment but `.position` does, and a
+  mirrored label would sit on the mirror image of its box. Names take the interface's
+  leading edge by hand; the pane around the chart still follows the reading direction.
 - A pointer hover must not re-derive what it did not change. The chart's wedges are
   drawn once and the emphasis is a shade and an outline over them; the hover the list
   and the chart share is `ChartHover` in `Screens/ResultsView.swift`, so a hover
@@ -114,10 +122,11 @@ rather than being repeated.
   root's entries arrive ready-made in `ScanSummary.rootChildren`, folders included
   while their subtrees are still being walked: never assemble them from the capped
   lists by matching paths.
-- Search is a list scope, not a chart: the sunburst's wedges partition one folder's
-  bytes, and a search's matches overlap. The chart pane says so while a query is open.
-- `Screens/ResultsView.swift` and `Components/SunburstView.swift` are large. Grep for
-  the view or modifier you need instead of reading them whole.
+- Search is a list scope, not a chart: a chart partitions one folder's bytes, and a
+  search's matches overlap. The chart pane says so while a query is open.
+- `Screens/ResultsView.swift`, `Components/SunburstView.swift`, and
+  `Components/TreemapView.swift` are large. Grep for the view or modifier you need
+  instead of reading them whole.
 
 ## Looking at the UI
 
@@ -134,9 +143,11 @@ WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S settings -c -s 
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S update -c -s 640x600 -o .build/renders/<change>
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S update-ready -c -s 640x600 -o .build/renders/<change>
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S categories -o .build/renders/<change>
+WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S treemap -o .build/renders/<change>
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S coverage -c -o .build/renders/<change>
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S search -o .build/renders/<change>
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S results -l ar -o .build/renders/<change>
+WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S treemap -l ar -o .build/renders/<change>
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a light -S results -l en-XA -o .build/renders/<change>
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S cleanup -c -o .build/renders/<change>
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S duplicates -c -o .build/renders/<change>
@@ -147,7 +158,7 @@ WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S history -c -o .
 
 `-S` picks the screen: `results` (default), `home` (source selection), `search` (the
 results screen with a whole-scan query open), `categories` (the results screen in
-Categories mode), `coverage` (the coverage sheet), `help` and `settings` (the sheet and
+Categories mode), `treemap` (the results screen drawn as the treemap), `coverage` (the coverage sheet), `help` and `settings` (the sheet and
 preferences contents), `update` and `update-ready` (the software-update sheet and its
 ready state), `cleanup`, `duplicates`,
 and `moved` (the cleanup sheet's three

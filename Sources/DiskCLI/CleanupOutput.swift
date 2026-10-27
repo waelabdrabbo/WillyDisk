@@ -31,23 +31,23 @@ public enum CleanupOutput {
             L10n.string("Scanned"),
             L10n.string("Sizes"),
             L10n.string("Entries"),
-            L10n.string("Walk"),
+            L10n.string("Status"),
         ]
         let width = max(12, (labels.map(\.count).max() ?? 0) + 3)
 
         lines.append(L10n.string("WillyDisk cleanup"))
         lines.append(row(labels[0], root.standardizedFileURL.path, width: width))
         lines.append(row(labels[1], date(scannedAt), width: width))
-        lines.append(row(labels[2], L10n.string("bytes on disk"), width: width))
+        lines.append(row(labels[2], L10n.string("bytes on disk, not logical"), width: width))
         lines.append(row(
             labels[3],
-            L10n.format("%lld entries", report.visitedCount),
+            report.visitedCount.formatted(.number.locale(L10n.locale)),
             width: width
         ))
         lines.append(row(
             labels[4],
             report.stoppedAtLimit
-                ? L10n.string("sample: stopped at the cap")
+                ? L10n.string("sample (stopped at the cap)")
                 : L10n.string("complete"),
             width: width
         ))
@@ -95,7 +95,7 @@ public enum CleanupOutput {
 
     private static func appendDuplicateSummary(_ report: CleanupReport, into lines: inout [String]) {
         guard report.duplicateGroupCount > 0 else {
-            lines.append("  " + L10n.string("Nothing to review"))
+            lines.append("  " + L10n.string("No possible duplicates"))
             return
         }
         lines.append("  " + L10n.format(
@@ -169,7 +169,7 @@ public enum CleanupOutput {
         }
         if result.cloneFileCount > 0 {
             lines.append("  " + L10n.format(
-                "Paths that share storage with another file are not offered as copies, because moving one frees nothing until the others go: %@.",
+                "Paths that share storage with another file are not offered as copies, because moving one frees nothing until the others are gone: %@.",
                 L10n.format("%lld files", result.cloneFileCount)
             ))
         }

@@ -177,7 +177,7 @@ public enum ScanCLI {
             return 1
         }
         guard let tree = LiveTree(scanning: summary) else {
-            output.standardError(L10n.string("error: the scan did not produce a tree to review.") + "\n")
+            output.standardError(L10n.string("error: the scan produced nothing to review.") + "\n")
             return 1
         }
         guard let report = CleanupAnalysis.analyze(

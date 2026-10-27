@@ -240,7 +240,7 @@ final class CleanupCommandTests: XCTestCase {
         )
         XCTAssertEqual(code, 1)
         XCTAssertEqual(recorder.out, "")
-        XCTAssertTrue(recorder.err.contains("tree to review"))
+        XCTAssertTrue(recorder.err.contains("nothing to review"))
     }
 
     // MARK: - Fixture

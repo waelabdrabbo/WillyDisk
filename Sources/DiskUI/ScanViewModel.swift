@@ -251,7 +251,7 @@ public final class ScanViewModel {
             let reason = failures.first ?? L10n.string("The item is still in place.")
             return ReclaimNotice(
                 tone: .failure,
-                message: L10n.format("Couldn’t move to the Trash. %@", reason),
+                message: L10n.format("Couldn't move to the Trash. %@", reason),
                 showsShowTrash: false
             )
         }

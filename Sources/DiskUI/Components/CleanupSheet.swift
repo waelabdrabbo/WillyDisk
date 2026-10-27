@@ -359,12 +359,12 @@ public struct CleanupSheet: View {
             ProgressView(value: walkProgress.fraction)
                 .progressViewStyle(.linear)
                 .frame(width: DS.Size.progressBarMaxWidth)
-                .accessibilityLabel(L10n.string("Reading the scanned tree…"))
+                .accessibilityLabel(L10n.string("Reading the scanned folders…"))
                 .accessibilityValue(L10n.format(
                     "%lld percent",
                     Int((walkProgress.fraction * 100).rounded())
                 ))
-            Text(L10n.string("Reading the scanned tree…"))
+            Text(L10n.string("Reading the scanned folders…"))
                 .font(DS.Typography.callout)
                 .foregroundStyle(DS.Color.primaryText)
             Text(L10n.format(
@@ -544,7 +544,7 @@ public struct CleanupSheet: View {
                 Text(L10n.string("No possible duplicates"))
                     .font(DS.Typography.headline)
                 Text(L10n.format(
-                    "No two files on this Mac of at least %@ share a size in this scan.",
+                    "No two files of at least %@ on this Mac share a size in this scan.",
                     ByteFormat.string(policy.duplicateMinimum)
                 ))
                     .font(DS.Typography.callout)
@@ -848,7 +848,7 @@ public struct CleanupSheet: View {
     private func cloneNote(_ result: DuplicateReport) -> some View {
         if result.cloneFileCount > 0 {
             Text(L10n.format(
-                "Paths that share storage with another file are not offered as copies, because moving one frees nothing until the others go: %@.",
+                "Paths that share storage with another file are not offered as copies, because moving one frees nothing until the others are gone: %@.",
                 CountFormat.files(result.cloneFileCount)
             ))
                 .font(DS.Typography.caption)
@@ -869,7 +869,7 @@ public struct CleanupSheet: View {
                     .font(DS.Typography.caption)
                     .foregroundStyle(DS.Color.secondaryText)
                 Spacer(minLength: DS.Spacing.small)
-                InlineActionButton(L10n.string(extrasSelected(in: group) ? "Clear Copies" : "Select All But One")) {
+                InlineActionButton(L10n.string(extrasSelected(in: group) ? "Deselect Copies" : "Select All But One")) {
                     toggleExtras(in: group)
                 }
                 .help(L10n.string("Selects every copy except the first, so one copy stays in place"))
@@ -995,7 +995,7 @@ public struct CleanupSheet: View {
                     .disabled(restoringMoveID != nil)
                     .accessibilityHint(L10n.string("Moves these items out of the Trash, back to where they came from"))
                 } else if allRestored {
-                    Text(L10n.string("Restored"))
+                    Text(L10n.string("Put back"))
                         .font(DS.Typography.caption)
                         .foregroundStyle(DS.Color.secondaryText)
                 } else if allMissing {
@@ -1027,7 +1027,7 @@ public struct CleanupSheet: View {
                         }
                         Spacer(minLength: DS.Spacing.small)
                         if item.isRestored, !allRestored {
-                            Text(L10n.string("Restored"))
+                            Text(L10n.string("Put back"))
                                 .font(DS.Typography.caption)
                                 .foregroundStyle(DS.Color.secondaryText)
                         } else if isMissing, !allMissing {

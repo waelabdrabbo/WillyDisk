@@ -113,14 +113,14 @@ public struct UpdateSheet: View {
             status(
                 symbol: "checkmark.circle",
                 title: L10n.string("WillyDisk is up to date."),
-                detail: L10n.format("You have WillyDisk %@.", current)
+                detail: L10n.format("You're using WillyDisk %@.", current)
             )
 
         case let .newerThanLatest(current, latest):
             status(
                 symbol: "arrow.up.circle",
                 title: L10n.string("You're running a newer build than the latest release."),
-                detail: L10n.format("You have WillyDisk %@.", current),
+                detail: L10n.format("You're using WillyDisk %@.", current),
                 extra: L10n.format("The latest release is WillyDisk %@.", latest)
             )
 
@@ -156,7 +156,7 @@ public struct UpdateSheet: View {
                     .font(DS.Typography.caption)
                     .foregroundStyle(DS.Color.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)
-                Text(L10n.string("macOS may ask for Full Disk Access again after the update because this build is ad-hoc signed."))
+                Text(L10n.string("macOS may ask for Full Disk Access again after the update because this build is ad-hoc-signed."))
                     .font(DS.Typography.caption)
                     .foregroundStyle(DS.Color.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)
@@ -228,7 +228,7 @@ public struct UpdateSheet: View {
             Text(L10n.format("WillyDisk %@ is available.", offer.version))
                 .font(DS.Typography.title2)
                 .fixedSize(horizontal: false, vertical: true)
-            Text(L10n.format("You have WillyDisk %@.", offer.currentVersion))
+            Text(L10n.format("You're using WillyDisk %@.", offer.currentVersion))
                 .font(DS.Typography.callout)
                 .foregroundStyle(DS.Color.secondaryText)
 
@@ -517,13 +517,13 @@ public struct UpdateSheet: View {
         case .timedOut:
             return L10n.string("GitHub took too long to respond. Try again.")
         case .noRelease:
-            return L10n.string("No published release was found.")
+            return L10n.string("There is no published release.")
         case .rateLimited:
             return L10n.string("GitHub is limiting requests right now. Try again later.")
         case .http:
             return L10n.string("GitHub returned an error. Try again later.")
         case .malformedFeed:
-            return L10n.string("The update feed couldn't be read.")
+            return L10n.string("The update information couldn't be read.")
         case .downloadFailed:
             return L10n.string("The update couldn't be downloaded. Try again.")
         case .checksumMismatch:

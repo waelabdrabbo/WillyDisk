@@ -952,7 +952,7 @@ public struct ResultsView: View {
                     let report = await viewModel.restore(move)
                     guard !report.failures.isEmpty else { return nil }
                     return L10n.format(
-                        "Couldn’t put back everything. %@",
+                        "Couldn't put back everything. %@",
                         L10n.list(report.failures)
                     )
                 },
@@ -1997,7 +1997,7 @@ public struct ResultsView: View {
             HStack(spacing: DS.Spacing.small) {
                 Image(systemName: "square.stack.fill")
                     .foregroundStyle(DS.Color.accent)
-                Text(L10n.format("%lld Items Selected", nodes.count))
+                Text(L10n.format("%lld items selected", nodes.count))
                     .font(DS.Typography.headline)
                 Spacer()
                 detailHeaderActions(nodes)
@@ -2039,7 +2039,7 @@ public struct ResultsView: View {
             detailAction("eye", L10n.string("Quick Look")) {
                 quickLook.toggle(nodes.map(\.url))
             }
-            detailAction("arrow.up.forward.square", L10n.string("Reveal in Finder")) {
+            detailAction("arrow.up.forward.square", L10n.string("Show in Finder")) {
                 revealInFinder(nodes)
             }
             detailAction("xmark", L10n.string("Close Details")) {
@@ -2724,8 +2724,8 @@ private struct ContentsList: View {
                                     onQuickLook(row.node)
                                 }
                                 Button(targets == 1
-                                       ? L10n.string("Reveal in Finder")
-                                       : L10n.format("Reveal %@ in Finder", CountFormat.items(targets))) {
+                                       ? L10n.string("Show in Finder")
+                                       : L10n.format("Show %@ in Finder", CountFormat.items(targets))) {
                                     onReveal(row.node)
                                 }
                                 Divider()

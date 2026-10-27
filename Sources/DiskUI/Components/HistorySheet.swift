@@ -121,7 +121,7 @@ public struct HistorySheet: View {
         HStack(spacing: DS.Spacing.medium) {
             VStack(alignment: .leading, spacing: DS.Spacing.xxSmall) {
                 if comparison != nil {
-                    Text(L10n.format("Totals are exact. Folders and files are %@, matched by path. No saving is claimed.", entryCapacityPhrase))
+                    Text(L10n.format("Totals are exact. Folders and files are %@, matched by path. No savings are claimed.", entryCapacityPhrase))
                         .font(DS.Typography.caption)
                         .foregroundStyle(DS.Color.secondaryText)
                         .fixedSize(horizontal: false, vertical: true)
@@ -324,7 +324,7 @@ public struct HistorySheet: View {
             Text(L10n.string(records.count == 1 ? "One run recorded" : "Choose two runs"))
                 .font(DS.Typography.title2)
             Text(L10n.string(records.count == 1
-                 ? "A comparison needs two runs of this location. Scan it again and it will be compared here."
+                 ? "A comparison needs two runs of this location. Scan it again and the two will be compared here."
                  : "Select two runs in the list to see what grew, what shrank, and what appeared."))
                 .font(DS.Typography.body)
                 .foregroundStyle(DS.Color.secondaryText)
@@ -365,7 +365,7 @@ public struct HistorySheet: View {
             Image(systemName: "exclamationmark.triangle.fill")
                 .foregroundStyle(DS.Color.warning)
                 .accessibilityHidden(true)
-            Text(L10n.string("These runs used different scan options. Some of the difference may be what each walk included — hidden items, other volumes, or excluded paths — rather than a change on disk."))
+            Text(L10n.string("These runs used different scan options. Some of the difference may be what each scan included — hidden items, other volumes, or excluded paths — rather than a change on disk."))
                 .font(DS.Typography.caption)
                 .foregroundStyle(DS.Color.primaryText)
                 .fixedSize(horizontal: false, vertical: true)
@@ -660,11 +660,11 @@ public struct HistorySheet: View {
     private func caveat(_ comparison: ScanComparison) -> some View {
         VStack(alignment: .leading, spacing: DS.Spacing.small) {
             Divider()
-            Text(L10n.format("Totals and categories are exact: a scan measures every entry it walked. Folders and files are %@, matched by path. An entry is marked New only when the earlier run would have recorded it: it is absent from a list that held everything it found, or larger than a truncated list's cut-off. A later entry at or below that cut-off is not compared.", entryCapacityPhrase))
+            Text(L10n.format("Totals and categories are exact: a scan measures every entry it scanned. Folders and files are %@, matched by path. An entry is marked New only when the earlier run would have recorded it: it is absent from a list that held everything it found, or larger than a truncated list's cut-off. A later entry at or below that cut-off is not compared.", entryCapacityPhrase))
                 .font(DS.Typography.caption)
                 .foregroundStyle(DS.Color.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)
-            Text(L10n.string("Nothing here is a saving. A smaller scan means less was measured; space returns when the Trash is emptied."))
+            Text(L10n.string("Nothing here saves space. A smaller scan means less was measured; space returns when the Trash is emptied."))
                 .font(DS.Typography.caption)
                 .foregroundStyle(DS.Color.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)

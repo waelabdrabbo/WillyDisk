@@ -107,8 +107,8 @@ private extension HelpView {
             symbol: "externaldrive",
             paragraphs: [
                 L10n.string("Choose a volume, a recent scan, or a preset on the Home screen, or use Choose a Folder… (⌘O) to scan anywhere else. Every route starts the same scan with the same options."),
-                L10n.string("Scan Options picks what the walk includes: hidden items, other volumes, symbolic links, and excluded paths. The caption beside Scan repeats the choice, and Rescan (⌘R) repeats it exactly."),
-                L10n.string("Cancel Scan (⌘.) stops the walk and keeps the totals gathered so far, marked as stopped early."),
+                L10n.string("Scan Options picks what the scan includes: hidden items, other volumes, symbolic links, and excluded paths. The caption beside Scan repeats the choice, and Rescan (⌘R) repeats it exactly."),
+                L10n.string("Cancel Scan (⌘.) stops the scan and keeps the totals gathered so far, marked as stopped early."),
             ]
         ),
         HelpTopic(
@@ -116,8 +116,8 @@ private extension HelpView {
             title: L10n.string("Read the results"),
             symbol: "chart.pie",
             paragraphs: [
-                L10n.string("The chart maps the folder you are in. Click a folder to enter it; click a file to select it. The sunburst's centre goes up one folder, and Settings chooses between the sunburst and the treemap."),
-                L10n.string("Choose This Folder, Top Files, Top Folders, or Categories. Search (⌘F) finds any name in the whole scan, not only the folder on screen; include a / to match a path instead. Each result says which folder holds it, right-click one for Show in Folder, and clearing the field returns to the list you were in. Categories shows the same scan split by file category, and choosing a category there lists its largest files without leaving the mode. Show More pages through a long list."),
+                L10n.string("The chart maps the folder you are in. Click a folder to enter it; click a file to select it. The sunburst's center goes up one folder, and Settings chooses between the sunburst and the treemap."),
+                L10n.string("Choose This Folder, Top Files, Top Folders, or Categories. Search (⌘F) finds any name in the whole scan, not only the folder on screen; include a / to match a path instead. Each match says which folder holds it, right-click one for Show in Folder, and clearing the field returns to the list you were in. Categories shows the same scan split by file category, and choosing a category there lists its largest files without leaving the mode. Show More pages through a long list."),
                 L10n.string("While these results are on screen, the scanned folder is watched: a change made in Finder updates the numbers without Rescan. If watching is off, or the results could not be made live, they are marked out of date and Rescan is offered."),
                 L10n.string("The ⓘ button opens Coverage: what the scan counted, what it skipped, and the volume's own figures side by side."),
             ]
@@ -138,7 +138,7 @@ private extension HelpView {
             symbol: "sparkles",
             paragraphs: [
                 L10n.string("Cleanup reads the finished scan for large and old files, cache folders, old downloads, and possible duplicates. Looking costs nothing; nothing moves until you confirm."),
-                L10n.string("A possible duplicate is only a same-size candidate. Check Contents reads the files and compares SHA-256 digests; only matching contents are listed as identical, and cancelling the check confirms nothing."),
+                L10n.string("A possible duplicate is only a candidate of the same size. Check Contents reads the files and compares SHA-256 digests; only matching contents are listed as identical, and cancelling the check confirms nothing."),
                 L10n.string("Select copies, then Move to Trash…, and the usual confirmation checks every path. The space returns when the Trash is emptied, and moving one hard link frees nothing while another link remains."),
             ]
         ),
@@ -147,9 +147,9 @@ private extension HelpView {
             title: L10n.string("What coverage leaves out"),
             symbol: "info.circle",
             paragraphs: [
-                L10n.string("Hard links are not deduplicated: each link counts, and the extra is disclosed. Dataless files are counted at logical size, with local bytes reported separately."),
+                L10n.string("Hard links are counted once for each link, and the extra is disclosed. Dataless files are counted at logical size, with local bytes reported separately."),
                 L10n.string("Skipped symbolic links, other volumes, special files, and the items your exclusions removed are listed. Nothing that was not read is given an estimated size."),
-                L10n.string("The startup disk is a volume group, so a scan of / is not reconciled against the disk's capacity."),
+                L10n.string("The startup disk is a volume group, so a scan of / is not compared with the disk's capacity."),
             ]
         ),
         HelpTopic(
@@ -157,13 +157,13 @@ private extension HelpView {
             title: L10n.string("Leave paths out"),
             symbol: "eye.slash",
             paragraphs: [
-                L10n.string("Add Path… in Scan Options leaves paths out of the next scan. A nested exclusion is skipped without being entered; an exclusion at or above the scan root is ignored."),
+                L10n.string("Add Path… in Scan Options leaves paths out of the next scan. A nested exclusion is skipped without descending into it; an exclusion at or above the scan root is ignored."),
                 L10n.string("Coverage reports how many items your exclusions skipped, so a narrower total is never a silent one."),
             ]
         ),
         HelpTopic(
             id: "history",
-            title: L10n.string("Compare two scans"),
+            title: L10n.string("Compare two runs"),
             symbol: "clock.arrow.circlepath",
             paragraphs: [
                 L10n.string("History lists the runs recorded for the location you scanned. Choose two to see what grew, what shrank, and what appeared. Totals and categories are exact; folders and files are each run's largest 100, matched by path, and a New entry may simply have been below the earlier run's cut-off."),

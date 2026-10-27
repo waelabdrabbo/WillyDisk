@@ -74,7 +74,7 @@ public struct ScanSlotPresentation: Equatable, Sendable {
         case .finished:
             return counts.map { L10n.format("Scan finished, %@", $0) } ?? L10n.string("Scan finished")
         case .stopped:
-            return counts.map { L10n.format("Scan stopped, %@, results are partial", $0) }
+            return counts.map { L10n.format("Scan stopped after %@; results are partial", $0) }
                 ?? L10n.string("Scan stopped, results are partial")
         }
     }

@@ -34,8 +34,8 @@
 	<string>[%@ ĝáŧĥéŕéð·········]</string>
 	<key>%@ in %@</key>
 	<string>[%@ íñ %@······]</string>
-	<key>%@ is counted more than once, because every link the walk reached is counted as a file.</key>
-	<string>[%@ íš çöúñŧéð ɱöŕé ŧĥáñ öñçé, ƀéçáúšé éṽéŕý ļíñķ ŧĥé ŵáļķ ŕéáçĥéð íš çöúñŧéð áš á ƒíļé.·····················································································]</string>
+	<key>%@ is counted more than once, because every link the scan reached is counted as a file.</key>
+	<string>[%@ íš çöúñŧéð ɱöŕé ŧĥáñ öñçé, ƀéçáúšé éṽéŕý ļíñķ ŧĥé šçáñ ŕéáçĥéð íš çöúñŧéð áš á ƒíļé.·····················································································]</string>
 	<key>%@ is not on this Mac</key>
 	<string>[%@ íš ñöŧ öñ ŧĥíš Ɱáç···················]</string>
 	<key>%@ left out; their contents are not in the totals</key>
@@ -144,8 +144,8 @@
 	<string>[&lt;1%····]</string>
 	<key>&lt;1s</key>
 	<string>[&lt;1š····]</string>
-	<key>A comparison needs two runs of this location. Scan it again and it will be compared here.</key>
-	<string>[Á çöɱþáŕíšöñ ñééðš ŧŵö ŕúñš öƒ ŧĥíš ļöçáŧíöñ. Šçáñ íŧ áĝáíñ áñð íŧ ŵíļļ ƀé çöɱþáŕéð ĥéŕé.·······················································································]</string>
+	<key>A comparison needs two runs of this location. Scan it again and the two will be compared here.</key>
+	<string>[Á çöɱþáŕíšöñ ñééðš ŧŵö ŕúñš öƒ ŧĥíš ļöçáŧíöñ. Šçáñ íŧ áĝáíñ áñð ŧĥé ŧŵö ŵíļļ ƀé çöɱþáŕéð ĥéŕé.····························································································]</string>
 	<key>A file</key>
 	<string>[Á ƒíļé····]</string>
 	<key>A folder; moves everything inside it</key>
@@ -154,8 +154,8 @@
 	<string>[Á ļíñķ'š ŧáŕĝéŧ íš ñöŧ çöúñŧéð ŧĥŕöúĝĥ ŧĥé ļíñķ; ŧĥé ļíñķ íŧšéļƒ çáŕŕíéš ñö ƒíļé ðáŧá.····················································································]</string>
 	<key>A local disk-space analyzer for macOS.</key>
 	<string>[Á ļöçáļ ðíšķ-šþáçé áñáļýžéŕ ƒöŕ ɱáçÖŠ.····································]</string>
-	<key>A possible duplicate is only a same-size candidate. Check Contents reads the files and compares SHA-256 digests; only matching contents are listed as identical, and cancelling the check confirms nothing.</key>
-	<string>[Á þöššíƀļé ðúþļíçáŧé íš öñļý á šáɱé-šížé çáñðíðáŧé. Çĥéçķ Çöñŧéñŧš ŕéáðš ŧĥé ƒíļéš áñð çöɱþáŕéš ŠĤÁ-256 ðíĝéšŧš; öñļý ɱáŧçĥíñĝ çöñŧéñŧš áŕé ļíšŧéð áš íðéñŧíçáļ, áñð çáñçéļļíñĝ ŧĥé çĥéçķ çöñƒíŕɱš ñöŧĥíñĝ.·········································································································································································································]</string>
+	<key>A possible duplicate is only a candidate of the same size. Check Contents reads the files and compares SHA-256 digests; only matching contents are listed as identical, and cancelling the check confirms nothing.</key>
+	<string>[Á þöššíƀļé ðúþļíçáŧé íš öñļý á çáñðíðáŧé öƒ ŧĥé šáɱé šížé. Çĥéçķ Çöñŧéñŧš ŕéáðš ŧĥé ƒíļéš áñð çöɱþáŕéš ŠĤÁ-256 ðíĝéšŧš; öñļý ɱáŧçĥíñĝ çöñŧéñŧš áŕé ļíšŧéð áš íðéñŧíçáļ, áñð çáñçéļļíñĝ ŧĥé çĥéçķ çöñƒíŕɱš ñöŧĥíñĝ.················································································································································································································]</string>
 	<key>A scan is already running — cancel it first to start again</key>
 	<string>[Á šçáñ íš áļŕéáðý ŕúññíñĝ — çáñçéļ íŧ ƒíŕšŧ ŧö šŧáŕŧ áĝáíñ························································]</string>
 	<key>A scan is already running — open its results, or stop it to start another</key>
@@ -166,24 +166,22 @@
 	<string>[Á šçáñ íš ŕéçöŕðéð ŵĥéñ íŧ ƒíñíšĥéš. Çáñçéļļéð šçáñš áŕé ñöŧ: ŧĥéíŕ ŧöŧáļš çöṽéŕ öñļý þáŕŧ öƒ ŧĥé ƒöļðéŕ.·······································································································]</string>
 	<key>A scan is running</key>
 	<string>[Á šçáñ íš ŕúññíñĝ···············]</string>
+	<key>A symbolic link is moved itself; the item it points to stays where it is.</key>
+	<string>[Á šýɱƀöļíç ļíñķ íš ɱöṽéð íŧšéļƒ; ŧĥé íŧéɱ íŧ þöíñŧš ŧö šŧáýš ŵĥéŕé íŧ íš.·······································································]</string>
 	<key>About WillyDisk</key>
 	<string>[Áƀöúŧ ŴíļļýÐíšķ·············]</string>
 	<key>Access</key>
 	<string>[Áççéšš····]</string>
-	<key>Accounting</key>
-	<string>[Áççöúñŧíñĝ········]</string>
 	<key>Actions apply to the whole selection.</key>
 	<string>[Áçŧíöñš áþþļý ŧö ŧĥé ŵĥöļé šéļéçŧíöñ.···································]</string>
 	<key>Add Path…</key>
 	<string>[Áðð Þáŧĥ…·······]</string>
-	<key>Add Path… in Scan Options leaves paths out of the next scan. A nested exclusion is skipped without being entered; an exclusion at or above the scan root is ignored.</key>
-	<string>[Áðð Þáŧĥ… íñ Šçáñ Öþŧíöñš ļéáṽéš þáŧĥš öúŧ öƒ ŧĥé ñéẋŧ šçáñ. Á ñéšŧéð éẋçļúšíöñ íš šķíþþéð ŵíŧĥöúŧ ƀéíñĝ éñŧéŕéð; áñ éẋçļúšíöñ áŧ öŕ áƀöṽé ŧĥé šçáñ ŕööŧ íš íĝñöŕéð.··································································································································································]</string>
+	<key>Add Path… in Scan Options leaves paths out of the next scan. A nested exclusion is skipped without descending into it; an exclusion at or above the scan root is ignored.</key>
+	<string>[Áðð Þáŧĥ… íñ Šçáñ Öþŧíöñš ļéáṽéš þáŧĥš öúŧ öƒ ŧĥé ñéẋŧ šçáñ. Á ñéšŧéð éẋçļúšíöñ íš šķíþþéð ŵíŧĥöúŧ ðéšçéñðíñĝ íñŧö íŧ; áñ éẋçļúšíöñ áŧ öŕ áƀöṽé ŧĥé šçáñ ŕööŧ íš íĝñöŕéð.·······································································································································································]</string>
 	<key>All Categories</key>
 	<string>[Áļļ Çáŧéĝöŕíéš············]</string>
 	<key>Allocated</key>
 	<string>[Áļļöçáŧéð·······]</string>
-	<key>Allocated Size</key>
-	<string>[Áļļöçáŧéð Šížé············]</string>
 	<key>Appearance</key>
 	<string>[Áþþéáŕáñçé········]</string>
 	<key>Applications</key>
@@ -210,8 +208,8 @@
 	<string>[Çáñçéļ····]</string>
 	<key>Cancel Scan</key>
 	<string>[Çáñçéļ Šçáñ·········]</string>
-	<key>Cancel Scan (⌘.) stops the walk and keeps the totals gathered so far, marked as stopped early.</key>
-	<string>[Çáñçéļ Šçáñ (⌘.) šŧöþš ŧĥé ŵáļķ áñð ķééþš ŧĥé ŧöŧáļš ĝáŧĥéŕéð šö ƒáŕ, ɱáŕķéð áš šŧöþþéð éáŕļý.····························································································]</string>
+	<key>Cancel Scan (⌘.) stops the scan and keeps the totals gathered so far, marked as stopped early.</key>
+	<string>[Çáñçéļ Šçáñ (⌘.) šŧöþš ŧĥé šçáñ áñð ķééþš ŧĥé ŧöŧáļš ĝáŧĥéŕéð šö ƒáŕ, ɱáŕķéð áš šŧöþþéð éáŕļý.····························································································]</string>
 	<key>Candidates</key>
 	<string>[Çáñðíðáŧéš········]</string>
 	<key>Candidates are places to look, not a recommendation. A move goes through the same confirmation as everywhere else, and the space returns when the Trash is emptied.</key>
@@ -250,8 +248,8 @@
 	<string>[Çĥéçķíñĝ…·······]</string>
 	<key>Choose</key>
 	<string>[Çĥööšé····]</string>
-	<key>Choose This Folder, Top Files, Top Folders, or Categories. Search (⌘F) finds any name in the whole scan, not only the folder on screen; include a / to match a path instead. Each result says which folder holds it, right-click one for Show in Folder, and clearing the field returns to the list you were in. Categories shows the same scan split by file category, and choosing a category there lists its largest files without leaving the mode. Show More pages through a long list.</key>
-	<string>[Çĥööšé Ŧĥíš Ƒöļðéŕ, Ŧöþ Ƒíļéš, Ŧöþ Ƒöļðéŕš, öŕ Çáŧéĝöŕíéš. Šéáŕçĥ (⌘Ƒ) ƒíñðš áñý ñáɱé íñ ŧĥé ŵĥöļé šçáñ, ñöŧ öñļý ŧĥé ƒöļðéŕ öñ šçŕééñ; íñçļúðé á / ŧö ɱáŧçĥ á þáŧĥ íñšŧéáð. Éáçĥ ŕéšúļŧ šáýš ŵĥíçĥ ƒöļðéŕ ĥöļðš íŧ, ŕíĝĥŧ-çļíçķ öñé ƒöŕ Šĥöŵ íñ Ƒöļðéŕ, áñð çļéáŕíñĝ ŧĥé ƒíéļð ŕéŧúŕñš ŧö ŧĥé ļíšŧ ýöú ŵéŕé íñ. Çáŧéĝöŕíéš šĥöŵš ŧĥé šáɱé šçáñ šþļíŧ ƀý ƒíļé çáŧéĝöŕý, áñð çĥööšíñĝ á çáŧéĝöŕý ŧĥéŕé ļíšŧš íŧš ļáŕĝéšŧ ƒíļéš ŵíŧĥöúŧ ļéáṽíñĝ ŧĥé ɱöðé. Šĥöŵ Ɱöŕé þáĝéš ŧĥŕöúĝĥ á ļöñĝ ļíšŧ.··························································································································································································································································································································································································································································································]</string>
+	<key>Choose This Folder, Top Files, Top Folders, or Categories. Search (⌘F) finds any name in the whole scan, not only the folder on screen; include a / to match a path instead. Each match says which folder holds it, right-click one for Show in Folder, and clearing the field returns to the list you were in. Categories shows the same scan split by file category, and choosing a category there lists its largest files without leaving the mode. Show More pages through a long list.</key>
+	<string>[Çĥööšé Ŧĥíš Ƒöļðéŕ, Ŧöþ Ƒíļéš, Ŧöþ Ƒöļðéŕš, öŕ Çáŧéĝöŕíéš. Šéáŕçĥ (⌘Ƒ) ƒíñðš áñý ñáɱé íñ ŧĥé ŵĥöļé šçáñ, ñöŧ öñļý ŧĥé ƒöļðéŕ öñ šçŕééñ; íñçļúðé á / ŧö ɱáŧçĥ á þáŧĥ íñšŧéáð. Éáçĥ ɱáŧçĥ šáýš ŵĥíçĥ ƒöļðéŕ ĥöļðš íŧ, ŕíĝĥŧ-çļíçķ öñé ƒöŕ Šĥöŵ íñ Ƒöļðéŕ, áñð çļéáŕíñĝ ŧĥé ƒíéļð ŕéŧúŕñš ŧö ŧĥé ļíšŧ ýöú ŵéŕé íñ. Çáŧéĝöŕíéš šĥöŵš ŧĥé šáɱé šçáñ šþļíŧ ƀý ƒíļé çáŧéĝöŕý, áñð çĥööšíñĝ á çáŧéĝöŕý ŧĥéŕé ļíšŧš íŧš ļáŕĝéšŧ ƒíļéš ŵíŧĥöúŧ ļéáṽíñĝ ŧĥé ɱöðé. Šĥöŵ Ɱöŕé þáĝéš ŧĥŕöúĝĥ á ļöñĝ ļíšŧ.·························································································································································································································································································································································································································································································]</string>
 	<key>Choose a Folder…</key>
 	<string>[Çĥööšé á Ƒöļðéŕ…··············]</string>
 	<key>Choose a folder or volume to scan.</key>
@@ -276,8 +274,6 @@
 	<string>[Çļéáñúþ ṽíéŵ··········]</string>
 	<key>Cleanup…</key>
 	<string>[Çļéáñúþ…······]</string>
-	<key>Clear Copies</key>
-	<string>[Çļéáŕ Çöþíéš··········]</string>
 	<key>Clear History</key>
 	<string>[Çļéáŕ Ĥíšŧöŕý···········]</string>
 	<key>Clear History…</key>
@@ -302,8 +298,8 @@
 	<string>[Çöðé····]</string>
 	<key>Compare this location's recorded scans</key>
 	<string>[Çöɱþáŕé ŧĥíš ļöçáŧíöñ'š ŕéçöŕðéð šçáñš····································]</string>
-	<key>Compare two scans</key>
-	<string>[Çöɱþáŕé ŧŵö šçáñš···············]</string>
+	<key>Compare two runs</key>
+	<string>[Çöɱþáŕé ŧŵö ŕúñš··············]</string>
 	<key>Compared %@ of %@. The confirmed groups below have identical contents.</key>
 	<string>[Çöɱþáŕéð %@ öƒ %@. Ŧĥé çöñƒíŕɱéð ĝŕöúþš ƀéļöŵ ĥáṽé íðéñŧíçáļ çöñŧéñŧš.····································································]</string>
 	<key>Compared %@ of %@. The files that were read have different contents; the same size alone is not a duplicate.</key>
@@ -328,10 +324,10 @@
 	<string>[Çöúļðñ'ŧ Ðöŵñļöáð ŧĥé Úþðáŧé··························]</string>
 	<key>Couldn't Install the Update</key>
 	<string>[Çöúļðñ'ŧ Íñšŧáļļ ŧĥé Úþðáŧé·························]</string>
-	<key>Couldn’t move to the Trash. %@</key>
-	<string>[Çöúļðñ’ŧ ɱöṽé ŧö ŧĥé Ŧŕášĥ. %@····························]</string>
-	<key>Couldn’t put back everything. %@</key>
-	<string>[Çöúļðñ’ŧ þúŧ ƀáçķ éṽéŕýŧĥíñĝ. %@······························]</string>
+	<key>Couldn't move to the Trash. %@</key>
+	<string>[Çöúļðñ'ŧ ɱöṽé ŧö ŧĥé Ŧŕášĥ. %@····························]</string>
+	<key>Couldn't put back everything. %@</key>
+	<string>[Çöúļðñ'ŧ þúŧ ƀáçķ éṽéŕýŧĥíñĝ. %@······························]</string>
 	<key>Count a link's target, skipping links that leave the scan.</key>
 	<string>[Çöúñŧ á ļíñķ'š ŧáŕĝéŧ, šķíþþíñĝ ļíñķš ŧĥáŧ ļéáṽé ŧĥé šçáñ.························································]</string>
 	<key>Counted more than once, or not at all</key>
@@ -354,12 +350,12 @@
 	<string>[Ðéŕíṽéð Ðáŧá··········]</string>
 	<key>Deselect All</key>
 	<string>[Ðéšéļéçŧ Áļļ··········]</string>
+	<key>Deselect Copies</key>
+	<string>[Ðéšéļéçŧ Çöþíéš·············]</string>
 	<key>Details</key>
 	<string>[Ðéŧáíļš·····]</string>
 	<key>Device support</key>
 	<string>[Ðéṽíçé šúþþöŕŧ············]</string>
-	<key>Directory</key>
-	<string>[Ðíŕéçŧöŕý·······]</string>
 	<key>Dismiss</key>
 	<string>[Ðíšɱíšš·····]</string>
 	<key>Do not follow folders that point to another disk or network share.</key>
@@ -392,8 +388,8 @@
 	<string>[Éñŧŕíéš·····]</string>
 	<key>Every recorded run, for every location, is removed. Your files are not touched.</key>
 	<string>[Éṽéŕý ŕéçöŕðéð ŕúñ, ƒöŕ éṽéŕý ļöçáŧíöñ, íš ŕéɱöṽéð. Ýöúŕ ƒíļéš áŕé ñöŧ ŧöúçĥéð.·············································································]</string>
-	<key>Every simulator device, offered whole. Xcode makes a new one on demand; the apps and the data inside these are gone with them.</key>
-	<string>[Éṽéŕý šíɱúļáŧöŕ ðéṽíçé, öƒƒéŕéð ŵĥöļé. Ẋçöðé ɱáķéš á ñéŵ öñé öñ ðéɱáñð; ŧĥé áþþš áñð ŧĥé ðáŧá íñšíðé ŧĥéšé áŕé ĝöñé ŵíŧĥ ŧĥéɱ.····························································································································]</string>
+	<key>Every simulator device, offered whole. Xcode makes a new one on demand; deleting one also removes the apps and the data inside it.</key>
+	<string>[Éṽéŕý šíɱúļáŧöŕ ðéṽíçé, öƒƒéŕéð ŵĥöļé. Ẋçöðé ɱáķéš á ñéŵ öñé öñ ðéɱáñð; ðéļéŧíñĝ öñé áļšö ŕéɱöṽéš ŧĥé áþþš áñð ŧĥé ðáŧá íñšíðé íŧ.································································································································]</string>
 	<key>Exclude</key>
 	<string>[Éẋçļúðé·····]</string>
 	<key>Excluded Paths</key>
@@ -414,6 +410,8 @@
 	<string>[Éẋþöŕŧ Ðíáĝñöšŧíçš ŵŕíŧéš šçáñ šéŧŧíñĝš, ŧíɱíñĝ, íššúé çöúñŧš, áñð ŧĥé áþþ ṽéŕšíöñ. Íŧ çáŕŕíéš ñö ƒíļé ñáɱéš, þáŧĥš, öŕ çöñŧéñŧš.·······························································································································]</string>
 	<key>Export Diagnostics…</key>
 	<string>[Éẋþöŕŧ Ðíáĝñöšŧíçš…·················]</string>
+	<key>Export Failed</key>
+	<string>[Éẋþöŕŧ Ƒáíļéð···········]</string>
 	<key>Export Report</key>
 	<string>[Éẋþöŕŧ Ŕéþöŕŧ···········]</string>
 	<key>Export and privacy</key>
@@ -422,8 +420,6 @@
 	<string>[Éẋþöŕŧ áš ÇŠṼ…············]</string>
 	<key>Export as JSON…</key>
 	<string>[Éẋþöŕŧ áš ĴŠÖÑ…·············]</string>
-	<key>Export failed</key>
-	<string>[Éẋþöŕŧ ƒáíļéð···········]</string>
 	<key>Export the analysis report or diagnostics</key>
 	<string>[Éẋþöŕŧ ŧĥé áñáļýšíš ŕéþöŕŧ öŕ ðíáĝñöšŧíçš·······································]</string>
 	<key>File</key>
@@ -450,8 +446,8 @@
 	<string>[Ƒöļðéŕ þáŧĥ·········]</string>
 	<key>Folders</key>
 	<string>[Ƒöļðéŕš·····]</string>
-	<key>Folders (%@, %@ per level)</key>
-	<string>[Ƒöļðéŕš (%@, %@ þéŕ ļéṽéļ)························]</string>
+	<key>Folders (%@, top %@ per level)</key>
+	<string>[Ƒöļðéŕš (%@, ŧöþ %@ þéŕ ļéṽéļ)····························]</string>
 	<key>Folders (root only)</key>
 	<string>[Ƒöļðéŕš (ŕööŧ öñļý)·················]</string>
 	<key>Folders named Caches directly inside a Library, and Xcode's Derived Data, offered whole. The apps that made them rebuild them; moving one can cost a rebuild until they do.</key>
@@ -478,8 +474,8 @@
 	<string>[Ĝŕöŵñ····]</string>
 	<key>Hard links</key>
 	<string>[Ĥáŕð ļíñķš········]</string>
-	<key>Hard links are not deduplicated: each link counts, and the extra is disclosed. Dataless files are counted at logical size, with local bytes reported separately.</key>
-	<string>[Ĥáŕð ļíñķš áŕé ñöŧ ðéðúþļíçáŧéð: éáçĥ ļíñķ çöúñŧš, áñð ŧĥé éẋŧŕá íš ðíšçļöšéð. Ðáŧáļéšš ƒíļéš áŕé çöúñŧéð áŧ ļöĝíçáļ šížé, ŵíŧĥ ļöçáļ ƀýŧéš ŕéþöŕŧéð šéþáŕáŧéļý.······························································································································································]</string>
+	<key>Hard links are counted once for each link, and the extra is disclosed. Dataless files are counted at logical size, with local bytes reported separately.</key>
+	<string>[Ĥáŕð ļíñķš áŕé çöúñŧéð öñçé ƒöŕ éáçĥ ļíñķ, áñð ŧĥé éẋŧŕá íš ðíšçļöšéð. Ðáŧáļéšš ƒíļéš áŕé çöúñŧéð áŧ ļöĝíçáļ šížé, ŵíŧĥ ļöçáļ ƀýŧéš ŕéþöŕŧéð šéþáŕáŧéļý.······················································································································································]</string>
 	<key>Hard-linked files</key>
 	<string>[Ĥáŕð-ļíñķéð ƒíļéš···············]</string>
 	<key>Hidden</key>
@@ -500,6 +496,8 @@
 	<string>[Ĥíšŧöŕý…······]</string>
 	<key>Home</key>
 	<string>[Ĥöɱé····]</string>
+	<key>How sizes are counted</key>
+	<string>[Ĥöŵ šížéš áŕé çöúñŧéð···················]</string>
 	<key>Identical contents</key>
 	<string>[Íðéñŧíçáļ çöñŧéñŧš················]</string>
 	<key>Images</key>
@@ -516,8 +514,8 @@
 	<string>[Íñšŧáļļíñĝ áñð Ŕéļáúñçĥíñĝ…·························]</string>
 	<key>Issues</key>
 	<string>[Íššúéš····]</string>
-	<key>It is already back</key>
-	<string>[Íŧ íš áļŕéáðý ƀáçķ················]</string>
+	<key>It is already back in place</key>
+	<string>[Íŧ íš áļŕéáðý ƀáçķ íñ þļáçé·························]</string>
 	<key>It is no longer in the Trash</key>
 	<string>[Íŧ íš ñö ļöñĝéŕ íñ ŧĥé Ŧŕášĥ··························]</string>
 	<key>It may have been moved or deleted since the scan.</key>
@@ -562,8 +560,8 @@
 	<string>[Ļöĝ ƒöļðéŕš ðíŕéçŧļý íñšíðé á Ļíƀŕáŕý, öƒƒéŕéð ŵĥöļé. Áþþš áñð ɱáçÖŠ ŵŕíŧé ñéŵ ļöĝš áš ŧĥéý ŕúñ.······························································································]</string>
 	<key>Logical</key>
 	<string>[Ļöĝíçáļ·····]</string>
-	<key>Logical Size</key>
-	<string>[Ļöĝíçáļ Šížé··········]</string>
+	<key>Logical size</key>
+	<string>[Ļöĝíçáļ šížé··········]</string>
 	<key>Logs</key>
 	<string>[Ļöĝš····]</string>
 	<key>Looking for files that take at least %@ on disk and have not changed in %@, Xcode support and simulator folders, caches, logs, old downloads, and files that share a size.</key>
@@ -642,16 +640,14 @@
 	<string>[Ñö ɱáŧçĥéš šö ƒáŕ ƒöŕ “%@”························]</string>
 	<key>No possible duplicates</key>
 	<string>[Ñö þöššíƀļé ðúþļíçáŧéš····················]</string>
-	<key>No published release was found.</key>
-	<string>[Ñö þúƀļíšĥéð ŕéļéášé ŵáš ƒöúñð.·····························]</string>
 	<key>No recorded runs</key>
 	<string>[Ñö ŕéçöŕðéð ŕúñš··············]</string>
 	<key>No release notes.</key>
 	<string>[Ñö ŕéļéášé ñöŧéš.···············]</string>
 	<key>No results</key>
 	<string>[Ñö ŕéšúļŧš········]</string>
-	<key>No two files on this Mac of at least %@ share a size in this scan.</key>
-	<string>[Ñö ŧŵö ƒíļéš öñ ŧĥíš Ɱáç öƒ áŧ ļéášŧ %@ šĥáŕé á šížé íñ ŧĥíš šçáñ.································································]</string>
+	<key>No two files of at least %@ on this Mac share a size in this scan.</key>
+	<string>[Ñö ŧŵö ƒíļéš öƒ áŧ ļéášŧ %@ öñ ŧĥíš Ɱáç šĥáŕé á šížé íñ ŧĥíš šçáñ.································································]</string>
 	<key>None found</key>
 	<string>[Ñöñé ƒöúñð········]</string>
 	<key>None listed</key>
@@ -672,12 +668,12 @@
 	<string>[Ñöŧĥíñĝ éẋçļúðéð. Šçáñš íñçļúðé éṽéŕý íŧéɱ ŧĥéý çáñ ŕéáð.·······················································]</string>
 	<key>Nothing here has a size</key>
 	<string>[Ñöŧĥíñĝ ĥéŕé ĥáš á šížé·····················]</string>
-	<key>Nothing here is a saving. A smaller scan means less was measured; space returns when the Trash is emptied.</key>
-	<string>[Ñöŧĥíñĝ ĥéŕé íš á šáṽíñĝ. Á šɱáļļéŕ šçáñ ɱéáñš ļéšš ŵáš ɱéášúŕéð; šþáçé ŕéŧúŕñš ŵĥéñ ŧĥé Ŧŕášĥ íš éɱþŧíéð.········································································································]</string>
 	<key>Nothing here is big enough to draw.</key>
 	<string>[Ñöŧĥíñĝ ĥéŕé íš ƀíĝ éñöúĝĥ ŧö ðŕáŵ.·································]</string>
 	<key>Nothing here is rebuilt for you. Choose each item yourself.</key>
 	<string>[Ñöŧĥíñĝ ĥéŕé íš ŕéƀúíļŧ ƒöŕ ýöú. Çĥööšé éáçĥ íŧéɱ ýöúŕšéļƒ.·························································]</string>
+	<key>Nothing here saves space. A smaller scan means less was measured; space returns when the Trash is emptied.</key>
+	<string>[Ñöŧĥíñĝ ĥéŕé šáṽéš šþáçé. Á šɱáļļéŕ šçáñ ɱéáñš ļéšš ŵáš ɱéášúŕéð; šþáçé ŕéŧúŕñš ŵĥéñ ŧĥé Ŧŕášĥ íš éɱþŧíéð.········································································································]</string>
 	<key>Nothing moved yet</key>
 	<string>[Ñöŧĥíñĝ ɱöṽéð ýéŧ···············]</string>
 	<key>Nothing on this volume can be moved or changed.</key>
@@ -734,8 +730,8 @@
 	<string>[Þáŧĥ····]</string>
 	<key>Paths that are hard links to another file are not offered as copies, because moving one frees nothing until every link is gone: %@.</key>
 	<string>[Þáŧĥš ŧĥáŧ áŕé ĥáŕð ļíñķš ŧö áñöŧĥéŕ ƒíļé áŕé ñöŧ öƒƒéŕéð áš çöþíéš, ƀéçáúšé ɱöṽíñĝ öñé ƒŕééš ñöŧĥíñĝ úñŧíļ éṽéŕý ļíñķ íš ĝöñé: %@.·································································································································]</string>
-	<key>Paths that share storage with another file are not offered as copies, because moving one frees nothing until the others go: %@.</key>
-	<string>[Þáŧĥš ŧĥáŧ šĥáŕé šŧöŕáĝé ŵíŧĥ áñöŧĥéŕ ƒíļé áŕé ñöŧ öƒƒéŕéð áš çöþíéš, ƀéçáúšé ɱöṽíñĝ öñé ƒŕééš ñöŧĥíñĝ úñŧíļ ŧĥé öŧĥéŕš ĝö: %@.·····························································································································]</string>
+	<key>Paths that share storage with another file are not offered as copies, because moving one frees nothing until the others are gone: %@.</key>
+	<string>[Þáŧĥš ŧĥáŧ šĥáŕé šŧöŕáĝé ŵíŧĥ áñöŧĥéŕ ƒíļé áŕé ñöŧ öƒƒéŕéð áš çöþíéš, ƀéçáúšé ɱöṽíñĝ öñé ƒŕééš ñöŧĥíñĝ úñŧíļ ŧĥé öŧĥéŕš áŕé ĝöñé: %@.···································································································································]</string>
 	<key>Pick any folder or volume to scan</key>
 	<string>[Þíçķ áñý ƒöļðéŕ öŕ ṽöļúɱé ŧö šçáñ·······························]</string>
 	<key>Possible duplicates</key>
@@ -744,6 +740,8 @@
 	<string>[Þúŧ Ƀáçķ······]</string>
 	<key>Put Back takes an item out of the Trash; it does not empty it. Space returns when the Trash is emptied.</key>
 	<string>[Þúŧ Ƀáçķ ŧáķéš áñ íŧéɱ öúŧ öƒ ŧĥé Ŧŕášĥ; íŧ ðöéš ñöŧ éɱþŧý íŧ. Šþáçé ŕéŧúŕñš ŵĥéñ ŧĥé Ŧŕášĥ íš éɱþŧíéð.·····································································································]</string>
+	<key>Put back</key>
+	<string>[Þúŧ ƀáçķ······]</string>
 	<key>Quick Look</key>
 	<string>[Ǫúíçķ Ļööķ········]</string>
 	<key>Quick Look %@</key>
@@ -762,8 +760,8 @@
 	<string>[Ŕéáðíñĝ ŧĥé ƒíŕšŧ ƒöļðéŕš…························]</string>
 	<key>Reading the scan history…</key>
 	<string>[Ŕéáðíñĝ ŧĥé šçáñ ĥíšŧöŕý…·······················]</string>
-	<key>Reading the scanned tree…</key>
-	<string>[Ŕéáðíñĝ ŧĥé šçáññéð ŧŕéé…·······················]</string>
+	<key>Reading the scanned folders…</key>
+	<string>[Ŕéáðíñĝ ŧĥé šçáññéð ƒöļðéŕš…··························]</string>
 	<key>Reads these files and compares their contents</key>
 	<string>[Ŕéáðš ŧĥéšé ƒíļéš áñð çöɱþáŕéš ŧĥéíŕ çöñŧéñŧš···········································]</string>
 	<key>Rebuildable</key>
@@ -776,14 +774,10 @@
 	<string>[Ŕéɱöṽé éẋçļúšíöñ %@·················]</string>
 	<key>Removes every recorded run. Your files are not touched.</key>
 	<string>[Ŕéɱöṽéš éṽéŕý ŕéçöŕðéð ŕúñ. Ýöúŕ ƒíļéš áŕé ñöŧ ŧöúçĥéð.·····················································]</string>
-	<key>Reported size</key>
-	<string>[Ŕéþöŕŧéð šížé···········]</string>
 	<key>Rescan</key>
 	<string>[Ŕéšçáñ····]</string>
 	<key>Reset to Defaults</key>
 	<string>[Ŕéšéŧ ŧö Ðéƒáúļŧš···············]</string>
-	<key>Restored</key>
-	<string>[Ŕéšŧöŕéð······]</string>
 	<key>Results</key>
 	<string>[Ŕéšúļŧš·····]</string>
 	<key>Results changed since this scan. Rescan.</key>
@@ -792,10 +786,6 @@
 	<string>[Ŕéŧúŕñ ŧö šöúŕçé šéļéçŧíöñ························]</string>
 	<key>Return to the scanned location</key>
 	<string>[Ŕéŧúŕñ ŧö ŧĥé šçáññéð ļöçáŧíöñ····························]</string>
-	<key>Reveal %@ in Finder</key>
-	<string>[Ŕéṽéáļ %@ íñ Ƒíñðéŕ·················]</string>
-	<key>Reveal in Finder</key>
-	<string>[Ŕéṽéáļ íñ Ƒíñðéŕ··············]</string>
 	<key>Review cleanup candidates</key>
 	<string>[Ŕéṽíéŵ çļéáñúþ çáñðíðáŧéš·······················]</string>
 	<key>Right-click a row, or use the detail pane, to reveal it in Finder or move it to the Trash. A move asks first and refuses the scan root, volume roots, your home folder, and protected system locations. The space returns when the Trash is emptied, not when the item is moved.</key>
@@ -824,8 +814,8 @@
 	<string>[Šçáñ Ĥíšŧöŕý··········]</string>
 	<key>Scan Options</key>
 	<string>[Šçáñ Öþŧíöñš··········]</string>
-	<key>Scan Options picks what the walk includes: hidden items, other volumes, symbolic links, and excluded paths. The caption beside Scan repeats the choice, and Rescan (⌘R) repeats it exactly.</key>
-	<string>[Šçáñ Öþŧíöñš þíçķš ŵĥáŧ ŧĥé ŵáļķ íñçļúðéš: ĥíððéñ íŧéɱš, öŧĥéŕ ṽöļúɱéš, šýɱƀöļíç ļíñķš, áñð éẋçļúðéð þáŧĥš. Ŧĥé çáþŧíöñ ƀéšíðé Šçáñ ŕéþéáŧš ŧĥé çĥöíçé, áñð Ŕéšçáñ (⌘Ŕ) ŕéþéáŧš íŧ éẋáçŧļý.·························································································································································································]</string>
+	<key>Scan Options picks what the scan includes: hidden items, other volumes, symbolic links, and excluded paths. The caption beside Scan repeats the choice, and Rescan (⌘R) repeats it exactly.</key>
+	<string>[Šçáñ Öþŧíöñš þíçķš ŵĥáŧ ŧĥé šçáñ íñçļúðéš: ĥíððéñ íŧéɱš, öŧĥéŕ ṽöļúɱéš, šýɱƀöļíç ļíñķš, áñð éẋçļúðéð þáŧĥš. Ŧĥé çáþŧíöñ ƀéšíðé Šçáñ ŕéþéáŧš ŧĥé çĥöíçé, áñð Ŕéšçáñ (⌘Ŕ) ŕéþéáŧš íŧ éẋáçŧļý.·························································································································································································]</string>
 	<key>Scan by file category</key>
 	<string>[Šçáñ ƀý ƒíļé çáŧéĝöŕý···················]</string>
 	<key>Scan cancelled.</key>
@@ -842,8 +832,8 @@
 	<string>[Šçáñ šŧáŕŧéð %@; ŧĥé ŧöŧáļš áŕé šŧíļļ ĝŕöŵíñĝ···········································]</string>
 	<key>Scan stopped</key>
 	<string>[Šçáñ šŧöþþéð··········]</string>
-	<key>Scan stopped, %@, results are partial</key>
-	<string>[Šçáñ šŧöþþéð, %@, ŕéšúļŧš áŕé þáŕŧíáļ···································]</string>
+	<key>Scan stopped after %@; results are partial</key>
+	<string>[Šçáñ šŧöþþéð áƒŧéŕ %@; ŕéšúļŧš áŕé þáŕŧíáļ········································]</string>
 	<key>Scan stopped, results are partial</key>
 	<string>[Šçáñ šŧöþþéð, ŕéšúļŧš áŕé þáŕŧíáļ·······························]</string>
 	<key>Scan the current location again</key>
@@ -904,6 +894,8 @@
 	<string>[Šĥáŕé öƒ ŧĥíš šçáñ'š ļöĝíçáļ šížé. Çĥööšé á çáŧéĝöŕý ŧö šéé íŧš ļáŕĝéšŧ ƒíļéš.············································································]</string>
 	<key>Show %@</key>
 	<string>[Šĥöŵ %@·····]</string>
+	<key>Show %@ in Finder</key>
+	<string>[Šĥöŵ %@ íñ Ƒíñðéŕ···············]</string>
 	<key>Show All</key>
 	<string>[Šĥöŵ Áļļ······]</string>
 	<key>Show Less</key>
@@ -980,6 +972,8 @@
 	<string>[Šŧáŕŧ á šçáñ··········]</string>
 	<key>Starts scanning %@</key>
 	<string>[Šŧáŕŧš šçáññíñĝ %@················]</string>
+	<key>Status</key>
+	<string>[Šŧáŧúš····]</string>
 	<key>Stay on this volume</key>
 	<string>[Šŧáý öñ ŧĥíš ṽöļúɱé·················]</string>
 	<key>Stop excluding %@</key>
@@ -1004,8 +998,6 @@
 	<string>[Šúñƀúŕšŧ······]</string>
 	<key>Symbolic link</key>
 	<string>[Šýɱƀöļíç ļíñķ···········]</string>
-	<key>Symbolic links are moved themselves; the items they point to stay where they are.</key>
-	<string>[Šýɱƀöļíç ļíñķš áŕé ɱöṽéð ŧĥéɱšéļṽéš; ŧĥé íŧéɱš ŧĥéý þöíñŧ ŧö šŧáý ŵĥéŕé ŧĥéý áŕé.···············································································]</string>
 	<key>System</key>
 	<string>[Šýšŧéɱ····]</string>
 	<key>System follows your Mac. Light or Dark holds that appearance for WillyDisk alone.</key>
@@ -1014,8 +1006,8 @@
 	<string>[Ŧĥé áþþ ŧĥáŧ ɱáðé ŧĥéšé ŕéƀúíļðš ŧĥéɱ. Ýöú çáñ šéļéçŧ á ŵĥöļé šéçŧíöñ ĥéŕé.·········································································]</string>
 	<key>The chart maps one folder at a time. Clear the search to return to “%@”.</key>
 	<string>[Ŧĥé çĥáŕŧ ɱáþš öñé ƒöļðéŕ áŧ á ŧíɱé. Çļéáŕ ŧĥé šéáŕçĥ ŧö ŕéŧúŕñ ŧö “%@”.······································································]</string>
-	<key>The chart maps the folder you are in. Click a folder to enter it; click a file to select it. The sunburst's centre goes up one folder, and Settings chooses between the sunburst and the treemap.</key>
-	<string>[Ŧĥé çĥáŕŧ ɱáþš ŧĥé ƒöļðéŕ ýöú áŕé íñ. Çļíçķ á ƒöļðéŕ ŧö éñŧéŕ íŧ; çļíçķ á ƒíļé ŧö šéļéçŧ íŧ. Ŧĥé šúñƀúŕšŧ'š çéñŧŕé ĝöéš úþ öñé ƒöļðéŕ, áñð Šéŧŧíñĝš çĥööšéš ƀéŧŵééñ ŧĥé šúñƀúŕšŧ áñð ŧĥé ŧŕééɱáþ.·······························································································································································································]</string>
+	<key>The chart maps the folder you are in. Click a folder to enter it; click a file to select it. The sunburst's center goes up one folder, and Settings chooses between the sunburst and the treemap.</key>
+	<string>[Ŧĥé çĥáŕŧ ɱáþš ŧĥé ƒöļðéŕ ýöú áŕé íñ. Çļíçķ á ƒöļðéŕ ŧö éñŧéŕ íŧ; çļíçķ á ƒíļé ŧö šéļéçŧ íŧ. Ŧĥé šúñƀúŕšŧ'š çéñŧéŕ ĝöéš úþ öñé ƒöļðéŕ, áñð Šéŧŧíñĝš çĥööšéš ƀéŧŵééñ ŧĥé šúñƀúŕšŧ áñð ŧĥé ŧŕééɱáþ.·······························································································································································································]</string>
 	<key>The download did not match the published checksum. Nothing was changed.</key>
 	<string>[Ŧĥé ðöŵñļöáð ðíð ñöŧ ɱáŧçĥ ŧĥé þúƀļíšĥéð çĥéçķšúɱ. Ñöŧĥíñĝ ŵáš çĥáñĝéð.·····································································]</string>
 	<key>The download is not a valid WillyDisk build. Nothing was changed.</key>
@@ -1030,10 +1022,10 @@
 	<string>[Ŧĥé íŧéɱ íš šŧíļļ íñ þļáçé.·························]</string>
 	<key>The latest release is WillyDisk %@.</key>
 	<string>[Ŧĥé ļáŧéšŧ ŕéļéášé íš ŴíļļýÐíšķ %@.·································]</string>
-	<key>The same values the Scan Options sheet on the source screen edits.</key>
-	<string>[Ŧĥé šáɱé ṽáļúéš ŧĥé Šçáñ Öþŧíöñš šĥééŧ öñ ŧĥé šöúŕçé šçŕééñ éðíŧš.································································]</string>
-	<key>The scan did not enter these items, so their contents are not in the totals. The size of what was left out is therefore unknown.</key>
-	<string>[Ŧĥé šçáñ ðíð ñöŧ éñŧéŕ ŧĥéšé íŧéɱš, šö ŧĥéíŕ çöñŧéñŧš áŕé ñöŧ íñ ŧĥé ŧöŧáļš. Ŧĥé šížé öƒ ŵĥáŧ ŵáš ļéƒŧ öúŧ íš ŧĥéŕéƒöŕé úñķñöŵñ.······························································································································]</string>
+	<key>The same values the Scan Options sheet on the Home screen edits.</key>
+	<string>[Ŧĥé šáɱé ṽáļúéš ŧĥé Šçáñ Öþŧíöñš šĥééŧ öñ ŧĥé Ĥöɱé šçŕééñ éðíŧš.······························································]</string>
+	<key>The scan did not descend into these items, so their contents are not in the totals. The size of what was left out is therefore unknown.</key>
+	<string>[Ŧĥé šçáñ ðíð ñöŧ ðéšçéñð íñŧö ŧĥéšé íŧéɱš, šö ŧĥéíŕ çöñŧéñŧš áŕé ñöŧ íñ ŧĥé ŧöŧáļš. Ŧĥé šížé öƒ ŵĥáŧ ŵáš ļéƒŧ öúŧ íš ŧĥéŕéƒöŕé úñķñöŵñ.·····································································································································]</string>
 	<key>The scan found no unreadable folders, exclusions, hard-link overlaps, cloud-only files, skipped links, other volumes, or special files.</key>
 	<string>[Ŧĥé šçáñ ƒöúñð ñö úñŕéáðáƀļé ƒöļðéŕš, éẋçļúšíöñš, ĥáŕð-ļíñķ öṽéŕļáþš, çļöúð-öñļý ƒíļéš, šķíþþéð ļíñķš, öŧĥéŕ ṽöļúɱéš, öŕ šþéçíáļ ƒíļéš.·····································································································································]</string>
 	<key>The scan is measuring this folder. Choose a file or a folder inside it instead.</key>
@@ -1046,8 +1038,8 @@
 	<string>[Ŧĥé šçáññíñĝ éñĝíñé íš ñöŧ çöññéçŧéð ýéŧ.·······································]</string>
 	<key>The snapshot list could not be read.</key>
 	<string>[Ŧĥé šñáþšĥöŧ ļíšŧ çöúļð ñöŧ ƀé ŕéáð.··································]</string>
-	<key>The startup disk is a volume group, so a scan of / is not reconciled against the disk's capacity.</key>
-	<string>[Ŧĥé šŧáŕŧúþ ðíšķ íš á ṽöļúɱé ĝŕöúþ, šö á šçáñ öƒ / íš ñöŧ ŕéçöñçíļéð áĝáíñšŧ ŧĥé ðíšķ'š çáþáçíŧý.·······························································································]</string>
+	<key>The startup disk is a volume group, so a scan of / is not compared with the disk's capacity.</key>
+	<string>[Ŧĥé šŧáŕŧúþ ðíšķ íš á ṽöļúɱé ĝŕöúþ, šö á šçáñ öƒ / íš ñöŧ çöɱþáŕéð ŵíŧĥ ŧĥé ðíšķ'š çáþáçíŧý.··························································································]</string>
 	<key>The sunburst shows the folder as rings. The treemap fills the pane with boxes, which is easier to read in a folder of many similar files.</key>
 	<string>[Ŧĥé šúñƀúŕšŧ šĥöŵš ŧĥé ƒöļðéŕ áš ŕíñĝš. Ŧĥé ŧŕééɱáþ ƒíļļš ŧĥé þáñé ŵíŧĥ ƀöẋéš, ŵĥíçĥ íš éášíéŕ ŧö ŕéáð íñ á ƒöļðéŕ öƒ ɱáñý šíɱíļáŕ ƒíļéš.·······································································································································]</string>
 	<key>The system did not report where it went</key>
@@ -1060,8 +1052,8 @@
 	<string>[Ŧĥé úþðáŧé çöúļðñ'ŧ ƀé çöɱþļéŧéð. Ŧŕý áĝáíñ.··········································]</string>
 	<key>The update couldn't be downloaded. Try again.</key>
 	<string>[Ŧĥé úþðáŧé çöúļðñ'ŧ ƀé ðöŵñļöáðéð. Ŧŕý áĝáíñ.···········································]</string>
-	<key>The update feed couldn't be read.</key>
-	<string>[Ŧĥé úþðáŧé ƒééð çöúļðñ'ŧ ƀé ŕéáð.·······························]</string>
+	<key>The update information couldn't be read.</key>
+	<string>[Ŧĥé úþðáŧé íñƒöŕɱáŧíöñ çöúļðñ'ŧ ƀé ŕéáð.······································]</string>
 	<key>The volume's own capacity figures could not be read.</key>
 	<string>[Ŧĥé ṽöļúɱé'š öŵñ çáþáçíŧý ƒíĝúŕéš çöúļð ñöŧ ƀé ŕéáð.··················································]</string>
 	<key>The ⓘ button opens Coverage: what the scan counted, what it skipped, and the volume's own figures side by side.</key>
@@ -1070,6 +1062,8 @@
 	<string>[Ŧĥéíŕ çöñŧéñŧš áŕé ɱíššíñĝ ƒŕöɱ ŧĥé ŧöŧáļš. %@ ŵéŕé ŕéþöŕŧéð.···························································]</string>
 	<key>There is no finished scan to check this item against. Run a scan, then try again.</key>
 	<string>[Ŧĥéŕé íš ñö ƒíñíšĥéð šçáñ ŧö çĥéçķ ŧĥíš íŧéɱ áĝáíñšŧ. Ŕúñ á šçáñ, ŧĥéñ ŧŕý áĝáíñ.···············································································]</string>
+	<key>There is no published release.</key>
+	<string>[Ŧĥéŕé íš ñö þúƀļíšĥéð ŕéļéášé.····························]</string>
 	<key>There isn't enough free space for the download.</key>
 	<string>[Ŧĥéŕé íšñ'ŧ éñöúĝĥ ƒŕéé šþáçé ƒöŕ ŧĥé ðöŵñļöáð.·············································]</string>
 	<key>These are moves this app made. Put Back returns an item to where it came from while the Trash still holds it.</key>
@@ -1078,8 +1072,8 @@
 	<string>[Ŧĥéšé íŧéɱš çöúļð ñöŧ ƀé ŕéáð ŵĥíļé šçáññíñĝ.···········································]</string>
 	<key>These numbers update automatically as files change.</key>
 	<string>[Ŧĥéšé ñúɱƀéŕš úþðáŧé áúŧöɱáŧíçáļļý áš ƒíļéš çĥáñĝé.·················································]</string>
-	<key>These runs used different scan options. Some of the difference may be what each walk included — hidden items, other volumes, or excluded paths — rather than a change on disk.</key>
-	<string>[Ŧĥéšé ŕúñš úšéð ðíƒƒéŕéñŧ šçáñ öþŧíöñš. Šöɱé öƒ ŧĥé ðíƒƒéŕéñçé ɱáý ƀé ŵĥáŧ éáçĥ ŵáļķ íñçļúðéð — ĥíððéñ íŧéɱš, öŧĥéŕ ṽöļúɱéš, öŕ éẋçļúðéð þáŧĥš — ŕáŧĥéŕ ŧĥáñ á çĥáñĝé öñ ðíšķ.············································································································································································]</string>
+	<key>These runs used different scan options. Some of the difference may be what each scan included — hidden items, other volumes, or excluded paths — rather than a change on disk.</key>
+	<string>[Ŧĥéšé ŕúñš úšéð ðíƒƒéŕéñŧ šçáñ öþŧíöñš. Šöɱé öƒ ŧĥé ðíƒƒéŕéñçé ɱáý ƀé ŵĥáŧ éáçĥ šçáñ íñçļúðéð — ĥíððéñ íŧéɱš, öŧĥéŕ ṽöļúɱéš, öŕ éẋçļúðéð þáŧĥš — ŕáŧĥéŕ ŧĥáñ á çĥáñĝé öñ ðíšķ.············································································································································································]</string>
 	<key>They can keep deleted blocks on this volume until macOS removes them. macOS does not expose a snapshot's size.</key>
 	<string>[Ŧĥéý çáñ ķééþ ðéļéŧéð ƀļöçķš öñ ŧĥíš ṽöļúɱé úñŧíļ ɱáçÖŠ ŕéɱöṽéš ŧĥéɱ. ɱáçÖŠ ðöéš ñöŧ éẋþöšé á šñáþšĥöŧ'š šížé.············································································································]</string>
 	<key>They report %@ but occupy %@ on this disk. Their data is not here.</key>
@@ -1124,10 +1118,10 @@
 	<string>[Ŧöþ Ƒíļéš·······]</string>
 	<key>Top Folders</key>
 	<string>[Ŧöþ Ƒöļðéŕš·········]</string>
-	<key>Totals and categories are exact: a scan measures every entry it walked. Folders and files are %@, matched by path. An entry is marked New only when the earlier run would have recorded it: it is absent from a list that held everything it found, or larger than a truncated list's cut-off. A later entry at or below that cut-off is not compared.</key>
-	<string>[Ŧöŧáļš áñð çáŧéĝöŕíéš áŕé éẋáçŧ: á šçáñ ɱéášúŕéš éṽéŕý éñŧŕý íŧ ŵáļķéð. Ƒöļðéŕš áñð ƒíļéš áŕé %@, ɱáŧçĥéð ƀý þáŧĥ. Áñ éñŧŕý íš ɱáŕķéð Ñéŵ öñļý ŵĥéñ ŧĥé éáŕļíéŕ ŕúñ ŵöúļð ĥáṽé ŕéçöŕðéð íŧ: íŧ íš áƀšéñŧ ƒŕöɱ á ļíšŧ ŧĥáŧ ĥéļð éṽéŕýŧĥíñĝ íŧ ƒöúñð, öŕ ļáŕĝéŕ ŧĥáñ á ŧŕúñçáŧéð ļíšŧ'š çúŧ-öƒƒ. Á ļáŧéŕ éñŧŕý áŧ öŕ ƀéļöŵ ŧĥáŧ çúŧ-öƒƒ íš ñöŧ çöɱþáŕéð.····················································································································································································································································································································································]</string>
-	<key>Totals are exact. Folders and files are %@, matched by path. No saving is claimed.</key>
-	<string>[Ŧöŧáļš áŕé éẋáçŧ. Ƒöļðéŕš áñð ƒíļéš áŕé %@, ɱáŧçĥéð ƀý þáŧĥ. Ñö šáṽíñĝ íš çļáíɱéð.················································································]</string>
+	<key>Totals and categories are exact: a scan measures every entry it scanned. Folders and files are %@, matched by path. An entry is marked New only when the earlier run would have recorded it: it is absent from a list that held everything it found, or larger than a truncated list's cut-off. A later entry at or below that cut-off is not compared.</key>
+	<string>[Ŧöŧáļš áñð çáŧéĝöŕíéš áŕé éẋáçŧ: á šçáñ ɱéášúŕéš éṽéŕý éñŧŕý íŧ šçáññéð. Ƒöļðéŕš áñð ƒíļéš áŕé %@, ɱáŧçĥéð ƀý þáŧĥ. Áñ éñŧŕý íš ɱáŕķéð Ñéŵ öñļý ŵĥéñ ŧĥé éáŕļíéŕ ŕúñ ŵöúļð ĥáṽé ŕéçöŕðéð íŧ: íŧ íš áƀšéñŧ ƒŕöɱ á ļíšŧ ŧĥáŧ ĥéļð éṽéŕýŧĥíñĝ íŧ ƒöúñð, öŕ ļáŕĝéŕ ŧĥáñ á ŧŕúñçáŧéð ļíšŧ'š çúŧ-öƒƒ. Á ļáŧéŕ éñŧŕý áŧ öŕ ƀéļöŵ ŧĥáŧ çúŧ-öƒƒ íš ñöŧ çöɱþáŕéð.·····················································································································································································································································································································································]</string>
+	<key>Totals are exact. Folders and files are %@, matched by path. No savings are claimed.</key>
+	<string>[Ŧöŧáļš áŕé éẋáçŧ. Ƒöļðéŕš áñð ƒíļéš áŕé %@, ɱáŧçĥéð ƀý þáŧĥ. Ñö šáṽíñĝš áŕé çļáíɱéð.··················································································]</string>
 	<key>Totals are still growing</key>
 	<string>[Ŧöŧáļš áŕé šŧíļļ ĝŕöŵíñĝ······················]</string>
 	<key>Trash</key>
@@ -1170,8 +1164,6 @@
 	<string>[Ṽöļúɱéš·····]</string>
 	<key>Waiting for the first items…</key>
 	<string>[Ŵáíŧíñĝ ƒöŕ ŧĥé ƒíŕšŧ íŧéɱš…··························]</string>
-	<key>Walk</key>
-	<string>[Ŵáļķ····]</string>
 	<key>What coverage leaves out</key>
 	<string>[Ŵĥáŧ çöṽéŕáĝé ļéáṽéš öúŧ······················]</string>
 	<key>What this scan counted</key>
@@ -1348,10 +1340,10 @@ a comparison against them would read as space that vanished.</key>
 	<string>[Ýöú çáñ þúŧ íŧ ƀáçķ ƒŕöɱ ŧĥé Ŧŕášĥ úñŧíļ ýöú éɱþŧý íŧ.····················································]</string>
 	<key>You can put them back from the Trash until you empty it.</key>
 	<string>[Ýöú çáñ þúŧ ŧĥéɱ ƀáçķ ƒŕöɱ ŧĥé Ŧŕášĥ úñŧíļ ýöú éɱþŧý íŧ.······················································]</string>
-	<key>You have WillyDisk %@.</key>
-	<string>[Ýöú ĥáṽé ŴíļļýÐíšķ %@.····················]</string>
 	<key>You're running a newer build than the latest release.</key>
 	<string>[Ýöú'ŕé ŕúññíñĝ á ñéŵéŕ ƀúíļð ŧĥáñ ŧĥé ļáŧéšŧ ŕéļéášé.···················································]</string>
+	<key>You're using WillyDisk %@.</key>
+	<string>[Ýöú'ŕé úšíñĝ ŴíļļýÐíšķ %@.························]</string>
 	<key>Your files</key>
 	<string>[Ýöúŕ ƒíļéš········]</string>
 	<key>`tmutil` could not list this volume's snapshots.</key>
@@ -1360,8 +1352,8 @@ a comparison against them would read as space that vanished.</key>
 	<string>[`ŧɱúŧíļ` íš ñöŧ áṽáíļáƀļé öñ ŧĥíš Ɱáç.····································]</string>
 	<key>and %lld more</key>
 	<string>[áñð %lld ɱöŕé···········]</string>
-	<key>bytes on disk</key>
-	<string>[ƀýŧéš öñ ðíšķ···········]</string>
+	<key>bytes on disk, not logical</key>
+	<string>[ƀýŧéš öñ ðíšķ, ñöŧ ļöĝíçáļ························]</string>
 	<key>complete</key>
 	<string>[çöɱþļéŧé······]</string>
 	<key>each run's largest %lld</key>
@@ -1374,18 +1366,18 @@ a comparison against them would read as space that vanished.</key>
 	<string>[éŕŕöŕ: ŧĥé ŕéçöŕð çöúļð ñöŧ ƀé éñçöðéð: %@········································]</string>
 	<key>error: the report could not be written: %@</key>
 	<string>[éŕŕöŕ: ŧĥé ŕéþöŕŧ çöúļð ñöŧ ƀé ŵŕíŧŧéñ: %@········································]</string>
-	<key>error: the scan did not produce a tree to review.</key>
-	<string>[éŕŕöŕ: ŧĥé šçáñ ðíð ñöŧ þŕöðúçé á ŧŕéé ŧö ŕéṽíéŵ.···············································]</string>
 	<key>error: the scan ended without a result.</key>
 	<string>[éŕŕöŕ: ŧĥé šçáñ éñðéð ŵíŧĥöúŧ á ŕéšúļŧ.·····································]</string>
+	<key>error: the scan produced nothing to review.</key>
+	<string>[éŕŕöŕ: ŧĥé šçáñ þŕöðúçéð ñöŧĥíñĝ ŧö ŕéṽíéŵ.·········································]</string>
 	<key>follows symbolic links</key>
 	<string>[ƒöļļöŵš šýɱƀöļíç ļíñķš····················]</string>
-	<key>hidden items included, stays on this volume, symbolic links not followed</key>
-	<string>[ĥíððéñ íŧéɱš íñçļúðéð, šŧáýš öñ ŧĥíš ṽöļúɱé, šýɱƀöļíç ļíñķš ñöŧ ƒöļļöŵéð······································································]</string>
+	<key>hidden items included, staying on this volume, symbolic links not followed</key>
+	<string>[ĥíððéñ íŧéɱš íñçļúðéð, šŧáýíñĝ öñ ŧĥíš ṽöļúɱé, šýɱƀöļíç ļíñķš ñöŧ ƒöļļöŵéð········································································]</string>
 	<key>macOS did not report local snapshots for this volume.</key>
 	<string>[ɱáçÖŠ ðíð ñöŧ ŕéþöŕŧ ļöçáļ šñáþšĥöŧš ƒöŕ ŧĥíš ṽöļúɱé.···················································]</string>
-	<key>macOS may ask for Full Disk Access again after the update because this build is ad-hoc signed.</key>
-	<string>[ɱáçÖŠ ɱáý ášķ ƒöŕ Ƒúļļ Ðíšķ Áççéšš áĝáíñ áƒŧéŕ ŧĥé úþðáŧé ƀéçáúšé ŧĥíš ƀúíļð íš áð-ĥöç šíĝñéð.····························································································]</string>
+	<key>macOS may ask for Full Disk Access again after the update because this build is ad-hoc-signed.</key>
+	<string>[ɱáçÖŠ ɱáý ášķ ƒöŕ Ƒúļļ Ðíšķ Áççéšš áĝáíñ áƒŧéŕ ŧĥé úþðáŧé ƀéçáúšé ŧĥíš ƀúíļð íš áð-ĥöç-šíĝñéð.····························································································]</string>
 	<key>macOS reports %@ more can be made available for important use by removing purgeable data.</key>
 	<string>[ɱáçÖŠ ŕéþöŕŧš %@ ɱöŕé çáñ ƀé ɱáðé áṽáíļáƀļé ƒöŕ íɱþöŕŧáñŧ úšé ƀý ŕéɱöṽíñĝ þúŕĝéáƀļé ðáŧá.·······················································································]</string>
 	<key>may cross volumes</key>
@@ -1404,8 +1396,8 @@ a comparison against them would read as space that vanished.</key>
 	<string>[ŕéáð öñļý·······]</string>
 	<key>restricted locations</key>
 	<string>[ŕéšŧŕíçŧéð ļöçáŧíöñš··················]</string>
-	<key>sample: stopped at the cap</key>
-	<string>[šáɱþļé: šŧöþþéð áŧ ŧĥé çáþ························]</string>
+	<key>sample (stopped at the cap)</key>
+	<string>[šáɱþļé (šŧöþþéð áŧ ŧĥé çáþ)·························]</string>
 	<key>showing the largest %lld</key>
 	<string>[šĥöŵíñĝ ŧĥé ļáŕĝéšŧ %lld······················]</string>
 	<key>stays on this volume</key>

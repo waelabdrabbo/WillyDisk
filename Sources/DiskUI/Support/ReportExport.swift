@@ -144,7 +144,7 @@ public enum ReportExport {
     private static func makeCSV(_ summary: ScanSummary) -> String {
         let header = [
             L10n.string("Type"), L10n.string("Name"), L10n.string("Path"),
-            L10n.string("Category"), L10n.string("Logical Size"), L10n.string("Allocated Size"),
+            L10n.string("Category"), L10n.string("Logical size"), L10n.string("On disk"),
             L10n.string("Files"), L10n.string("Folders"), L10n.string("Modified"),
         ]
         var lines: [[String]] = [header]
@@ -164,7 +164,7 @@ public enum ReportExport {
         }
 
         for node in summary.largestFiles { append(node, L10n.string("File")) }
-        for node in summary.largestDirectories { append(node, L10n.string("Directory")) }
+        for node in summary.largestDirectories { append(node, L10n.string("Folder")) }
 
         return lines.map { $0.map(csv).joined(separator: ",") }.joined(separator: "\n")
     }

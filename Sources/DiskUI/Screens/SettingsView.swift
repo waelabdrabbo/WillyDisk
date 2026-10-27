@@ -256,7 +256,7 @@ public struct SettingsView: View {
                 isOn: optionBinding(\.followSymlinks)
             )
 
-            Text(L10n.string("The same values the Scan Options sheet on the source screen edits."))
+            Text(L10n.string("The same values the Scan Options sheet on the Home screen edits."))
                 .font(DS.Typography.caption)
                 .foregroundStyle(DS.Color.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)

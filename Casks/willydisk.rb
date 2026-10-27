@@ -6,9 +6,9 @@
 cask "willydisk" do
   arch arm: "arm64", intel: "x86_64"
 
-  version "1.0.2"
-  sha256 arm:   "9bf93774a3f4278405a8957e87c7ef287f63f0ea783994e6c4aaf38a49437ce0",
-         intel: "6f205071bfbf220c2e2d55eea6aae2b839706ed2ee3d84ed16b434f62dcd5515"
+  version "1.0.3"
+  sha256 arm:   "ef0687af134d26e5df20e874a3955288de364c41abbdba782cf8a902a0c402ba",
+         intel: "7cbac7dd8cd9f55a39197f6ab449b1e60677258d43b45ef2903d925428336818"
 
   url "https://github.com/waelabdrabbo/WillyDisk/releases/download/v#{version}/WillyDisk-#{version}-#{arch}.zip"
   name "WillyDisk"

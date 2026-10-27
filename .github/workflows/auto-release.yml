@@ -65,6 +65,9 @@ jobs:
             echo "$tag already exists; $version is already released."
             exit 0
           fi
+          # A fresh runner carries no git identity, and an annotated tag needs one.
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git tag -a "$tag" -m "WillyDisk $version"
           git push origin "$tag"
           echo "Tagged $tag; release.yml is packaging it."

@@ -26,6 +26,19 @@ public struct UpdateStorage: Sendable {
         root.appendingPathComponent(version, isDirectory: true)
     }
 
+    /// The helper writes one result for the whole store, so the app that runs
+    /// after a swap can find it whichever version it turns out to be.
+    public var resultURL: URL {
+        root.appendingPathComponent("install-result")
+    }
+
+    /// The old app and the helper's log survive a successful install here, apart
+    /// from the staging directory so a later download cannot delete them.
+    public func recoveryDirectory(for version: String) -> URL {
+        root.appendingPathComponent("Recovery", isDirectory: true)
+            .appendingPathComponent(version, isDirectory: true)
+    }
+
     public func prepare(version: String) throws -> URL {
         guard Self.isValidVersion(version) else {
             throw UpdateError.downloadFailed

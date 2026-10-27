@@ -3,8 +3,8 @@
 SwiftUI + AppKit presentation layer. It consumes `DiskCore` and never
 re-implements scanning: `ScanViewModel` drives a `ScanEngine` and renders what the event
 stream reports. It also links the Foundation-only `DiskUpdate` core; the update sheet and
-controller live here, and the feed/verification rules stay in `DiskUpdate` rather than
-being repeated. The install transaction is not built yet.
+controller live here, and the feed/verification/install rules stay in `DiskUpdate`
+rather than being repeated.
 
 ## Structure
 
@@ -26,8 +26,8 @@ being repeated. The install transaction is not built yet.
   `CleanupSheet` (tiered cleanup candidates, duplicates, and the Moved tab that puts a
   move back; it presents the reclaim confirmation over itself so a move returns to the
   same list, and only a rebuildable section can be selected whole), `HistorySheet` (the recorded runs of a location, two compared),
-  `UpdateSheet` (the check/offer/download/verify sheet; its verified state has no
-  install button until the install transaction ships),
+  `UpdateSheet` (the check/offer/download/check/install sheet; Install and Relaunch is
+  the one action that quits the app),
   `AccessNoticeRow`, `FlowLayout`, `ScanOptionToggle` (one scan option, shared by the
   source screen's sheet and Settings), `ResultsStatusBadges` (the stale marker),
   `ControlStyles` (the shared row hover, inline and icon actions, and warning notice),
@@ -127,6 +127,7 @@ WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S home -o .build/
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S help -c -o .build/renders/<change>
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S settings -c -s 460x760 -o .build/renders/<change>
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S update -c -s 640x600 -o .build/renders/<change>
+WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S update-ready -c -s 640x600 -o .build/renders/<change>
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S categories -o .build/renders/<change>
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S coverage -c -o .build/renders/<change>
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S search -o .build/renders/<change>
@@ -142,7 +143,8 @@ WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S history -c -o .
 `-S` picks the screen: `results` (default), `home` (source selection), `search` (the
 results screen with a whole-scan query open), `categories` (the results screen in
 Categories mode), `coverage` (the coverage sheet), `help` and `settings` (the sheet and
-preferences contents), `update` (the software-update sheet), `cleanup`, `duplicates`,
+preferences contents), `update` and `update-ready` (the software-update sheet and its
+ready state), `cleanup`, `duplicates`,
 and `moved` (the cleanup sheet's three
 tabs; they scan the same sample tree, and `moved` shows two sample batches), `reclaim`
 (that sheet with its move confirmation over it), `history`

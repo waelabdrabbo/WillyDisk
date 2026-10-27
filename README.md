@@ -114,6 +114,20 @@ and reports what it could not.
 Building from source avoids the approval step entirely — a local build carries no
 quarantine flag.
 
+### Updating
+
+WillyDisk checks GitHub for a newer release once a day when **Check for updates
+automatically** is on in Settings; **Check for Updates…** in the app menu always
+checks. Nothing is downloaded until you choose Download, the archive is checked
+against the release's published SHA-256, and nothing is replaced until you choose
+Install and Relaunch. The app quits, swaps the bundle, and reopens. The checksum
+shows the download arrived intact; it does not prove who built it.
+
+Homebrew users can also run `brew upgrade --cask willydisk`. The next release's
+cask declares `auto_updates true`, so Homebrew compares the installed app's version
+and does not replace a newer self-updated copy. Because the app is ad-hoc signed, macOS may ask
+for Full Disk Access again after an update.
+
 ## Build and run
 
 ```

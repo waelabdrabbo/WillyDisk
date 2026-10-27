@@ -17,8 +17,8 @@ decisions. This is a handoff document, not a specification of frozen interfaces 
   watched-tree refresh (`b8be044`), global search over the whole finished scan
   (`e7d6fff`), and the localization pass (`7c7c067`). This docs handoff follows it.
 - Build: `swift build --disable-sandbox`.
-- Tests: 305 QATests + 153 DiskCoreTests (3 skipped; the benchmark tests need
-  `WILLYDISK_BENCH_ROOT`) + 30 DiskCLITests + 75 DiskUpdateTests, 0 failures.
+- Tests: 310 QATests + 153 DiskCoreTests (3 skipped; the benchmark tests need
+  `WILLYDISK_BENCH_ROOT`) + 30 DiskCLITests + 83 DiskUpdateTests, 0 failures.
 - CI: `.github/workflows/ci.yml` builds, tests, checks that the bundle reports
   `VERSION`, runs the bundled binary's `scan` and its usage exit status, and uploads
   the offscreen renders on every push. `.github/workflows/release.yml` runs on a `v*`
@@ -34,10 +34,12 @@ decisions. This is a handoff document, not a specification of frozen interfaces 
   reachable without credentials.
 - The working tree adds the update path: the `DiskUpdate` core (version ordering,
   the GitHub release feed, asset selection, the `.sha256` check, `ditto`
-  extraction, and staged-bundle validation), the downloader with real progress, and
-  the controller, consent sheet, menu item, and Settings toggle in `DiskUI`. The
-  install transaction and the cask's `auto_updates` change are not built.
-  `docs/UPDATES.md` is the contract.
+  extraction, and staged-bundle validation), the downloader with real progress, the
+  controller, consent sheet, menu, and Settings toggle in `DiskUI`, and the detached
+  install transaction (`UpdateInstaller.swift`) with its backup, swap, result, and
+  relaunch. The Homebrew cask template declares `auto_updates true`. The remaining
+  gate is a real update over `/Applications`: TCC/Full Disk Access, the App
+  Management prompt, and the relaunch. `docs/UPDATES.md` is the contract.
 - The app is a working single-window analyzer: choose a volume, folder, or quick
   preset, watch a progressive scan, read the sunburst and explorer, search the whole
   scan by name and drill from a result to its folder, inspect
@@ -317,6 +319,7 @@ WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S search -o .buil
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S help -c -o .build/renders/check
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S settings -c -s 460x760 -o .build/renders/check
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S update -c -s 640x600 -o .build/renders/check
+WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S update-ready -c -s 640x600 -o .build/renders/check
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S cleanup -c -o .build/renders/check
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S duplicates -c -o .build/renders/check
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S history -c -o .build/renders/check
@@ -325,14 +328,15 @@ WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S coverage -c -l 
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S cleanup -c -l ar -o .build/renders/check
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S settings -c -s 460x760 -l ar -o .build/renders/check
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S update -c -s 640x600 -l ar -o .build/renders/check
+WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S update-ready -c -s 640x600 -l ar -o .build/renders/check
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a light -S results -l en-XA -o .build/renders/check
 WILLYDISK_NO_SANDBOX=1 bash Scripts/package-release.sh
 ```
 
 CI runs the localization freshness check, the build, the suite, the bundle version
 check, a bundled `scan` plus its usage exit status, and the renders — including Arabic
-results, home, coverage, cleanup, settings, and the update sheet, and the pseudolanguage
-results and coverage — on every push. `Scripts/package-release.sh` builds both
+results, home, coverage, cleanup, settings, and the update sheet (offer and ready),
+and the pseudolanguage results and coverage — on every push. `Scripts/package-release.sh` builds both
 slices, expands each archive, and checks its architecture, version, and ad-hoc signature
 before writing the two SHA-256s; `.github/workflows/release.yml` runs that on a `v*` tag,
 re-checks both checksums, and publishes only when the tag matches `VERSION`. On an Apple
@@ -348,8 +352,8 @@ sheet and therefore needs `-c`.
 `-S search` renders the same screen with a whole-scan search open (`p` over the fixture,
 which every folder there has a match for), so the match list, the containing paths, the
 summary line, and the chart's search state are reviewable. Help, Settings, the update
-sheet, and the cleanup sheet are sheets or a preferences window, so `-S` captures their
-content. Settings renders with its own non-default sample options and two exclusions, so
+sheet (offer and ready), and the cleanup sheet are sheets or a preferences window, so
+`-S` captures their content. Settings renders with its own non-default sample options and two exclusions, so
 the switches and the list are both reviewable; cleanup, duplicates, and moved are the
 cleanup sheet's three tabs. They use one sample tree (sparse files with set
 ages, two identical copies, and one same-size different file), so the Candidates render
@@ -428,15 +432,17 @@ verified against the release's published SHA-256 before it replaces anything; a 
 check or download changes nothing and says why; the app never updates without consent;
 the update screen does not call an unsigned download verified or trusted.
 
-The feed, verification core, downloader, controller, and sheet are implemented:
-version comparison, `releases/latest`, selection of the two assets by
+The feed, verification core, downloader, controller, sheet, and install transaction are
+implemented: version comparison, `releases/latest`, selection of the two assets by
 architecture and exact name, the published `.sha256` check, `ditto` extraction,
 staged-bundle identity/minimum-macOS/architecture/`codesign` validation, real download
-progress, the daily check, skip, and the Settings and menu wiring. `Tests/DiskUpdateTests/`
-and `Tests/QATests/UpdateQATests.swift` hold the suites, and `docs/UPDATES.md` is the
-contract. Remaining: the helper-based install transaction, the Full Disk Access test
-after an ad-hoc update, and the cask's `auto_updates` change. The ready state
-deliberately has no install button yet.
+progress, the daily check, skip, the Settings and menu wiring, and the detached
+`/bin/sh` helper that backs up the old app, swaps in the staged one, writes a result,
+and reopens the app. `Tests/DiskUpdateTests/` (including the real helper against fake
+app directories) and `Tests/QATests/UpdateQATests.swift` hold the suites, and
+`docs/UPDATES.md` is the contract. The cask template declares `auto_updates true`.
+Remaining: one real update over `/Applications` to settle TCC/Full Disk Access, App
+Management, and the relaunch, then a release that carries the updater.
 
 ## Decisions to preserve
 
@@ -488,11 +494,13 @@ deliberately has no install button yet.
   carries its own SHA-256. The release notes say which Mac gets which; do not fold them
   into one download without a reason recorded here.
 - Self-update is hand-rolled: no third-party package, no Developer ID, no silent
-  install. The feed is GitHub's public `releases/latest`; the release's published
-  SHA-256 and the staged bundle's identity, architecture, and ad-hoc signature are
-  checked before anything is replaced. A checksum match is integrity, never a claim
-  that the build is trusted. Automatic checking is a preference; installation is
-  always a click. `docs/UPDATES.md` is the contract.
+  install, no privileged helper. The feed is GitHub's public `releases/latest`; the
+  release's published SHA-256 and the staged bundle's identity, architecture, and
+  ad-hoc signature are checked before anything is replaced. A checksum match is
+  integrity, never a claim that the build is trusted. Automatic checking is a
+  preference; installation is always a click. The helper backs up the old app in
+  `Updates/Recovery/<version>/`, restores it on failure, and never deletes that
+  recovery copy from a later download. `docs/UPDATES.md` is the contract.
 - The interface stays native AppKit and SwiftUI, so VoiceOver, Quick Look, menus, text
   editing and window chrome are the system's. A custom-drawn canvas is not an acceptable
   substitute for a chart or a list.

@@ -19,7 +19,7 @@ contracts, shared-interface rules §7, non-negotiables §8).
 
 | Path | What it holds |
 |---|---|
-| `Package.swift` | products: executable `WillyDisk`, executable `render-screens` (the offscreen renderer), libraries `DiskCore`, `DiskLocalization`, and `DiskUI`; targets `DiskCLI` and `DiskUpdate` (the latter the internal release-feed and verification library) |
+| `Package.swift` | products: executable `WillyDisk`, executable `render-screens` (the offscreen renderer), libraries `DiskCore`, `DiskLocalization`, and `DiskUI`; targets `DiskCLI` and `DiskUpdate` (the latter the internal release-feed, verification, and install-helper library) |
 | `VERSION` | the only source of the marketing version; the bundle script stamps it |
 | `Resources/` | the macOS icon: `AppIcon.icns` and its 1024 `AppIcon-1024.png` |
 | `Sources/DiskUI/Resources/AppMark.png` | the circular in-app mark the UI and About show |
@@ -74,8 +74,10 @@ two assets for this Mac and decides newer/older; `UpdateDownloader.swift` stream
 asset with real byte progress and an ephemeral session; `Checksum.swift` parses the
 published `.sha256` and hashes in chunks; `UpdateVerifier.swift` expands the zip with
 `ditto` and checks identifier, version, executable, minimum macOS, architecture, and
-signature. Foundation + CryptoKit only. The controller, sheet, menu, and Settings wiring
-live in `DiskUI`; the install transaction is not built. `docs/UPDATES.md` is the contract.
+signature; `UpdateInstaller.swift` writes the detached helper that backs up the running
+app, swaps in the verified bundle, and reopens it. Foundation + CryptoKit only. The
+controller, sheet, menu, and Settings wiring live in `DiskUI`; `docs/UPDATES.md` is the
+contract.
 
 **`DiskUI` — SwiftUI.**
 `ScanViewModel.swift` is the `@MainActor @Observable` state machine that consumes
@@ -87,10 +89,11 @@ is the disk chart; `AccessNoticeRow`, `FlowLayout`, and `ScanOptionToggle` are t
 views.
 `Components/HistorySheet.swift` is the scan-history comparison, backed by
 `Support/ScanHistory.swift` (the `@Observable` view of the record store).
-`Components/UpdateSheet.swift` is the software-update sheet; `Support/UpdateController.swift`
-owns the check/download/verify state, `UpdatePreferences.swift` the daily-check choice and
-last check, `UpdateStorage.swift` the staging directory, and `UpdatePresentation.swift` the
-value states the sheet draws.
+`Components/UpdateSheet.swift` is the software-update sheet, including the ready state's
+Install and Relaunch; `Support/UpdateController.swift` owns the check/download/verify/
+install state, `UpdatePreferences.swift` the daily-check choice and last check,
+`UpdateStorage.swift` the staging and recovery directories, and `UpdatePresentation.swift`
+the value states the sheet draws.
 `DesignSystem/DesignSystem.swift` holds every token (`DS`), `ChartPalette.swift` the
 chart fills, `FileCategory+UI.swift` the category symbols and labels, `AppAppearance.swift`
 the stored system/light/dark appearance preference the Settings window edits, and
@@ -145,8 +148,8 @@ report and help follow the user's language; the JSON stays machine data.
 swift build                          # compile
 swift test                           # full suite
 swift test --filter FileScanEngineTests   # one test class
-swift test --filter DiskUpdateTests        # release feed, version, checksum, verification
-swift test --filter UpdateQATests          # controller, preferences, staging (fake network)
+swift test --filter DiskUpdateTests        # feed, version, checksum, verification, installer
+swift test --filter UpdateQATests          # controller, preferences, staging, install (fakes)
 swift run WillyDisk scan <folder> --json  # command-line scan: no window, no UI loaded
 swift run WillyDisk cleanup <folder> --json  # the cleanup rules, same engine; lists only
 python3 Scripts/pseudolanguage.py    # regenerate en-XA from the English values
@@ -156,7 +159,7 @@ bash Scripts/run.sh                  # build the bundle and launch it (the way t
 bash Scripts/bundle-app.sh           # assemble .build/WillyDisk.app; its version comes from VERSION
 bash Scripts/package-release.sh      # build the arm64 and Intel zips with their SHA-256s
 bash Scripts/homebrew-cask.sh check  # render the cask template; --audit runs Homebrew's checks
-bash Scripts/render-screens.sh       # offscreen PNGs (-S results|home|search|help|settings|update|categories|coverage|cleanup|duplicates|moved|reclaim|history|both; -l en|ar|en-XA), no window, no screen-recording permission
+bash Scripts/render-screens.sh       # offscreen PNGs (-S results|home|search|help|settings|update|update-ready|categories|coverage|cleanup|duplicates|moved|reclaim|history|both; -l en|ar|en-XA), no window, no screen-recording permission
 bash Scripts/repo-map.sh             # one-screen structural inventory (--types adds declarations)
 ```
 

@@ -1,11 +1,13 @@
 # Updates
 
 How WillyDisk finds, verifies, and installs a newer release without a Developer ID
-and without a third-party updater. The release feed, download, verification, and
-consent sheet are implemented (`Sources/DiskUpdate/`, `DiskUI/Support/Update*`,
-`DiskUI/Components/UpdateSheet.swift`); the install transaction and the cask's
-`auto_updates` change are the remaining work. This note records the decisions that
-are easy to get wrong so they are not re-derived.
+and without a third-party updater. The feed, download, verification, consent sheet,
+detached install transaction, and cask declaration are implemented
+(`Sources/DiskUpdate/`, `DiskUI/Support/Update*`,
+`DiskUI/Components/UpdateSheet.swift`). The remaining release gate is one real
+update over `/Applications`: TCC/Full Disk Access, the App Management prompt, and
+the relaunch. This note records the decisions that are easy to get wrong so they are
+not re-derived.
 
 ## Why hand-rolled
 
@@ -138,37 +140,43 @@ the published checksum", never "verified" or "trusted". A future hardening step 
 an Ed25519 signature of the archive with a key held only in CI secrets, which
 CryptoKit can verify without a package; that is not part of the current design.
 
-## Install transaction (not yet implemented)
+## Install transaction
 
-The download, consent, and swap belong to the next layer. The rules they must keep:
+Download and install are two clicks. The first consents to the download; the
+second consents to quitting, replacing the bundle, and reopening. Nothing is
+downloaded or installed in the background.
 
 - Download into `~/Library/Application Support/WillyDisk/Updates/<version>/` with
   owner-only permissions. The version is one to three numeric components; anything
   else is refused, so a feed value cannot become a path outside the update store.
-  Check free space for the archive, the expanded bundle, and a backup before starting.
-  Real byte progress from the download task; cancellation deletes the partial file.
+  Check free space for the archive, the expanded bundle, and a backup before
+  starting. Real byte progress from the download task; cancellation deletes the
+  partial file.
 - Verification runs before anything touches the installed app. A failure deletes
   the staged files and leaves the app exactly as it was.
-- Download and install are two clicks. The first consents to the download; the
-  second consents to quitting, replacing the bundle, and relaunching. Nothing is
-  downloaded or installed in the background.
-- The swap cannot happen in the running process. Write a small `/bin/sh` helper in
-  the update directory, spawn it, then quit. The helper waits for the app's PID to
-  exit (with a timeout), moves the installed app to
-  `Updates/<version>/backup/WillyDisk.app`, moves the staged app into place, and
-  launches it with `open -n`. On any failure it moves the backup back and writes a
-  result file.
-- The next launch reads the result. Success cleans the archive, staged copy, and
-  backup; failure keeps them, says what happened, and offers the log and the backup.
-  A new build that crashes on launch is a separate problem: the backup is the
-  manual recovery path and should be documented as such.
-- Refuse to install when the running bundle is not an `.app`, when its path contains
-  `/AppTranslocation/`, when the volume is read-only, or when the containing folder
-  is not writable. The fallback is to save the checksum-matched zip or open the release page,
-  never to ask for an administrator password.
-- Strip `com.apple.quarantine` from the staged bundle before the swap, otherwise the
-  relaunch can be blocked after the old copy is gone. The user already approved this
-  installation; the update is the same app continuing.
+- `UpdateInstaller` validates the destination before spawning anything: it must be
+  an `.app` bundle, not a symlink, not under `/AppTranslocation/`, on a volume that
+  is not read-only, and in a folder the app can write. There is no administrator
+  prompt and no privileged helper; a refusal is a message, not an escalation.
+- The installer clears `com.apple.quarantine` from the staged app, writes a small
+  `/bin/sh` helper into `Updates/Recovery/<version>/`, starts it detached, and the
+  app quits. The helper waits up to 60 seconds for the process to exit.
+- The helper renames the installed app to
+  `Updates/Recovery/<version>/backup/WillyDisk.app`, copies the staged app into
+  place with `ditto`, writes a result, and reopens the app with `open -n`. If the
+  copy fails it removes the partial target, moves the backup back, writes the
+  failure, and reopens the old app. The helper never runs as root.
+- The result lives at `Updates/install-result`, at the store's root so whichever
+  version launches can find it. It is small key/value data (`status`, `version`,
+  `relaunched`, `failure`); the next launch reads and removes it.
+- On success the staging directory is removed, while `Recovery/<version>/` keeps
+  the old app and `install.log` for manual recovery. A new build that crashes on
+  launch is a separate problem; the backup is the manual path back.
+- On failure the sheet gets the typed install failure; when the helper ran, a Show
+  Log action. The old app is normally already back in place; the log says what ran.
+  The backup and log are never deleted by a later download.
+- If the helper cannot be started, the app stays open in the failure state. If it
+  is denied the destination, the same. There is no half-installed success report.
 
 ## Homebrew
 
@@ -180,10 +188,12 @@ readable app bundle, `brew upgrade` compares the installed bundle's version with
 cask's version and skips a newer self-updated app rather than downgrading it
 ([Homebrew FAQ](https://docs.brew.sh/FAQ)).
 
-The intended change, when the install step ships, is `auto_updates true` in
-`.github/homebrew/willydisk.rb.tmpl` (never the rendered `Casks/willydisk.rb`),
-followed by `bash Scripts/homebrew-cask.sh check --audit`. `brew upgrade --cask
-willydisk` stays a valid path; the docs say both exist.
+`.github/homebrew/willydisk.rb.tmpl` now declares `auto_updates true` (the rendered
+`Casks/willydisk.rb` is never hand-edited; the next release renders it). `brew
+upgrade --cask willydisk` stays a valid path, and Homebrew's version comparison
+keeps it from replacing a newer self-updated app. The published 1.0.1 cask predates
+the updater; the next release is the first one whose cask carries the declaration.
+`bash Scripts/homebrew-cask.sh check --audit` validates the template.
 
 ## Permissions and platform constraints
 
@@ -221,26 +231,31 @@ through the app's localization.
 The sheet is one window on the main view, hosted by `UpdateSheetHost` and backed by
 `UpdateController`. Its states are:
 
-`checking → upToDate | newerThanLatest | unknownCurrentVersion | noBuildForThisMac | incompleteRelease | available → downloading → verifying → ready | failed`
+`checking → upToDate | newerThanLatest | unknownCurrentVersion | noBuildForThisMac | incompleteRelease | available → downloading → verifying → ready → installing | failed`
 
 - Available: current and new version, release notes, download size, the
   checksum/unsigned wording, Download, Later, Skip This Version.
 - Downloading: real byte progress with Cancel; closing the sheet cancels the task
   and returns to the offer.
 - Checking: the checksum, extraction, and bundle checks run; the sheet stays put.
-- Ready: downloaded with a matching checksum, with Show in Finder and the release page. There is
-  **no install button** until the helper transaction exists, and the sheet never
-  claims the update was installed.
-- Failed: a typed reason, Try Again, and the release page when the failure happened
-  after a release was known.
+- Ready: downloaded with a matching checksum. Install and Relaunch is the consent
+  to quit, swap, and reopen; Show in Finder and Done are the alternatives. The
+  caption says the app will quit and that a scan in progress stops.
+- Installing: the helper is running and the app is quitting; there are no more
+  actions on the sheet.
+- Failed: a typed reason, Try Again, Show Log when an install left one, and the
+  release page when the failure happened after a release was known. An install
+  failure returns to Ready on retry once the destination is fixed; a launch-time
+  install failure offers a new check instead.
 - The menu item is "Check for Updates…" under About. Settings holds the daily-check
   toggle and the last successful check; there is no second update window.
 - The launch check waits eight seconds, then runs at most once per 24 hours. A
   manual check ignores the interval and a skipped version; a skipped version hides
   only that version from the automatic offer.
-- Every string goes through `DiskLocalization`, with Arabic; `-S update` renders the
-  sheet in English, Arabic, and `en-XA`. Release notes are publisher text in English
-  and are kept left-to-right inside an Arabic interface.
+- Every string goes through `DiskLocalization`, with Arabic; `-S update` and
+  `-S update-ready` render the offer and the install button in English, Arabic, and
+  `en-XA`. Release notes are publisher text in English and are kept left-to-right
+  inside an Arabic interface.
 - The screen does not call an unsigned download verified or trusted. A green
   "verified" badge is not acceptable wording.
 
@@ -256,38 +271,42 @@ The sheet is one window on the main view, hosted by `UpdateSheetHost` and backed
 | checksum mismatch | download did not match the published checksum | staged files deleted |
 | extraction or bundle check fails | download is not a valid WillyDisk build | staged files deleted |
 | not enough disk space | free space needed | nothing |
-| not writable / translocated / read-only | move the app or download the zip | nothing |
-| helper fails | previous copy is unchanged; open the log | backup restored |
-| new build does not launch | the previous copy is in the update folder | manual restore |
+| not writable / translocated / read-only | move the app or install the archive by hand | nothing |
+| helper cannot start | previous copy is unchanged | nothing |
+| copy fails during the swap | previous copy is restored; log | backup moved back |
+| helper denied at runtime | previous copy is restored; log | backup moved back |
+| new build does not launch | the previous copy is in `Recovery/<version>/` | manual restore |
 
 ## Testing
 
 - `swift test --filter DiskUpdateTests` covers versions, feed decoding, asset
-  selection, checksum parsing/hashing, staged-bundle checks, and download progress.
-  The suite never touches the network: feed tests use a fake `FeedTransport`.
-- `swift test --filter UpdateQATests` drives the controller, preferences, and
-  staging directory with a fake feed, downloader, and verifier: offer, skip, retry,
-  failure, ready, and discarded staging.
+  selection, checksum parsing/hashing, staged-bundle checks, download progress, and
+  the real `/bin/sh` installer against fake app directories (swap, rollback, and
+  result parsing). The suite never touches the network: feed tests use a fake
+  `FeedTransport`.
+- `swift test --filter UpdateQATests` drives the controller, preferences, staging,
+  and install states with a fake feed, downloader, verifier, and installer: offer,
+  skip, retry, failure, ready, install, and the launch result.
 - A live check is a manual acceptance step against the public release, not a unit
   test. Do not add a test that downloads from GitHub.
-- `-S update -c -s 640x600` renders the sheet in English and Arabic (and `en-XA`
-  where truncation is the question). `-S settings -c -s 460x760` shows the Updates
-  section above Scan Options.
+- `-S update -c -s 640x600` and `-S update-ready -c -s 640x600` render the offer
+  and its install button in English and Arabic (and `en-XA` where truncation is the
+  question). `-S settings -c -s 460x760` shows the Updates section above Scan Options.
 - The install step needs a real update over a copy in `~/Applications`, then over
-  `/Applications/WillyDisk.app`, including a checksum failure and a wrong-version
-  failure. Then the TCC/Full Disk Access test above, and a Homebrew install/upgrade
-  test once the cask declares `auto_updates`.
+  `/Applications/WillyDisk.app`, including a checksum failure, a wrong-version
+  failure, and a destination the app cannot write. Then the TCC/Full Disk Access
+  test above, and a Homebrew install/upgrade test with a cask that declares
+  `auto_updates`.
 - Before a release, confirm the repository and the release assets are readable
   without credentials. A release that only the owner can download cannot update
   anyone.
 
 ## Open decisions
 
-- **Homebrew:** self-update everywhere with `auto_updates true` (recommended), or
-  defer to `brew upgrade` when a Caskroom receipt is present.
 - **Signing:** accept the ad-hoc TCC cost and document it, or adopt a stable
   self-signed identity if updates otherwise lose Full Disk Access.
-- **Install presentation:** the ready state currently offers the archive and the
-  release page; the install button arrives with the helper transaction.
 - **Optional hardening:** Ed25519-signed archives, and a "Revert to Previous Version"
   action fed by the retained backup.
+- **First real install:** the automated tests prove the swap and rollback, not the
+  TCC grant, App Management prompt, or a launch from `/Applications`. That test is
+  the release gate.

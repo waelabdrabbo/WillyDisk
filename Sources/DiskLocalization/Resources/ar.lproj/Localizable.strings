@@ -324,6 +324,8 @@
 	<string>تعذّر فحص التنزيل</string>
 	<key>Couldn't Download the Update</key>
 	<string>تعذّر تنزيل التحديث</string>
+	<key>Couldn't Install the Update</key>
+	<string>تعذّر تثبيت التحديث</string>
 	<key>Couldn’t move to the Trash. %@</key>
 	<string>تعذّر النقل إلى سلة المهملات. %@</string>
 	<key>Couldn’t put back everything. %@</key>
@@ -506,8 +508,10 @@
 	<string>تضمين العناصر المخفية</string>
 	<key>Includes scan settings, timing, issue counts, and version. No file names, paths, or contents are included.</key>
 	<string>تتضمّن إعدادات الفحص والتوقيت وأعداد المشكلات والإصدار. لا تتضمّن أسماء الملفات ولا مساراتها ولا محتوياتها.</string>
-	<key>Installing the update is not part of this build yet. The checksum-matched download is in the update folder.</key>
-	<string>تثبيت التحديث ليس جزءًا من هذا البناء بعد. التنزيل المطابق للبصمة موجود في مجلد التحديثات.</string>
+	<key>Install and Relaunch</key>
+	<string>تثبيت وإعادة التشغيل</string>
+	<key>Installing and Relaunching…</key>
+	<string>جارٍ التثبيت وإعادة التشغيل…</string>
 	<key>Issues</key>
 	<string>المشكلات</string>
 	<key>It is already back</key>
@@ -900,6 +904,8 @@
 	<string>إظهار الكل</string>
 	<key>Show Less</key>
 	<string>إظهار أقل</string>
+	<key>Show Log</key>
+	<string>إظهار السجل</string>
 	<key>Show More</key>
 	<string>إظهار المزيد</string>
 	<key>Show Moved</key>
@@ -1036,6 +1042,8 @@
 	<string>لم يُبلغ النظام عن المكان الذي ذهب إليه</string>
 	<key>The system does not allow changes on this volume.</key>
 	<string>لا يسمح النظام بإجراء تغييرات على وحدة التخزين هذه.</string>
+	<key>The update could not be installed. WillyDisk tried to leave your previous copy in place; open the log for details.</key>
+	<string>تعذّر تثبيت التحديث. حاول WillyDisk إبقاء نسختك السابقة في مكانها؛ افتح السجل لمعرفة التفاصيل.</string>
 	<key>The update couldn't be completed. Try again.</key>
 	<string>تعذّر إكمال التحديث. حاول مرة أخرى.</string>
 	<key>The update couldn't be downloaded. Try again.</key>
@@ -1068,6 +1076,8 @@
 	<string>هذا المجلد</string>
 	<key>This build has no release version to compare.</key>
 	<string>لا يحمل هذا البناء رقم إصدار للمقارنة.</string>
+	<key>This copy can't update itself. Download a new copy instead.</key>
+	<string>لا تستطيع هذه النسخة تحديث نفسها. نزّل نسخة جديدة بدلًا من ذلك.</string>
 	<key>This folder has nothing big enough to draw.</key>
 	<string>لا شيء في هذا المجلد كبير بما يكفي لرسمه.</string>
 	<key>This folder holds the folder being scanned</key>
@@ -1170,6 +1180,8 @@
 	<string>تقرير WillyDisk.csv</string>
 	<key>WillyDisk Report.json</key>
 	<string>تقرير WillyDisk.json</string>
+	<key>WillyDisk can't replace this copy. Make sure its folder is writable, or move the app to Applications and try again.</key>
+	<string>لا يستطيع WillyDisk استبدال هذه النسخة. تأكّد من أن مجلدها قابل للكتابة، أو انقل التطبيق إلى مجلد التطبيقات وحاول مرة أخرى.</string>
 	<key>WillyDisk cleanup</key>
 	<string>WillyDisk cleanup</string>
 	<key>WillyDisk cleanup — list cleanup candidates inside one folder
@@ -1245,6 +1257,8 @@ saving.</key>
 	<string>لا ينقل WillyDisk مجلدك الرئيسي ككل. اختر ملفًا أو مجلدًا بداخله بدلًا من ذلك.</string>
 	<key>WillyDisk is not signed or notarized by Apple. The checksum confirms the download arrived intact; it does not prove who built it.</key>
 	<string>WillyDisk غير موقّع من Apple وغير موثّق من قِبلها. تؤكد بصمة التحقق أن التنزيل وصل سليمًا، لكنها لا تثبت من أنشأه.</string>
+	<key>WillyDisk is running from a downloaded location. Move it to Applications and reopen it.</key>
+	<string>WillyDisk يعمل من موقع تنزيل. انقله إلى مجلد التطبيقات ثم أعد فتحه.</string>
 	<key>WillyDisk is up to date.</key>
 	<string>WillyDisk محدّث بالفعل.</string>
 	<key>WillyDisk scan</key>
@@ -1309,6 +1323,8 @@ a comparison against them would read as space that vanished.</key>
 
 الفحص الملغى لا يكتب تقريرًا: إجمالياته تغطي جزءًا من المجلد، ومقارنتها
 بقياس كامل ستُقرأ كمساحة اختفت.</string>
+	<key>WillyDisk will quit, replace this copy, and reopen. This stops any scan in progress.</key>
+	<string>سيُغلق WillyDisk ويستبدل هذه النسخة ثم يعيد فتحه. سيؤدي ذلك إلى إيقاف أي فحص جارٍ.</string>
 	<key>Xcode's device support folders, one per system version, offered whole. Xcode downloads the one it needs again the next time a device on that version is connected.</key>
 	<string>مجلدات دعم الأجهزة في Xcode، واحد لكل إصدار نظام، تُعرض كاملة. يعيد Xcode تنزيل ما يحتاجه منها عند توصيل جهاز يعمل بذلك الإصدار.</string>
 	<key>Yes</key>
@@ -1353,6 +1369,8 @@ a comparison against them would read as space that vanished.</key>
 	<string>العناصر المخفية مضمنة، البقاء على وحدة التخزين هذه، لا تتبّع للروابط الرمزية</string>
 	<key>macOS did not report local snapshots for this volume.</key>
 	<string>لم يُبلغ macOS عن لقطات محلية لوحدة التخزين هذه.</string>
+	<key>macOS may ask for Full Disk Access again after the update because this build is ad-hoc signed.</key>
+	<string>قد يطلب macOS الوصول الكامل إلى القرص مرة أخرى بعد التحديث لأن هذا البناء موقّع توقيعًا موقتًا (ad-hoc).</string>
 	<key>macOS reports %@ more can be made available for important use by removing purgeable data.</key>
 	<string>يفيد macOS بإمكان إتاحة %@ إضافية للاستخدام المهم عبر إزالة البيانات القابلة للتنقية.</string>
 	<key>may cross volumes</key>

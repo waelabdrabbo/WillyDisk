@@ -60,11 +60,9 @@ public struct AppUpdateVerifier: UpdateVerifying {
     }
 }
 
-/// Owns one update check at a time: the feed, the download, the verification, and
-/// the state the sheet reads.
-///
-/// A check never installs. Downloading is a separate action, and the verified
-/// archive is where this phase stops: the install transaction is the next layer.
+/// Owns the update flow: the feed, the download, the verification, and the final
+/// replace-and-relaunch handoff. The controller never writes into the running app
+/// itself; it starts `UpdateInstaller`'s helper and asks the view to quit.
 @MainActor
 @Observable
 public final class UpdateController {
@@ -74,17 +72,21 @@ public final class UpdateController {
     private let feed: any ReleaseFeed
     private let downloader: any UpdateDownloading
     private let verifier: (any UpdateVerifying)?
+    private let installer: (any UpdateInstalling)?
     private let storage: UpdateStorage
     private let build: InstalledBuild?
     private let now: @Sendable () -> Date
 
     private var candidate: UpdateCandidate?
+    private var lastReady: ReadyUpdate?
+    private var stagedApp: URL?
     private var isChecking = false
 
     public init(
         feed: any ReleaseFeed,
         downloader: any UpdateDownloading,
         verifier: (any UpdateVerifying)? = nil,
+        installer: (any UpdateInstalling)? = nil,
         preferences: UpdatePreferences,
         build: InstalledBuild?,
         storage: UpdateStorage = UpdateStorage(),
@@ -93,6 +95,7 @@ public final class UpdateController {
         self.feed = feed
         self.downloader = downloader
         self.verifier = verifier
+        self.installer = installer
         self.preferences = preferences
         self.build = build
         self.storage = storage
@@ -118,6 +121,8 @@ public final class UpdateController {
 
         isChecking = true
         candidate = nil
+        lastReady = nil
+        stagedApp = nil
         state = .checking
         defer { isChecking = false }
 
@@ -130,7 +135,7 @@ public final class UpdateController {
             switch result {
             case .notModified:
                 preferences.recordAttempt(at: now())
-                state = .failed(.unknown, pageURL: nil)
+                state = .failed(.unknown, pageURL: nil, logURL: nil)
 
             case let .release(release, _):
                 preferences.recordSuccess(at: now())
@@ -173,7 +178,8 @@ public final class UpdateController {
             preferences.recordAttempt(at: now())
             state = .failed(
                 UpdateFailure.from(error as? UpdateError ?? .transport),
-                pageURL: nil
+                pageURL: nil,
+                logURL: nil
             )
         }
     }
@@ -192,6 +198,8 @@ public final class UpdateController {
         state = .downloading(offer, .zero)
         let version = candidate.marketingVersion
         var verifying = false
+        lastReady = nil
+        stagedApp = nil
 
         let storage = self.storage
         do {
@@ -237,15 +245,16 @@ public final class UpdateController {
             )
             try Task.checkCancellation()
 
-            state = .ready(
-                ReadyUpdate(
-                    version: candidate.marketingVersion,
-                    currentVersion: build.marketingVersion,
-                    archiveURL: archiveURL,
-                    digest: verified.digest,
-                    pageURL: candidate.release.pageURL
-                )
+            let ready = ReadyUpdate(
+                version: candidate.marketingVersion,
+                currentVersion: build.marketingVersion,
+                archiveURL: archiveURL,
+                digest: verified.digest,
+                pageURL: candidate.release.pageURL
             )
+            lastReady = ready
+            stagedApp = verified.bundleURL
+            state = .ready(ready)
         } catch {
             await Task.detached(priority: .utility) {
                 storage.discard(version: version)
@@ -260,7 +269,8 @@ public final class UpdateController {
                     ?? .invalidBundle(.signatureInvalid)
                 state = .failed(
                     UpdateFailure.from(updateError),
-                    pageURL: candidate.release.pageURL
+                    pageURL: candidate.release.pageURL,
+                    logURL: nil
                 )
             } else {
                 // A network or HTTP failure while fetching an asset is a
@@ -275,9 +285,88 @@ public final class UpdateController {
                 }
                 state = .failed(
                     failure,
-                    pageURL: candidate.release.pageURL
+                    pageURL: candidate.release.pageURL,
+                    logURL: nil
                 )
             }
+        }
+    }
+
+    /// Starts the detached helper. Returns `true` when the helper is running and
+    /// the caller should quit; `false` means the sheet has a failure to show and
+    /// the app must stay open.
+    public func install() async -> Bool {
+        guard case let .ready(ready) = state, let installer else {
+            return false
+        }
+        lastReady = ready
+        let target = Bundle.main.bundleURL
+
+        let staging = ready.archiveURL.deletingLastPathComponent()
+        let request = UpdateInstallRequest(
+            targetApp: target,
+            stagedApp: stagedApp
+                ?? staging.appendingPathComponent("expanded/WillyDisk.app", isDirectory: true),
+            recoveryDirectory: storage.recoveryDirectory(for: ready.version),
+            resultURL: storage.resultURL,
+            version: ready.version,
+            parentPID: ProcessInfo.processInfo.processIdentifier,
+            relaunch: true
+        )
+
+        state = .installing(version: ready.version)
+        do {
+            // Spawning the helper and the destination checks are file and process
+            // work; keep them off the main actor.
+            try await Task.detached(priority: .userInitiated) {
+                try installer.validateDestination(for: target)
+                try installer.install(request)
+            }.value
+            return true
+        } catch let error as UpdateInstallError {
+            state = .failed(
+                UpdateFailure.from(error),
+                pageURL: nil,
+                logURL: nil
+            )
+            return false
+        } catch {
+            state = .failed(.installFailed, pageURL: nil, logURL: nil)
+            return false
+        }
+    }
+
+    /// Reads the helper's result on the next launch. A failure is put in the
+    /// sheet and returns `true` so the app can present it before any automatic
+    /// check; a success cleans the staging archive and returns `false`.
+    @discardableResult
+    public func consumeInstallResult() async -> Bool {
+        let storage = self.storage
+        guard let installer,
+              let outcome = installer.consumeResult(at: storage.resultURL) else {
+            return false
+        }
+        let recovery = storage.recoveryDirectory(for: outcome.version)
+
+        switch outcome.status {
+        case .installed:
+            if outcome.version == build?.marketingVersion {
+                await Task.detached(priority: .utility) {
+                    storage.discard(version: outcome.version)
+                }.value
+            }
+            lastReady = nil
+            stagedApp = nil
+            return false
+        case .failed:
+            lastReady = nil
+            stagedApp = nil
+            state = .failed(
+                .installFailed,
+                pageURL: nil,
+                logURL: recovery.appendingPathComponent("install.log")
+            )
+            return true
         }
     }
 
@@ -288,12 +377,17 @@ public final class UpdateController {
         state = .upToDate(currentVersion: offer.currentVersion)
     }
 
-    /// Retries whatever failed. A check failure asks the feed again; a download
-    /// or verification failure reuses the candidate already found, so a retry
-    /// cannot be answered with `304 Not Modified` and strand the person on a
-    /// release they were just offered.
+    /// Retries whatever failed. An install failure returns to the verified
+    /// download; a download or verification failure reuses the candidate already
+    /// found, so a retry cannot be answered with `304 Not Modified` and strand
+    /// the person on a release they were just offered. A check failure asks the
+    /// feed again.
     public func retry() async {
-        guard case let .failed(failure, _) = state else { return }
+        guard case let .failed(failure, _, _) = state else { return }
+        if failure.isInstallFailure, let lastReady {
+            state = .ready(lastReady)
+            return
+        }
         if failure.isDownloadFailure, let candidate, let build {
             state = .available(
                 Self.offer(for: candidate, currentVersion: build.marketingVersion)
@@ -306,7 +400,7 @@ public final class UpdateController {
 
     private var isBusy: Bool {
         switch state {
-        case .downloading, .verifying:
+        case .downloading, .verifying, .installing:
             return true
         default:
             return false

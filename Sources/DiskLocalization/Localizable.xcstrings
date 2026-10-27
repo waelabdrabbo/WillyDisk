@@ -6301,6 +6301,30 @@
       },
       "shouldGenerateSwiftSymbol": false
     },
+    "Couldn't Install the Update": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تعذّر تثبيت التحديث"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't Install the Update"
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Çöúļðñ'ŧ Íñšŧáļļ ŧĥé Úþðáŧé·························]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
     "Couldn’t move to the Trash. %@": {
       "extractionState": "manual",
       "localizations": {
@@ -8569,25 +8593,49 @@
       },
       "shouldGenerateSwiftSymbol": false
     },
-    "Installing the update is not part of this build yet. The checksum-matched download is in the update folder.": {
+    "Install and Relaunch": {
       "extractionState": "manual",
       "localizations": {
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "تثبيت التحديث ليس جزءًا من هذا البناء بعد. التنزيل المطابق للبصمة موجود في مجلد التحديثات."
+            "value": "تثبيت وإعادة التشغيل"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Installing the update is not part of this build yet. The checksum-matched download is in the update folder."
+            "value": "Install and Relaunch"
           }
         },
         "en-XA": {
           "stringUnit": {
             "state": "translated",
-            "value": "[Íñšŧáļļíñĝ ŧĥé úþðáŧé íš ñöŧ þáŕŧ öƒ ŧĥíš ƀúíļð ýéŧ. Ŧĥé çĥéçķšúɱ-ɱáŧçĥéð ðöŵñļöáð íš íñ ŧĥé úþðáŧé ƒöļðéŕ.·········································································································]"
+            "value": "[Íñšŧáļļ áñð Ŕéļáúñçĥ··················]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "Installing and Relaunching…": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "جارٍ التثبيت وإعادة التشغيل…"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Installing and Relaunching…"
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Íñšŧáļļíñĝ áñð Ŕéļáúñçĥíñĝ…·························]"
           }
         }
       },
@@ -13297,6 +13345,30 @@
       },
       "shouldGenerateSwiftSymbol": false
     },
+    "Show Log": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إظهار السجل"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show Log"
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Šĥöŵ Ļöĝ······]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
     "Show More": {
       "extractionState": "manual",
       "localizations": {
@@ -15097,6 +15169,30 @@
       },
       "shouldGenerateSwiftSymbol": false
     },
+    "The update could not be installed. WillyDisk tried to leave your previous copy in place; open the log for details.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تعذّر تثبيت التحديث. حاول WillyDisk إبقاء نسختك السابقة في مكانها؛ افتح السجل لمعرفة التفاصيل."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The update could not be installed. WillyDisk tried to leave your previous copy in place; open the log for details."
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Ŧĥé úþðáŧé çöúļð ñöŧ ƀé íñšŧáļļéð. ŴíļļýÐíšķ ŧŕíéð ŧö ļéáṽé ýöúŕ þŕéṽíöúš çöþý íñ þļáçé; öþéñ ŧĥé ļöĝ ƒöŕ ðéŧáíļš.················································································································]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
     "The update couldn't be completed. Try again.": {
       "extractionState": "manual",
       "localizations": {
@@ -15476,6 +15572,30 @@
           "stringUnit": {
             "state": "translated",
             "value": "[Ŧĥíš ƀúíļð ĥáš ñö ŕéļéášé ṽéŕšíöñ ŧö çöɱþáŕé.···········································]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "This copy can't update itself. Download a new copy instead.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لا تستطيع هذه النسخة تحديث نفسها. نزّل نسخة جديدة بدلًا من ذلك."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This copy can't update itself. Download a new copy instead."
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Ŧĥíš çöþý çáñ'ŧ úþðáŧé íŧšéļƒ. Ðöŵñļöáð á ñéŵ çöþý íñšŧéáð.·························································]"
           }
         }
       },
@@ -16705,6 +16825,30 @@
       },
       "shouldGenerateSwiftSymbol": false
     },
+    "WillyDisk can't replace this copy. Make sure its folder is writable, or move the app to Applications and try again.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لا يستطيع WillyDisk استبدال هذه النسخة. تأكّد من أن مجلدها قابل للكتابة، أو انقل التطبيق إلى مجلد التطبيقات وحاول مرة أخرى."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "WillyDisk can't replace this copy. Make sure its folder is writable, or move the app to Applications and try again."
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[ŴíļļýÐíšķ çáñ'ŧ ŕéþļáçé ŧĥíš çöþý. Ɱáķé šúŕé íŧš ƒöļðéŕ íš ŵŕíŧáƀļé, öŕ ɱöṽé ŧĥé áþþ ŧö Áþþļíçáŧíöñš áñð ŧŕý áĝáíñ.·················································································································]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
     "WillyDisk cleanup": {
       "extractionState": "manual",
       "localizations": {
@@ -16849,6 +16993,30 @@
       },
       "shouldGenerateSwiftSymbol": false
     },
+    "WillyDisk is running from a downloaded location. Move it to Applications and reopen it.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "WillyDisk يعمل من موقع تنزيل. انقله إلى مجلد التطبيقات ثم أعد فتحه."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "WillyDisk is running from a downloaded location. Move it to Applications and reopen it."
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[ŴíļļýÐíšķ íš ŕúññíñĝ ƒŕöɱ á ðöŵñļöáðéð ļöçáŧíöñ. Ɱöṽé íŧ ŧö Áþþļíçáŧíöñš áñð ŕéöþéñ íŧ.·····················································································]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
     "WillyDisk is up to date.": {
       "extractionState": "manual",
       "localizations": {
@@ -16916,6 +17084,30 @@
           "stringUnit": {
             "state": "translated",
             "value": "[ŴíļļýÐíšķ šçáñ — ɱéášúŕé öñé ƒöļðéŕ ƒŕöɱ ŧĥé çöɱɱáñð ļíñé\n\nÚŠÁĜÉ\n  ŴíļļýÐíšķ šçáñ <ƒöļðéŕ> [--ðéþŧĥ <ļéṽéļš>] [--ŧöþ <ŕöŵš>] [--ĵšöñ]\n  ŴíļļýÐíšķ šçáñ --ĥéļþ\n\nŦĥé šçáñ úšéš ŧĥé šáɱé éñĝíñé áñð áççöúñŧíñĝ áš ŧĥé áþþ, ŵíŧĥ ŧĥé ðéƒáúļŧ šçáñ\nöþŧíöñš: ĥíððéñ íŧéɱš íñçļúðéð, ñö çŕöššíñĝ öñŧö áñöŧĥéŕ ṽöļúɱé, áñð šýɱƀöļíç\nļíñķš ñöŧ ƒöļļöŵéð. Ñö ŵíñðöŵ öþéñš áñð ñö ÚÍ íš ļöáðéð.\n\nÖÞŦÍÖÑŠ\n  --ðéþŧĥ <ļéṽéļš>  Ƒöļðéŕ ļéṽéļš þŕíñŧéð ƀéļöŵ ŧĥé šçáñ ŕööŧ. 0 þŕíñŧš öñļý\n                    ŧĥé ŕööŧ. Ðéƒáúļŧ: %lld.\n  --ŧöþ <ŕöŵš>      Ŕöŵš þŕíñŧéð þéŕ ƒöļðéŕ ļéṽéļ áñð þéŕ ŕáñķéð ļíšŧ.\n                    Ðéƒáúļŧ: %lld.\n  --ĵšöñ            Þŕíñŧ ŧĥé ƒíñíšĥéð ŕúñ áš ŧĥé ṽéŕšíöñéð ŠçáñŔéçöŕð ĴŠÖÑ\n                    (šçĥéɱá %lld) íñšŧéáð öƒ ŧĥé ŧéẋŧ ŕéþöŕŧ.\n  -ĥ, --ĥéļþ        Šĥöŵ ŧĥíš ĥéļþ áñð éẋíŧ.\n\n--ðéþŧĥ áñð --ŧöþ çĥáñĝé öñļý ŵĥáŧ íš þŕíñŧéð. Ŧĥé šçáñ šŧíļļ ɱéášúŕéš éṽéŕý\néñŧŕý íŧ çáñ ŕéáçĥ, áñð ŧĥé ŧöŧáļš, çöúñŧš, áñð ŕéçöŕð ļíšŧ ŧĥáŧ ɱéášúŕéɱéñŧ.\n\nÉẊÍŦ ŠŦÁŦÚŠ\n  0    ŧĥé šçáñ ƒíñíšĥéð; ŧĥé ŕéþöŕŧ šŧáŧéš áñýŧĥíñĝ íŧ çöúļð ñöŧ ŕéáð\n  1    ŧĥé ƒöļðéŕ ðöéš ñöŧ éẋíšŧ, öŕ ŧĥé ŕéþöŕŧ çöúļð ñöŧ ƀé ŵŕíŧŧéñ\n  2    ŧĥé çöɱɱáñð ļíñé ŵáš ñöŧ úñðéŕšŧööð\n  130  íñŧéŕŕúþŧéð; ŧĥé éñĝíñé'š çáñçéļļáŧíöñ þáŧĥ ŕáñ áñð ñö ŕéþöŕŧ ŵáš ŵŕíŧŧéñ\n\nÁ çáñçéļļéð šçáñ ŵŕíŧéš ñö ŕéþöŕŧ: íŧš ŧöŧáļš çöṽéŕ þáŕŧ öƒ ŧĥé ƒöļðéŕ, áñð\ná çöɱþáŕíšöñ áĝáíñšŧ ŧĥéɱ ŵöúļð ŕéáð áš šþáçé ŧĥáŧ ṽáñíšĥéð.]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "WillyDisk will quit, replace this copy, and reopen. This stops any scan in progress.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "سيُغلق WillyDisk ويستبدل هذه النسخة ثم يعيد فتحه. سيؤدي ذلك إلى إيقاف أي فحص جارٍ."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "WillyDisk will quit, replace this copy, and reopen. This stops any scan in progress."
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[ŴíļļýÐíšķ ŵíļļ ǫúíŧ, ŕéþļáçé ŧĥíš çöþý, áñð ŕéöþéñ. Ŧĥíš šŧöþš áñý šçáñ íñ þŕöĝŕéšš.··················································································]"
           }
         }
       },
@@ -17444,6 +17636,30 @@
           "stringUnit": {
             "state": "translated",
             "value": "[ɱáçÖŠ ðíð ñöŧ ŕéþöŕŧ ļöçáļ šñáþšĥöŧš ƒöŕ ŧĥíš ṽöļúɱé.···················································]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "macOS may ask for Full Disk Access again after the update because this build is ad-hoc signed.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "قد يطلب macOS الوصول الكامل إلى القرص مرة أخرى بعد التحديث لأن هذا البناء موقّع توقيعًا موقتًا (ad-hoc)."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS may ask for Full Disk Access again after the update because this build is ad-hoc signed."
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[ɱáçÖŠ ɱáý ášķ ƒöŕ Ƒúļļ Ðíšķ Áççéšš áĝáíñ áƒŧéŕ ŧĥé úþðáŧé ƀéçáúšé ŧĥíš ƀúíļð íš áð-ĥöç šíĝñéð.····························································································]"
           }
         }
       },

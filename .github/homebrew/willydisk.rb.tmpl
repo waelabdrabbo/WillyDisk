@@ -20,6 +20,8 @@ cask "willydisk" do
     strategy :github_latest
   end
 
+  auto_updates true
+
   depends_on macos: :sonoma
 
   app "WillyDisk.app"
@@ -44,7 +46,12 @@ cask "willydisk" do
       xattr -dr com.apple.quarantine #{appdir}/WillyDisk.app
 
     Full Disk Access is optional. Without it, WillyDisk measures what it can
-    read and reports what it could not.
+    read and reports what it could not. Because the app is ad-hoc signed, macOS
+    may ask for that permission again after an update.
+
+    WillyDisk can update itself from the app menu; `brew upgrade --cask
+    willydisk` also works, and Homebrew compares the installed app's version so
+    it will not replace a newer self-updated copy.
 
     The same binary also scans without a window: `willydisk scan <folder>`.
   EOS

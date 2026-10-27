@@ -8,7 +8,7 @@
 # locked session and inside an agent sandbox.
 #
 # Usage:
-#   Scripts/render-screens.sh [-o OUT_DIR] [-s WxH] [-a light|dark|both] [-S results|home|search|help|settings|update|categories|coverage|cleanup|duplicates|moved|reclaim|history|both] [-t FIXTURE_DIR] [-T STATE] [-l LOCALE]
+#   Scripts/render-screens.sh [-o OUT_DIR] [-s WxH] [-a light|dark|both] [-S results|home|search|help|settings|update|update-ready|categories|coverage|cleanup|duplicates|moved|reclaim|history|both] [-t FIXTURE_DIR] [-T STATE] [-l LOCALE]
 #
 #   -o  output directory                     (default .build/renders)
 #   -s  render size in points                (default 1000x720)
@@ -18,7 +18,8 @@
 #       results; search is the results screen with a whole-scan search open;
 #       categories is the results screen in Categories mode; coverage is the
 #       coverage sheet; help and settings are the sheet and preferences contents;
-#       update is the software-update sheet; cleanup, duplicates, and moved are
+#       update and update-ready are the software-update sheet and its ready
+#       state; cleanup, duplicates, and moved are
 #       the cleanup sheet's tabs, and they
 #       scan the same sample tree; reclaim is that sheet with its move
 #       confirmation over it; history is the scan-history comparison over three

@@ -14,6 +14,7 @@ belong in DiskUI's catalog.
 | `UpdateDownloader.swift` | `UpdateDownloading` seam, real byte progress, ephemeral session, size ceiling |
 | `UpdateVerifier.swift` | Checksum check, `ditto` extraction, bundle/architecture/signature validation |
 | `InstalledBuild.swift` | The running bundle's version, identifier, architecture, macOS |
+| `UpdateInstaller.swift` | The detached helper: destination checks, backup, swap, reopen, result |
 
 Rules:
 
@@ -32,7 +33,13 @@ Rules:
   and `codesign --verify` are the checks; the release pipeline is what runs it.
 - Comments are evergreen: no task numbers, no narration of what changed.
 
+The installer is a `/bin/sh` helper, not a privileged process. It waits for the app to
+quit, renames the old app into the recovery folder, copies the staged app into place, and
+reopens it. It never runs with elevated privileges; an unwritable destination is a refusal,
+not a password prompt.
+
 Tests: `swift test --filter DiskUpdateTests`. The feed tests use a fake
-`FeedTransport`; nothing in the suite needs a network. The app never sends the ETag:
+`FeedTransport`; nothing in the suite needs a network. The installer tests use fake app
+directories and tell the helper not to `open` anything. The app never sends the ETag:
 a `304` cannot prove the installed app is current. Do not add a test that downloads
 from GitHub.

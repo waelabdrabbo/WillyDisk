@@ -10,6 +10,7 @@ import DiskUpdate
 public struct UpdateSheetActions {
     public var retry: () -> Void
     public var download: () -> Void
+    public var install: () -> Void
     public var cancel: () -> Void
     public var skip: () -> Void
     public var openPage: (URL) -> Void
@@ -19,6 +20,7 @@ public struct UpdateSheetActions {
     public init(
         retry: @escaping () -> Void,
         download: @escaping () -> Void,
+        install: @escaping () -> Void,
         cancel: @escaping () -> Void,
         skip: @escaping () -> Void,
         openPage: @escaping (URL) -> Void,
@@ -27,6 +29,7 @@ public struct UpdateSheetActions {
     ) {
         self.retry = retry
         self.download = download
+        self.install = install
         self.cancel = cancel
         self.skip = skip
         self.openPage = openPage
@@ -37,6 +40,7 @@ public struct UpdateSheetActions {
     public static let preview = UpdateSheetActions(
         retry: {},
         download: {},
+        install: {},
         cancel: {},
         skip: {},
         openPage: { _ in },
@@ -45,12 +49,9 @@ public struct UpdateSheetActions {
     )
 }
 
-/// The update flow's one window: check, offer, download, verify.
-///
-/// The verified download is where this phase stops. There is deliberately no
-/// install button until the helper-based transaction exists; the sheet says the
-/// update is downloaded and verified and offers the archive, and never claims it
-/// has been installed.
+/// The update flow's one window: check, offer, download, check the download,
+/// install. Installing is the one action that quits the app; the sheet says so
+/// before the button is pressed and leaves the relaunch to the helper.
 @MainActor
 public struct UpdateSheet: View {
     private let state: UpdateSheetState
@@ -150,10 +151,22 @@ public struct UpdateSheet: View {
                     title: L10n.string("Update Downloaded"),
                     detail: L10n.format("WillyDisk %@ was downloaded and its checksum matched.", ready.version)
                 )
-                Text(L10n.string("Installing the update is not part of this build yet. The checksum-matched download is in the update folder."))
+                Text(L10n.string("WillyDisk will quit, replace this copy, and reopen. This stops any scan in progress."))
                     .font(DS.Typography.caption)
                     .foregroundStyle(DS.Color.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)
+                Text(L10n.string("macOS may ask for Full Disk Access again after the update because this build is ad-hoc signed."))
+                    .font(DS.Typography.caption)
+                    .foregroundStyle(DS.Color.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+        case .installing:
+            HStack(spacing: DS.Spacing.medium) {
+                ProgressView()
+                    .controlSize(.small)
+                Text(L10n.string("Installing and Relaunching…"))
+                    .font(DS.Typography.callout)
             }
 
         case let .noBuildForThisMac(latest, _):
@@ -170,7 +183,7 @@ public struct UpdateSheet: View {
                 detail: L10n.format("The latest release is WillyDisk %@.", latest)
             )
 
-        case let .failed(failure, _):
+        case let .failed(failure, _, _):
             WarningNotice(
                 L10n.string(failureMessage(failure)),
                 title: L10n.string(failureTitle(failure))
@@ -366,8 +379,19 @@ public struct UpdateSheet: View {
         }
     }
 
-    @ViewBuilder
     private var footerActions: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: DS.Spacing.small) {
+                actionButtons
+            }
+            VStack(alignment: .trailing, spacing: DS.Spacing.small) {
+                actionButtons
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var actionButtons: some View {
         switch state {
         case .checking:
             Button(L10n.string("Later"), action: actions.close)
@@ -392,16 +416,21 @@ public struct UpdateSheet: View {
             Button(L10n.string("Cancel"), action: actions.cancel)
                 .keyboardShortcut(.cancelAction)
 
+        case .installing:
+            EmptyView()
+
         case let .ready(ready):
-            Button(L10n.string("Open Release Page")) {
-                actions.openPage(ready.pageURL)
-            }
             Button(L10n.string("Show in Finder")) {
                 actions.reveal(ready.archiveURL)
             }
             Button(action: actions.close) {
                 Text(L10n.string("Done"))
                     .frame(minWidth: DS.Size.secondaryActionMinWidth)
+            }
+            Button(action: actions.install) {
+                Text(L10n.string("Install and Relaunch"))
+                    .fixedSize(horizontal: true, vertical: false)
+                    .frame(minWidth: DS.Size.actionMinWidth)
             }
             .buttonStyle(.borderedProminent)
             .keyboardShortcut(.defaultAction)
@@ -421,8 +450,13 @@ public struct UpdateSheet: View {
             pageButton(pageURL)
             doneButton()
 
-        case let .failed(_, pageURL):
+        case let .failed(_, pageURL, logURL):
             Button(L10n.string("Try Again"), action: actions.retry)
+            if let logURL {
+                Button(L10n.string("Show Log")) {
+                    actions.reveal(logURL)
+                }
+            }
             if let pageURL {
                 pageButton(pageURL)
             }
@@ -454,6 +488,8 @@ public struct UpdateSheet: View {
             return L10n.string("Couldn't Download the Update")
         case .checksumMismatch, .invalidDownload:
             return L10n.string("Couldn't Check the Download")
+        case .installFailed, .notWritable, .translocated, .notAnApplication:
+            return L10n.string("Couldn't Install the Update")
         }
     }
 
@@ -481,6 +517,14 @@ public struct UpdateSheet: View {
             return L10n.string("There isn't enough free space for the download.")
         case .cancelled:
             return L10n.string("The download was cancelled.")
+        case .installFailed:
+            return L10n.string("The update could not be installed. WillyDisk tried to leave your previous copy in place; open the log for details.")
+        case .notWritable:
+            return L10n.string("WillyDisk can't replace this copy. Make sure its folder is writable, or move the app to Applications and try again.")
+        case .translocated:
+            return L10n.string("WillyDisk is running from a downloaded location. Move it to Applications and reopen it.")
+        case .notAnApplication:
+            return L10n.string("This copy can't update itself. Download a new copy instead.")
         case .unknown:
             return L10n.string("The update couldn't be completed. Try again.")
         }
@@ -599,6 +643,13 @@ public struct UpdateSheetHost: View {
                 },
                 download: {
                     operationTask = Task { await controller.download() }
+                },
+                install: {
+                    operationTask = Task {
+                        if await controller.install() {
+                            NSApplication.shared.terminate(nil)
+                        }
+                    }
                 },
                 cancel: {
                     operationTask?.cancel()

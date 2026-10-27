@@ -18,12 +18,15 @@ Four targets with different jobs.
   minimum-macOS, architecture, and signature checks. The feed tests use a fake
   `FeedTransport`; nothing here touches the network. `ditto` and `lipo` are the
   system tools the suite runs; `codesign` is reached only by a real signed bundle.
+  `UpdateInstallerTests` runs the real `/bin/sh` helper against fake app directories in
+  a temp folder, with relaunch disabled, and checks both the swap and the rollback.
 - `QATests/` — independent verification of shipped behavior that deliberately does not
   trust the engine's own tests. It cross-checks the scanner against external ground truth
   (`find` / `du`) and probes the non-negotiables, covering scan correctness, the
   `ScanViewModel` state machine, the access notice, and the UI surface. `UpdateQATests`
-  drives the update controller, preferences, and staging with a fake feed, downloader,
-  and verifier; nothing there opens a socket.
+  drives the update controller, preferences, staging, and install states with fake
+  feed, downloader, verifier, and installer; nothing there opens a socket or replaces an
+  app.
 
 Two opt-in benchmarks, `ScanBenchmarkTests` and `LiveTreeBenchmarkTests`, skip unless
 `WILLYDISK_BENCH_ROOT` points at a folder, so they never slow `swift test`.

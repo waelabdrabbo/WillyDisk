@@ -40,6 +40,7 @@ final class AppState: ObservableObject {
             ),
             downloader: URLSessionUpdateDownloader(),
             verifier: build.map { AppUpdateVerifier(build: $0) },
+            installer: UpdateInstaller(),
             preferences: .shared,
             build: build
         )
@@ -69,10 +70,21 @@ final class AppState: ObservableObject {
             scanViewModel.start(root: URL(fileURLWithPath: path), options: scanOptions.options)
         }
 
-        // One check a day, after the window and any launch scan have settled.
-        // `WILLYDISK_NO_UPDATE_CHECK` keeps QA and screen review offline.
-        if ProcessInfo.processInfo.environment["WILLYDISK_NO_UPDATE_CHECK"] != "1" {
-            Task { await self.checkForUpdatesOnLaunch() }
+        // A helper that ran while the app was closed leaves one result. A
+        // failure is shown before anything else; a success has already cleaned
+        // the staging archive, and the app is the new version. The read and any
+        // cleanup are off the main actor.
+        Task {
+            let hadInstallFailure = await updates.consumeInstallResult()
+            if hadInstallFailure {
+                isShowingUpdateSheet = true
+                return
+            }
+            // One check a day, after the window and any launch scan have settled.
+            // `WILLYDISK_NO_UPDATE_CHECK` keeps QA and screen review offline.
+            if ProcessInfo.processInfo.environment["WILLYDISK_NO_UPDATE_CHECK"] != "1" {
+                await checkForUpdatesOnLaunch()
+            }
         }
     }
 

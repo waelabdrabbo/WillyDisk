@@ -324,6 +324,8 @@
 	<string>Couldn't Check the Download</string>
 	<key>Couldn't Download the Update</key>
 	<string>Couldn't Download the Update</string>
+	<key>Couldn't Install the Update</key>
+	<string>Couldn't Install the Update</string>
 	<key>Couldn’t move to the Trash. %@</key>
 	<string>Couldn’t move to the Trash. %@</string>
 	<key>Couldn’t put back everything. %@</key>
@@ -506,8 +508,10 @@
 	<string>Include hidden items</string>
 	<key>Includes scan settings, timing, issue counts, and version. No file names, paths, or contents are included.</key>
 	<string>Includes scan settings, timing, issue counts, and version. No file names, paths, or contents are included.</string>
-	<key>Installing the update is not part of this build yet. The checksum-matched download is in the update folder.</key>
-	<string>Installing the update is not part of this build yet. The checksum-matched download is in the update folder.</string>
+	<key>Install and Relaunch</key>
+	<string>Install and Relaunch</string>
+	<key>Installing and Relaunching…</key>
+	<string>Installing and Relaunching…</string>
 	<key>Issues</key>
 	<string>Issues</string>
 	<key>It is already back</key>
@@ -900,6 +904,8 @@
 	<string>Show All</string>
 	<key>Show Less</key>
 	<string>Show Less</string>
+	<key>Show Log</key>
+	<string>Show Log</string>
 	<key>Show More</key>
 	<string>Show More</string>
 	<key>Show Moved</key>
@@ -1036,6 +1042,8 @@
 	<string>The system did not report where it went</string>
 	<key>The system does not allow changes on this volume.</key>
 	<string>The system does not allow changes on this volume.</string>
+	<key>The update could not be installed. WillyDisk tried to leave your previous copy in place; open the log for details.</key>
+	<string>The update could not be installed. WillyDisk tried to leave your previous copy in place; open the log for details.</string>
 	<key>The update couldn't be completed. Try again.</key>
 	<string>The update couldn't be completed. Try again.</string>
 	<key>The update couldn't be downloaded. Try again.</key>
@@ -1068,6 +1076,8 @@
 	<string>This Folder</string>
 	<key>This build has no release version to compare.</key>
 	<string>This build has no release version to compare.</string>
+	<key>This copy can't update itself. Download a new copy instead.</key>
+	<string>This copy can't update itself. Download a new copy instead.</string>
 	<key>This folder has nothing big enough to draw.</key>
 	<string>This folder has nothing big enough to draw.</string>
 	<key>This folder holds the folder being scanned</key>
@@ -1170,6 +1180,8 @@
 	<string>WillyDisk Report.csv</string>
 	<key>WillyDisk Report.json</key>
 	<string>WillyDisk Report.json</string>
+	<key>WillyDisk can't replace this copy. Make sure its folder is writable, or move the app to Applications and try again.</key>
+	<string>WillyDisk can't replace this copy. Make sure its folder is writable, or move the app to Applications and try again.</string>
 	<key>WillyDisk cleanup</key>
 	<string>WillyDisk cleanup</string>
 	<key>WillyDisk cleanup — list cleanup candidates inside one folder
@@ -1246,6 +1258,8 @@ saving.</string>
 	<string>WillyDisk does not move your home folder as a whole. Choose a file or a folder inside it instead.</string>
 	<key>WillyDisk is not signed or notarized by Apple. The checksum confirms the download arrived intact; it does not prove who built it.</key>
 	<string>WillyDisk is not signed or notarized by Apple. The checksum confirms the download arrived intact; it does not prove who built it.</string>
+	<key>WillyDisk is running from a downloaded location. Move it to Applications and reopen it.</key>
+	<string>WillyDisk is running from a downloaded location. Move it to Applications and reopen it.</string>
 	<key>WillyDisk is up to date.</key>
 	<string>WillyDisk is up to date.</string>
 	<key>WillyDisk scan</key>
@@ -1310,6 +1324,8 @@ EXIT STATUS
 
 A cancelled scan writes no report: its totals cover part of the folder, and
 a comparison against them would read as space that vanished.</string>
+	<key>WillyDisk will quit, replace this copy, and reopen. This stops any scan in progress.</key>
+	<string>WillyDisk will quit, replace this copy, and reopen. This stops any scan in progress.</string>
 	<key>Xcode's device support folders, one per system version, offered whole. Xcode downloads the one it needs again the next time a device on that version is connected.</key>
 	<string>Xcode's device support folders, one per system version, offered whole. Xcode downloads the one it needs again the next time a device on that version is connected.</string>
 	<key>Yes</key>
@@ -1354,6 +1370,8 @@ a comparison against them would read as space that vanished.</string>
 	<string>hidden items included, stays on this volume, symbolic links not followed</string>
 	<key>macOS did not report local snapshots for this volume.</key>
 	<string>macOS did not report local snapshots for this volume.</string>
+	<key>macOS may ask for Full Disk Access again after the update because this build is ad-hoc signed.</key>
+	<string>macOS may ask for Full Disk Access again after the update because this build is ad-hoc signed.</string>
 	<key>macOS reports %@ more can be made available for important use by removing purgeable data.</key>
 	<string>macOS reports %@ more can be made available for important use by removing purgeable data.</string>
 	<key>may cross volumes</key>

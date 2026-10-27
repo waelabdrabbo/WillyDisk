@@ -54,6 +54,7 @@ enum ScreenKind: String, CaseIterable {
     case help
     case settings
     case update
+    case updateReady = "update-ready"
     case categories
     case coverage
     case cleanup
@@ -112,6 +113,7 @@ func parse(_ arguments: [String]) -> Options {
             case "help": options.screens = [.help]
             case "settings": options.screens = [.settings]
             case "update": options.screens = [.update]
+            case "update-ready": options.screens = [.updateReady]
             case "categories": options.screens = [.categories]
             case "coverage": options.screens = [.coverage]
             case "cleanup": options.screens = [.cleanup]
@@ -120,7 +122,7 @@ func parse(_ arguments: [String]) -> Options {
             case "reclaim": options.screens = [.reclaim]
             case "history": options.screens = [.history]
             case "both": options.screens = [.results, .home]
-            case let other: fail("--screen expects home, results, search, help, settings, update, categories, coverage, cleanup, duplicates, moved, reclaim, history or both, not \(other)")
+            case let other: fail("--screen expects home, results, search, help, settings, update, update-ready, categories, coverage, cleanup, duplicates, moved, reclaim, history or both, not \(other)")
             }
         case "--locale":
             let language = next("--locale")
@@ -143,7 +145,7 @@ func parse(_ arguments: [String]) -> Options {
             options.rendersWindow = false
         case "--help", "-h":
             print("""
-            usage: render-screens --out DIR [--size WxH] [--appearance light|dark|both] [--screen home|results|search|help|settings|update|categories|coverage|cleanup|duplicates|history|both] [--fixture DIR] [--state finished|scanning] [--locale en|ar|en-XA] [--window|--content]
+            usage: render-screens --out DIR [--size WxH] [--appearance light|dark|both] [--screen home|results|search|help|settings|update|update-ready|categories|coverage|cleanup|duplicates|history|both] [--fixture DIR] [--state finished|scanning] [--locale en|ar|en-XA] [--window|--content]
 
               --out        directory the PNGs are written to
               --size       render size in points (default 1000x720)
@@ -153,7 +155,8 @@ func parse(_ arguments: [String]) -> Options {
                            whole-scan search open, categories is the results
                            screen in Categories mode, coverage is the coverage
                            sheet, help and settings are the sheet and preferences
-                           contents, update is the software-update sheet, cleanup
+                           contents, update is the software-update sheet,
+                           update-ready is its downloaded-and-ready state, cleanup
                            and duplicates are the cleanup sheet's two tabs (they
                            use their own fixture), history is the scan-history
                            comparison
@@ -471,9 +474,11 @@ func render(_ options: Options) {
     // Help, Settings, and the update sheet are static content: they need no scan,
     // so those renders are quick and cannot fail on the fixture.
     let needsScan = options.screens.contains {
-        $0 != .help && $0 != .settings && $0 != .update
+        $0 != .help && $0 != .settings && $0 != .update && $0 != .updateReady
     }
-    let needsFixture = options.screens.contains { $0 != .help && $0 != .update }
+    let needsFixture = options.screens.contains {
+        $0 != .help && $0 != .update && $0 != .updateReady
+    }
     // The cleanup sheet needs candidates the standard fixture does not have, so
     // it renders from its own tree; the other screens keep the shared fixture.
     let isCleanupRender = options.screens.contains(.cleanup)
@@ -606,13 +611,27 @@ func render(_ options: Options) {
 
                                 - The explorer is a full-height sidebar.
                                 - Cleaning up old downloads is easier to review.
-                                - The update screen verifies the download before it offers it.
+                                - The update screen checks the download before it offers it.
 
                                 This is sample release text; the real notes come from the release.
                                 """,
                                 downloadBytes: 2_557_297,
                                 pageURL: URL(string: "https://github.com/waelabdrabbo/WillyDisk/releases/tag/v1.0.2")!,
                                 releaseTitle: "WillyDisk 1.0.2"
+                            )
+                        ),
+                        lastChecked: Date(),
+                        actions: .preview
+                    )
+                case .updateReady:
+                    UpdateSheet(
+                        state: .ready(
+                            ReadyUpdate(
+                                version: "1.0.2",
+                                currentVersion: "1.0.1",
+                                archiveURL: URL(fileURLWithPath: "/Users/example/Library/Application Support/WillyDisk/Updates/1.0.2/WillyDisk-1.0.2-arm64.zip"),
+                                digest: "443d62de6be872f81348654424ade1778b5c4924063d0140257c16955de5bc8a",
+                                pageURL: URL(string: "https://github.com/waelabdrabbo/WillyDisk/releases/tag/v1.0.2")!
                             )
                         ),
                         lastChecked: Date(),

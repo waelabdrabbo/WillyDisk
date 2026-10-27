@@ -67,6 +67,10 @@ public enum UpdateFailure: Equatable, Sendable {
     case invalidDownload
     case insufficientSpace
     case cancelled
+    case installFailed
+    case notWritable
+    case translocated
+    case notAnApplication
     case unknown
 
     /// Failures that happen after the release was found. Retrying one repeats
@@ -78,6 +82,33 @@ public enum UpdateFailure: Equatable, Sendable {
             return true
         default:
             return false
+        }
+    }
+
+    /// Failures that leave the verified download ready to try again once the
+    /// destination or the system permission has been fixed.
+    public var isInstallFailure: Bool {
+        switch self {
+        case .installFailed, .notWritable, .translocated, .notAnApplication:
+            return true
+        default:
+            return false
+        }
+    }
+
+    public static func from(_ error: UpdateInstallError) -> UpdateFailure {
+        switch error {
+        case .notAnApplication:
+            return .notAnApplication
+        case .translocated:
+            return .translocated
+        case .destinationNotWritable:
+            return .notWritable
+        case .stagedAppMissing,
+             .recoveryDirectoryUnavailable,
+             .couldNotWriteScript,
+             .couldNotStartHelper:
+            return .installFailed
         }
     }
 
@@ -134,7 +165,8 @@ public enum UpdateSheetState: Equatable, Sendable {
     case downloading(UpdateOffer, DownloadProgress)
     case verifying(UpdateOffer)
     case ready(ReadyUpdate)
+    case installing(version: String)
     case noBuildForThisMac(latestVersion: String, pageURL: URL)
     case incompleteRelease(latestVersion: String, pageURL: URL)
-    case failed(UpdateFailure, pageURL: URL?)
+    case failed(UpdateFailure, pageURL: URL?, logURL: URL?)
 }

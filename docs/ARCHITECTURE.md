@@ -347,8 +347,10 @@ carries the root node itself in `largestDirectories`.
   executable, minimum macOS, architecture, and ad-hoc signature before anything replaces
   the app. It sends no scan data, and installation is never automatic. The download runs
   with real byte progress; `UpdateController` and `UpdateSheet` in `DiskUI` present the
-  check and offer, and the install transaction is not built yet. `docs/UPDATES.md` is the
-  design and the platform constraints.
+  check and offer, and `UpdateInstaller` validates the destination and runs a detached
+  `/bin/sh` helper that backs up the old app, swaps in the staged one, writes a result,
+  and reopens the app. There is no privileged helper. `docs/UPDATES.md` is the design and
+  the platform constraints.
 - Design tokens live in `DiskUI/DesignSystem/DesignSystem.swift` (spacing scale,
   corner radii, typography roles, semantic colors). UI never hard-codes magic numbers.
 - Localization is a contract of its own. Every user-visible string is a catalog key in

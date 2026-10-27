@@ -64,7 +64,7 @@ final class UpdateQATests: XCTestCase {
 
         await controller.check(manual: true)
 
-        XCTAssertEqual(controller.state, .failed(.unknown, pageURL: nil))
+        XCTAssertEqual(controller.state, .failed(.unknown, pageURL: nil, logURL: nil))
         XCTAssertNil(feed.lastETag)
         XCTAssertNil(preferences.lastCheck)
         XCTAssertEqual(preferences.lastAttempt, fixedNow)
@@ -92,7 +92,7 @@ final class UpdateQATests: XCTestCase {
 
         await controller.check(manual: true)
 
-        XCTAssertEqual(controller.state, .failed(.offline, pageURL: nil))
+        XCTAssertEqual(controller.state, .failed(.offline, pageURL: nil, logURL: nil))
         XCTAssertNil(preferences.lastCheck)
         XCTAssertEqual(preferences.lastAttempt, fixedNow)
     }
@@ -149,7 +149,7 @@ final class UpdateQATests: XCTestCase {
 
         XCTAssertEqual(
             controller.state,
-            .failed(.downloadFailed, pageURL: release.pageURL)
+            .failed(.downloadFailed, pageURL: release.pageURL, logURL: nil)
         )
     }
 
@@ -166,7 +166,7 @@ final class UpdateQATests: XCTestCase {
 
         XCTAssertEqual(
             controller.state,
-            .failed(.checksumMismatch, pageURL: release.pageURL)
+            .failed(.checksumMismatch, pageURL: release.pageURL, logURL: nil)
         )
     }
 
@@ -182,7 +182,7 @@ final class UpdateQATests: XCTestCase {
 
         await controller.check(manual: true)
         await controller.download()
-        guard case .failed(.downloadFailed, _) = controller.state else {
+        guard case .failed(.downloadFailed, _, _) = controller.state else {
             return XCTFail("expected a download failure, got \(controller.state)")
         }
 
@@ -206,7 +206,7 @@ final class UpdateQATests: XCTestCase {
         await controller.check(manual: true)
         await controller.download()
 
-        guard case let .failed(.downloadFailed, pageURL) = controller.state else {
+        guard case let .failed(.downloadFailed, pageURL, _) = controller.state else {
             return XCTFail("expected a download failure, got \(controller.state)")
         }
         XCTAssertEqual(pageURL, release.pageURL)
@@ -214,6 +214,126 @@ final class UpdateQATests: XCTestCase {
             FileManager.default.fileExists(
                 atPath: storage.directory(for: "1.0.2").path
             )
+        )
+    }
+
+    // MARK: - Installing
+
+    func testInstallStartsTheHelperAtTheVerifiedBundle() async {
+        let installer = StubInstaller()
+        let controller = makeController(
+            feed: StubFeed(result: .release(makeRelease(version: "1.0.2"), etag: nil)),
+            downloader: StubDownloader(),
+            verifier: StubVerifier(),
+            installer: installer
+        )
+
+        await controller.check(manual: true)
+        await controller.download()
+        let started = await controller.install()
+
+        XCTAssertTrue(started)
+        XCTAssertEqual(controller.state, .installing(version: "1.0.2"))
+        let request = installer.request
+        XCTAssertEqual(request?.version, "1.0.2")
+        XCTAssertEqual(request?.resultURL, storage.resultURL)
+        XCTAssertEqual(
+            request?.recoveryDirectory,
+            storage.recoveryDirectory(for: "1.0.2")
+        )
+        XCTAssertEqual(request?.targetApp, Bundle.main.bundleURL)
+        XCTAssertTrue(request?.relaunch ?? false)
+    }
+
+    func testInstallRefusesAnUnwritableDestinationWithoutQuitting() async {
+        let installer = StubInstaller()
+        installer.validateError = .destinationNotWritable
+        let controller = makeController(
+            feed: StubFeed(result: .release(makeRelease(version: "1.0.2"), etag: nil)),
+            verifier: StubVerifier(),
+            installer: installer
+        )
+
+        await controller.check(manual: true)
+        await controller.download()
+        let started = await controller.install()
+
+        XCTAssertFalse(started)
+        XCTAssertEqual(
+            controller.state,
+            .failed(.notWritable, pageURL: nil, logURL: nil)
+        )
+    }
+
+    func testRetryAfterAnInstallFailureReturnsToReady() async {
+        let installer = StubInstaller()
+        installer.validateError = .translocated
+        let controller = makeController(
+            feed: StubFeed(result: .release(makeRelease(version: "1.0.2"), etag: nil)),
+            verifier: StubVerifier(),
+            installer: installer
+        )
+
+        await controller.check(manual: true)
+        await controller.download()
+        _ = await controller.install()
+
+        await controller.retry()
+
+        guard case let .ready(ready) = controller.state else {
+            return XCTFail("expected the ready state, got \(controller.state)")
+        }
+        XCTAssertEqual(ready.version, "1.0.2")
+    }
+
+    func testAConsumedInstallFailureOpensTheSheetWithItsLog() async {
+        let installer = StubInstaller()
+        installer.outcome = UpdateInstallOutcome(
+            status: .failed,
+            version: "1.0.2",
+            relaunched: false,
+            failure: .installFailed
+        )
+        let controller = makeController(
+            feed: StubFeed(result: .notModified(etag: nil)),
+            installer: installer,
+            build: makeBuild(version: "1.0.1")
+        )
+
+        let shouldShow = await controller.consumeInstallResult()
+
+        XCTAssertTrue(shouldShow)
+        XCTAssertEqual(
+            controller.state,
+            .failed(
+                .installFailed,
+                pageURL: nil,
+                logURL: storage.recoveryDirectory(for: "1.0.2")
+                    .appendingPathComponent("install.log")
+            )
+        )
+    }
+
+    func testAConsumedInstallSuccessCleansTheStagingDirectory() async throws {
+        let directory = try storage.prepare(version: "1.0.2")
+        try Data("staged".utf8).write(to: directory.appendingPathComponent("archive"))
+        let installer = StubInstaller()
+        installer.outcome = UpdateInstallOutcome(
+            status: .installed,
+            version: "1.0.2",
+            relaunched: true,
+            failure: nil
+        )
+        let controller = makeController(
+            feed: StubFeed(result: .notModified(etag: nil)),
+            installer: installer,
+            build: makeBuild(version: "1.0.2")
+        )
+
+        let shouldShow = await controller.consumeInstallResult()
+        XCTAssertFalse(shouldShow)
+        XCTAssertFalse(
+            FileManager.default.fileExists(atPath: directory.path)
         )
     }
 
@@ -366,6 +486,7 @@ final class UpdateQATests: XCTestCase {
         feed: any ReleaseFeed,
         downloader: any UpdateDownloading = StubDownloader(),
         verifier: any UpdateVerifying = StubVerifier(),
+        installer: (any UpdateInstalling)? = nil,
         build: InstalledBuild? = nil
     ) -> UpdateController {
         let now = fixedNow
@@ -373,6 +494,7 @@ final class UpdateQATests: XCTestCase {
             feed: feed,
             downloader: downloader,
             verifier: verifier,
+            installer: installer,
             preferences: preferences,
             build: build ?? makeBuild(),
             storage: storage,
@@ -475,6 +597,31 @@ private struct ThrowingVerifier: UpdateVerifying {
         expandedDirectory: URL
     ) async throws -> VerifiedUpdate {
         throw UpdateError.checksumMismatch(expected: "a", actual: "b")
+    }
+}
+
+private final class StubInstaller: UpdateInstalling, @unchecked Sendable {
+    var validateError: UpdateInstallError?
+    var installError: UpdateInstallError?
+    var outcome: UpdateInstallOutcome?
+    private(set) var request: UpdateInstallRequest?
+
+    func validateDestination(for targetApp: URL) throws {
+        if let validateError {
+            throw validateError
+        }
+    }
+
+    func install(_ request: UpdateInstallRequest) throws {
+        self.request = request
+        if let installError {
+            throw installError
+        }
+    }
+
+    func consumeResult(at resultURL: URL) -> UpdateInstallOutcome? {
+        defer { outcome = nil }
+        return outcome
     }
 }
 

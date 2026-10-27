@@ -75,6 +75,11 @@ rather than being repeated.
   drawn once and the emphasis is a shade and an outline over them; the hover the list
   and the chart share is `ChartHover` in `Screens/ResultsView.swift`, so a hover
   re-renders the list and the chart and leaves the rest of the screen alone.
+- The results explorer is the window's sidebar, not a card: its surface and seam run
+  from the window's leading edge behind the titlebar (`.ignoresSafeArea(edges: .top)`),
+  while its content keeps the safe area and a gutter. The mode switch falls back from
+  the segmented control to a menu when its labels do not fit, so nothing spills across
+  the seam.
 - Light and dark must both be polished; controls stay keyboard-accessible.
 - Keep a screen's `body` a short modifier chain: handler bodies go in methods,
   modifier groups in computed views. The CI toolchain (`runs-on: macos-26`) can be
@@ -158,3 +163,9 @@ directory reuses the path, and a viewer that already loaded it keeps showing the
 bitmap. Give each review its own directory, and if a screenshot looks stale against the
 source, read it from a path that has never been rendered before re-rendering anything.
 `.agents/skills/willydisk-verify/` has the rest of the capture procedure.
+
+`Scripts/render-screens.sh` restamps the renderer's own executable to the host's modern
+minimum system version on macOS 26+ and re-signs it. That is what makes the offscreen
+window use the same window background and titlebar surface as the bundled app. A plain
+`swift build` product uses the legacy grey palette and shows a toolbar band the app does
+not have, so do not remove that step.

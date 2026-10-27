@@ -9,10 +9,10 @@ import DiskLocalization
 /// screen shows the honest progress — a determinate bar with a percentage only
 /// when the engine reports a reliable fraction, otherwise an indeterminate
 /// indicator, never a fabricated number — and the results fill in as the
-/// engine's progressive snapshots arrive. Once settled, the explorer and chart
-/// take the whole screen: the explorer column leads with a compact header that
+/// engine's progressive snapshots arrive. Once settled, the explorer sidebar and
+/// the chart take the whole screen: the sidebar leads with a compact header that
 /// names the scanned location and its size, search/sort/filter, and file
-/// details, the chart takes the rest, and the explorer's foot holds the single
+/// details, the chart takes the rest, and the sidebar's foot holds the single
 /// access notice. An interactive
 /// sunburst (click a folder to drill
 /// down, with the chart's own path bar following the depth), Reveal in
@@ -30,8 +30,8 @@ public struct ResultsView: View {
     @State private var quickLook = QuickLookPreview()
 
     /// The explorer column's width. The seam keeps it inside the band the chart
-    /// can spare.
-    @State private var explorerWidth: CGFloat = 362
+    /// can spare; the default holds the four-segment switch without clipping it.
+    @State private var explorerWidth: CGFloat = 370
     /// The width the drag started from, so every change applies the gesture's
     /// total translation to the width the pointer went down on.
     @State private var explorerResizeStart: CGFloat?
@@ -995,28 +995,58 @@ public struct ResultsView: View {
         return viewModel.displayedTotal
     }
 
-    /// The results layout: the explorer column leads and the chart takes what is
-    /// left.
+    /// The results layout: the explorer is the window's whole-height side panel
+    /// and the chart takes what is left.
     ///
-    /// The bands are told apart by their own spacing and fills, not by rules. The
-    /// explorer keeps the width the seam gives it; the chart is the flexible
-    /// remainder, so a wider window is chart, never a wider list.
+    /// The panel starts at the window's leading edge and continues behind the
+    /// titlebar, as a sidebar does; the chart is the flexible remainder, so a
+    /// wider window is chart, never a wider list.
     private var content: some View {
         HStack(spacing: 0) {
-            explorerPane
-                .dsGlassControl(cornerRadius: DS.Radius.panel)
-                .padding(DS.Spacing.medium)
-                .frame(width: explorerWidth)
-            explorerResizeHandle
+            explorerSidebar
             chartPane
         }
+    }
+
+    /// The explorer column as a sidebar: one surface from the window's leading
+    /// edge to its top edge, with the seam to the chart on its inner edge.
+    ///
+    /// The content keeps a gutter from both edges, so a selected row never runs
+    /// into the window frame or the seam.
+    private var explorerSidebar: some View {
+        explorerPane
+            .padding(.horizontal, DS.Spacing.small)
+            .frame(width: explorerWidth)
+            .frame(maxHeight: .infinity)
+            // A control that insists on its ideal width is cut at the panel's
+            // edge rather than drawn over the chart.
+            .clipped()
+            .background { sidebarSurface }
+            .overlay(alignment: .trailing) { explorerResizeHandle }
+    }
+
+    /// The panel's fill and its one edge.
+    ///
+    /// Both continue behind the titlebar while the content above stays in the
+    /// safe area, so the toolbar sits over the panel without ever covering a row.
+    /// The fill is a step below the window's own surface instead of a glass card:
+    /// the column belongs to the window, it does not float over it.
+    private var sidebarSurface: some View {
+        HStack(spacing: 0) {
+            DS.Color.sidebar
+            Rectangle()
+                .fill(DS.Color.rule)
+                .frame(width: DS.Stroke.hairline)
+        }
+        .ignoresSafeArea(edges: .top)
+        .accessibilityHidden(true)
     }
 
     /// The explorer column's width band: enough for a name and its size while
     /// leaving the chart the majority of the window.
     private static let explorerWidthRange: ClosedRange<CGFloat> = 300...560
 
-    /// The seam between the explorer column and the chart.
+    /// The seam between the explorer panel and the chart.
     ///
     /// The pointer turns into the column-resize cursor and a drag widens or
     /// narrows the explorer.
@@ -1356,9 +1386,9 @@ public struct ResultsView: View {
         // expanded notice can make the pane report its ideal content height and
         // push the whole window's content out of view.
         .frame(maxHeight: .infinity, alignment: .top)
-        // Match the notice's vertical inset so the pane does not read tight at
-        // the top while the notice at its foot has breathing room.
-        .padding(.top, DS.Spacing.small)
+        // The panel runs to the window's top edge, so its first band starts a
+        // step below the toolbar rather than against it.
+        .padding(.top, DS.Spacing.medium)
     }
 
     /// What the category list is, in one line. The sort control belongs to the
@@ -1428,21 +1458,61 @@ public struct ResultsView: View {
         .accessibilityElement(children: .combine)
     }
 
-    /// The switch between the folder in the chart and the two largest lists.
+    /// The switch between the folder in the chart, the two largest lists, and
+    /// the categories.
     private var explorerModeBar: some View {
         HStack(spacing: 0) {
-            Picker(L10n.string("Explorer view"), selection: $explorerMode) {
-                ForEach(ExplorerMode.allCases) { mode in
-                    Text(mode.label).tag(mode)
-                }
+            // The native switch while its labels fit the panel. A longer
+            // interface language, or a column dragged in far enough, cannot
+            // hold four segment labels, so the same choice becomes a menu
+            // instead of spilling onto the chart.
+            ViewThatFits(in: .horizontal) {
+                explorerModeSwitch
+                explorerModeMenu
             }
-            .dsSegmentedSwitch()
-            .accessibilityLabel(L10n.string("Explorer view"))
             Spacer(minLength: 0)
         }
         .padding(.horizontal, DS.Spacing.medium)
         .padding(.top, DS.Spacing.small)
         .padding(.bottom, DS.Spacing.xSmall)
+    }
+
+    private var explorerModeSwitch: some View {
+        Picker(L10n.string("Explorer view"), selection: $explorerMode) {
+            ForEach(ExplorerMode.allCases) { mode in
+                Text(mode.label).tag(mode)
+            }
+        }
+        .dsSegmentedSwitch()
+        .accessibilityLabel(L10n.string("Explorer view"))
+    }
+
+    /// The switch's compact form, with the current mode as its label.
+    private var explorerModeMenu: some View {
+        Menu {
+            ForEach(ExplorerMode.allCases) { mode in
+                Button {
+                    explorerMode = mode
+                } label: {
+                    if mode == explorerMode {
+                        Label(mode.label, systemImage: "checkmark")
+                    } else {
+                        Text(mode.label)
+                    }
+                }
+            }
+        } label: {
+            Text(explorerMode.label)
+                .font(DS.Typography.caption)
+                .foregroundStyle(DS.Color.secondaryText)
+                .lineLimit(1)
+        }
+        .menuStyle(.borderlessButton)
+        // Hug the mode it names rather than the panel's width: a menu that
+        // stretched would put its indicator on the far edge, away from its label.
+        .fixedSize()
+        .accessibilityLabel(L10n.string("Explorer view"))
+        .accessibilityValue(explorerMode.label)
     }
 
     /// The path to the folder the chart is drawn from, with every ancestor
@@ -2615,6 +2685,7 @@ private struct ContentsList: View {
                             InlineActionButton(
                                 L10n.string("Show More"),
                                 systemImage: "chevron.down",
+                                iconPlacement: .trailing,
                                 fillsWidth: true,
                                 action: onShowMore
                             )
@@ -3032,7 +3103,7 @@ private struct NodeRow: View, Equatable {
                         .foregroundStyle(DS.Color.warning)
                 }
             }
-            .padding(.horizontal, DS.Spacing.small)
+            .padding(.horizontal, DS.Spacing.medium)
             .padding(.vertical, DS.Spacing.small)
             .background(
                 rowBackground,

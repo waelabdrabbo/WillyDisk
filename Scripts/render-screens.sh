@@ -98,5 +98,28 @@ if [[ -z "$bin_path" || ! -x "$bin_path/render-screens" ]]; then
   exit 1
 fi
 
+# The window palette — the window background, the titlebar's surface, and the
+# automatic modern rendering of standard controls — is gated on the executable's
+# "linked-on-or-after" version, as the bundle's window chrome is. SwiftPM builds
+# the renderer for the package's macOS 14 deployment target, so on a modern host
+# its offscreen window would otherwise use the legacy palette (#ECECEC instead of
+# white), which is not the window the app shows.
+#
+# Restamp and re-sign the tool's own product where the modern palette exists.
+# Older hosts keep the binary as built, and there the app shows that palette too.
+HOST_MAJOR="$(sw_vers -productVersion | cut -d. -f1)"
+if [[ "$HOST_MAJOR" =~ ^[0-9]+$ ]] && (( HOST_MAJOR >= 26 )); then
+  SDK_VERSION="$(xcrun --show-sdk-version --sdk macosx 2>/dev/null || true)"
+  SDK_MAJOR="${SDK_VERSION%%.*}"
+  # The modern palette needs both a modern host and an SDK that knows it; with
+  # an older SDK the app is legacy too, and the render should match it.
+  if [[ "$SDK_MAJOR" =~ ^[0-9]+$ ]] && (( SDK_MAJOR >= 26 )); then
+    xcrun vtool -set-build-version macos 26.0 "$SDK_VERSION" \
+      -replace -output "$bin_path/render-screens" "$bin_path/render-screens" 2>/dev/null
+    # vtool invalidates the ad-hoc signature; re-sign so the tool can launch.
+    codesign --force --sign - "$bin_path/render-screens" >/dev/null 2>&1
+  fi
+fi
+
 echo "==> Rendering"
 "$bin_path/render-screens" --out "$OUT" --size "$SIZE" --appearance "$APPEARANCE" --screen "$SCREEN" --state "$STATE" --locale "$LOCALE" "${MODE[@]}" ${FIXTURE[@]+"${FIXTURE[@]}"}

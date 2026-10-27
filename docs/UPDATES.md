@@ -159,8 +159,10 @@ downloaded or installed in the background.
   is not read-only, and in a folder the app can write. There is no administrator
   prompt and no privileged helper; a refusal is a message, not an escalation.
 - The installer clears `com.apple.quarantine` from the staged app, writes a small
-  `/bin/sh` helper into `Updates/Recovery/<version>/`, starts it detached, and the
-  app quits. The helper waits up to 60 seconds for the process to exit.
+  `/bin/sh` helper into `Updates/Recovery/<version>/`, starts it detached, closes
+  the sheet, and quits. If AppKit defers the termination request, a short fallback
+  exits the process so the helper never waits on a live app. The helper waits up to
+  60 seconds for the process to exit.
 - The helper renames the installed app to
   `Updates/Recovery/<version>/backup/WillyDisk.app`, copies the staged app into
   place with `ditto`, writes a result, and reopens the app with `open -n`. If the

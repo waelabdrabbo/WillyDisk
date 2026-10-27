@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import Darwin
 import DiskLocalization
 import DiskUpdate
 
@@ -646,9 +647,8 @@ public struct UpdateSheetHost: View {
                 },
                 install: {
                     operationTask = Task {
-                        if await controller.install() {
-                            NSApplication.shared.terminate(nil)
-                        }
+                        guard await controller.install() else { return }
+                        finishInstall()
                     }
                 },
                 cancel: {
@@ -671,6 +671,23 @@ public struct UpdateSheetHost: View {
         .onDisappear {
             operationTask?.cancel()
             operationTask = nil
+        }
+    }
+
+    @MainActor
+    private func finishInstall() {
+        // AppKit can defer a termination request while a sheet is attached.
+        // The helper is already waiting for this process to disappear, so close
+        // the sheet and fall back to a direct exit if the graceful request has
+        // not completed.
+        onClose()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            // Schedule the fallback before asking AppKit, so a deferred
+            // termination request cannot leave the helper waiting.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                exit(0)
+            }
+            NSApplication.shared.terminate(nil)
         }
     }
 }

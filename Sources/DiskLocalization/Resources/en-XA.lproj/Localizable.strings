@@ -192,6 +192,8 @@
 	<string>[Áþþļíéš ŧö éṽéŕý šçáñ ýöú šŧáŕŧ.······························]</string>
 	<key>Archives</key>
 	<string>[Áŕçĥíṽéš······]</string>
+	<key>Ask GitHub once a day whether a newer release exists. Nothing about your Mac or your scans is sent. WillyDisk never downloads or installs an update without asking.</key>
+	<string>[Ášķ ĜíŧĤúƀ öñçé á ðáý ŵĥéŧĥéŕ á ñéŵéŕ ŕéļéášé éẋíšŧš. Ñöŧĥíñĝ áƀöúŧ ýöúŕ Ɱáç öŕ ýöúŕ šçáñš íš šéñŧ. ŴíļļýÐíšķ ñéṽéŕ ðöŵñļöáðš öŕ íñšŧáļļš áñ úþðáŧé ŵíŧĥöúŧ ášķíñĝ.·································································································································································]</string>
 	<key>Audio</key>
 	<string>[Áúðíö····]</string>
 	<key>Available</key>
@@ -226,10 +228,18 @@
 	<string>[Çĥáñĝéš ŧĥé íñŧéŕƒáçé ļáñĝúáĝé ŕíĝĥŧ áŵáý.········································]</string>
 	<key>Check Contents</key>
 	<string>[Çĥéçķ Çöñŧéñŧš············]</string>
+	<key>Check for Updates…</key>
+	<string>[Çĥéçķ ƒöŕ Úþðáŧéš…················]</string>
+	<key>Check for updates automatically</key>
+	<string>[Çĥéçķ ƒöŕ úþðáŧéš áúŧöɱáŧíçáļļý·····························]</string>
 	<key>Checked contents</key>
 	<string>[Çĥéçķéð çöñŧéñŧš··············]</string>
 	<key>Checking contents</key>
 	<string>[Çĥéçķíñĝ çöñŧéñŧš···············]</string>
+	<key>Checking for Updates…</key>
+	<string>[Çĥéçķíñĝ ƒöŕ Úþðáŧéš…···················]</string>
+	<key>Checking the download…</key>
+	<string>[Çĥéçķíñĝ ŧĥé ðöŵñļöáð…····················]</string>
 	<key>Checking these items…</key>
 	<string>[Çĥéçķíñĝ ŧĥéšé íŧéɱš…···················]</string>
 	<key>Checking this item…</key>
@@ -308,6 +318,12 @@
 	<string>[Çöúļð ñöŧ ŵŕíŧé ŧĥé ðíáĝñöšŧíçš ŧö %@: %@·······································]</string>
 	<key>Could not write the report to %@: %@</key>
 	<string>[Çöúļð ñöŧ ŵŕíŧé ŧĥé ŕéþöŕŧ ŧö %@: %@··································]</string>
+	<key>Couldn't Check for Updates</key>
+	<string>[Çöúļðñ'ŧ Çĥéçķ ƒöŕ Úþðáŧéš························]</string>
+	<key>Couldn't Check the Download</key>
+	<string>[Çöúļðñ'ŧ Çĥéçķ ŧĥé Ðöŵñļöáð·························]</string>
+	<key>Couldn't Download the Update</key>
+	<string>[Çöúļðñ'ŧ Ðöŵñļöáð ŧĥé Úþðáŧé··························]</string>
 	<key>Couldn’t move to the Trash. %@</key>
 	<string>[Çöúļðñ’ŧ ɱöṽé ŧö ŧĥé Ŧŕášĥ. %@····························]</string>
 	<key>Couldn’t put back everything. %@</key>
@@ -348,6 +364,12 @@
 	<string>[Ðöçúɱéñŧš·······]</string>
 	<key>Done</key>
 	<string>[Ðöñé····]</string>
+	<key>Download</key>
+	<string>[Ðöŵñļöáð······]</string>
+	<key>Download size: %@</key>
+	<string>[Ðöŵñļöáð šížé: %@···············]</string>
+	<key>Downloading WillyDisk %@…</key>
+	<string>[Ðöŵñļöáðíñĝ ŴíļļýÐíšķ %@…·······················]</string>
 	<key>Downloads</key>
 	<string>[Ðöŵñļöáðš·······]</string>
 	<key>Drop a folder to scan it</key>
@@ -438,6 +460,12 @@
 	<string>[Ƒöļðéŕš ŧĥáŧ çĥáñĝéð··················]</string>
 	<key>Follow symbolic links</key>
 	<string>[Ƒöļļöŵ šýɱƀöļíç ļíñķš···················]</string>
+	<key>GitHub is limiting requests right now. Try again later.</key>
+	<string>[ĜíŧĤúƀ íš ļíɱíŧíñĝ ŕéǫúéšŧš ŕíĝĥŧ ñöŵ. Ŧŕý áĝáíñ ļáŧéŕ.·····················································]</string>
+	<key>GitHub returned an error. Try again later.</key>
+	<string>[ĜíŧĤúƀ ŕéŧúŕñéð áñ éŕŕöŕ. Ŧŕý áĝáíñ ļáŧéŕ.········································]</string>
+	<key>GitHub took too long to respond. Try again.</key>
+	<string>[ĜíŧĤúƀ ŧööķ ŧöö ļöñĝ ŧö ŕéšþöñð. Ŧŕý áĝáíñ.·········································]</string>
 	<key>Go up one level</key>
 	<string>[Ĝö úþ öñé ļéṽéļ·············]</string>
 	<key>Go up to %@</key>
@@ -478,6 +506,8 @@
 	<string>[Íñçļúðé ĥíððéñ íŧéɱš··················]</string>
 	<key>Includes scan settings, timing, issue counts, and version. No file names, paths, or contents are included.</key>
 	<string>[Íñçļúðéš šçáñ šéŧŧíñĝš, ŧíɱíñĝ, íššúé çöúñŧš, áñð ṽéŕšíöñ. Ñö ƒíļé ñáɱéš, þáŧĥš, öŕ çöñŧéñŧš áŕé íñçļúðéð.········································································································]</string>
+	<key>Installing the update is not part of this build yet. The checksum-matched download is in the update folder.</key>
+	<string>[Íñšŧáļļíñĝ ŧĥé úþðáŧé íš ñöŧ þáŕŧ öƒ ŧĥíš ƀúíļð ýéŧ. Ŧĥé çĥéçķšúɱ-ɱáŧçĥéð ðöŵñļöáð íš íñ ŧĥé úþðáŧé ƒöļðéŕ.·········································································································]</string>
 	<key>Issues</key>
 	<string>[Íššúéš····]</string>
 	<key>It is already back</key>
@@ -504,6 +534,8 @@
 	<string>[Ļáŕĝé, öļð, áñð çáçĥé íŧéɱš ŵöŕŧĥ ŕéṽíéŵíñĝ·········································]</string>
 	<key>Largest files (%@)</key>
 	<string>[Ļáŕĝéšŧ ƒíļéš (%@)················]</string>
+	<key>Last checked %@.</key>
+	<string>[Ļášŧ çĥéçķéð %@.··············]</string>
 	<key>Last scan %@ · %@</key>
 	<string>[Ļášŧ šçáñ %@ · %@···············]</string>
 	<key>Later</key>
@@ -604,8 +636,12 @@
 	<string>[Ñö ɱáŧçĥéš šö ƒáŕ ƒöŕ “%@”························]</string>
 	<key>No possible duplicates</key>
 	<string>[Ñö þöššíƀļé ðúþļíçáŧéš····················]</string>
+	<key>No published release was found.</key>
+	<string>[Ñö þúƀļíšĥéð ŕéļéášé ŵáš ƒöúñð.·····························]</string>
 	<key>No recorded runs</key>
 	<string>[Ñö ŕéçöŕðéð ŕúñš··············]</string>
+	<key>No release notes.</key>
+	<string>[Ñö ŕéļéášé ñöŧéš.···············]</string>
 	<key>No results</key>
 	<string>[Ñö ŕéšúļŧš········]</string>
 	<key>No two files on this Mac of at least %@ share a size in this scan.</key>
@@ -614,6 +650,8 @@
 	<string>[Ñöñé ƒöúñð········]</string>
 	<key>None listed</key>
 	<string>[Ñöñé ļíšŧéð·········]</string>
+	<key>Not checked yet.</key>
+	<string>[Ñöŧ çĥéçķéð ýéŧ.··············]</string>
 	<key>Not in the Trash</key>
 	<string>[Ñöŧ íñ ŧĥé Ŧŕášĥ··············]</string>
 	<key>Not on this Mac</key>
@@ -656,6 +694,8 @@
 	<string>[Öñļý ƒíñíšĥéð šçáñš áŕé ŕéçöŕðéð: á çáñçéļļéð šçáñ çöṽéŕš þáŕŧ öƒ ŧĥé ƒöļðéŕ, šö íŧ íš ñöŧ öƒƒéŕéð áš á ŕúñ ŧö çöɱþáŕé. Ŕéçöŕðš šŧáý öñ ŧĥíš Ɱáç áñð ĥöļð þáŧĥš áñð ŧöŧáļš, ñéṽéŕ ƒíļé çöñŧéñŧš. Çļéáŕ Ĥíšŧöŕý… ŕéɱöṽéš ŧĥéɱ áļļ.·······························································································································································································································]</string>
 	<key>Open Full Disk Access in System Settings</key>
 	<string>[Öþéñ Ƒúļļ Ðíšķ Áççéšš íñ Šýšŧéɱ Šéŧŧíñĝš······································]</string>
+	<key>Open Release Page</key>
+	<string>[Öþéñ Ŕéļéášé Þáĝé···············]</string>
 	<key>Open System Settings → Privacy &amp; Security → Full Disk Access</key>
 	<string>[Öþéñ Šýšŧéɱ Šéŧŧíñĝš → Þŕíṽáçý &amp; Šéçúŕíŧý → Ƒúļļ Ðíšķ Áççéšš··························································]</string>
 	<key>Open System Settings…</key>
@@ -724,6 +764,8 @@
 	<string>[Ŕéƀúíļðáƀļé·········]</string>
 	<key>Recent</key>
 	<string>[Ŕéçéñŧ····]</string>
+	<key>Release Notes</key>
+	<string>[Ŕéļéášé Ñöŧéš···········]</string>
 	<key>Remove exclusion %@</key>
 	<string>[Ŕéɱöṽé éẋçļúšíöñ %@·················]</string>
 	<key>Removes every recorded run. Your files are not touched.</key>
@@ -868,6 +910,8 @@
 	<string>[Šĥöŵ áļļ çáŧéĝöŕíéš·················]</string>
 	<key>Show every category</key>
 	<string>[Šĥöŵ éṽéŕý çáŧéĝöŕý·················]</string>
+	<key>Show in Finder</key>
+	<string>[Šĥöŵ íñ Ƒíñðéŕ············]</string>
 	<key>Show in Folder</key>
 	<string>[Šĥöŵ íñ Ƒöļðéŕ············]</string>
 	<key>Show more items</key>
@@ -896,6 +940,8 @@
 	<string>[Šížé····]</string>
 	<key>Sizes</key>
 	<string>[Šížéš····]</string>
+	<key>Skip This Version</key>
+	<string>[Šķíþ Ŧĥíš Ṽéŕšíöñ···············]</string>
 	<key>Skipped</key>
 	<string>[Šķíþþéð·····]</string>
 	<key>Skipped by your exclusions</key>
@@ -906,6 +952,8 @@
 	<string>[Šñáþšĥöŧš·······]</string>
 	<key>Sockets, devices, and FIFOs hold no file data and were skipped safely.</key>
 	<string>[Šöçķéŧš, ðéṽíçéš, áñð ƑÍƑÖš ĥöļð ñö ƒíļé ðáŧá áñð ŵéŕé šķíþþéð šáƒéļý.····································································]</string>
+	<key>Software Update</key>
+	<string>[Šöƒŧŵáŕé Úþðáŧé·············]</string>
 	<key>Something else is at its original location now</key>
 	<string>[Šöɱéŧĥíñĝ éļšé íš áŧ íŧš öŕíĝíñáļ ļöçáŧíöñ ñöŵ············································]</string>
 	<key>Sort</key>
@@ -950,12 +998,20 @@
 	<string>[Ŧĥé áþþ ŧĥáŧ ɱáðé ŧĥéšé ŕéƀúíļðš ŧĥéɱ. Ýöú çáñ šéļéçŧ á ŵĥöļé šéçŧíöñ ĥéŕé.·········································································]</string>
 	<key>The chart maps one folder at a time. Clear the search to return to “%@”.</key>
 	<string>[Ŧĥé çĥáŕŧ ɱáþš öñé ƒöļðéŕ áŧ á ŧíɱé. Çļéáŕ ŧĥé šéáŕçĥ ŧö ŕéŧúŕñ ŧö “%@”.······································································]</string>
+	<key>The download did not match the published checksum. Nothing was changed.</key>
+	<string>[Ŧĥé ðöŵñļöáð ðíð ñöŧ ɱáŧçĥ ŧĥé þúƀļíšĥéð çĥéçķšúɱ. Ñöŧĥíñĝ ŵáš çĥáñĝéð.·····································································]</string>
+	<key>The download is not a valid WillyDisk build. Nothing was changed.</key>
+	<string>[Ŧĥé ðöŵñļöáð íš ñöŧ á ṽáļíð ŴíļļýÐíšķ ƀúíļð. Ñöŧĥíñĝ ŵáš çĥáñĝéð.·······························································]</string>
+	<key>The download was cancelled.</key>
+	<string>[Ŧĥé ðöŵñļöáð ŵáš çáñçéļļéð.·························]</string>
 	<key>The folder changed after this scan. Rescan to see the current numbers.</key>
 	<string>[Ŧĥé ƒöļðéŕ çĥáñĝéð áƒŧéŕ ŧĥíš šçáñ. Ŕéšçáñ ŧö šéé ŧĥé çúŕŕéñŧ ñúɱƀéŕš.····································································]</string>
 	<key>The folder is watched only while its results are on screen.</key>
 	<string>[Ŧĥé ƒöļðéŕ íš ŵáŧçĥéð öñļý ŵĥíļé íŧš ŕéšúļŧš áŕé öñ šçŕééñ.·························································]</string>
 	<key>The item is still in place.</key>
 	<string>[Ŧĥé íŧéɱ íš šŧíļļ íñ þļáçé.·························]</string>
+	<key>The latest release is WillyDisk %@.</key>
+	<string>[Ŧĥé ļáŧéšŧ ŕéļéášé íš ŴíļļýÐíšķ %@.·································]</string>
 	<key>The same values the Scan Options sheet on the source screen edits.</key>
 	<string>[Ŧĥé šáɱé ṽáļúéš ŧĥé Šçáñ Öþŧíöñš šĥééŧ öñ ŧĥé šöúŕçé šçŕééñ éðíŧš.································································]</string>
 	<key>The scan did not enter these items, so their contents are not in the totals. The size of what was left out is therefore unknown.</key>
@@ -980,6 +1036,12 @@
 	<string>[Ŧĥé šýšŧéɱ ðíð ñöŧ ŕéþöŕŧ ŵĥéŕé íŧ ŵéñŧ·····································]</string>
 	<key>The system does not allow changes on this volume.</key>
 	<string>[Ŧĥé šýšŧéɱ ðöéš ñöŧ áļļöŵ çĥáñĝéš öñ ŧĥíš ṽöļúɱé.···············································]</string>
+	<key>The update couldn't be completed. Try again.</key>
+	<string>[Ŧĥé úþðáŧé çöúļðñ'ŧ ƀé çöɱþļéŧéð. Ŧŕý áĝáíñ.··········································]</string>
+	<key>The update couldn't be downloaded. Try again.</key>
+	<string>[Ŧĥé úþðáŧé çöúļðñ'ŧ ƀé ðöŵñļöáðéð. Ŧŕý áĝáíñ.···········································]</string>
+	<key>The update feed couldn't be read.</key>
+	<string>[Ŧĥé úþðáŧé ƒééð çöúļðñ'ŧ ƀé ŕéáð.·······························]</string>
 	<key>The volume's own capacity figures could not be read.</key>
 	<string>[Ŧĥé ṽöļúɱé'š öŵñ çáþáçíŧý ƒíĝúŕéš çöúļð ñöŧ ƀé ŕéáð.··················································]</string>
 	<key>The ⓘ button opens Coverage: what the scan counted, what it skipped, and the volume's own figures side by side.</key>
@@ -988,6 +1050,8 @@
 	<string>[Ŧĥéíŕ çöñŧéñŧš áŕé ɱíššíñĝ ƒŕöɱ ŧĥé ŧöŧáļš. %@ ŵéŕé ŕéþöŕŧéð.···························································]</string>
 	<key>There is no finished scan to check this item against. Run a scan, then try again.</key>
 	<string>[Ŧĥéŕé íš ñö ƒíñíšĥéð šçáñ ŧö çĥéçķ ŧĥíš íŧéɱ áĝáíñšŧ. Ŕúñ á šçáñ, ŧĥéñ ŧŕý áĝáíñ.···············································································]</string>
+	<key>There isn't enough free space for the download.</key>
+	<string>[Ŧĥéŕé íšñ'ŧ éñöúĝĥ ƒŕéé šþáçé ƒöŕ ŧĥé ðöŵñļöáð.·············································]</string>
 	<key>These are moves this app made. Put Back returns an item to where it came from while the Trash still holds it.</key>
 	<string>[Ŧĥéšé áŕé ɱöṽéš ŧĥíš áþþ ɱáðé. Þúŧ Ƀáçķ ŕéŧúŕñš áñ íŧéɱ ŧö ŵĥéŕé íŧ çáɱé ƒŕöɱ ŵĥíļé ŧĥé Ŧŕášĥ šŧíļļ ĥöļðš íŧ.···········································································································]</string>
 	<key>These items could not be read while scanning.</key>
@@ -1002,6 +1066,8 @@
 	<string>[Ŧĥéý ŕéþöŕŧ %@ ƀúŧ öççúþý %@ öñ ŧĥíš ðíšķ. Ŧĥéíŕ ðáŧá íš ñöŧ ĥéŕé.································································]</string>
 	<key>This Folder</key>
 	<string>[Ŧĥíš Ƒöļðéŕ·········]</string>
+	<key>This build has no release version to compare.</key>
+	<string>[Ŧĥíš ƀúíļð ĥáš ñö ŕéļéášé ṽéŕšíöñ ŧö çöɱþáŕé.···········································]</string>
 	<key>This folder has nothing big enough to draw.</key>
 	<string>[Ŧĥíš ƒöļðéŕ ĥáš ñöŧĥíñĝ ƀíĝ éñöúĝĥ ŧö ðŕáŵ.·········································]</string>
 	<key>This folder holds the folder being scanned</key>
@@ -1022,6 +1088,10 @@
 	<string>[Ŧĥíš íŧéɱ íš ñö ļöñĝéŕ ŧĥéŕé··························]</string>
 	<key>This location is not on this Mac</key>
 	<string>[Ŧĥíš ļöçáŧíöñ íš ñöŧ öñ ŧĥíš Ɱáç······························]</string>
+	<key>This release has no build for this Mac.</key>
+	<string>[Ŧĥíš ŕéļéášé ĥáš ñö ƀúíļð ƒöŕ ŧĥíš Ɱáç.·····································]</string>
+	<key>This release is missing a file the updater needs.</key>
+	<string>[Ŧĥíš ŕéļéášé íš ɱíššíñĝ á ƒíļé ŧĥé úþðáŧéŕ ñééðš.···············································]</string>
 	<key>This scan</key>
 	<string>[Ŧĥíš šçáñ·······]</string>
 	<key>This volume</key>
@@ -1040,6 +1110,8 @@
 	<string>[Ŧöŧáļš áŕé šŧíļļ ĝŕöŵíñĝ······················]</string>
 	<key>Trash</key>
 	<string>[Ŧŕášĥ····]</string>
+	<key>Try Again</key>
+	<string>[Ŧŕý Áĝáíñ·······]</string>
 	<key>Type</key>
 	<string>[Ŧýþé····]</string>
 	<key>Unavailable</key>
@@ -1052,8 +1124,12 @@
 	<string>[Úñðéŕ á ɱíñúŧé············]</string>
 	<key>Unreadable locations</key>
 	<string>[Úñŕéáðáƀļé ļöçáŧíöñš··················]</string>
+	<key>Update Downloaded</key>
+	<string>[Úþðáŧé Ðöŵñļöáðéð···············]</string>
 	<key>Update the numbers as files change in the scanned folder. A change is applied where it happened, so even a whole-disk scan stays current.</key>
 	<string>[Úþðáŧé ŧĥé ñúɱƀéŕš áš ƒíļéš çĥáñĝé íñ ŧĥé šçáññéð ƒöļðéŕ. Á çĥáñĝé íš áþþļíéð ŵĥéŕé íŧ ĥáþþéñéð, šö éṽéñ á ŵĥöļé-ðíšķ šçáñ šŧáýš çúŕŕéñŧ.·······································································································································]</string>
+	<key>Updates</key>
+	<string>[Úþðáŧéš·····]</string>
 	<key>Use the arrow keys to move through the list, Space to preview, and Return to open.</key>
 	<string>[Úšé ŧĥé áŕŕöŵ ķéýš ŧö ɱöṽé ŧĥŕöúĝĥ ŧĥé ļíšŧ, Šþáçé ŧö þŕéṽíéŵ, áñð Ŕéŧúŕñ ŧö öþéñ.················································································]</string>
 	<key>Used by the volume</key>
@@ -1082,6 +1158,10 @@
 	<string>[Ŵĥíļé ŧĥéšé ŕéšúļŧš áŕé öñ šçŕééñ, ŧĥé šçáññéð ƒöļðéŕ íš ŵáŧçĥéð: á çĥáñĝé ɱáðé íñ Ƒíñðéŕ úþðáŧéš ŧĥé ñúɱƀéŕš ŵíŧĥöúŧ Ŕéšçáñ. Íƒ ŵáŧçĥíñĝ íš öƒƒ, öŕ ŧĥé ŕéšúļŧš çöúļð ñöŧ ƀé ɱáðé ļíṽé, ŧĥéý áŕé ɱáŕķéð öúŧ öƒ ðáŧé áñð Ŕéšçáñ íš öƒƒéŕéð.·········································································································································································································································]</string>
 	<key>WillyDisk</key>
 	<string>[ŴíļļýÐíšķ·······]</string>
+	<key>WillyDisk %@ is available.</key>
+	<string>[ŴíļļýÐíšķ %@ íš áṽáíļáƀļé.························]</string>
+	<key>WillyDisk %@ was downloaded and its checksum matched.</key>
+	<string>[ŴíļļýÐíšķ %@ ŵáš ðöŵñļöáðéð áñð íŧš çĥéçķšúɱ ɱáŧçĥéð.···················································]</string>
 	<key>WillyDisk Diagnostics.json</key>
 	<string>[ŴíļļýÐíšķ Ðíáĝñöšŧíçš.ĵšöñ························]</string>
 	<key>WillyDisk Help</key>
@@ -1158,10 +1238,16 @@ saving.</key>
 Šížéš áŕé ƀýŧéš öñ ðíšķ, ñöŧ ļöĝíçáļ šížéš: á çļéáñúþ ƒíñðíñĝ íš ŵĥáŧ ɱöṽíñĝ
 íŧ ŵöúļð ƒŕéé öñçé ŧĥé Ŧŕášĥ íš éɱþŧíéð, áñð ŧĥíš çöɱɱáñð ñéṽéŕ çļáíɱš á
 šáṽíñĝ.]</string>
+	<key>WillyDisk couldn't reach GitHub. Check your connection and try again.</key>
+	<string>[ŴíļļýÐíšķ çöúļðñ'ŧ ŕéáçĥ ĜíŧĤúƀ. Çĥéçķ ýöúŕ çöññéçŧíöñ áñð ŧŕý áĝáíñ.···································································]</string>
 	<key>WillyDisk does not move system locations. Choose an item inside the scanned folder instead.</key>
 	<string>[ŴíļļýÐíšķ ðöéš ñöŧ ɱöṽé šýšŧéɱ ļöçáŧíöñš. Çĥööšé áñ íŧéɱ íñšíðé ŧĥé šçáññéð ƒöļðéŕ íñšŧéáð.·························································································]</string>
 	<key>WillyDisk does not move your home folder as a whole. Choose a file or a folder inside it instead.</key>
 	<string>[ŴíļļýÐíšķ ðöéš ñöŧ ɱöṽé ýöúŕ ĥöɱé ƒöļðéŕ áš á ŵĥöļé. Çĥööšé á ƒíļé öŕ á ƒöļðéŕ íñšíðé íŧ íñšŧéáð.·······························································································]</string>
+	<key>WillyDisk is not signed or notarized by Apple. The checksum confirms the download arrived intact; it does not prove who built it.</key>
+	<string>[ŴíļļýÐíšķ íš ñöŧ šíĝñéð öŕ ñöŧáŕížéð ƀý Áþþļé. Ŧĥé çĥéçķšúɱ çöñƒíŕɱš ŧĥé ðöŵñļöáð áŕŕíṽéð íñŧáçŧ; íŧ ðöéš ñöŧ þŕöṽé ŵĥö ƀúíļŧ íŧ.·······························································································································]</string>
+	<key>WillyDisk is up to date.</key>
+	<string>[ŴíļļýÐíšķ íš úþ ŧö ðáŧé.······················]</string>
 	<key>WillyDisk scan</key>
 	<string>[ŴíļļýÐíšķ šçáñ············]</string>
 	<key>WillyDisk scan — measure one folder from the command line
@@ -1232,6 +1318,10 @@ a comparison against them would read as space that vanished.</key>
 	<string>[Ýöú çáñ þúŧ íŧ ƀáçķ ƒŕöɱ ŧĥé Ŧŕášĥ úñŧíļ ýöú éɱþŧý íŧ.····················································]</string>
 	<key>You can put them back from the Trash until you empty it.</key>
 	<string>[Ýöú çáñ þúŧ ŧĥéɱ ƀáçķ ƒŕöɱ ŧĥé Ŧŕášĥ úñŧíļ ýöú éɱþŧý íŧ.······················································]</string>
+	<key>You have WillyDisk %@.</key>
+	<string>[Ýöú ĥáṽé ŴíļļýÐíšķ %@.····················]</string>
+	<key>You're running a newer build than the latest release.</key>
+	<string>[Ýöú'ŕé ŕúññíñĝ á ñéŵéŕ ƀúíļð ŧĥáñ ŧĥé ļáŧéšŧ ŕéļéášé.···················································]</string>
 	<key>Your files</key>
 	<string>[Ýöúŕ ƒíļéš········]</string>
 	<key>`tmutil` could not list this volume's snapshots.</key>

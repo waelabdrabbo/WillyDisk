@@ -192,6 +192,8 @@
 	<string>ينطبق على كل فحص تبدأه.</string>
 	<key>Archives</key>
 	<string>الأرشيفات</string>
+	<key>Ask GitHub once a day whether a newer release exists. Nothing about your Mac or your scans is sent. WillyDisk never downloads or installs an update without asking.</key>
+	<string>يسأل GitHub مرة يوميًا عمّا إذا كان هناك إصدار أحدث. لا يُرسل أي شيء عن هذا الـ Mac أو عمليات الفحص. لا ينزّل WillyDisk أي تحديث أو يثبّته دون سؤالك.</string>
 	<key>Audio</key>
 	<string>الصوت</string>
 	<key>Available</key>
@@ -226,10 +228,18 @@
 	<string>يغيّر لغة الواجهة فورًا.</string>
 	<key>Check Contents</key>
 	<string>فحص المحتويات</string>
+	<key>Check for Updates…</key>
+	<string>التحقق من التحديثات…</string>
+	<key>Check for updates automatically</key>
+	<string>التحقق من التحديثات تلقائيًا</string>
 	<key>Checked contents</key>
 	<string>تم فحص المحتويات</string>
 	<key>Checking contents</key>
 	<string>جارٍ فحص المحتويات</string>
+	<key>Checking for Updates…</key>
+	<string>جارٍ التحقق من التحديثات…</string>
+	<key>Checking the download…</key>
+	<string>جارٍ فحص التنزيل…</string>
 	<key>Checking these items…</key>
 	<string>جارٍ التحقق من هذه العناصر…</string>
 	<key>Checking this item…</key>
@@ -308,6 +318,12 @@
 	<string>تعذّرت كتابة التشخيصات في %@: %@</string>
 	<key>Could not write the report to %@: %@</key>
 	<string>تعذّرت كتابة التقرير في %@: %@</string>
+	<key>Couldn't Check for Updates</key>
+	<string>تعذّر التحقق من التحديثات</string>
+	<key>Couldn't Check the Download</key>
+	<string>تعذّر فحص التنزيل</string>
+	<key>Couldn't Download the Update</key>
+	<string>تعذّر تنزيل التحديث</string>
 	<key>Couldn’t move to the Trash. %@</key>
 	<string>تعذّر النقل إلى سلة المهملات. %@</string>
 	<key>Couldn’t put back everything. %@</key>
@@ -348,6 +364,12 @@
 	<string>المستندات</string>
 	<key>Done</key>
 	<string>تم</string>
+	<key>Download</key>
+	<string>تنزيل</string>
+	<key>Download size: %@</key>
+	<string>حجم التنزيل: %@</string>
+	<key>Downloading WillyDisk %@…</key>
+	<string>جارٍ تنزيل WillyDisk %@…</string>
 	<key>Downloads</key>
 	<string>التنزيلات</string>
 	<key>Drop a folder to scan it</key>
@@ -438,6 +460,12 @@
 	<string>المجلدات التي تغيّرت</string>
 	<key>Follow symbolic links</key>
 	<string>تتبّع الروابط الرمزية</string>
+	<key>GitHub is limiting requests right now. Try again later.</key>
+	<string>يقيّد GitHub الطلبات الآن. حاول لاحقًا.</string>
+	<key>GitHub returned an error. Try again later.</key>
+	<string>أعاد GitHub خطأ. حاول لاحقًا.</string>
+	<key>GitHub took too long to respond. Try again.</key>
+	<string>استغرق GitHub وقتًا طويلًا للرد. حاول مرة أخرى.</string>
 	<key>Go up one level</key>
 	<string>الصعود مستوى واحدًا</string>
 	<key>Go up to %@</key>
@@ -478,6 +506,8 @@
 	<string>تضمين العناصر المخفية</string>
 	<key>Includes scan settings, timing, issue counts, and version. No file names, paths, or contents are included.</key>
 	<string>تتضمّن إعدادات الفحص والتوقيت وأعداد المشكلات والإصدار. لا تتضمّن أسماء الملفات ولا مساراتها ولا محتوياتها.</string>
+	<key>Installing the update is not part of this build yet. The checksum-matched download is in the update folder.</key>
+	<string>تثبيت التحديث ليس جزءًا من هذا البناء بعد. التنزيل المطابق للبصمة موجود في مجلد التحديثات.</string>
 	<key>Issues</key>
 	<string>المشكلات</string>
 	<key>It is already back</key>
@@ -504,6 +534,8 @@
 	<string>عناصر كبيرة وقديمة وذاكرات تخزين مؤقت تستحق المراجعة</string>
 	<key>Largest files (%@)</key>
 	<string>أكبر الملفات (%@)</string>
+	<key>Last checked %@.</key>
+	<string>آخر تحقق: %@.</string>
 	<key>Last scan %@ · %@</key>
 	<string>آخر فحص %@ · %@</string>
 	<key>Later</key>
@@ -604,8 +636,12 @@
 	<string>لا نتائج مطابقة حتى الآن لـ«%@»</string>
 	<key>No possible duplicates</key>
 	<string>لا عناصر تكرار محتملة</string>
+	<key>No published release was found.</key>
+	<string>لم يُعثر على إصدار منشور.</string>
 	<key>No recorded runs</key>
 	<string>لا تشغيلات مسجلة</string>
+	<key>No release notes.</key>
+	<string>لا توجد ملاحظات إصدار.</string>
 	<key>No results</key>
 	<string>لا نتائج</string>
 	<key>No two files on this Mac of at least %@ share a size in this scan.</key>
@@ -614,6 +650,8 @@
 	<string>لم يُعثر على شيء</string>
 	<key>None listed</key>
 	<string>لا شيء مُدرج</string>
+	<key>Not checked yet.</key>
+	<string>لم يتم التحقق بعد.</string>
 	<key>Not in the Trash</key>
 	<string>ليس في سلة المهملات</string>
 	<key>Not on this Mac</key>
@@ -656,6 +694,8 @@
 	<string>لا تُسجّل إلا الفحوص المنتهية: الفحص الملغى يغطي جزءًا من المجلد، لذا لا يُعرض كتشغيل للمقارنة. تبقى السجلات على هذا الـ Mac وتحمل المسارات والإجماليات، لا محتويات الملفات. «مسح السجل…» يزيلها كلها.</string>
 	<key>Open Full Disk Access in System Settings</key>
 	<string>فتح الوصول الكامل إلى القرص في إعدادات النظام</string>
+	<key>Open Release Page</key>
+	<string>فتح صفحة الإصدار</string>
 	<key>Open System Settings → Privacy &amp; Security → Full Disk Access</key>
 	<string>فتح إعدادات النظام ← الخصوصية والأمان ← الوصول الكامل إلى القرص</string>
 	<key>Open System Settings…</key>
@@ -724,6 +764,8 @@
 	<string>قابلة لإعادة البناء</string>
 	<key>Recent</key>
 	<string>الأخيرة</string>
+	<key>Release Notes</key>
+	<string>ملاحظات الإصدار</string>
 	<key>Remove exclusion %@</key>
 	<string>إزالة استثناء %@</string>
 	<key>Removes every recorded run. Your files are not touched.</key>
@@ -868,6 +910,8 @@
 	<string>عرض كل الفئات</string>
 	<key>Show every category</key>
 	<string>عرض كل الفئات</string>
+	<key>Show in Finder</key>
+	<string>إظهار في Finder</string>
 	<key>Show in Folder</key>
 	<string>إظهار في المجلد</string>
 	<key>Show more items</key>
@@ -896,6 +940,8 @@
 	<string>الحجم</string>
 	<key>Sizes</key>
 	<string>الأحجام</string>
+	<key>Skip This Version</key>
+	<string>تجاوز هذا الإصدار</string>
 	<key>Skipped</key>
 	<string>تم تخطّيها</string>
 	<key>Skipped by your exclusions</key>
@@ -906,6 +952,8 @@
 	<string>اللقطات</string>
 	<key>Sockets, devices, and FIFOs hold no file data and were skipped safely.</key>
 	<string>المقابس والأجهزة وFIFO لا تحمل بيانات ملفات، وتم تخطّيها بأمان.</string>
+	<key>Software Update</key>
+	<string>تحديث البرنامج</string>
 	<key>Something else is at its original location now</key>
 	<string>هناك شيء آخر في موقعه الأصلي الآن</string>
 	<key>Sort</key>
@@ -950,12 +998,20 @@
 	<string>يعيد التطبيق الذي أنشأها بناءها. يمكنك تحديد قسم كامل هنا.</string>
 	<key>The chart maps one folder at a time. Clear the search to return to “%@”.</key>
 	<string>يرسم المخطط مجلدًا واحدًا في كل مرة. امسح البحث للعودة إلى «%@».</string>
+	<key>The download did not match the published checksum. Nothing was changed.</key>
+	<string>لا يطابق التنزيل بصمة SHA-256 المنشورة. لم يتغيّر شيء.</string>
+	<key>The download is not a valid WillyDisk build. Nothing was changed.</key>
+	<string>التنزيل ليس بناء WillyDisk صالحًا. لم يتغيّر شيء.</string>
+	<key>The download was cancelled.</key>
+	<string>أُلغي التنزيل.</string>
 	<key>The folder changed after this scan. Rescan to see the current numbers.</key>
 	<string>تغيّر المجلد بعد هذا الفحص. أعد الفحص لترى الأرقام الحالية.</string>
 	<key>The folder is watched only while its results are on screen.</key>
 	<string>يُراقَب المجلد فقط أثناء عرض نتائجه على الشاشة.</string>
 	<key>The item is still in place.</key>
 	<string>لا يزال العنصر في مكانه.</string>
+	<key>The latest release is WillyDisk %@.</key>
+	<string>أحدث إصدار منشور هو WillyDisk %@.</string>
 	<key>The same values the Scan Options sheet on the source screen edits.</key>
 	<string>القيم نفسها التي تعدّلها لوحة خيارات الفحص في شاشة المصدر.</string>
 	<key>The scan did not enter these items, so their contents are not in the totals. The size of what was left out is therefore unknown.</key>
@@ -980,6 +1036,12 @@
 	<string>لم يُبلغ النظام عن المكان الذي ذهب إليه</string>
 	<key>The system does not allow changes on this volume.</key>
 	<string>لا يسمح النظام بإجراء تغييرات على وحدة التخزين هذه.</string>
+	<key>The update couldn't be completed. Try again.</key>
+	<string>تعذّر إكمال التحديث. حاول مرة أخرى.</string>
+	<key>The update couldn't be downloaded. Try again.</key>
+	<string>تعذّر تنزيل التحديث. حاول مرة أخرى.</string>
+	<key>The update feed couldn't be read.</key>
+	<string>تعذّرت قراءة موجز التحديثات.</string>
 	<key>The volume's own capacity figures could not be read.</key>
 	<string>تعذّرت قراءة أرقام سعة وحدة التخزين نفسها.</string>
 	<key>The ⓘ button opens Coverage: what the scan counted, what it skipped, and the volume's own figures side by side.</key>
@@ -988,6 +1050,8 @@
 	<string>محتوياتها ناقصة من الإجماليات. تم الإبلاغ عن %@.</string>
 	<key>There is no finished scan to check this item against. Run a scan, then try again.</key>
 	<string>لا يوجد فحص منتهٍ للتحقق من هذا العنصر. نفّذ فحصًا ثم أعد المحاولة.</string>
+	<key>There isn't enough free space for the download.</key>
+	<string>لا توجد مساحة حرة كافية للتنزيل.</string>
 	<key>These are moves this app made. Put Back returns an item to where it came from while the Trash still holds it.</key>
 	<string>هذه عمليات النقل التي أجراها هذا التطبيق. تعيد «إعادة» العنصر إلى موقعه الأصلي ما دام في سلة المهملات.</string>
 	<key>These items could not be read while scanning.</key>
@@ -1002,6 +1066,8 @@
 	<string>تُعلن %@ لكنها تشغل %@ على هذا القرص. بياناتها ليست هنا.</string>
 	<key>This Folder</key>
 	<string>هذا المجلد</string>
+	<key>This build has no release version to compare.</key>
+	<string>لا يحمل هذا البناء رقم إصدار للمقارنة.</string>
 	<key>This folder has nothing big enough to draw.</key>
 	<string>لا شيء في هذا المجلد كبير بما يكفي لرسمه.</string>
 	<key>This folder holds the folder being scanned</key>
@@ -1022,6 +1088,10 @@
 	<string>هذا العنصر لم يعد موجودًا</string>
 	<key>This location is not on this Mac</key>
 	<string>هذا الموقع غير موجود على هذا الـ Mac</string>
+	<key>This release has no build for this Mac.</key>
+	<string>لا يتضمن هذا الإصدار نسخة تعمل على هذا الـ Mac.</string>
+	<key>This release is missing a file the updater needs.</key>
+	<string>ينقص هذا الإصدار ملف يحتاجه المُحدِّث.</string>
 	<key>This scan</key>
 	<string>هذا الفحص</string>
 	<key>This volume</key>
@@ -1040,6 +1110,8 @@
 	<string>الإجماليات لا تزال تتزايد</string>
 	<key>Trash</key>
 	<string>سلة المهملات</string>
+	<key>Try Again</key>
+	<string>إعادة المحاولة</string>
 	<key>Type</key>
 	<string>النوع</string>
 	<key>Unavailable</key>
@@ -1052,8 +1124,12 @@
 	<string>أقل من دقيقة</string>
 	<key>Unreadable locations</key>
 	<string>مواقع غير مقروءة</string>
+	<key>Update Downloaded</key>
+	<string>تم تنزيل التحديث</string>
 	<key>Update the numbers as files change in the scanned folder. A change is applied where it happened, so even a whole-disk scan stays current.</key>
 	<string>حدّث الأرقام مع تغيّر الملفات في المجلد المفحوص. يُطبَّق التغيير في موضعه، فيبقى فحص القرص كاملًا محدّثًا.</string>
+	<key>Updates</key>
+	<string>التحديثات</string>
 	<key>Use the arrow keys to move through the list, Space to preview, and Return to open.</key>
 	<string>استخدم مفاتيح الأسهم للتنقل في القائمة، والمسافة للمعاينة، وReturn للفتح.</string>
 	<key>Used by the volume</key>
@@ -1082,6 +1158,10 @@
 	<string>ما دامت هذه النتائج على الشاشة، تتم مراقبة المجلد المفحوص: تغيير يحدث في Finder يحدّث الأرقام دون إعادة فحص. وإذا كانت المراقبة متوقفة أو تعذّر تحديث النتائج مباشرةً، تُعلَّم النتائج بأنها قديمة ويُعرَض إعادة الفحص.</string>
 	<key>WillyDisk</key>
 	<string>WillyDisk</string>
+	<key>WillyDisk %@ is available.</key>
+	<string>يتوفر WillyDisk %@.</string>
+	<key>WillyDisk %@ was downloaded and its checksum matched.</key>
+	<string>تم تنزيل WillyDisk %@ وتطابقت بصمة التحقق.</string>
 	<key>WillyDisk Diagnostics.json</key>
 	<string>تشخيصات WillyDisk.json</string>
 	<key>WillyDisk Help</key>
@@ -1157,10 +1237,16 @@ saving.</key>
 
 الأحجام هي بايتات على القرص، لا أحجامًا منطقية: نتيجة التنظيف هي ما يحرّره
 نقلها بعد إفراغ سلة المهملات، وهذا الأمر لا يدّعي أي توفير.</string>
+	<key>WillyDisk couldn't reach GitHub. Check your connection and try again.</key>
+	<string>تعذّر على WillyDisk الوصول إلى GitHub. تحقّق من اتصالك وحاول مرة أخرى.</string>
 	<key>WillyDisk does not move system locations. Choose an item inside the scanned folder instead.</key>
 	<string>لا ينقل WillyDisk مواقع النظام. اختر عنصرًا داخل المجلد المفحوص بدلًا من ذلك.</string>
 	<key>WillyDisk does not move your home folder as a whole. Choose a file or a folder inside it instead.</key>
 	<string>لا ينقل WillyDisk مجلدك الرئيسي ككل. اختر ملفًا أو مجلدًا بداخله بدلًا من ذلك.</string>
+	<key>WillyDisk is not signed or notarized by Apple. The checksum confirms the download arrived intact; it does not prove who built it.</key>
+	<string>WillyDisk غير موقّع من Apple وغير موثّق من قِبلها. تؤكد بصمة التحقق أن التنزيل وصل سليمًا، لكنها لا تثبت من أنشأه.</string>
+	<key>WillyDisk is up to date.</key>
+	<string>WillyDisk محدّث بالفعل.</string>
 	<key>WillyDisk scan</key>
 	<string>WillyDisk scan</string>
 	<key>WillyDisk scan — measure one folder from the command line
@@ -1231,6 +1317,10 @@ a comparison against them would read as space that vanished.</key>
 	<string>يمكنك إعادته من سلة المهملات قبل إفراغها.</string>
 	<key>You can put them back from the Trash until you empty it.</key>
 	<string>يمكنك إعادتها من سلة المهملات قبل إفراغها.</string>
+	<key>You have WillyDisk %@.</key>
+	<string>إصدارك الحالي هو WillyDisk %@.</string>
+	<key>You're running a newer build than the latest release.</key>
+	<string>أنت تستخدم إصدارًا أحدث من آخر إصدار منشور.</string>
 	<key>Your files</key>
 	<string>ملفاتك</string>
 	<key>`tmutil` could not list this volume's snapshots.</key>

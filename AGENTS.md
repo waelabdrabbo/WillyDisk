@@ -68,13 +68,14 @@ edits (with `LiveTreePolicy` keeping the scan's rules), and `LiveTree+ScanSummar
 builds one from a finished scan. `docs/LIVE-TREE.md` is the design and the migration.
 
 **`DiskUpdate` — the release feed and the update checks.**
-`ReleaseFeed.swift` reads GitHub's `releases/latest` through a `FeedTransport` seam and
-keeps the ETag; `ReleaseVersion.swift` orders versions; `UpdateRelease.swift` names the
-two assets for this Mac and decides newer/older; `Checksum.swift` parses the published
-`.sha256` and hashes in chunks; `UpdateVerifier.swift` expands the zip with `ditto` and
-checks identifier, version, executable, minimum macOS, architecture, and signature.
-Foundation + CryptoKit only; the controller, sheet, and install transaction are not built
-yet. `docs/UPDATES.md` is the contract and the install plan.
+`ReleaseFeed.swift` reads GitHub's `releases/latest` through a `FeedTransport` seam;
+`ReleaseVersion.swift` orders versions; `UpdateRelease.swift` names the
+two assets for this Mac and decides newer/older; `UpdateDownloader.swift` streams either
+asset with real byte progress and an ephemeral session; `Checksum.swift` parses the
+published `.sha256` and hashes in chunks; `UpdateVerifier.swift` expands the zip with
+`ditto` and checks identifier, version, executable, minimum macOS, architecture, and
+signature. Foundation + CryptoKit only. The controller, sheet, menu, and Settings wiring
+live in `DiskUI`; the install transaction is not built. `docs/UPDATES.md` is the contract.
 
 **`DiskUI` — SwiftUI.**
 `ScanViewModel.swift` is the `@MainActor @Observable` state machine that consumes
@@ -86,6 +87,10 @@ is the disk chart; `AccessNoticeRow`, `FlowLayout`, and `ScanOptionToggle` are t
 views.
 `Components/HistorySheet.swift` is the scan-history comparison, backed by
 `Support/ScanHistory.swift` (the `@Observable` view of the record store).
+`Components/UpdateSheet.swift` is the software-update sheet; `Support/UpdateController.swift`
+owns the check/download/verify state, `UpdatePreferences.swift` the daily-check choice and
+last check, `UpdateStorage.swift` the staging directory, and `UpdatePresentation.swift` the
+value states the sheet draws.
 `DesignSystem/DesignSystem.swift` holds every token (`DS`), `ChartPalette.swift` the
 chart fills, `FileCategory+UI.swift` the category symbols and labels, `AppAppearance.swift`
 the stored system/light/dark appearance preference the Settings window edits, and
@@ -101,8 +106,8 @@ shared, persisted set of choices the next scan and Rescan use), `CleanupPresenta
 (rule and tier wording for the sheet), `DuplicateCheck` (the sheet's cancellable content
 check over `DiskCore`'s hasher), `ReclaimLog` (the app's persisted moves, and the restorer
 behind Put Back), `ScanHistory` (the observable view of the record store),
-`WatchPreferences` (the stored keep-current toggle), and `TreeWatching` (the watcher seam
-tests substitute).
+`WatchPreferences` (the stored keep-current toggle), the update controller/preferences/
+staging values above, and `TreeWatching` (the watcher seam tests substitute).
 
 **`DiskLocalization` — every user-visible string.**
 `L10n.swift` is the one lookup path: `L10n.string(_:)` and `L10n.format(_:_:)` resolve the
@@ -141,6 +146,7 @@ swift build                          # compile
 swift test                           # full suite
 swift test --filter FileScanEngineTests   # one test class
 swift test --filter DiskUpdateTests        # release feed, version, checksum, verification
+swift test --filter UpdateQATests          # controller, preferences, staging (fake network)
 swift run WillyDisk scan <folder> --json  # command-line scan: no window, no UI loaded
 swift run WillyDisk cleanup <folder> --json  # the cleanup rules, same engine; lists only
 python3 Scripts/pseudolanguage.py    # regenerate en-XA from the English values
@@ -150,7 +156,7 @@ bash Scripts/run.sh                  # build the bundle and launch it (the way t
 bash Scripts/bundle-app.sh           # assemble .build/WillyDisk.app; its version comes from VERSION
 bash Scripts/package-release.sh      # build the arm64 and Intel zips with their SHA-256s
 bash Scripts/homebrew-cask.sh check  # render the cask template; --audit runs Homebrew's checks
-bash Scripts/render-screens.sh       # offscreen PNGs (-S results|home|search|help|settings|categories|coverage|cleanup|duplicates|moved|reclaim|history|both; -l en|ar|en-XA), no window, no screen-recording permission
+bash Scripts/render-screens.sh       # offscreen PNGs (-S results|home|search|help|settings|update|categories|coverage|cleanup|duplicates|moved|reclaim|history|both; -l en|ar|en-XA), no window, no screen-recording permission
 bash Scripts/repo-map.sh             # one-screen structural inventory (--types adds declarations)
 ```
 

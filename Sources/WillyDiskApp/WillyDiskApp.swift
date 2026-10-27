@@ -74,6 +74,12 @@ private struct WillyDiskCommands: Commands {
                 AboutPanel.present()
             }
         }
+        CommandGroup(after: .appInfo) {
+            Divider()
+            Button(L10n.string("Check for Updates…")) {
+                appState.presentUpdateCheck()
+            }
+        }
 
         CommandGroup(after: .newItem) {
             Button(L10n.string("Choose a Folder…")) {

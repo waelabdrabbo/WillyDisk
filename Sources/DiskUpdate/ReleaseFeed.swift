@@ -66,8 +66,10 @@ public protocol ReleaseFeed: Sendable {
 ///
 /// The endpoint is unauthenticated by design: the repository is public, the
 /// request carries no account or scan data, and the entire exchange is one GET.
-/// GitHub's rate limit is generous for a check that runs at most once a day;
-/// the ETag makes the common "nothing changed" response a `304` with no body.
+/// GitHub's rate limit is generous for a check that runs at most once a day. The
+/// client can send an ETag, but the app does not: a `304` says the release list has
+/// not changed, not that the installed app is current, and without the release body
+/// it cannot be turned into an offer.
 public struct GitHubReleaseFeed: ReleaseFeed {
     public static let defaultEndpoint = URL(
         string: "https://api.github.com/repos/waelabdrabbo/WillyDisk/releases/latest"

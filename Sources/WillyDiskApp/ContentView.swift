@@ -39,5 +39,11 @@ struct ContentView: View {
                 HelpView { appState.isShowingHelp = false }
                     .id(language)
             }
+            .sheet(isPresented: $appState.isShowingUpdateSheet) {
+                UpdateSheetHost(controller: appState.updates) {
+                    appState.isShowingUpdateSheet = false
+                }
+                .id(language)
+            }
     }
 }

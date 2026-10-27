@@ -14,6 +14,7 @@ public struct SettingsView: View {
     @AppStorage(AppLanguage.defaultsKey) private var language: AppLanguage = .system
     @State private var optionsStore: ScanOptionsStore
     @State private var watchPreferences: WatchPreferences
+    @State private var updatePreferences: UpdatePreferences
     @State private var hoveredAppearance: AppAppearance?
     @State private var hoveredLanguage: AppLanguage?
     @FocusState private var listFocused: Bool
@@ -21,16 +22,19 @@ public struct SettingsView: View {
 
     public init(
         optionsStore: ScanOptionsStore = .shared,
-        watchPreferences: WatchPreferences = .shared
+        watchPreferences: WatchPreferences = .shared,
+        updatePreferences: UpdatePreferences = .shared
     ) {
         _optionsStore = State(initialValue: optionsStore)
         _watchPreferences = State(initialValue: watchPreferences)
+        _updatePreferences = State(initialValue: updatePreferences)
     }
 
     public var body: some View {
         Form {
             appearanceSection
             languageSection
+            updatesSection
             scanDefaultsSection
             resultsSection
             exclusionsSection
@@ -279,6 +283,35 @@ public struct SettingsView: View {
         } header: {
             Text(L10n.string("Results"))
         }
+    }
+
+    // MARK: - Updates
+
+    private var updatesSection: some View {
+        Section {
+            ScanOptionToggle(
+                title: L10n.string("Check for updates automatically"),
+                detail: L10n.string("Ask GitHub once a day whether a newer release exists. Nothing about your Mac or your scans is sent. WillyDisk never downloads or installs an update without asking."),
+                isOn: Binding(
+                    get: { updatePreferences.checksAutomatically },
+                    set: { updatePreferences.checksAutomatically = $0 }
+                )
+            )
+
+            Text(lastCheckedText)
+                .font(DS.Typography.caption)
+                .foregroundStyle(DS.Color.secondaryText)
+                .fixedSize(horizontal: false, vertical: true)
+        } header: {
+            Text(L10n.string("Updates"))
+        }
+    }
+
+    private var lastCheckedText: String {
+        guard let lastCheck = updatePreferences.lastCheck else {
+            return L10n.string("Not checked yet.")
+        }
+        return L10n.format("Last checked %@.", DateFormat.relative(lastCheck))
     }
 
     // MARK: - Exclusions

@@ -17,8 +17,8 @@ decisions. This is a handoff document, not a specification of frozen interfaces 
   watched-tree refresh (`b8be044`), global search over the whole finished scan
   (`e7d6fff`), and the localization pass (`7c7c067`). This docs handoff follows it.
 - Build: `swift build --disable-sandbox`.
-- Tests: 289 QATests + 153 DiskCoreTests (3 skipped; the benchmark tests need
-  `WILLYDISK_BENCH_ROOT`) + 30 DiskCLITests + 71 DiskUpdateTests, 0 failures.
+- Tests: 305 QATests + 153 DiskCoreTests (3 skipped; the benchmark tests need
+  `WILLYDISK_BENCH_ROOT`) + 30 DiskCLITests + 75 DiskUpdateTests, 0 failures.
 - CI: `.github/workflows/ci.yml` builds, tests, checks that the bundle reports
   `VERSION`, runs the bundled binary's `scan` and its usage exit status, and uploads
   the offscreen renders on every push. `.github/workflows/release.yml` runs on a `v*`
@@ -32,11 +32,12 @@ decisions. This is a handoff document, not a specification of frozen interfaces 
   the source-build alternative. `v1.0.0` and `v1.0.1` are tagged; `v1.0.1` is
   published and the repository is public, so the release assets and the tap are
   reachable without credentials.
-- The working tree adds the update core (`Sources/DiskUpdate/`): version ordering,
-  the GitHub release feed with ETag, asset selection, the `.sha256` check, `ditto`
-  extraction, and staged-bundle identity, architecture, and signature validation,
-  with `Tests/DiskUpdateTests/` and `docs/UPDATES.md`. The download, consent sheet,
-  and install transaction are not built.
+- The working tree adds the update path: the `DiskUpdate` core (version ordering,
+  the GitHub release feed, asset selection, the `.sha256` check, `ditto`
+  extraction, and staged-bundle validation), the downloader with real progress, and
+  the controller, consent sheet, menu item, and Settings toggle in `DiskUI`. The
+  install transaction and the cask's `auto_updates` change are not built.
+  `docs/UPDATES.md` is the contract.
 - The app is a working single-window analyzer: choose a volume, folder, or quick
   preset, watch a progressive scan, read the sunburst and explorer, search the whole
   scan by name and drill from a result to its folder, inspect
@@ -305,6 +306,7 @@ Details worth remembering:
 swift build --disable-sandbox
 swift test --disable-sandbox
 swift test --disable-sandbox --filter DiskUpdateTests
+swift test --disable-sandbox --filter UpdateQATests
 swift run --disable-sandbox WillyDisk scan . --depth 1 --top 5
 swift run --disable-sandbox WillyDisk scan . --json | jq -e '.schemaVersion == 1'
 python3 Scripts/pseudolanguage.py --check
@@ -314,6 +316,7 @@ WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S categories -o .
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S search -o .build/renders/check
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S help -c -o .build/renders/check
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S settings -c -s 460x760 -o .build/renders/check
+WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S update -c -s 640x600 -o .build/renders/check
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S cleanup -c -o .build/renders/check
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S duplicates -c -o .build/renders/check
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S history -c -o .build/renders/check
@@ -321,14 +324,15 @@ WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S results -l ar -
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S coverage -c -l ar -o .build/renders/check
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S cleanup -c -l ar -o .build/renders/check
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S settings -c -s 460x760 -l ar -o .build/renders/check
+WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S update -c -s 640x600 -l ar -o .build/renders/check
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a light -S results -l en-XA -o .build/renders/check
 WILLYDISK_NO_SANDBOX=1 bash Scripts/package-release.sh
 ```
 
 CI runs the localization freshness check, the build, the suite, the bundle version
 check, a bundled `scan` plus its usage exit status, and the renders — including Arabic
-results, home, coverage, cleanup, and settings, and the pseudolanguage results and
-coverage — on every push. `Scripts/package-release.sh` builds both
+results, home, coverage, cleanup, settings, and the update sheet, and the pseudolanguage
+results and coverage — on every push. `Scripts/package-release.sh` builds both
 slices, expands each archive, and checks its architecture, version, and ad-hoc signature
 before writing the two SHA-256s; `.github/workflows/release.yml` runs that on a `v*` tag,
 re-checks both checksums, and publishes only when the tag matches `VERSION`. On an Apple
@@ -343,11 +347,11 @@ sheet and therefore needs `-c`.
 `-S categories` renders the real results screen in Categories mode, window and all.
 `-S search` renders the same screen with a whole-scan search open (`p` over the fixture,
 which every folder there has a match for), so the match list, the containing paths, the
-summary line, and the chart's search state are reviewable. Help, Settings, and the
-cleanup sheet are sheets or a preferences window, so `-S`
-captures their content. Settings renders with its own non-default sample options and two
-exclusions, so the switches and the list are both reviewable; cleanup, duplicates, and
-moved are the cleanup sheet's three tabs. They use one sample tree (sparse files with set
+summary line, and the chart's search state are reviewable. Help, Settings, the update
+sheet, and the cleanup sheet are sheets or a preferences window, so `-S` captures their
+content. Settings renders with its own non-default sample options and two exclusions, so
+the switches and the list are both reviewable; cleanup, duplicates, and moved are the
+cleanup sheet's three tabs. They use one sample tree (sparse files with set
 ages, two identical copies, and one same-size different file), so the Candidates render
 shows the other sections and the Duplicates render shows a completed content check.
 History renders the sheet over the finished fixture scan plus two older recorded runs, so
@@ -424,14 +428,15 @@ verified against the release's published SHA-256 before it replaces anything; a 
 check or download changes nothing and says why; the app never updates without consent;
 the update screen does not call an unsigned download verified or trusted.
 
-The feed and verification core are implemented in `Sources/DiskUpdate/`: version
-comparison, `releases/latest` with ETag, selection of the two assets by architecture and
-exact name, the published `.sha256` check, `ditto` extraction, and staged-bundle
-identity, minimum-macOS, architecture, and `codesign` validation. `Tests/DiskUpdateTests/`
-holds the suite and `docs/UPDATES.md` is the contract. Remaining: the controller and
-sheet, the download, the helper-based install transaction, and the cask's
-`auto_updates` change. The install transaction is gated on a real Full Disk Access test
-after an ad-hoc-signed update; that is the platform cost this item has to settle.
+The feed, verification core, downloader, controller, and sheet are implemented:
+version comparison, `releases/latest`, selection of the two assets by
+architecture and exact name, the published `.sha256` check, `ditto` extraction,
+staged-bundle identity/minimum-macOS/architecture/`codesign` validation, real download
+progress, the daily check, skip, and the Settings and menu wiring. `Tests/DiskUpdateTests/`
+and `Tests/QATests/UpdateQATests.swift` hold the suites, and `docs/UPDATES.md` is the
+contract. Remaining: the helper-based install transaction, the Full Disk Access test
+after an ad-hoc update, and the cask's `auto_updates` change. The ready state
+deliberately has no install button yet.
 
 ## Decisions to preserve
 

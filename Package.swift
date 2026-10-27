@@ -98,7 +98,7 @@ let package = Package(
         ),
         .testTarget(
             name: "QATests",
-            dependencies: ["DiskCore", "DiskUI", "DiskLocalization", "DiskCLI"]
+            dependencies: ["DiskCore", "DiskUI", "DiskLocalization", "DiskCLI", "DiskUpdate"]
         ),
     ]
 )

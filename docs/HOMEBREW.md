@@ -156,8 +156,8 @@ only as good as the build it points at.
   links `willydisk` into `$(brew --prefix)/bin`.
 - `brew upgrade --cask willydisk` — the cask carries a `livecheck` pointed at the
   repository's releases, so `brew livecheck --cask willydisk` follows the tag
-  stream. The app does not yet have a user-facing self-updater; when the update
-  sheet and install transaction ship, the cask will declare `auto_updates true` so
+  stream. The app can check for and verify an update but cannot install it yet;
+  when the install transaction ships, the cask will declare `auto_updates true` so
   Homebrew compares the installed bundle's version instead of downgrading it. See
   [UPDATES.md](UPDATES.md).
 - `brew uninstall --cask willydisk` removes the app and the `bin` link;

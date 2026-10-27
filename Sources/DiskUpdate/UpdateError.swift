@@ -21,6 +21,12 @@ public enum UpdateError: Error, Equatable, Sendable {
     case cancelled
     case transport
 
+    // MARK: - Download
+
+    case insufficientSpace
+    case downloadFailed
+    case downloadTooLarge
+
     // MARK: - Verification
 
     case checksumUnreadable

@@ -1,10 +1,11 @@
 # Updates
 
 How WillyDisk finds, verifies, and installs a newer release without a Developer ID
-and without a third-party updater. The release feed and the verification rules are
-implemented in `Sources/DiskUpdate/`; the download, consent UI, and install
-transaction are the remaining work. This note records the decisions that are easy
-to get wrong so they are not re-derived.
+and without a third-party updater. The release feed, download, verification, and
+consent sheet are implemented (`Sources/DiskUpdate/`, `DiskUI/Support/Update*`,
+`DiskUI/Components/UpdateSheet.swift`); the install transaction and the cask's
+`auto_updates` change are the remaining work. This note records the decisions that
+are easy to get wrong so they are not re-derived.
 
 ## Why hand-rolled
 
@@ -33,13 +34,18 @@ The feed is GitHub's unauthenticated REST endpoint:
 GET https://api.github.com/repos/waelabdrabbo/WillyDisk/releases/latest
 Accept: application/vnd.github+json
 User-Agent: WillyDisk/<version>
-If-None-Match: <etag>        (optional)
 ```
 
 `GitHubReleaseFeed` (`Sources/DiskUpdate/ReleaseFeed.swift`) reads `tag_name`,
 `body`, `html_url`, `published_at`, and `assets[]`. It sends no token, cookie, scan
 result, path, or file name. The request times out after 15 seconds and is reloaded
-ignoring any local cache; the ETag is the cache.
+ignoring any local cache.
+
+The feed client can carry an ETag, but the app does not send one. A `304` says the
+release list has not changed since an earlier check, not that the installed app is
+current; a process that did not cache the release cannot turn that into an offer. The
+latest-release body is small and one request a day is well inside the unauthenticated
+limit.
 
 Rules:
 
@@ -56,16 +62,19 @@ Rules:
   installable.
 - The release page and every asset URL must be HTTPS. An `http` URL fails the whole
   release rather than being silently skipped.
-- `304 Not Modified` means up to date; it is not an error. `404` means there is no
-  release to compare against. `403`/`429` with `X-RateLimit-Remaining: 0` is a rate
-  limit, distinct from other HTTP failures. Offline, timed out, and cancelled
-  requests are distinct too, because the screen words them differently.
+- `304 Not Modified` is not treated as "up to date": it is a protocol answer to a
+  conditional request the app does not send, so it is reported as a failed check.
+  `404` means there is no release to compare against. `403`/`429` with
+  `X-RateLimit-Remaining: 0` is a rate limit, distinct from other HTTP failures.
+  Offline, timed out, and cancelled requests are distinct too, because the screen
+  words them differently.
 - The limit is 60 unauthenticated requests per hour per address. A daily check
-  uses one; the ETag makes the usual answer a bodiless `304`.
+  uses one; the small release body is what lets the app compare versions and name
+  the assets.
 
 At the time this was written the latest release was `v1.0.1`: `arm64` 2,557,297
 bytes, `x86_64` 2,692,619 bytes, both checksums matching `Casks/willydisk.rb`, the
-notes filled with no placeholders, and an ETag present.
+notes filled with no placeholders, and one small GET for the whole check.
 
 ## Version identity
 
@@ -134,9 +143,10 @@ CryptoKit can verify without a package; that is not part of the current design.
 The download, consent, and swap belong to the next layer. The rules they must keep:
 
 - Download into `~/Library/Application Support/WillyDisk/Updates/<version>/` with
-  owner-only permissions. Check free space for the archive, the expanded bundle, and
-  a backup before starting. Real byte progress from the download task; cancellation
-  deletes the partial file.
+  owner-only permissions. The version is one to three numeric components; anything
+  else is refused, so a feed value cannot become a path outside the update store.
+  Check free space for the archive, the expanded bundle, and a backup before starting.
+  Real byte progress from the download task; cancellation deletes the partial file.
 - Verification runs before anything touches the installed app. A failure deletes
   the staged files and leaves the app exactly as it was.
 - Download and install are two clicks. The first consents to the download; the
@@ -154,7 +164,7 @@ The download, consent, and swap belong to the next layer. The rules they must ke
   manual recovery path and should be documented as such.
 - Refuse to install when the running bundle is not an `.app`, when its path contains
   `/AppTranslocation/`, when the volume is read-only, or when the containing folder
-  is not writable. The fallback is to save the verified zip or open the release page,
+  is not writable. The fallback is to save the checksum-matched zip or open the release page,
   never to ask for an administrator password.
 - Strip `com.apple.quarantine` from the staged bundle before the swap, otherwise the
   relaunch can be blocked after the old copy is gone. The user already approved this
@@ -193,7 +203,7 @@ These are the reasons the install step is gated on a real test, not just code.
 - **Translocation.** An app opened from Downloads or a disk image runs from a
   random read-only path. It cannot update itself; say to move it to Applications.
 - **A non-admin user** cannot replace `/Applications/WillyDisk.app`. Offer the
-  verified download; do not add a privileged helper or an AppleScript escalation.
+  checksum-matched download; do not add a privileged helper or an AppleScript escalation.
 - **The checksum is not authenticity.** See above; the wording is part of the
   acceptance.
 
@@ -206,21 +216,31 @@ the menu item always works, and the app never downloads or installs without a cl
 The release notes are publisher text in English and are shown as such, not passed
 through the app's localization.
 
-## UI (not yet implemented)
+## UI
 
-A sheet on the main window, with states:
+The sheet is one window on the main view, hosted by `UpdateSheetHost` and backed by
+`UpdateController`. Its states are:
 
-`idle → checking → upToDate | available → downloading → ready → installing → done | failed`
+`checking → upToDate | newerThanLatest | unknownCurrentVersion | noBuildForThisMac | incompleteRelease | available → downloading → verifying → ready | failed`
 
-- Available: current and new version, release notes in a scroll view, download size,
-  the checksum/unsigned wording, Download, Later, Skip This Version.
-- Downloading: real byte progress with Cancel.
-- Ready: Install and Relaunch, with a warning that a scan in progress stops.
-- Failed: a typed reason, retry where it helps, and the release page as a fallback.
+- Available: current and new version, release notes, download size, the
+  checksum/unsigned wording, Download, Later, Skip This Version.
+- Downloading: real byte progress with Cancel; closing the sheet cancels the task
+  and returns to the offer.
+- Checking: the checksum, extraction, and bundle checks run; the sheet stays put.
+- Ready: downloaded with a matching checksum, with Show in Finder and the release page. There is
+  **no install button** until the helper transaction exists, and the sheet never
+  claims the update was installed.
+- Failed: a typed reason, Try Again, and the release page when the failure happened
+  after a release was known.
 - The menu item is "Check for Updates…" under About. Settings holds the daily-check
-  toggle and the last check time; there is no second update window.
-- Every string goes through `DiskLocalization`, with Arabic; the sheet gets a
-  renderer screen so English, Arabic, and `en-XA` can be reviewed.
+  toggle and the last successful check; there is no second update window.
+- The launch check waits eight seconds, then runs at most once per 24 hours. A
+  manual check ignores the interval and a skipped version; a skipped version hides
+  only that version from the automatic offer.
+- Every string goes through `DiskLocalization`, with Arabic; `-S update` renders the
+  sheet in English, Arabic, and `en-XA`. Release notes are publisher text in English
+  and are kept left-to-right inside an Arabic interface.
 - The screen does not call an unsigned download verified or trusted. A green
   "verified" badge is not acceptable wording.
 
@@ -232,6 +252,7 @@ A sheet on the main window, with states:
 | `404` (no release or not public) | no published release found | nothing |
 | missing asset for this Mac | this release has no build for this Mac | nothing |
 | missing `.sha256` | the release is incomplete | nothing |
+| download fails or is too large | could not download; try again | staged files deleted |
 | checksum mismatch | download did not match the published checksum | staged files deleted |
 | extraction or bundle check fails | download is not a valid WillyDisk build | staged files deleted |
 | not enough disk space | free space needed | nothing |
@@ -242,10 +263,16 @@ A sheet on the main window, with states:
 ## Testing
 
 - `swift test --filter DiskUpdateTests` covers versions, feed decoding, asset
-  selection, checksum parsing/hashing, and staged-bundle checks. The suite never
-  touches the network: feed tests use a fake `FeedTransport`.
+  selection, checksum parsing/hashing, staged-bundle checks, and download progress.
+  The suite never touches the network: feed tests use a fake `FeedTransport`.
+- `swift test --filter UpdateQATests` drives the controller, preferences, and
+  staging directory with a fake feed, downloader, and verifier: offer, skip, retry,
+  failure, ready, and discarded staging.
 - A live check is a manual acceptance step against the public release, not a unit
   test. Do not add a test that downloads from GitHub.
+- `-S update -c -s 640x600` renders the sheet in English and Arabic (and `en-XA`
+  where truncation is the question). `-S settings -c -s 460x760` shows the Updates
+  section above Scan Options.
 - The install step needs a real update over a copy in `~/Applications`, then over
   `/Applications/WillyDisk.app`, including a checksum failure and a wrong-version
   failure. Then the TCC/Full Disk Access test above, and a Homebrew install/upgrade
@@ -260,7 +287,7 @@ A sheet on the main window, with states:
   defer to `brew upgrade` when a Caskroom receipt is present.
 - **Signing:** accept the ad-hoc TCC cost and document it, or adopt a stable
   self-signed identity if updates otherwise lose Full Disk Access.
-- **Automatic checks:** on by default with a daily request and a sheet (recommended),
-  or manual-only from the menu.
+- **Install presentation:** the ready state currently offers the archive and the
+  release page; the install button arrives with the helper transaction.
 - **Optional hardening:** Ed25519-signed archives, and a "Revert to Previous Version"
   action fed by the retained backup.

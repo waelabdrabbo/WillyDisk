@@ -53,6 +53,7 @@ enum ScreenKind: String, CaseIterable {
     case search
     case help
     case settings
+    case update
     case categories
     case coverage
     case cleanup
@@ -110,6 +111,7 @@ func parse(_ arguments: [String]) -> Options {
             case "search": options.screens = [.search]
             case "help": options.screens = [.help]
             case "settings": options.screens = [.settings]
+            case "update": options.screens = [.update]
             case "categories": options.screens = [.categories]
             case "coverage": options.screens = [.coverage]
             case "cleanup": options.screens = [.cleanup]
@@ -118,7 +120,7 @@ func parse(_ arguments: [String]) -> Options {
             case "reclaim": options.screens = [.reclaim]
             case "history": options.screens = [.history]
             case "both": options.screens = [.results, .home]
-            case let other: fail("--screen expects home, results, search, help, settings, categories, coverage, cleanup, duplicates, moved, reclaim, history or both, not \(other)")
+            case let other: fail("--screen expects home, results, search, help, settings, update, categories, coverage, cleanup, duplicates, moved, reclaim, history or both, not \(other)")
             }
         case "--locale":
             let language = next("--locale")
@@ -141,7 +143,7 @@ func parse(_ arguments: [String]) -> Options {
             options.rendersWindow = false
         case "--help", "-h":
             print("""
-            usage: render-screens --out DIR [--size WxH] [--appearance light|dark|both] [--screen home|results|search|help|settings|categories|coverage|cleanup|duplicates|history|both] [--fixture DIR] [--state finished|scanning] [--locale en|ar|en-XA] [--window|--content]
+            usage: render-screens --out DIR [--size WxH] [--appearance light|dark|both] [--screen home|results|search|help|settings|update|categories|coverage|cleanup|duplicates|history|both] [--fixture DIR] [--state finished|scanning] [--locale en|ar|en-XA] [--window|--content]
 
               --out        directory the PNGs are written to
               --size       render size in points (default 1000x720)
@@ -151,9 +153,10 @@ func parse(_ arguments: [String]) -> Options {
                            whole-scan search open, categories is the results
                            screen in Categories mode, coverage is the coverage
                            sheet, help and settings are the sheet and preferences
-                           contents, cleanup and duplicates are the cleanup
-                           sheet's two tabs (they use their own fixture), history
-                           is the scan-history comparison
+                           contents, update is the software-update sheet, cleanup
+                           and duplicates are the cleanup sheet's two tabs (they
+                           use their own fixture), history is the scan-history
+                           comparison
               --fixture    scan this directory instead of the generated fixture
               --state      finished (default) or scanning, which captures the
                            screen while the scan is still running
@@ -424,6 +427,14 @@ func rootNode(in summary: ScanSummary) -> ScanNode? {
 /// render shows the list and both switch states instead of only the empty state.
 /// It uses the renderer's own defaults suite; the app's settings are untouched.
 @MainActor
+func makeUpdatePreferences() -> UpdatePreferences {
+    let defaults = UserDefaults(suiteName: "WillyDiskRenderUpdates") ?? .standard
+    let preferences = UpdatePreferences(defaults: defaults)
+    preferences.recordSuccess(at: Date().addingTimeInterval(-3600))
+    return preferences
+}
+
+@MainActor
 func makeSettingsStore(fixture: URL) -> ScanOptionsStore {
     let defaults = UserDefaults(suiteName: "WillyDiskRenderSettings") ?? .standard
     let store = ScanOptionsStore(defaults: defaults)
@@ -457,10 +468,12 @@ func applyLocale(_ locale: String) {
 
 @MainActor
 func render(_ options: Options) {
-    // Help and Settings are static content: they need no scan, so those renders
-    // are quick and cannot fail on the fixture.
-    let needsScan = options.screens.contains { $0 != .help && $0 != .settings }
-    let needsFixture = options.screens.contains { $0 != .help }
+    // Help, Settings, and the update sheet are static content: they need no scan,
+    // so those renders are quick and cannot fail on the fixture.
+    let needsScan = options.screens.contains {
+        $0 != .help && $0 != .settings && $0 != .update
+    }
+    let needsFixture = options.screens.contains { $0 != .help && $0 != .update }
     // The cleanup sheet needs candidates the standard fixture does not have, so
     // it renders from its own tree; the other screens keep the shared fixture.
     let isCleanupRender = options.screens.contains(.cleanup)
@@ -478,6 +491,7 @@ func render(_ options: Options) {
     }
 
     let settingsStore = options.screens.contains(.settings) ? makeSettingsStore(fixture: fixture) : nil
+    let updatePreferences = makeUpdatePreferences()
     // History lives in the render directory, never in the user's own store. The
     // view model records the finished scan exactly as the app does; the history
     // screen adds two older runs so the comparison has a pair to show.
@@ -576,8 +590,34 @@ func render(_ options: Options) {
                 case .help: HelpView()
                 case .settings:
                     if let settingsStore {
-                        SettingsView(optionsStore: settingsStore)
+                        SettingsView(
+                            optionsStore: settingsStore,
+                            updatePreferences: updatePreferences
+                        )
                     }
+                case .update:
+                    UpdateSheet(
+                        state: .available(
+                            UpdateOffer(
+                                version: "1.0.2",
+                                currentVersion: "1.0.1",
+                                notes: """
+                                ## What is new
+
+                                - The explorer is a full-height sidebar.
+                                - Cleaning up old downloads is easier to review.
+                                - The update screen verifies the download before it offers it.
+
+                                This is sample release text; the real notes come from the release.
+                                """,
+                                downloadBytes: 2_557_297,
+                                pageURL: URL(string: "https://github.com/waelabdrabbo/WillyDisk/releases/tag/v1.0.2")!,
+                                releaseTitle: "WillyDisk 1.0.2"
+                            )
+                        ),
+                        lastChecked: Date(),
+                        actions: .preview
+                    )
                 case .categories:
                     ResultsView(viewModel: viewModel, initialMode: .categories)
                 case .coverage:

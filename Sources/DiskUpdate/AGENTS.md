@@ -9,8 +9,9 @@ belong in DiskUI's catalog.
 |---|---|
 | `ReleaseVersion.swift` | One-to-three-number versions; `1.0.10` is newer than `1.0.9` |
 | `UpdateRelease.swift` | Release and asset values, asset naming, `UpdateEvaluator` |
-| `ReleaseFeed.swift` | `FeedTransport` seam, `URLSession` transport, GitHub `releases/latest`, ETag |
+| `ReleaseFeed.swift` | `FeedTransport` seam, `URLSession` transport, GitHub `releases/latest`, optional ETag |
 | `Checksum.swift` | `SHA256Digest`, `.sha256` parsing, streaming file hash |
+| `UpdateDownloader.swift` | `UpdateDownloading` seam, real byte progress, ephemeral session, size ceiling |
 | `UpdateVerifier.swift` | Checksum check, `ditto` extraction, bundle/architecture/signature validation |
 | `InstalledBuild.swift` | The running bundle's version, identifier, architecture, macOS |
 
@@ -24,13 +25,14 @@ Rules:
 - A release is only usable when both assets exist for this Mac and the tag is
   `v<version>`. Missing files are `noBuildForThisMac` / `incompleteRelease`, not a
   download error.
-- The verifier's methods are synchronous filesystem or `Process` work; the feed is
-  async network. Callers run the blocking parts off the main actor; never make a
-  controller do this on the main thread.
+- The verifier's methods are synchronous filesystem or `Process` work; the feed and
+  downloader are async network. Callers run the blocking parts off the main actor; never
+  make a controller do this on the main thread.
 - Never execute the downloaded app. The checksum, bundle identity, architecture,
   and `codesign --verify` are the checks; the release pipeline is what runs it.
 - Comments are evergreen: no task numbers, no narration of what changed.
 
 Tests: `swift test --filter DiskUpdateTests`. The feed tests use a fake
-`FeedTransport`; nothing in the suite needs a network. Do not add a test that
-downloads from GitHub.
+`FeedTransport`; nothing in the suite needs a network. The app never sends the ETag:
+a `304` cannot prove the installed app is current. Do not add a test that downloads
+from GitHub.

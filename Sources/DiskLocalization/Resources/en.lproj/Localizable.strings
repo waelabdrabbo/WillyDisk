@@ -192,6 +192,8 @@
 	<string>Applies to every scan you start.</string>
 	<key>Archives</key>
 	<string>Archives</string>
+	<key>Ask GitHub once a day whether a newer release exists. Nothing about your Mac or your scans is sent. WillyDisk never downloads or installs an update without asking.</key>
+	<string>Ask GitHub once a day whether a newer release exists. Nothing about your Mac or your scans is sent. WillyDisk never downloads or installs an update without asking.</string>
 	<key>Audio</key>
 	<string>Audio</string>
 	<key>Available</key>
@@ -226,10 +228,18 @@
 	<string>Changes the interface language right away.</string>
 	<key>Check Contents</key>
 	<string>Check Contents</string>
+	<key>Check for Updates…</key>
+	<string>Check for Updates…</string>
+	<key>Check for updates automatically</key>
+	<string>Check for updates automatically</string>
 	<key>Checked contents</key>
 	<string>Checked contents</string>
 	<key>Checking contents</key>
 	<string>Checking contents</string>
+	<key>Checking for Updates…</key>
+	<string>Checking for Updates…</string>
+	<key>Checking the download…</key>
+	<string>Checking the download…</string>
 	<key>Checking these items…</key>
 	<string>Checking these items…</string>
 	<key>Checking this item…</key>
@@ -308,6 +318,12 @@
 	<string>Could not write the diagnostics to %@: %@</string>
 	<key>Could not write the report to %@: %@</key>
 	<string>Could not write the report to %@: %@</string>
+	<key>Couldn't Check for Updates</key>
+	<string>Couldn't Check for Updates</string>
+	<key>Couldn't Check the Download</key>
+	<string>Couldn't Check the Download</string>
+	<key>Couldn't Download the Update</key>
+	<string>Couldn't Download the Update</string>
 	<key>Couldn’t move to the Trash. %@</key>
 	<string>Couldn’t move to the Trash. %@</string>
 	<key>Couldn’t put back everything. %@</key>
@@ -348,6 +364,12 @@
 	<string>Documents</string>
 	<key>Done</key>
 	<string>Done</string>
+	<key>Download</key>
+	<string>Download</string>
+	<key>Download size: %@</key>
+	<string>Download size: %@</string>
+	<key>Downloading WillyDisk %@…</key>
+	<string>Downloading WillyDisk %@…</string>
 	<key>Downloads</key>
 	<string>Downloads</string>
 	<key>Drop a folder to scan it</key>
@@ -438,6 +460,12 @@
 	<string>Folders that changed</string>
 	<key>Follow symbolic links</key>
 	<string>Follow symbolic links</string>
+	<key>GitHub is limiting requests right now. Try again later.</key>
+	<string>GitHub is limiting requests right now. Try again later.</string>
+	<key>GitHub returned an error. Try again later.</key>
+	<string>GitHub returned an error. Try again later.</string>
+	<key>GitHub took too long to respond. Try again.</key>
+	<string>GitHub took too long to respond. Try again.</string>
 	<key>Go up one level</key>
 	<string>Go up one level</string>
 	<key>Go up to %@</key>
@@ -478,6 +506,8 @@
 	<string>Include hidden items</string>
 	<key>Includes scan settings, timing, issue counts, and version. No file names, paths, or contents are included.</key>
 	<string>Includes scan settings, timing, issue counts, and version. No file names, paths, or contents are included.</string>
+	<key>Installing the update is not part of this build yet. The checksum-matched download is in the update folder.</key>
+	<string>Installing the update is not part of this build yet. The checksum-matched download is in the update folder.</string>
 	<key>Issues</key>
 	<string>Issues</string>
 	<key>It is already back</key>
@@ -504,6 +534,8 @@
 	<string>Large, old, and cache items worth reviewing</string>
 	<key>Largest files (%@)</key>
 	<string>Largest files (%@)</string>
+	<key>Last checked %@.</key>
+	<string>Last checked %@.</string>
 	<key>Last scan %@ · %@</key>
 	<string>Last scan %@ · %@</string>
 	<key>Later</key>
@@ -604,8 +636,12 @@
 	<string>No matches so far for “%@”</string>
 	<key>No possible duplicates</key>
 	<string>No possible duplicates</string>
+	<key>No published release was found.</key>
+	<string>No published release was found.</string>
 	<key>No recorded runs</key>
 	<string>No recorded runs</string>
+	<key>No release notes.</key>
+	<string>No release notes.</string>
 	<key>No results</key>
 	<string>No results</string>
 	<key>No two files on this Mac of at least %@ share a size in this scan.</key>
@@ -614,6 +650,8 @@
 	<string>None found</string>
 	<key>None listed</key>
 	<string>None listed</string>
+	<key>Not checked yet.</key>
+	<string>Not checked yet.</string>
 	<key>Not in the Trash</key>
 	<string>Not in the Trash</string>
 	<key>Not on this Mac</key>
@@ -656,6 +694,8 @@
 	<string>Only finished scans are recorded: a cancelled scan covers part of the folder, so it is not offered as a run to compare. Records stay on this Mac and hold paths and totals, never file contents. Clear History… removes them all.</string>
 	<key>Open Full Disk Access in System Settings</key>
 	<string>Open Full Disk Access in System Settings</string>
+	<key>Open Release Page</key>
+	<string>Open Release Page</string>
 	<key>Open System Settings → Privacy &amp; Security → Full Disk Access</key>
 	<string>Open System Settings → Privacy &amp; Security → Full Disk Access</string>
 	<key>Open System Settings…</key>
@@ -724,6 +764,8 @@
 	<string>Rebuildable</string>
 	<key>Recent</key>
 	<string>Recent</string>
+	<key>Release Notes</key>
+	<string>Release Notes</string>
 	<key>Remove exclusion %@</key>
 	<string>Remove exclusion %@</string>
 	<key>Removes every recorded run. Your files are not touched.</key>
@@ -868,6 +910,8 @@
 	<string>Show all categories</string>
 	<key>Show every category</key>
 	<string>Show every category</string>
+	<key>Show in Finder</key>
+	<string>Show in Finder</string>
 	<key>Show in Folder</key>
 	<string>Show in Folder</string>
 	<key>Show more items</key>
@@ -896,6 +940,8 @@
 	<string>Size</string>
 	<key>Sizes</key>
 	<string>Sizes</string>
+	<key>Skip This Version</key>
+	<string>Skip This Version</string>
 	<key>Skipped</key>
 	<string>Skipped</string>
 	<key>Skipped by your exclusions</key>
@@ -906,6 +952,8 @@
 	<string>Snapshots</string>
 	<key>Sockets, devices, and FIFOs hold no file data and were skipped safely.</key>
 	<string>Sockets, devices, and FIFOs hold no file data and were skipped safely.</string>
+	<key>Software Update</key>
+	<string>Software Update</string>
 	<key>Something else is at its original location now</key>
 	<string>Something else is at its original location now</string>
 	<key>Sort</key>
@@ -950,12 +998,20 @@
 	<string>The app that made these rebuilds them. You can select a whole section here.</string>
 	<key>The chart maps one folder at a time. Clear the search to return to “%@”.</key>
 	<string>The chart maps one folder at a time. Clear the search to return to “%@”.</string>
+	<key>The download did not match the published checksum. Nothing was changed.</key>
+	<string>The download did not match the published checksum. Nothing was changed.</string>
+	<key>The download is not a valid WillyDisk build. Nothing was changed.</key>
+	<string>The download is not a valid WillyDisk build. Nothing was changed.</string>
+	<key>The download was cancelled.</key>
+	<string>The download was cancelled.</string>
 	<key>The folder changed after this scan. Rescan to see the current numbers.</key>
 	<string>The folder changed after this scan. Rescan to see the current numbers.</string>
 	<key>The folder is watched only while its results are on screen.</key>
 	<string>The folder is watched only while its results are on screen.</string>
 	<key>The item is still in place.</key>
 	<string>The item is still in place.</string>
+	<key>The latest release is WillyDisk %@.</key>
+	<string>The latest release is WillyDisk %@.</string>
 	<key>The same values the Scan Options sheet on the source screen edits.</key>
 	<string>The same values the Scan Options sheet on the source screen edits.</string>
 	<key>The scan did not enter these items, so their contents are not in the totals. The size of what was left out is therefore unknown.</key>
@@ -980,6 +1036,12 @@
 	<string>The system did not report where it went</string>
 	<key>The system does not allow changes on this volume.</key>
 	<string>The system does not allow changes on this volume.</string>
+	<key>The update couldn't be completed. Try again.</key>
+	<string>The update couldn't be completed. Try again.</string>
+	<key>The update couldn't be downloaded. Try again.</key>
+	<string>The update couldn't be downloaded. Try again.</string>
+	<key>The update feed couldn't be read.</key>
+	<string>The update feed couldn't be read.</string>
 	<key>The volume's own capacity figures could not be read.</key>
 	<string>The volume's own capacity figures could not be read.</string>
 	<key>The ⓘ button opens Coverage: what the scan counted, what it skipped, and the volume's own figures side by side.</key>
@@ -988,6 +1050,8 @@
 	<string>Their contents are missing from the totals. %@ were reported.</string>
 	<key>There is no finished scan to check this item against. Run a scan, then try again.</key>
 	<string>There is no finished scan to check this item against. Run a scan, then try again.</string>
+	<key>There isn't enough free space for the download.</key>
+	<string>There isn't enough free space for the download.</string>
 	<key>These are moves this app made. Put Back returns an item to where it came from while the Trash still holds it.</key>
 	<string>These are moves this app made. Put Back returns an item to where it came from while the Trash still holds it.</string>
 	<key>These items could not be read while scanning.</key>
@@ -1002,6 +1066,8 @@
 	<string>They report %@ but occupy %@ on this disk. Their data is not here.</string>
 	<key>This Folder</key>
 	<string>This Folder</string>
+	<key>This build has no release version to compare.</key>
+	<string>This build has no release version to compare.</string>
 	<key>This folder has nothing big enough to draw.</key>
 	<string>This folder has nothing big enough to draw.</string>
 	<key>This folder holds the folder being scanned</key>
@@ -1022,6 +1088,10 @@
 	<string>This item is no longer there</string>
 	<key>This location is not on this Mac</key>
 	<string>This location is not on this Mac</string>
+	<key>This release has no build for this Mac.</key>
+	<string>This release has no build for this Mac.</string>
+	<key>This release is missing a file the updater needs.</key>
+	<string>This release is missing a file the updater needs.</string>
 	<key>This scan</key>
 	<string>This scan</string>
 	<key>This volume</key>
@@ -1040,6 +1110,8 @@
 	<string>Totals are still growing</string>
 	<key>Trash</key>
 	<string>Trash</string>
+	<key>Try Again</key>
+	<string>Try Again</string>
 	<key>Type</key>
 	<string>Type</string>
 	<key>Unavailable</key>
@@ -1052,8 +1124,12 @@
 	<string>Under a minute</string>
 	<key>Unreadable locations</key>
 	<string>Unreadable locations</string>
+	<key>Update Downloaded</key>
+	<string>Update Downloaded</string>
 	<key>Update the numbers as files change in the scanned folder. A change is applied where it happened, so even a whole-disk scan stays current.</key>
 	<string>Update the numbers as files change in the scanned folder. A change is applied where it happened, so even a whole-disk scan stays current.</string>
+	<key>Updates</key>
+	<string>Updates</string>
 	<key>Use the arrow keys to move through the list, Space to preview, and Return to open.</key>
 	<string>Use the arrow keys to move through the list, Space to preview, and Return to open.</string>
 	<key>Used by the volume</key>
@@ -1082,6 +1158,10 @@
 	<string>While these results are on screen, the scanned folder is watched: a change made in Finder updates the numbers without Rescan. If watching is off, or the results could not be made live, they are marked out of date and Rescan is offered.</string>
 	<key>WillyDisk</key>
 	<string>WillyDisk</string>
+	<key>WillyDisk %@ is available.</key>
+	<string>WillyDisk %@ is available.</string>
+	<key>WillyDisk %@ was downloaded and its checksum matched.</key>
+	<string>WillyDisk %@ was downloaded and its checksum matched.</string>
 	<key>WillyDisk Diagnostics.json</key>
 	<string>WillyDisk Diagnostics.json</string>
 	<key>WillyDisk Help</key>
@@ -1158,10 +1238,16 @@ EXIT STATUS
 Sizes are bytes on disk, not logical sizes: a cleanup finding is what moving
 it would free once the Trash is emptied, and this command never claims a
 saving.</string>
+	<key>WillyDisk couldn't reach GitHub. Check your connection and try again.</key>
+	<string>WillyDisk couldn't reach GitHub. Check your connection and try again.</string>
 	<key>WillyDisk does not move system locations. Choose an item inside the scanned folder instead.</key>
 	<string>WillyDisk does not move system locations. Choose an item inside the scanned folder instead.</string>
 	<key>WillyDisk does not move your home folder as a whole. Choose a file or a folder inside it instead.</key>
 	<string>WillyDisk does not move your home folder as a whole. Choose a file or a folder inside it instead.</string>
+	<key>WillyDisk is not signed or notarized by Apple. The checksum confirms the download arrived intact; it does not prove who built it.</key>
+	<string>WillyDisk is not signed or notarized by Apple. The checksum confirms the download arrived intact; it does not prove who built it.</string>
+	<key>WillyDisk is up to date.</key>
+	<string>WillyDisk is up to date.</string>
 	<key>WillyDisk scan</key>
 	<string>WillyDisk scan</string>
 	<key>WillyDisk scan — measure one folder from the command line
@@ -1232,6 +1318,10 @@ a comparison against them would read as space that vanished.</string>
 	<string>You can put it back from the Trash until you empty it.</string>
 	<key>You can put them back from the Trash until you empty it.</key>
 	<string>You can put them back from the Trash until you empty it.</string>
+	<key>You have WillyDisk %@.</key>
+	<string>You have WillyDisk %@.</string>
+	<key>You're running a newer build than the latest release.</key>
+	<string>You're running a newer build than the latest release.</string>
 	<key>Your files</key>
 	<string>Your files</string>
 	<key>`tmutil` could not list this volume's snapshots.</key>

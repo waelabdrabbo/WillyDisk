@@ -4717,6 +4717,30 @@
       },
       "shouldGenerateSwiftSymbol": false
     },
+    "Ask GitHub once a day whether a newer release exists. Nothing about your Mac or your scans is sent. WillyDisk never downloads or installs an update without asking.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يسأل GitHub مرة يوميًا عمّا إذا كان هناك إصدار أحدث. لا يُرسل أي شيء عن هذا الـ Mac أو عمليات الفحص. لا ينزّل WillyDisk أي تحديث أو يثبّته دون سؤالك."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ask GitHub once a day whether a newer release exists. Nothing about your Mac or your scans is sent. WillyDisk never downloads or installs an update without asking."
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Ášķ ĜíŧĤúƀ öñçé á ðáý ŵĥéŧĥéŕ á ñéŵéŕ ŕéļéášé éẋíšŧš. Ñöŧĥíñĝ áƀöúŧ ýöúŕ Ɱáç öŕ ýöúŕ šçáñš íš šéñŧ. ŴíļļýÐíšķ ñéṽéŕ ðöŵñļöáðš öŕ íñšŧáļļš áñ úþðáŧé ŵíŧĥöúŧ ášķíñĝ.·································································································································································]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
     "Audio": {
       "extractionState": "manual",
       "localizations": {
@@ -5125,6 +5149,54 @@
       },
       "shouldGenerateSwiftSymbol": false
     },
+    "Check for Updates…": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "التحقق من التحديثات…"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check for Updates…"
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Çĥéçķ ƒöŕ Úþðáŧéš…················]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "Check for updates automatically": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "التحقق من التحديثات تلقائيًا"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check for updates automatically"
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Çĥéçķ ƒöŕ úþðáŧéš áúŧöɱáŧíçáļļý·····························]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
     "Checked contents": {
       "extractionState": "manual",
       "localizations": {
@@ -5168,6 +5240,54 @@
           "stringUnit": {
             "state": "translated",
             "value": "[Çĥéçķíñĝ çöñŧéñŧš···············]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "Checking for Updates…": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "جارٍ التحقق من التحديثات…"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Checking for Updates…"
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Çĥéçķíñĝ ƒöŕ Úþðáŧéš…···················]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "Checking the download…": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "جارٍ فحص التنزيل…"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Checking the download…"
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Çĥéçķíñĝ ŧĥé ðöŵñļöáð…····················]"
           }
         }
       },
@@ -6109,6 +6229,78 @@
       },
       "shouldGenerateSwiftSymbol": false
     },
+    "Couldn't Check for Updates": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تعذّر التحقق من التحديثات"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't Check for Updates"
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Çöúļðñ'ŧ Çĥéçķ ƒöŕ Úþðáŧéš························]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "Couldn't Check the Download": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تعذّر فحص التنزيل"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't Check the Download"
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Çöúļðñ'ŧ Çĥéçķ ŧĥé Ðöŵñļöáð·························]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "Couldn't Download the Update": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تعذّر تنزيل التحديث"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't Download the Update"
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Çöúļðñ'ŧ Ðöŵñļöáð ŧĥé Úþðáŧé··························]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
     "Couldn’t move to the Trash. %@": {
       "extractionState": "manual",
       "localizations": {
@@ -6584,6 +6776,78 @@
           "stringUnit": {
             "state": "translated",
             "value": "[Ðöñé····]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "Download": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تنزيل"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Download"
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Ðöŵñļöáð······]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "Download size: %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "حجم التنزيل: %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Download size: %@"
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Ðöŵñļöáð šížé: %@···············]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "Downloading WillyDisk %@…": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "جارٍ تنزيل WillyDisk %@…"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Downloading WillyDisk %@…"
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Ðöŵñļöáðíñĝ ŴíļļýÐíšķ %@…·······················]"
           }
         }
       },
@@ -7753,6 +8017,78 @@
       },
       "shouldGenerateSwiftSymbol": false
     },
+    "GitHub is limiting requests right now. Try again later.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يقيّد GitHub الطلبات الآن. حاول لاحقًا."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "GitHub is limiting requests right now. Try again later."
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[ĜíŧĤúƀ íš ļíɱíŧíñĝ ŕéǫúéšŧš ŕíĝĥŧ ñöŵ. Ŧŕý áĝáíñ ļáŧéŕ.·····················································]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "GitHub returned an error. Try again later.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "أعاد GitHub خطأ. حاول لاحقًا."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "GitHub returned an error. Try again later."
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[ĜíŧĤúƀ ŕéŧúŕñéð áñ éŕŕöŕ. Ŧŕý áĝáíñ ļáŧéŕ.········································]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "GitHub took too long to respond. Try again.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "استغرق GitHub وقتًا طويلًا للرد. حاول مرة أخرى."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "GitHub took too long to respond. Try again."
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[ĜíŧĤúƀ ŧööķ ŧöö ļöñĝ ŧö ŕéšþöñð. Ŧŕý áĝáíñ.·········································]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
     "Go up one level": {
       "extractionState": "manual",
       "localizations": {
@@ -8233,6 +8569,30 @@
       },
       "shouldGenerateSwiftSymbol": false
     },
+    "Installing the update is not part of this build yet. The checksum-matched download is in the update folder.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تثبيت التحديث ليس جزءًا من هذا البناء بعد. التنزيل المطابق للبصمة موجود في مجلد التحديثات."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Installing the update is not part of this build yet. The checksum-matched download is in the update folder."
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Íñšŧáļļíñĝ ŧĥé úþðáŧé íš ñöŧ þáŕŧ öƒ ŧĥíš ƀúíļð ýéŧ. Ŧĥé çĥéçķšúɱ-ɱáŧçĥéð ðöŵñļöáð íš íñ ŧĥé úþðáŧé ƒöļðéŕ.·········································································································]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
     "Issues": {
       "extractionState": "manual",
       "localizations": {
@@ -8540,6 +8900,30 @@
           "stringUnit": {
             "state": "translated",
             "value": "[Ļáŕĝéšŧ ƒíļéš (%@)················]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "Last checked %@.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "آخر تحقق: %@."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Last checked %@."
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Ļášŧ çĥéçķéð %@.··············]"
           }
         }
       },
@@ -9745,6 +10129,30 @@
       },
       "shouldGenerateSwiftSymbol": false
     },
+    "No published release was found.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لم يُعثر على إصدار منشور."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No published release was found."
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Ñö þúƀļíšĥéð ŕéļéášé ŵáš ƒöúñð.·····························]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
     "No recorded runs": {
       "extractionState": "manual",
       "localizations": {
@@ -9764,6 +10172,30 @@
           "stringUnit": {
             "state": "translated",
             "value": "[Ñö ŕéçöŕðéð ŕúñš··············]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "No release notes.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لا توجد ملاحظات إصدار."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No release notes."
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Ñö ŕéļéášé ñöŧéš.···············]"
           }
         }
       },
@@ -9860,6 +10292,30 @@
           "stringUnit": {
             "state": "translated",
             "value": "[Ñöñé ļíšŧéð·········]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "Not checked yet.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لم يتم التحقق بعد."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not checked yet."
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Ñöŧ çĥéçķéð ýéŧ.··············]"
           }
         }
       },
@@ -10364,6 +10820,30 @@
           "stringUnit": {
             "state": "translated",
             "value": "[Öþéñ Ƒúļļ Ðíšķ Áççéšš íñ Šýšŧéɱ Šéŧŧíñĝš······································]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "Open Release Page": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "فتح صفحة الإصدار"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open Release Page"
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Öþéñ Ŕéļéášé Þáĝé···············]"
           }
         }
       },
@@ -11180,6 +11660,30 @@
           "stringUnit": {
             "state": "translated",
             "value": "[Ŕéçéñŧ····]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "Release Notes": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ملاحظات الإصدار"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Release Notes"
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Ŕéļéášé Ñöŧéš···········]"
           }
         }
       },
@@ -12913,6 +13417,30 @@
       },
       "shouldGenerateSwiftSymbol": false
     },
+    "Show in Finder": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إظهار في Finder"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show in Finder"
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Šĥöŵ íñ Ƒíñðéŕ············]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
     "Show in Folder": {
       "extractionState": "manual",
       "localizations": {
@@ -13417,6 +13945,30 @@
       },
       "shouldGenerateSwiftSymbol": false
     },
+    "Skip This Version": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تجاوز هذا الإصدار"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Skip This Version"
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Šķíþ Ŧĥíš Ṽéŕšíöñ···············]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
     "Skipped": {
       "extractionState": "manual",
       "localizations": {
@@ -13532,6 +14084,30 @@
           "stringUnit": {
             "state": "translated",
             "value": "[Šöçķéŧš, ðéṽíçéš, áñð ƑÍƑÖš ĥöļð ñö ƒíļé ðáŧá áñð ŵéŕé šķíþþéð šáƒéļý.····································································]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "Software Update": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تحديث البرنامج"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Software Update"
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Šöƒŧŵáŕé Úþðáŧé·············]"
           }
         }
       },
@@ -14065,6 +14641,78 @@
       },
       "shouldGenerateSwiftSymbol": false
     },
+    "The download did not match the published checksum. Nothing was changed.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لا يطابق التنزيل بصمة SHA-256 المنشورة. لم يتغيّر شيء."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The download did not match the published checksum. Nothing was changed."
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Ŧĥé ðöŵñļöáð ðíð ñöŧ ɱáŧçĥ ŧĥé þúƀļíšĥéð çĥéçķšúɱ. Ñöŧĥíñĝ ŵáš çĥáñĝéð.·····································································]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "The download is not a valid WillyDisk build. Nothing was changed.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "التنزيل ليس بناء WillyDisk صالحًا. لم يتغيّر شيء."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The download is not a valid WillyDisk build. Nothing was changed."
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Ŧĥé ðöŵñļöáð íš ñöŧ á ṽáļíð ŴíļļýÐíšķ ƀúíļð. Ñöŧĥíñĝ ŵáš çĥáñĝéð.·······························································]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "The download was cancelled.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "أُلغي التنزيل."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The download was cancelled."
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Ŧĥé ðöŵñļöáð ŵáš çáñçéļļéð.·························]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
     "The folder changed after this scan. Rescan to see the current numbers.": {
       "extractionState": "manual",
       "localizations": {
@@ -14132,6 +14780,30 @@
           "stringUnit": {
             "state": "translated",
             "value": "[Ŧĥé íŧéɱ íš šŧíļļ íñ þļáçé.·························]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "The latest release is WillyDisk %@.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "أحدث إصدار منشور هو WillyDisk %@."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The latest release is WillyDisk %@."
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Ŧĥé ļáŧéšŧ ŕéļéášé íš ŴíļļýÐíšķ %@.·································]"
           }
         }
       },
@@ -14425,6 +15097,78 @@
       },
       "shouldGenerateSwiftSymbol": false
     },
+    "The update couldn't be completed. Try again.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تعذّر إكمال التحديث. حاول مرة أخرى."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The update couldn't be completed. Try again."
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Ŧĥé úþðáŧé çöúļðñ'ŧ ƀé çöɱþļéŧéð. Ŧŕý áĝáíñ.··········································]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "The update couldn't be downloaded. Try again.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تعذّر تنزيل التحديث. حاول مرة أخرى."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The update couldn't be downloaded. Try again."
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Ŧĥé úþðáŧé çöúļðñ'ŧ ƀé ðöŵñļöáðéð. Ŧŕý áĝáíñ.···········································]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "The update feed couldn't be read.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تعذّرت قراءة موجز التحديثات."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The update feed couldn't be read."
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Ŧĥé úþðáŧé ƒééð çöúļðñ'ŧ ƀé ŕéáð.·······························]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
     "The volume's own capacity figures could not be read.": {
       "extractionState": "manual",
       "localizations": {
@@ -14516,6 +15260,30 @@
           "stringUnit": {
             "state": "translated",
             "value": "[Ŧĥéŕé íš ñö ƒíñíšĥéð šçáñ ŧö çĥéçķ ŧĥíš íŧéɱ áĝáíñšŧ. Ŕúñ á šçáñ, ŧĥéñ ŧŕý áĝáíñ.···············································································]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "There isn't enough free space for the download.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لا توجد مساحة حرة كافية للتنزيل."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "There isn't enough free space for the download."
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Ŧĥéŕé íšñ'ŧ éñöúĝĥ ƒŕéé šþáçé ƒöŕ ŧĥé ðöŵñļöáð.·············································]"
           }
         }
       },
@@ -14684,6 +15452,30 @@
           "stringUnit": {
             "state": "translated",
             "value": "[Ŧĥíš Ƒöļðéŕ·········]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "This build has no release version to compare.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لا يحمل هذا البناء رقم إصدار للمقارنة."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This build has no release version to compare."
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Ŧĥíš ƀúíļð ĥáš ñö ŕéļéášé ṽéŕšíöñ ŧö çöɱþáŕé.···········································]"
           }
         }
       },
@@ -14929,6 +15721,54 @@
       },
       "shouldGenerateSwiftSymbol": false
     },
+    "This release has no build for this Mac.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لا يتضمن هذا الإصدار نسخة تعمل على هذا الـ Mac."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This release has no build for this Mac."
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Ŧĥíš ŕéļéášé ĥáš ñö ƀúíļð ƒöŕ ŧĥíš Ɱáç.·····································]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "This release is missing a file the updater needs.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ينقص هذا الإصدار ملف يحتاجه المُحدِّث."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This release is missing a file the updater needs."
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Ŧĥíš ŕéļéášé íš ɱíššíñĝ á ƒíļé ŧĥé úþðáŧéŕ ñééðš.···············································]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
     "This scan": {
       "extractionState": "manual",
       "localizations": {
@@ -15145,6 +15985,30 @@
       },
       "shouldGenerateSwiftSymbol": false
     },
+    "Try Again": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إعادة المحاولة"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Try Again"
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Ŧŕý Áĝáíñ·······]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
     "Type": {
       "extractionState": "manual",
       "localizations": {
@@ -15289,6 +16153,30 @@
       },
       "shouldGenerateSwiftSymbol": false
     },
+    "Update Downloaded": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تم تنزيل التحديث"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Update Downloaded"
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Úþðáŧé Ðöŵñļöáðéð···············]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
     "Update the numbers as files change in the scanned folder. A change is applied where it happened, so even a whole-disk scan stays current.": {
       "extractionState": "manual",
       "localizations": {
@@ -15308,6 +16196,30 @@
           "stringUnit": {
             "state": "translated",
             "value": "[Úþðáŧé ŧĥé ñúɱƀéŕš áš ƒíļéš çĥáñĝé íñ ŧĥé šçáññéð ƒöļðéŕ. Á çĥáñĝé íš áþþļíéð ŵĥéŕé íŧ ĥáþþéñéð, šö éṽéñ á ŵĥöļé-ðíšķ šçáñ šŧáýš çúŕŕéñŧ.·······································································································································]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "Updates": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "التحديثات"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Updates"
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Úþðáŧéš·····]"
           }
         }
       },
@@ -15649,6 +16561,54 @@
       },
       "shouldGenerateSwiftSymbol": false
     },
+    "WillyDisk %@ is available.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يتوفر WillyDisk %@."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "WillyDisk %@ is available."
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[ŴíļļýÐíšķ %@ íš áṽáíļáƀļé.························]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "WillyDisk %@ was downloaded and its checksum matched.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تم تنزيل WillyDisk %@ وتطابقت بصمة التحقق."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "WillyDisk %@ was downloaded and its checksum matched."
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[ŴíļļýÐíšķ %@ ŵáš ðöŵñļöáðéð áñð íŧš çĥéçķšúɱ ɱáŧçĥéð.···················································]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
     "WillyDisk Diagnostics.json": {
       "extractionState": "manual",
       "localizations": {
@@ -15793,6 +16753,30 @@
       },
       "shouldGenerateSwiftSymbol": false
     },
+    "WillyDisk couldn't reach GitHub. Check your connection and try again.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تعذّر على WillyDisk الوصول إلى GitHub. تحقّق من اتصالك وحاول مرة أخرى."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "WillyDisk couldn't reach GitHub. Check your connection and try again."
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[ŴíļļýÐíšķ çöúļðñ'ŧ ŕéáçĥ ĜíŧĤúƀ. Çĥéçķ ýöúŕ çöññéçŧíöñ áñð ŧŕý áĝáíñ.···································································]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
     "WillyDisk does not move system locations. Choose an item inside the scanned folder instead.": {
       "extractionState": "manual",
       "localizations": {
@@ -15836,6 +16820,54 @@
           "stringUnit": {
             "state": "translated",
             "value": "[ŴíļļýÐíšķ ðöéš ñöŧ ɱöṽé ýöúŕ ĥöɱé ƒöļðéŕ áš á ŵĥöļé. Çĥööšé á ƒíļé öŕ á ƒöļðéŕ íñšíðé íŧ íñšŧéáð.·······························································································]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "WillyDisk is not signed or notarized by Apple. The checksum confirms the download arrived intact; it does not prove who built it.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "WillyDisk غير موقّع من Apple وغير موثّق من قِبلها. تؤكد بصمة التحقق أن التنزيل وصل سليمًا، لكنها لا تثبت من أنشأه."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "WillyDisk is not signed or notarized by Apple. The checksum confirms the download arrived intact; it does not prove who built it."
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[ŴíļļýÐíšķ íš ñöŧ šíĝñéð öŕ ñöŧáŕížéð ƀý Áþþļé. Ŧĥé çĥéçķšúɱ çöñƒíŕɱš ŧĥé ðöŵñļöáð áŕŕíṽéð íñŧáçŧ; íŧ ðöéš ñöŧ þŕöṽé ŵĥö ƀúíļŧ íŧ.·······························································································································]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "WillyDisk is up to date.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "WillyDisk محدّث بالفعل."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "WillyDisk is up to date."
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[ŴíļļýÐíšķ íš úþ ŧö ðáŧé.······················]"
           }
         }
       },
@@ -15980,6 +17012,54 @@
           "stringUnit": {
             "state": "translated",
             "value": "[Ýöú çáñ þúŧ ŧĥéɱ ƀáçķ ƒŕöɱ ŧĥé Ŧŕášĥ úñŧíļ ýöú éɱþŧý íŧ.······················································]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "You have WillyDisk %@.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إصدارك الحالي هو WillyDisk %@."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You have WillyDisk %@."
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Ýöú ĥáṽé ŴíļļýÐíšķ %@.····················]"
+          }
+        }
+      },
+      "shouldGenerateSwiftSymbol": false
+    },
+    "You're running a newer build than the latest release.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "أنت تستخدم إصدارًا أحدث من آخر إصدار منشور."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You're running a newer build than the latest release."
+          }
+        },
+        "en-XA": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[Ýöú'ŕé ŕúññíñĝ á ñéŵéŕ ƀúíļð ŧĥáñ ŧĥé ļáŧéšŧ ŕéļéášé.···················································]"
           }
         }
       },

@@ -21,7 +21,9 @@ Four targets with different jobs.
 - `QATests/` — independent verification of shipped behavior that deliberately does not
   trust the engine's own tests. It cross-checks the scanner against external ground truth
   (`find` / `du`) and probes the non-negotiables, covering scan correctness, the
-  `ScanViewModel` state machine, the access notice, and the UI surface.
+  `ScanViewModel` state machine, the access notice, and the UI surface. `UpdateQATests`
+  drives the update controller, preferences, and staging with a fake feed, downloader,
+  and verifier; nothing there opens a socket.
 
 Two opt-in benchmarks, `ScanBenchmarkTests` and `LiveTreeBenchmarkTests`, skip unless
 `WILLYDISK_BENCH_ROOT` points at a folder, so they never slow `swift test`.
@@ -35,4 +37,5 @@ swift test                                  # every target
 swift test --filter ScanCommandTests        # one class
 swift test --filter ScanCorrectnessQATests  # one class
 swift test --filter DiskUpdateTests         # the feed and update checks
+swift test --filter UpdateQATests          # controller, preferences, staging
 ```

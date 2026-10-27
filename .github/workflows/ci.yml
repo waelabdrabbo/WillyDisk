@@ -105,6 +105,7 @@ jobs:
           bash Scripts/render-screens.sh -a both -S both -o .build/renders/ci
           bash Scripts/render-screens.sh -a both -S help -c -o .build/renders/ci
           bash Scripts/render-screens.sh -a both -S settings -c -s 460x760 -o .build/renders/ci
+          bash Scripts/render-screens.sh -a both -S update -c -s 640x600 -o .build/renders/ci
           bash Scripts/render-screens.sh -a both -S categories -o .build/renders/ci
           bash Scripts/render-screens.sh -a both -S search -o .build/renders/ci
           bash Scripts/render-screens.sh -a both -S cleanup -c -o .build/renders/ci
@@ -118,6 +119,7 @@ jobs:
           bash Scripts/render-screens.sh -a both -S coverage -c -l ar -o .build/renders/ci
           bash Scripts/render-screens.sh -a both -S cleanup -c -l ar -o .build/renders/ci
           bash Scripts/render-screens.sh -a both -S settings -c -s 460x760 -l ar -o .build/renders/ci
+          bash Scripts/render-screens.sh -a both -S update -c -s 640x600 -l ar -o .build/renders/ci
           bash Scripts/render-screens.sh -a light -S results -l en-XA -o .build/renders/ci
           bash Scripts/render-screens.sh -a light -S coverage -c -l en-XA -o .build/renders/ci
 

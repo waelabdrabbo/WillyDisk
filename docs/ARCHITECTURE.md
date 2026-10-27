@@ -289,7 +289,9 @@ that fills a `LiveTree`, where the tree carries the root's entries instead.
   off). Two questions need the whole tree rather than one folder: the explorer's
   largest lists and the whole-scan search. Both walk it off the main actor, take the
   lock per folder, and run on their own intervals — every entry they visit was
-  measured, though the answer is not a snapshot of one instant. The cleanup and
+  measured, though the answer is not a snapshot of one instant. A search's refresh
+  never replaces a walk that is out; it queues one behind it, because replacing a walk
+  longer than the interval would restart a search that never lands. The cleanup and
   duplicate candidates and the category file list walk the tree the same way.
   `ScanSummary` stays the scan's record — History, the CLI, export, diagnostics and the
   coverage sheet describe the run, not the screen. The watcher stops on Home, on a new

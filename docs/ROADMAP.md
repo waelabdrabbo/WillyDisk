@@ -254,16 +254,19 @@ Details worth remembering:
   keystroke, and matches names case- and diacritic-insensitively; a query containing `/`
   is a path query and also matches each entry's full path, which is how `Photos/2024`
   finds what lives there without a one-letter query returning every path on the disk. It
-  keeps the largest 200 matches, counts every one, and stops after 2,000,000 entries,
-  saying on the summary line what it is showing and whether the walk stopped. Each row
+  keeps the largest 200 matches, counts every one, and stops after 5,000,000 entries —
+  more than this Mac's full disk, which is what a home folder and a whole-disk scan need;
+  a tree larger than that says on the summary line what it is showing and whether the walk
+  stopped. Each row
   names the folder that holds it; Show in Folder (and Return on a folder result) clears
   the search and re-roots the explorer there, with the result selected. The chart pane is
   not a chart of the matches — the sunburst's wedges partition one folder's bytes, and a
   matched file inside a matched folder would be counted twice — so it says what the
   search found and that clearing the field brings the folder chart back. A live scan is
   searched as it stands and the search re-runs when the terminal summary lands, as it
-  does after a quiet refresh; the live summary line says “so far”. Search never records
-  history and never edits the tree.
+  does after a quiet refresh; a refresh queues one walk behind the one in flight rather
+  than replacing it, so a search over a big folder always lands. The live summary line
+  says “so far”. Search never records history and never edits the tree.
 - History opens from the results toolbar (or Scan ▸ History…) for the location on the
   engine's slot, and compares two of its runs. The current run is recorded as it
   settles; the sheet picks the two newest by default and lets any two be chosen. Clear

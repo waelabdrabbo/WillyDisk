@@ -108,11 +108,22 @@ per folder and run the visitor outside it, so a walk on a big disk never stops t
 watcher from applying an edit. They are not snapshots: a folder that changes mid-walk is
 seen before or after that edit, and every entry reported was measured.
 
+A search that matches on a path (`Photos/2024`) also needs each entry's path, and
+`LiveTree.walk` hands that out too: the walk builds the child's path from the folder it is
+in, one string per entry, where asking the tree for a path per entry walks that entry's
+parent chain under the lock each time.
+
 On this Mac's full disk (4,637,637 entries) a walk with names costs **3.70 s** and a
-facts walk **1.79 s**, so a screen must not run one per applied batch. The results screen
+facts walk **1.79 s**, so a screen must not run one per applied batch. The comparison
+against a name costs more than the walk that feeds it when it is the Unicode one:
+`range(of:options:)` takes about 10.7 s over a 3.1-million-entry home folder, so the
+search folds ASCII to ASCII and keeps the Unicode comparison for the names that need it —
+the same search takes 0.8 s, and a path query 1.9 s. The results screen
 re-runs an open search at most every 4 s and re-ranks the largest lists at most every
 3 s, always off the main actor and cancelled when the screen goes away. The previous
-answer stays on screen while the next walk runs.
+answer stays on screen while the next walk runs, and a change that lands mid-walk queues
+one follow-up walk rather than replacing the one in flight: a tree too big to walk inside
+the interval would otherwise never finish a search.
 
 ## The engine's pass
 

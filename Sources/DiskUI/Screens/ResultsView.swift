@@ -48,6 +48,14 @@ public struct ResultsView: View {
     @State private var searchResults: ScanSearchResults?
     /// The search in flight, held so the next keystroke can cancel its walk.
     @State private var searchRun: Task<ScanSearchResults?, Never>?
+    /// A tree change that landed while a walk was out.
+    ///
+    /// The walk read the tree as it was when it started, so a change after that is
+    /// newer than its answer. It does not replace the walk, though: on a tree too
+    /// big to walk inside the search interval, replacing it every interval would
+    /// restart a search that never lands. One follow-up walk runs when this one
+    /// does.
+    @State private var searchRefreshPending = false
     @State private var isSearching = false
     /// Bumped when a search lands, so the rows rebuild once for a new result set
     /// rather than once per redraw.
@@ -371,39 +379,52 @@ public struct ResultsView: View {
         }
     }
 
-    /// Starts the search for what the field now holds.
-    ///
-    /// The walk happens off the main actor and behind a short quiet period, so a
-    /// keystroke neither blocks the screen nor starts a walk that the next
-    /// keystroke immediately replaces. Every new query cancels the one before it,
-    /// and the walk checks cancellation between nodes.
     /// Re-runs an open search when the tree changed under it.
     ///
     /// The walk is throttled: on a disk that is never quiet every applied batch
     /// bumps the revision, and walking millions of entries for each one would
     /// spend more time searching than the disk spends changing. The previous
     /// answer stays on screen until the next walk starts.
+    ///
+    /// A change never replaces a walk that is out. A walk over a home folder takes
+    /// seconds, and a tree too big to walk inside the interval would be restarted
+    /// at every interval — with each restart throwing away the answer the last one
+    /// was about to produce. Instead one follow-up walk is queued, and it starts
+    /// when the walk in flight lands.
     @MainActor
     private func refreshSearchForTreeChange() {
         guard isSearchActive, !isLiveScan else { return }
+        guard searchRun == nil else {
+            searchRefreshPending = true
+            return
+        }
         let now = ContinuousClock().now
         if let started = lastSearchStartedAt, now < started.advanced(by: Self.liveSearchInterval) {
-            searchRefreshTask?.cancel()
+            guard searchRefreshTask == nil else { return }
             let wait = now.duration(to: started.advanced(by: Self.liveSearchInterval))
             searchRefreshTask = Task {
                 try? await Task.sleep(for: wait)
                 guard !Task.isCancelled else { return }
                 searchRefreshTask = nil
-                startSearch(searchText, debounce: false)
+                refreshSearchForTreeChange()
             }
             return
         }
         startSearch(searchText, debounce: false)
     }
 
+    /// Starts the search for what the field now holds.
+    ///
+    /// The walk happens off the main actor and behind a short quiet period, so a
+    /// keystroke neither blocks the screen nor starts a walk that the next
+    /// keystroke immediately replaces. Every new query cancels the one before it,
+    /// and the walk checks cancellation between nodes.
     private func startSearch(_ text: String, debounce: Bool = true) {
         searchRun?.cancel()
         searchRun = nil
+        searchRefreshTask?.cancel()
+        searchRefreshTask = nil
+        searchRefreshPending = false
 
         let query = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !query.isEmpty, summary != nil else {
@@ -437,6 +458,12 @@ public struct ResultsView: View {
             searchResults = results
             searchRevision &+= 1
             isSearching = false
+            searchRun = nil
+            // A change that landed while this walk ran is newer than its answer.
+            if searchRefreshPending {
+                searchRefreshPending = false
+                refreshSearchForTreeChange()
+            }
         }
     }
 
@@ -2192,6 +2219,7 @@ public struct ResultsView: View {
         searchRun = nil
         searchRefreshTask?.cancel()
         searchRefreshTask = nil
+        searchRefreshPending = false
         rankingTask?.cancel()
         rankingTask = nil
         rankingRetryTask?.cancel()

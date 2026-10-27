@@ -111,7 +111,9 @@ rather than being repeated.
   and the duplicate candidates all walk the tree; export, diagnostics, coverage and
   History stay the scan's record. The whole-tree walks are throttled
   (`liveRerankInterval` 3 s, `liveSearchInterval` 4 s), run off the main actor, and
-  are cancelled when the screen leaves. `resultsAreStale` is only for a
+  are cancelled when the screen leaves. A search's refresh never replaces a walk that
+  is out — it queues one behind it, because a tree too big to walk inside the interval
+  would otherwise restart a search that never lands. `resultsAreStale` is only for a
   screen that cannot follow — a scan that could not become a tree, or the watch
   switched off — and an applied batch clears it. Nothing is re-measured, so there is no
   refresh budget and `isLiveScan` is just `isScanning`.

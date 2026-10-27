@@ -413,6 +413,43 @@ public final class LiveTree: @unchecked Sendable {
         return visited
     }
 
+    /// The same depth-first walk, reporting each entry's absolute path.
+    ///
+    /// A path query asks about the whole path of every entry. Asking the tree for
+    /// one per entry walks that entry's parent chain under the lock and joins it
+    /// again — tens of microseconds each, which over a few million entries is
+    /// minutes rather than seconds. The walk already knows the folder it is in,
+    /// so it builds the child's path from the folder's once per entry instead.
+    /// A name query does not need paths and uses `walk` instead.
+    @discardableResult
+    public func walk(
+        from start: LiveNodeID = LiveTree.rootID,
+        _ visit: (LiveEntry, _ path: String) -> WalkStep
+    ) -> Int {
+        guard let startPath = path(of: start) else { return 0 }
+        var visited = 0
+        var folders: [(id: LiveNodeID, path: String)] = [(start, startPath)]
+        while let folder = folders.popLast() {
+            for entry in children(of: folder.id) {
+                visited += 1
+                let path = folder.path == "/"
+                    ? "/" + entry.name
+                    : folder.path + "/" + entry.name
+                switch visit(entry, path) {
+                case .stop:
+                    return visited
+                case .skipChildren:
+                    continue
+                case .descend:
+                    if entry.kind == .directory {
+                        folders.append((entry.id, path))
+                    }
+                }
+            }
+        }
+        return visited
+    }
+
     // MARK: - Building during a walk
 
     /// Inserts one folder's whole listing and returns each node's id in the order

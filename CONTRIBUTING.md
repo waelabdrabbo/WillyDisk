@@ -98,7 +98,9 @@ git push origin "v$version"
 ```
 
 The tag push starts `release.yml`. There is no automatic tag workflow and no
-`RELEASE_TOKEN` secret; the tag is the release switch.
+`RELEASE_TOKEN` secret; the tag is the release switch. The release notes are the static
+template plus a What's Changed list generated from the commits between the previous tag
+and this one; the `VERSION` bump and the cask write-back are left out.
 
 The tag must name the version in `VERSION`. Nothing checks that the number is higher than
 the last release: a repeated number releases nothing — its tag already exists — instead

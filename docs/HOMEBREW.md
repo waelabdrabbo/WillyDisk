@@ -104,11 +104,10 @@ the tap and the trust entry. CI runs this on every change
 
 ## Publishing on a release
 
-The tag that starts a release normally comes from `.github/workflows/auto-release.yml`,
-which tags `v<version>` once CI accepts a `VERSION` bump on `main`; pushing the tag by hand
-does the same thing. Either way, `.github/workflows/release.yml`
-runs one new step, **Commit the cask the tap serves**, between filling in the notes and
-publishing the release:
+The tag that starts a release is created by hand on `main`: bump `VERSION`, wait for
+CI, then push an annotated `v<version>` tag. `.github/workflows/release.yml` runs one new
+step, **Commit the cask the tap serves**, between filling in the notes and publishing the
+release:
 
 1. Clone `main` with the run's `GITHUB_TOKEN` — no personal token, no secret to
    configure.

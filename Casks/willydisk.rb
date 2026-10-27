@@ -6,9 +6,9 @@
 cask "willydisk" do
   arch arm: "arm64", intel: "x86_64"
 
-  version "1.0.1"
-  sha256 arm:   "443d62de6be872f81348654424ade1778b5c4924063d0140257c16955de5bc8a",
-         intel: "69e2d7d5a2cbb5c2cbf6b0b09f211b7c58cc116d3262d17d6eb644f451825466"
+  version "1.0.2"
+  sha256 arm:   "9bf93774a3f4278405a8957e87c7ef287f63f0ea783994e6c4aaf38a49437ce0",
+         intel: "6f205071bfbf220c2e2d55eea6aae2b839706ed2ee3d84ed16b434f62dcd5515"
 
   url "https://github.com/waelabdrabbo/WillyDisk/releases/download/v#{version}/WillyDisk-#{version}-#{arch}.zip"
   name "WillyDisk"
@@ -20,6 +20,7 @@ cask "willydisk" do
     strategy :github_latest
   end
 
+  auto_updates true
   depends_on macos: :sonoma
 
   app "WillyDisk.app"
@@ -44,7 +45,12 @@ cask "willydisk" do
       xattr -dr com.apple.quarantine #{appdir}/WillyDisk.app
 
     Full Disk Access is optional. Without it, WillyDisk measures what it can
-    read and reports what it could not.
+    read and reports what it could not. Because the app is ad-hoc signed, macOS
+    may ask for that permission again after an update.
+
+    WillyDisk can update itself from the app menu; `brew upgrade --cask
+    willydisk` also works, and Homebrew compares the installed app's version so
+    it will not replace a newer self-updated copy.
 
     The same binary also scans without a window: `willydisk scan <folder>`.
   EOS

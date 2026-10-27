@@ -78,30 +78,42 @@ reasoning in the pull request and update `docs/ARCHITECTURE.md` in the same chan
 
 ## Releasing
 
-A release is a `v*` tag and nothing else. `ci.yml` builds every push to `main` but
-publishes nothing; `release.yml` publishes only a tag that names the version in
-`VERSION`, and builds both architectures from that commit.
+`ci.yml` must accept a commit before it is published, and `release.yml` publishes only a
+`v*` tag that names the version in `VERSION`.
+
+**Bump `VERSION` and push.**
 
 ```
-bash Scripts/release.sh 1.0.2
-```
-
-The script refuses a version that is not newer than `VERSION`, a tag that already exists
-here or on the remote, a branch other than `main`, a tree with tracked changes, and a
-`main` that is not in sync with the remote. It writes `VERSION`, commits it as
-`chore(release): 1.0.2`, pushes, waits for CI on that commit, and only then tags, so a
-release never publishes a commit CI has not accepted. `--dry-run` prints the plan,
-`--no-wait` skips the CI gate, and `--tag-only` completes a release whose bump is already
-pushed, which is the way out of a failed gate.
-
-By hand the same steps are:
-
-```
-printf '1.0.2\n' > VERSION
-git add VERSION && git commit -m "chore(release): 1.0.2"
+printf '1.0.3\n' > VERSION
+git add VERSION && git commit -m "chore(release): 1.0.3"
 git push origin main
-git tag -a v1.0.2 -m "WillyDisk 1.0.2" && git push origin v1.0.2
 ```
+
+`.github/workflows/auto-release.yml` watches CI finish on `main`. When the commit it
+accepted carries a `VERSION` with no tag yet, it creates `v<version>` and pushes it, which
+starts the release. Pushes that leave `VERSION` alone — including the cask commit a
+release writes back to `main` — find their tag already there and release nothing.
+
+That workflow needs one repository secret, `RELEASE_TOKEN`: a fine-grained personal access
+token with **Contents: read and write** on this repository (a classic token with `repo`
+also works). The default `GITHUB_TOKEN` is not enough — a tag pushed with it does not
+start another workflow, so `release.yml` would never run. Without the secret the workflow
+fails and says so.
+
+Nothing checks that the number is higher than the last release: `release.yml` only checks
+that the tag names `VERSION`, so a mistaken or repeated number releases nothing — its tag
+already exists — instead of failing.
+
+**Publishing without waiting for CI** — CI is degraded, or the commit has to ship now — is
+the tag alone. It must point at a commit whose `VERSION` already says that number:
+
+```
+git tag -a v1.0.3 -m "WillyDisk 1.0.3" && git push origin v1.0.3
+```
+
+**If a release fails after its tag exists** — the token was missing, the cask push was
+blocked, a checksum check failed — re-run the failed `Release` run from the Actions tab.
+`auto-release.yml` will not retry, because the tag is already there.
 
 `CFBundleVersion` is the commit count, so nothing else is bumped. After a release, `main`
 carries one commit you did not push: the workflow commits the rendered

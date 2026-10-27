@@ -6,6 +6,8 @@ WillyDisk scans a volume or a folder, builds a size-attributed tree of what it f
 shows where the bytes went — an interactive sunburst chart, a sortable explorer, and a
 breakdown by file category. Everything happens on your machine.
 
+<img src="docs/assets/willydisk-demo.gif" width="820" alt="WillyDisk's home screen, a folder being scanned, and the finished results as a sunburst chart beside the explorer">
+
 ## Features
 
 - **Stays current.** While the results are on screen, a change in the scanned folder

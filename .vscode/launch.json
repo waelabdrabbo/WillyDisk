@@ -19,6 +19,26 @@
             "target": "WillyDisk",
             "configuration": "release",
             "preLaunchTask": "swift: Build Release WillyDisk"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:WillyDisk}",
+            "name": "Debug render-screens",
+            "target": "render-screens",
+            "configuration": "debug",
+            "preLaunchTask": "swift: Build Debug render-screens"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:WillyDisk}",
+            "name": "Release render-screens",
+            "target": "render-screens",
+            "configuration": "release",
+            "preLaunchTask": "swift: Build Release render-screens"
         }
     ]
 }

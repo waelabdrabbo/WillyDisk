@@ -53,7 +53,9 @@ rather than being repeated.
   save panel), `DiagnosticsExport` (scan settings, timing, issue counts, and build
   facts; never a file name, path, or content),
   `CategoryBreakdown` (sizes by category), `CategoryFiles` (a category's largest
-  files, walked off the main actor), `CleanupPresentation` (rule and tier wording for
+  files, walked off the main actor), `CategoryDetail` (the open category's files and
+  the one walk that may replace them, so a refresh never empties the list),
+  `CleanupPresentation` (rule and tier wording for
   the sheet, over `DiskCore`'s rules), `DuplicateCheck` (the sheet's cancellable content
   check over `DiskCore`'s hasher), `ReclaimLog` (the app's moves, updated after a move or
   a Put Back), `ScanOptions` + `ScanOptionsStore` (the one shared,
@@ -152,6 +154,7 @@ WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S settings -c -s 
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S update -c -s 640x600 -o .build/renders/<change>
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S update-ready -c -s 640x600 -o .build/renders/<change>
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S categories -o .build/renders/<change>
+WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S category -o .build/renders/<change>
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S treemap -o .build/renders/<change>
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S coverage -c -o .build/renders/<change>
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S search -o .build/renders/<change>
@@ -167,7 +170,9 @@ WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S history -c -o .
 
 `-S` picks the screen: `results` (default), `home` (source selection), `search` (the
 results screen with a whole-scan query open), `categories` (the results screen in
-Categories mode), `treemap` (the results screen drawn as the treemap), `coverage` (the coverage sheet), `help` and `settings` (the sheet and
+Categories mode), `category` (that screen inside the fixture's largest category, so the
+category detail is reviewable without clicking), `treemap` (the results screen drawn as
+the treemap), `coverage` (the coverage sheet), `help` and `settings` (the sheet and
 preferences contents), `update` and `update-ready` (the software-update sheet and its
 ready state), `cleanup`, `duplicates`,
 and `moved` (the cleanup sheet's three

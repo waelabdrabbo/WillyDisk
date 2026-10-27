@@ -149,8 +149,11 @@ Details worth remembering:
   “All Categories” above the list closes it. The files come from a walk over the finished
   tree, run off the main actor and capped at 100 with every match still counted; a live
   scan uses the engine's ranked list and says it is the largest so far, then reloads when
-  the root node lands. There is no category menu and no category filter: the mode is the
-  only way in.
+  the root node lands. A watched change asks for a newer walk on the interval the screen's
+  other whole-tree walks use, and the files on screen stay until that walk lands: a home
+  folder is millions of entries walked while the disk keeps changing, so a list that
+  emptied on every change would never leave the reading state. There is no category menu and no
+  category filter: the mode is the only way in.
 - The treemap is the same tree drawn as nested boxes, chosen in Settings ▸ Chart. It
   shares the sunburst's selection, hover, click semantics, and fills, so switching the
   chart changes the drawing and nothing else. A box's area is its share of the box that

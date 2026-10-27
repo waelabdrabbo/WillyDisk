@@ -21,9 +21,12 @@ public struct CategoryFiles: Equatable, Sendable {
 /// Finds the largest files of one category in the live tree.
 ///
 /// The category breakdown says how much a category holds; this walks the tree to
-/// say which files hold it. Nothing touches the filesystem, and the walk keeps
-/// only the largest `limit` files while counting every match, so it can run off
-/// the main actor over a whole disk without building a second index.
+/// say which files hold it. Nothing touches the filesystem, and the walk reads
+/// the tree's measured facts without decoding a name — millions of entries are
+/// walked on a full disk, and the names of the few it keeps are the only ones
+/// materialized. It keeps only the largest `limit` files while counting every
+/// match, so it can run off the main actor over a whole disk without building a
+/// second index.
 public enum CategoryFileIndex {
 
     /// Returns nil when the caller cancelled before the walk finished.
@@ -42,7 +45,7 @@ public enum CategoryFileIndex {
         var stoppedAtLimit = false
         var cancelled = false
 
-        tree.walk { entry in
+        tree.walkNodes { facts in
             if cancelled { return .stop }
             if isCancelled() {
                 cancelled = true
@@ -56,13 +59,13 @@ public enum CategoryFileIndex {
 
             // A symbolic link is an entry by its own name; the scan does not count
             // what it points at, and neither does this walk.
-            if entry.isSymlink { return .skipChildren }
-            if entry.kind == .directory { return .descend }
-            guard entry.category == category, entry.fileCount > 0 else { return .skipChildren }
+            if facts.isSymlink { return .skipChildren }
+            if facts.kind == .directory { return .descend }
+            guard facts.category == category, facts.fileCount > 0 else { return .skipChildren }
 
             matchCount += 1
-            totalLogicalSize += max(0, entry.logicalSize)
-            kept.append(RankedFile(id: entry.id, logicalSize: entry.logicalSize))
+            totalLogicalSize += max(0, facts.logicalSize)
+            kept.append(RankedFile(id: facts.id, logicalSize: facts.logicalSize))
             if kept.count > max(capacity * 2, 16) {
                 kept = trimmed(kept, to: capacity)
             }

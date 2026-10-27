@@ -8,7 +8,7 @@
 # locked session and inside an agent sandbox.
 #
 # Usage:
-#   Scripts/render-screens.sh [-o OUT_DIR] [-s WxH] [-a light|dark|both] [-S results|home|search|help|settings|update|update-ready|categories|treemap|coverage|cleanup|duplicates|moved|reclaim|history|both] [-t FIXTURE_DIR] [-T STATE] [-l LOCALE]
+#   Scripts/render-screens.sh [-o OUT_DIR] [-s WxH] [-a light|dark|both] [-S results|home|search|help|settings|update|update-ready|categories|category|treemap|coverage|cleanup|duplicates|moved|reclaim|history|both] [-t FIXTURE_DIR] [-T STATE] [-l LOCALE]
 #
 #   -o  output directory                     (default .build/renders)
 #   -s  render size in points                (default 1000x720)
@@ -16,8 +16,10 @@
 #   -l  interface language: en, ar, or en-XA (default en)
 #   -S  screens to render                    (default results; both is home and
 #       results; search is the results screen with a whole-scan search open;
-#       categories is the results screen in Categories mode; treemap is the
-#       results screen drawn as the treemap; coverage is the coverage sheet;
+#       categories is the results screen in Categories mode; category is that
+#       screen inside its largest category, listing that category's files;
+#       treemap is the results screen drawn as the treemap; coverage is the
+#       coverage sheet;
 #       help and settings are the sheet and preferences contents;
 #       update and update-ready are the software-update sheet and its ready
 #       state; cleanup, duplicates, and moved are

@@ -59,10 +59,12 @@ public enum ScanEvent: Sendable {
     /// largest items and category breakdown while the scan runs, then replace the
     /// snapshot with the terminal `.finished` summary.
     ///
-    /// `ScanSummary.rootChildren` is what makes a live screen possible: a
-    /// directory's node exists only once its subtree has finished, so the engine
-    /// reports the scan root's own entries from the moment it discovers them, each
-    /// folder carrying the bytes counted under it so far.
+    /// `ScanSummary.rootChildren` is what makes a live screen possible for a
+    /// producer that reports summaries only: a directory's node exists only once
+    /// its subtree has finished, so the engine reports the scan root's own entries
+    /// from the moment it discovers them, each folder carrying the bytes counted
+    /// under it so far. A producer that also fills a `LiveTree` leaves it empty;
+    /// the tree carries the entries. See `docs/MEMORY.md`.
     case partial(ScanSummary)
     case finished(ScanSummary)
     case cancelled(partial: ScanSummary?)        // cancellation is a first-class outcome

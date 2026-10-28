@@ -2,30 +2,6 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>%lld Items Selected</key>
-	<dict>
-		<key>NSStringLocalizedFormatKey</key>
-		<string>%#@value@</string>
-		<key>value</key>
-		<dict>
-			<key>NSStringFormatSpecTypeKey</key>
-			<string>NSStringPluralRuleType</string>
-			<key>NSStringFormatValueTypeKey</key>
-			<string>lld</string>
-			<key>few</key>
-			<string>تم تحديد %lld عناصر</string>
-			<key>many</key>
-			<string>تم تحديد %lld عنصرًا</string>
-			<key>one</key>
-			<string>تم تحديد عنصر واحد</string>
-			<key>other</key>
-			<string>تم تحديد %lld عنصر</string>
-			<key>two</key>
-			<string>تم تحديد عنصرين</string>
-			<key>zero</key>
-			<string>لم يُحدَّد أي عنصر</string>
-		</dict>
-	</dict>
 	<key>%lld days</key>
 	<dict>
 		<key>NSStringLocalizedFormatKey</key>
@@ -288,6 +264,30 @@
 			<string>عنصران</string>
 			<key>zero</key>
 			<string>لا عناصر</string>
+		</dict>
+	</dict>
+	<key>%lld items selected</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@value@</string>
+		<key>value</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>few</key>
+			<string>تم تحديد %lld عناصر</string>
+			<key>many</key>
+			<string>تم تحديد %lld عنصرًا</string>
+			<key>one</key>
+			<string>تم تحديد عنصر واحد</string>
+			<key>other</key>
+			<string>تم تحديد %lld عنصر</string>
+			<key>two</key>
+			<string>تم تحديد عنصرين</string>
+			<key>zero</key>
+			<string>لم يُحدَّد أي عنصر</string>
 		</dict>
 	</dict>
 	<key>%lld levels</key>

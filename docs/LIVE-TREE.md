@@ -34,6 +34,10 @@ the screen reads the tree. This document is the plan to give WillyDisk that trut
   is applied to the node and walked up the parent chain, so the cost of one change is the
   depth of the tree, not the size of the disk.
 - **Category totals** are maintained per edit by the file nodes that carry bytes.
+- **Folder coverage counts** are a side table, not a field: for every folder whose
+  subtree holds a folder that could not be read, it stores how many. Inserts, touches,
+  moves, and removals keep it current; `unreadableFolderCount(for:)` reads it. A clean
+  tree stores nothing, so a count costs no bytes per entry.
 - **Identity** is the node's arena index, and it is stable until the node is removed, so
   a selection survives edits around it. `ScanNode` materialization derives its `UUID`
   from that id plus a per-tree salt, so a redraw never changes a row's identity.
@@ -104,39 +108,55 @@ per folder and run the visitor outside it, so a walk on a big disk never stops t
 watcher from applying an edit. They are not snapshots: a folder that changes mid-walk is
 seen before or after that edit, and every entry reported was measured.
 
+A search that matches on a path (`Photos/2024`) also needs each entry's path, and
+`LiveTree.walk` hands that out too: the walk builds the child's path from the folder it is
+in, one string per entry, where asking the tree for a path per entry walks that entry's
+parent chain under the lock each time.
+
 On this Mac's full disk (4,637,637 entries) a walk with names costs **3.70 s** and a
-facts walk **1.79 s**, so a screen must not run one per applied batch. The results screen
+facts walk **1.79 s**, so a screen must not run one per applied batch. The comparison
+against a name costs more than the walk that feeds it when it is the Unicode one:
+`range(of:options:)` takes about 10.7 s over a 3.1-million-entry home folder, so the
+search folds ASCII to ASCII and keeps the Unicode comparison for the names that need it —
+the same search takes 0.8 s, and a path query 1.9 s. The results screen
 re-runs an open search at most every 4 s and re-ranks the largest lists at most every
 3 s, always off the main actor and cancelled when the screen goes away. The previous
-answer stays on screen while the next walk runs.
+answer stays on screen while the next walk runs, and a change that lands mid-walk queues
+one follow-up walk rather than replacing the one in flight: a tree too big to walk inside
+the interval would otherwise never finish a search.
 
 ## The engine's pass
 
 `FileScanEngine` conforms to `LiveTreeScanning`: `scan(_:buildingLiveTree:)` streams the
-same events as the frozen `scan(_:)`, and `takeLiveTree()` returns the tree the walk
-filled, once. `FileScanner` inserts as it discovers:
+same events as the frozen `scan(_:)`, `liveTreeInProgress()` exposes the tree while the
+walk fills it, and `takeLiveTree()` returns it once. `FileScanner` inserts as it
+discovers:
 
-- a folder is inserted when it is claimed (before its children are walked), so its
-  parent chain exists when they arrive;
-- a folder's files and link leaves are inserted **in one batch** when its listing is
-  done — one lock, one ancestor walk for the whole group, because siblings share their
-  ancestors and their difference is a sum. The batch never looks for an existing entry
-  of the same name: a listing names each entry once, and looking would scan every
-  sibling already inserted and make a wide folder quadratic;
+- a folder's whole listing is inserted as **one group** when the listing is done — the
+  files and link leaves it read, and the subfolders it claimed as empty entries. One
+  lock and one ancestor walk carry the group, because siblings share their ancestors and
+  their difference is a sum. The batch never looks for an existing entry of the same
+  name: a listing names each entry once, and looking would scan every sibling already
+  inserted and make a wide folder quadratic. The folders become the parents of what is
+  walked next; an empty folder is an entry the scan measured, not an estimate;
 - the folder's own metadata (timestamp, accessibility, error) is recorded when its
   subtree finishes.
 
-The tree is handed over just **before** `.finished`, and only when `matches(_:)` holds
-against the summary the same walk produced — a consumer that reacts to the terminal
-event always finds it, and a tree that disagrees is never shown. An engine that only
-implements the frozen `ScanEngine` (a scripted test engine) leaves the screen to build
-the tree from the summary, which is the path `LiveTree(scanning:)` still serves.
+The group is published whole because a chart colours siblings by rank: a folder holding
+half of its entries would move colours already on screen. The tree is readable while the
+walk runs, so the results screen installs it and draws the entries as they arrive. It is
+handed over just **before** `.finished`, and the terminal summary reports the tree's own
+totals and carries no subtrees. An engine that only implements the frozen `ScanEngine`
+(a scripted test engine) leaves the screen to build the tree from the summary, which is
+the path `LiveTree(scanning:)` still serves.
 
 ## Invariants
 
-1. **Everything in the tree was measured.** No edit ever writes an estimate. A new
-   directory is only inserted after its subtree has been walked; a size is only replaced
-   with a `stat` or a bulk listing.
+1. **Everything in the tree was measured.** No edit ever writes an estimate. A folder
+   is inserted when it is claimed, with the metadata the listing reported and no bytes;
+   the entries under it are inserted only after they are measured, and a folder that
+   arrives later is measured once with the engine. A size is only replaced with a
+   `stat` or a bulk listing.
 2. **The measurement rules are the scan's.** Hidden items, exclusions, `stayOnVolume`,
    symlink policy, and the hard-link accounting of `ScanAccounting` follow
    `ScanRequest`; the tree must not become a different measurement from the one the
@@ -168,6 +188,25 @@ On this Mac — 4,637,637 entries — with the engine filling the tree as it wal
   whole-tree walk 3.70 s with names and 1.79 s without.
 - The arena's own storage is 56 B/entry plus its name — about 290 MB for this tree.
 
+The one-tree change (`docs/MEMORY.md`) then removed the value tree the summary used to
+carry beside the arena, and let the screen read the arena while the walk fills it. On
+the same machine, in isolated benchmark processes:
+
+| Root | Before | After |
+|---|---:|---:|
+| `/Applications` | 413 MB | 118 MB |
+| `$HOME` | 2,435 MB | 537 MB |
+| `/` | 2,755 MB | 636 MB |
+
+The scan times were 3.00 s, 26.37 s, and 40.56 s respectively. The `/` run counted
+4,632,082 nodes rather than 4,637,637, so its time is unchanged within warm-cache
+variance. The arena is now the only tree a live scan retains.
+
+The memory record that starts from these numbers — the one-tree pass and decision C,
+which keeps the arena linear with no stored-entry cap — is `docs/MEMORY.md`. Its
+baseline shows the arena is not what made a multi-million-entry scan peak in gigabytes;
+the value tree retained beside it was.
+
 ## Migration
 
 | Stage | What lands | State |
@@ -178,6 +217,7 @@ On this Mac — 4,637,637 entries — with the engine filling the tree as it wal
 | 4a | `ScanSearch` and the largest lists walk the tree on a throttled interval | **done** |
 | 4b | The sheets that walk everything (`CleanupAnalysis`, duplicate candidates, `CategoryFiles`) read the tree | **done** |
 | 5 | The engine inserts into the arena during the walk and hands it over before the terminal event | **done** |
+| 6 | The tree is readable while it fills, the screen installs it, and the terminal summary carries no subtrees | **done** |
 
 ## What changed in the architecture
 

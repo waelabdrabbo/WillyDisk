@@ -244,6 +244,146 @@ final class ScanSearchQATests: XCTestCase {
         )
     }
 
+    // MARK: - The live tree
+
+    func testALiveSearchFindsTheSameNamesAsTheScansOwnTree() throws {
+        let root = directory("/scan", children: [
+            directory("/scan/Photos", children: [
+                directory("/scan/Photos/2024", children: [
+                    file("/scan/Photos/2024/holiday.jpg", size: 300 * megabyte, category: .images),
+                ]),
+                file("/scan/Photos/holiday-2023.jpg", size: 100 * megabyte, category: .images),
+            ]),
+            file("/scan/readme.txt", size: 1, category: .documents),
+        ])
+        let tree = try makeTree(root)
+
+        let fromScan = try XCTUnwrap(ScanSearch.results(for: "HOLIDAY", searching: root.children))
+        let fromTree = try XCTUnwrap(ScanSearch.results(for: "HOLIDAY", in: tree))
+
+        XCTAssertEqual(Set(fromTree.matches.map(\.url.path)), Set(fromScan.matches.map(\.url.path)))
+        XCTAssertEqual(fromTree.matchCount, fromScan.matchCount)
+        XCTAssertEqual(fromTree.visitedCount, fromScan.visitedCount)
+    }
+
+    func testALivePathQueryMatchesTheFullPath() throws {
+        let root = directory("/scan", children: [
+            directory("/scan/Photos", children: [
+                directory("/scan/Photos/2024", children: [
+                    file("/scan/Photos/2024/holiday.jpg", size: 2 * megabyte, category: .images),
+                ]),
+                directory("/scan/Photos/2023", children: [
+                    file("/scan/Photos/2023/winter.jpg", size: megabyte, category: .images),
+                ]),
+            ]),
+        ])
+        let tree = try makeTree(root)
+
+        let fromScan = try XCTUnwrap(
+            ScanSearch.results(for: "Photos/2024", searching: root.children)
+        )
+        let fromTree = try XCTUnwrap(ScanSearch.results(for: "Photos/2024", in: tree))
+
+        XCTAssertEqual(Set(fromTree.matches.map(\.url.path)), Set(fromScan.matches.map(\.url.path)))
+        XCTAssertEqual(fromTree.matches.map(\.name).sorted(), ["2024", "holiday.jpg"])
+        XCTAssertEqual(fromTree.matchCount, 2)
+    }
+
+    func testALiveSearchIsCaseAndDiacriticInsensitive() throws {
+        let root = directory("/scan", children: [
+            file("/scan/Café.jpg", size: 2 * megabyte, category: .images),
+            file("/scan/library.json", size: megabyte, category: .documents),
+            file("/scan/other.png", size: megabyte, category: .images),
+        ])
+        let tree = try makeTree(root)
+
+        let accented = try XCTUnwrap(ScanSearch.results(for: "CAFE", in: tree))
+        XCTAssertEqual(accented.matches.map(\.name), ["Café.jpg"])
+
+        let ascii = try XCTUnwrap(ScanSearch.results(for: "LIBRARY", in: tree))
+        XCTAssertEqual(ascii.matches.map(\.name), ["library.json"])
+    }
+
+    func testALiveSearchKeepsTheLargestMatchesAndCountsEveryOne() throws {
+        let root = directory("/scan", children: [
+            file("/scan/a.jpg", size: 3 * megabyte, category: .images),
+            file("/scan/b.jpg", size: 2 * megabyte, category: .images),
+            file("/scan/c.jpg", size: megabyte, category: .images),
+            file("/scan/d.jpg", size: 4 * megabyte, category: .images),
+        ])
+        let tree = try makeTree(root)
+
+        let result = try XCTUnwrap(ScanSearch.results(for: "jpg", in: tree, limit: 2))
+        XCTAssertEqual(result.matches.map(\.name), ["d.jpg", "a.jpg"])
+        XCTAssertEqual(result.matchCount, 4)
+        XCTAssertTrue(result.isTruncated)
+        XCTAssertEqual(result.visitedCount, 4)
+    }
+
+    func testALiveSearchStopsAtItsNodeCapAndSaysSo() throws {
+        let root = directory("/scan", children: [
+            file("/scan/a.jpg", size: 1, category: .images),
+            file("/scan/b.jpg", size: 1, category: .images),
+            file("/scan/c.jpg", size: 1, category: .images),
+        ])
+        let tree = try makeTree(root)
+
+        let result = try XCTUnwrap(
+            ScanSearch.results(for: "jpg", in: tree, maxVisitedNodes: 2)
+        )
+        XCTAssertTrue(result.stoppedAtLimit)
+        XCTAssertEqual(result.visitedCount, 2)
+        XCTAssertEqual(result.matchCount, 2)
+    }
+
+    func testALiveSearchCanBeCancelled() throws {
+        let root = directory("/scan", children: [
+            file("/scan/a.jpg", size: 1, category: .images),
+        ])
+        let tree = try makeTree(root)
+        XCTAssertNil(ScanSearch.results(for: "a", in: tree, isCancelled: { true }))
+    }
+
+    func testTheFastComparisonAgreesWithTheUnicodeOneOnEveryName() throws {
+        // ASCII folding answers most names; the Unicode comparison answers the
+        // rest and is the reference this walk is held to.
+        let names = [
+            "library.json", "LIBRARY", "Librarian.md", "Café.jpg", "cafe.txt",
+            "naïve-library", "über", "İstanbul", "ﬁle.txt", "a", "A", "b",
+        ]
+        let root = directory("/scan", children: names.enumerated().map { index, name in
+            file("/scan/\(name)", size: Int64(index + 1) * 1_000, category: .other)
+        })
+        let tree = try makeTree(root)
+
+        for query in ["library", "CAFE", "naive", "istanbul", "i", "file", "ÜBER"] {
+            let expected = Set(names.filter {
+                $0.range(of: query, options: [.caseInsensitive, .diacriticInsensitive]) != nil
+            })
+            let result = try XCTUnwrap(ScanSearch.results(for: query, in: tree))
+            XCTAssertEqual(Set(result.matches.map(\.name)), expected, "matches for “\(query)”")
+            XCTAssertEqual(result.matchCount, expected.count)
+        }
+    }
+
+    func testALimitedLiveSearchAgreesWithTheScansOwnTree() throws {
+        // Enough entries that the list is trimmed, with repeating sizes so equal
+        // sizes fall back to the path order both walks use.
+        let root = directory("/scan", children: (0..<60).map { index in
+            file("/scan/entry-\(index).bin", size: Int64((index * 37) % 11), category: .other)
+        })
+        let tree = try makeTree(root)
+
+        let fromScan = try XCTUnwrap(
+            ScanSearch.results(for: "entry", searching: root.children, limit: 5)
+        )
+        let fromTree = try XCTUnwrap(ScanSearch.results(for: "entry", in: tree, limit: 5))
+
+        XCTAssertEqual(fromTree.matches.map(\.url.path), fromScan.matches.map(\.url.path))
+        XCTAssertEqual(fromTree.matchCount, fromScan.matchCount)
+        XCTAssertTrue(fromTree.isTruncated)
+    }
+
     // MARK: - Fixtures
 
     private func directory(_ path: String, children: [ScanNode]) -> ScanNode {
@@ -281,6 +421,62 @@ final class ScanSearchQATests: XCTestCase {
             isAccessible: true,
             errorMessage: nil,
             children: []
+        )
+    }
+
+    /// The same fixture as a tree the screen reads, so a test can check the two
+    /// walks answer alike. The fixture's folders do not carry their subtree's
+    /// counts, and a tree refuses a summary that disagrees with it, so the tree is
+    /// built from the same nodes measured whole.
+    private func makeTree(_ root: ScanNode) throws -> LiveTree {
+        let measuredRoot = measured(root)
+        var categories: [FileCategory: Int64] = [:]
+        func addCategories(_ node: ScanNode) {
+            if node.isDirectory {
+                node.children.forEach(addCategories)
+            } else {
+                categories[node.category, default: 0] += node.logicalSize
+            }
+        }
+        addCategories(measuredRoot)
+
+        return try XCTUnwrap(LiveTree(scanning: ScanSummary(
+            root: measuredRoot.url,
+            totalLogicalSize: measuredRoot.logicalSize,
+            totalAllocatedSize: measuredRoot.allocatedSize,
+            fileCount: measuredRoot.fileCount,
+            directoryCount: measuredRoot.directoryCount,
+            inaccessibleCount: 0,
+            errorCount: 0,
+            permissionDeniedCount: 0,
+            surfacedIssueCount: 0,
+            startedAt: Date(timeIntervalSince1970: 0),
+            finishedAt: Date(timeIntervalSince1970: 1),
+            categoryBreakdown: categories,
+            largestFiles: [],
+            largestDirectories: [measuredRoot],
+            rootChildren: []
+        )))
+    }
+
+    private func measured(_ node: ScanNode) -> ScanNode {
+        guard node.isDirectory else { return node }
+        let children = node.children.map(measured)
+        return ScanNode(
+            id: node.id,
+            url: node.url,
+            name: node.name,
+            isDirectory: true,
+            isSymlink: node.isSymlink,
+            category: node.category,
+            logicalSize: children.reduce(0) { $0 + $1.logicalSize },
+            allocatedSize: children.reduce(0) { $0 + $1.allocatedSize },
+            fileCount: children.reduce(0) { $0 + $1.fileCount },
+            directoryCount: 1 + children.reduce(0) { $0 + $1.directoryCount },
+            modifiedAt: node.modifiedAt,
+            isAccessible: node.isAccessible,
+            errorMessage: node.errorMessage,
+            children: children
         )
     }
 }

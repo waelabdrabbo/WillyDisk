@@ -5,6 +5,10 @@ time you open it. WillyDisk has no Apple Developer account, so no Gatekeeper
 approval is claimed or implied. The checksums below detect a corrupted or
 altered download; they are not proof that the build is trustworthy.
 
+## What's Changed
+
+{{CHANGES}}
+
 ## Which download
 
 - **Apple Silicon:** `WillyDisk-{{VERSION}}-arm64.zip`

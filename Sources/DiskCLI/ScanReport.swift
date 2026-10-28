@@ -53,7 +53,7 @@ public enum ScanReport {
         lines.append(row(topLabels[5], issues(summary), width: topWidth))
         lines.append(row(
             topLabels[6],
-            L10n.string("hidden items included, stays on this volume, symbolic links not followed"),
+            L10n.string("hidden items included, staying on this volume, symbolic links not followed"),
             width: topWidth
         ))
 
@@ -109,7 +109,7 @@ public enum ScanReport {
     private static func folderHeading(_ command: ScanCommand) -> String {
         guard command.depth > 0 else { return L10n.string("Folders (root only)") }
         return L10n.format(
-            "Folders (%@, %@ per level)",
+            "Folders (%@, top %@ per level)",
             L10n.format("%lld levels", command.depth),
             number(command.top)
         )
@@ -141,7 +141,7 @@ public enum ScanReport {
     private static func appendAccounting(_ accounting: ScanAccounting, into lines: inout [String]) {
         guard accounting.hasFindings else { return }
         lines.append("")
-        lines.append(L10n.string("Accounting"))
+        lines.append(L10n.string("How sizes are counted"))
 
         let labels = [
             L10n.string("Hard links"),

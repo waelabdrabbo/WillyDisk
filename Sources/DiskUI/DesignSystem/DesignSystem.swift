@@ -168,6 +168,28 @@ public enum DS {
         public static let notice: Swift.Duration = .seconds(8)
     }
 
+    // MARK: - Chart emphasis
+
+    /// How a chart marks the box or wedge under the pointer, and the one the
+    /// explorer has selected. One set of values for every chart, so a hover feels
+    /// the same whichever chart is on screen.
+    public enum Chart {
+        /// A wash of signal painted over the active shape only.
+        public static let hoverShadeOpacity: Double = 0.12
+        /// Fill opacity of the selected shape: at full strength it reads as the
+        /// heaviest mark in the chart, including while another is hovered.
+        public static let selectedFillOpacity: Double = 1
+        /// How much ink a selected shape takes on top of its own fill, so the
+        /// selection is the chart's darkest mark in light and its brightest in
+        /// dark without repainting the shape underneath.
+        public static let selectedOverlayOpacity: Double = 0.34
+        /// Outline of the selected shape, and of the shape under the pointer.
+        public static let selectedStrokeWidth: CGFloat = 2
+        public static let hoverStrokeWidth: CGFloat = 1.5
+        /// How long the emphasis takes to move from one shape to the next.
+        public static let emphasisAnimationDuration: Double = 0.12
+    }
+
     // MARK: - Sunburst chart geometry
 
     /// Geometry and density limits for the sunburst chart. Angles are derived
@@ -220,23 +242,6 @@ public enum DS {
         /// Wedge opacity. A chart-coloured icon wears it too, so a node's icon and
         /// its wedge land on the same colour against the same background.
         public static let fillOpacity: Double = 0.92
-        /// A wash of signal painted over the active wedge only.
-        public static let hoverShadeOpacity: Double = 0.12
-        /// Fill opacity of the selected wedge: at full strength it reads as the
-        /// heaviest wedge in the chart, including while another is hovered.
-        public static let selectedFillOpacity: Double = 1
-        /// How much ink a selected wedge takes on top of its own tone, so the
-        /// selection is the chart's darkest mark in light and its brightest in
-        /// dark without repainting the wedge underneath.
-        public static let selectedOverlayOpacity: Double = 0.34
-        /// Outline of the selected wedge, and of the wedge under the pointer.
-        public static let selectedStrokeWidth: CGFloat = 2
-        public static let hoverStrokeWidth: CGFloat = 1.5
-        /// How long the emphasis takes to move from one wedge to the next. One
-        /// value for both wedge charts, so their hover feels the same.
-        public static let emphasisAnimationDuration: Double = 0.12
-        /// The groove trace: the hairline that runs from the spindle to the rim
-        /// while a wedge is hovered, and the tangential tick that ends it.
 
         // MARK: Tone ladder
         //
@@ -262,6 +267,68 @@ public enum DS {
         /// Brightness step between the three sibling tones, so a tone is ± this
         /// from its ring's base.
         public static let toneStepOffset: Double = 0.055
+    }
+
+    // MARK: - Treemap chart geometry
+
+    /// Geometry and density limits for the treemap chart. A box's area is derived
+    /// from its bytes, so these are the presentation constants on top of that
+    /// share.
+    public enum Treemap {
+        /// Gap between neighbouring boxes, in points. Every box is inset by half
+        /// of it, so two neighbours are separated by the same line however small
+        /// the boxes are.
+        public static let gap: CGFloat = 1.5
+        /// Inset of a folder's content inside its own box, in points. The band of
+        /// the folder's fill this leaves is what shows which box holds the tiles
+        /// inside it.
+        public static let innerPadding: CGFloat = 3
+        /// Height of the band a folder that shows its contents keeps for its own
+        /// name, in points.
+        public static let headerHeight: CGFloat = 15
+        /// Inset of a name from the edge of its box, in points.
+        public static let labelPadding: CGFloat = 4
+        /// Smallest box that draws its own name. Below it the readout and the
+        /// accessible name still say what the box is.
+        public static let labelMinimumWidth: CGFloat = 46
+        public static let labelMinimumHeight: CGFloat = 20
+        /// Corner radius of a box, which the emphasis outline follows.
+        public static let cornerRadius: CGFloat = 3
+        /// Smallest box that draws its own children. A box below this stays flat:
+        /// it still stands for its whole size, so leaving its content undrawn is a
+        /// legibility choice, never a measurement.
+        public static let nestingMinimumWidth: CGFloat = 52
+        public static let nestingMinimumHeight: CGFloat = 38
+        /// Deepest nesting drawn. A box past this is flat whatever its size.
+        public static let maxDepth = 4
+        /// Largest number of a folder's entries one box draws individually
+        /// before the rest are folded into one truthful "smaller items" box.
+        ///
+        /// The treemap is the chart for dense folders, so its density is its own
+        /// rather than the sunburst's: a folder of six hundred files would
+        /// otherwise be one giant aggregate. It shares the sunburst's ceiling on
+        /// live controls, which is what keeps a wide folder navigable.
+        public static let maxChildrenPerNode = 256
+        /// Hard ceiling on the boxes one layout draws, so a wide tree cannot put
+        /// an unbounded number of tiles on screen.
+        public static let maxTiles = 2048
+        /// Below this side length the chart is too small to read and the pane
+        /// says so instead of drawing.
+        public static let minimumSize: CGFloat = 140
+        /// Above this many entries in the focused folder the layout runs off the
+        /// main actor. Below it, laying out is cheaper than a task hop.
+        public static let inlineLayoutLimit = 400
+        /// Box opacity. The emphasis drawn over a box is a wash and an outline, as
+        /// on the sunburst.
+        public static let fillOpacity: Double = 0.92
+        /// The readout's largest width as a fraction of the chart's width.
+        public static let readoutWidthFraction: CGFloat = 0.62
+
+        /// The corner radius a box of `size` is drawn with, so a sliver never
+        /// becomes a lozenge.
+        public static func radius(for size: CGSize) -> CGFloat {
+            max(0, min(cornerRadius, min(size.width, size.height) / 2))
+        }
     }
 
     // MARK: - Typography (SF Pro roles)

@@ -43,7 +43,7 @@ contracts, shared-interface rules §7, non-negotiables §8).
 | `.github/workflows/` | `ci.yml`: build, test, bundle version check, CLI smoke, renders, cask audit; `release.yml`: tagged unsigned zips (arm64, x86_64), checksums, and the cask committed to `Casks/` |
 | `.github/homebrew/` | `willydisk.rb.tmpl`: the Homebrew cask template the release renders |
 | `Casks/` | `Casks/willydisk.rb`, the rendered cask Homebrew reads; this repository is its own tap |
-| `docs/` | `ARCHITECTURE.md` (frozen contracts), `LIVE-TREE.md`, `CLEANUP.md` (cleanup rules, tiers, and accounting), `HOMEBREW.md` (the tap, the cask, the release step), `UPDATES.md` (the self-update design and verification rules), `ROADMAP.md` |
+| `docs/` | `ARCHITECTURE.md` (frozen contracts), `LIVE-TREE.md`, `MEMORY.md` (the one-tree memory pass, measured; decision C keeps the arena linear), `CLEANUP.md` (cleanup rules, tiers, and accounting), `HOMEBREW.md` (the tap, the cask, the release step), `UPDATES.md` (the self-update design and verification rules), `ROADMAP.md` |
 
 ## Where things are
 
@@ -65,7 +65,9 @@ and a `ScanSummary` is never edited.
 `Live/` holds the tree the results screen reads: `LiveTree.swift` is the compact
 arena and its measured edits, `LiveTreeUpdater.swift` turns a changed folder into those
 edits (with `LiveTreePolicy` keeping the scan's rules), and `LiveTree+ScanSummary.swift`
-builds one from a finished scan. `docs/LIVE-TREE.md` is the design and the migration.
+builds one from a finished scan. `docs/LIVE-TREE.md` is the design and the migration;
+`docs/MEMORY.md` is the memory record — the one-tree pass, measured, and the decision to
+keep the arena linear with no stored-entry cap.
 
 **`DiskUpdate` — the release feed and the update checks.**
 `ReleaseFeed.swift` reads GitHub's `releases/latest` through a `FeedTransport` seam;
@@ -85,8 +87,9 @@ contract.
 `Screens/SourceSelectionView.swift` is screen A, `Screens/ResultsView.swift` is screen C
 (and the live in-progress state), `Screens/HelpView.swift` is the help sheet's content,
 `Screens/SettingsView.swift` is the preferences window. `Components/SunburstView.swift`
-is the disk chart; `AccessNoticeRow`, `FlowLayout`, and `ScanOptionToggle` are the other
-views.
+and `Components/TreemapView.swift` are the disk chart's two drawings, chosen by
+`AppChartStyle` in Settings; `AccessNoticeRow`, `FlowLayout`, and `ScanOptionToggle` are
+the other views.
 `Components/HistorySheet.swift` is the scan-history comparison, backed by
 `Support/ScanHistory.swift` (the `@Observable` view of the record store).
 `Components/UpdateSheet.swift` is the software-update sheet, including the ready state's
@@ -159,7 +162,7 @@ bash Scripts/run.sh                  # build the bundle and launch it (the way t
 bash Scripts/bundle-app.sh           # assemble .build/WillyDisk.app; its version comes from VERSION
 bash Scripts/package-release.sh      # build the arm64 and Intel zips with their SHA-256s
 bash Scripts/homebrew-cask.sh check  # render the cask template; --audit runs Homebrew's checks
-bash Scripts/render-screens.sh       # offscreen PNGs (-S results|home|search|help|settings|update|update-ready|categories|coverage|cleanup|duplicates|moved|reclaim|history|both; -l en|ar|en-XA), no window, no screen-recording permission
+bash Scripts/render-screens.sh       # offscreen PNGs (-S results|home|search|help|settings|update|update-ready|categories|treemap|coverage|cleanup|duplicates|moved|reclaim|history|both; -l en|ar|en-XA), no window, no screen-recording permission
 bash Scripts/repo-map.sh             # one-screen structural inventory (--types adds declarations)
 ```
 
@@ -188,9 +191,9 @@ add `--disable-sandbox` to a plain `swift build` or `swift test`.
 - **Never glob `**/*`.** It reaches ignored paths and reports thousands of entries,
   most of them `.build` byproducts. Enumerate with `git ls-files`, and search with the
   `grep` tool, which honours `.gitignore`.
-- **`Sources/DiskUI/Screens/ResultsView.swift` and `Components/SunburstView.swift` are
-  large.** Grep for the view or modifier you need instead of reading them whole. So is
-  `Sources/DiskCore/Scanning/FileScanner.swift`.
+- **`Sources/DiskUI/Screens/ResultsView.swift`, `Components/SunburstView.swift`, and
+  `Components/TreemapView.swift` are large.** Grep for the view or modifier you need
+  instead of reading them whole. So is `Sources/DiskCore/Scanning/FileScanner.swift`.
 - **Screenshots are not committed.** `Scripts/render-screens.sh` writes them into
   `.build/renders`, which is gitignored — there is nothing to read in the repository.
 - A user-visible string belongs in `Sources/DiskLocalization/Localizable.xcstrings` and
@@ -206,7 +209,9 @@ add `--disable-sandbox` to a plain `swift build` or `swift test`.
 `docs/ROADMAP.md` records what is shipped, the remaining work in recommended order,
 the decisions that must not be re-litigated, and a suggested opening prompt for a
 fresh session. `docs/UPDATES.md` is the update contract: feed, verification, install
-transaction, permissions, and Homebrew.
+transaction, permissions, and Homebrew. `docs/MEMORY.md` is the memory record:
+the measured baseline, the implemented one-tree rule, and the decision to keep the arena
+linear (no cap) with its reopen trigger.
 
 `.agents/skills/willydisk-verify/` holds the end-to-end verification procedure (build,
 test, bundle, launch, offscreen capture, and the SDK-stamp trap). It is offered as a

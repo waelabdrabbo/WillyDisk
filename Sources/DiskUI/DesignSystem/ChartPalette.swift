@@ -55,6 +55,26 @@ enum ChartFill: Equatable {
             return DS.Color.graphite
         }
     }
+
+    /// The text a name written on this fill takes, so a box can label itself in
+    /// either appearance.
+    ///
+    /// The ladder's brightness at `depth` decides, not the sibling step: two
+    /// neighbours on one ring wear the same text colour, so a row of names is one
+    /// colour rather than a checkerboard. The two plate colours are absolute in
+    /// both appearances, which is what makes them usable as text on a fill.
+    func textColor(depth: Double, isDark: Bool) -> Color {
+        switch self {
+        case .aggregate:
+            return isDark ? DS.Color.plateGroove : DS.Color.plateGround
+        case .neutral:
+            return isDark ? DS.Color.plateGround : DS.Color.plateGroove
+        case .tone:
+            let ladder = isDark ? DS.Sunburst.toneDarkBrightness : DS.Sunburst.toneLightBrightness
+            let index = min(max(Int(depth.rounded()) - 1, 0), ladder.count - 1)
+            return ladder[index] > 0.65 ? DS.Color.plateGround : DS.Color.plateGroove
+        }
+    }
 }
 
 /// Tone assignment for the sunburst chart.

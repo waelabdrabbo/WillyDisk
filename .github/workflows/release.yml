@@ -74,6 +74,26 @@ jobs:
           version="$(tr -d '[:space:]' < VERSION)"
           arm64_digest="$(awk '{print $1}' ".build/release/WillyDisk-$version-arm64.zip.sha256")"
           x86_64_digest="$(awk '{print $1}' ".build/release/WillyDisk-$version-x86_64.zip.sha256")"
+
+          # The release tag is checked out; the notes list the commits since the
+          # previous release tag. The VERSION bump and the cask write-back are
+          # housekeeping and would not tell anyone what changed.
+          git fetch --tags --force origin
+          repo_url="https://github.com/$GITHUB_REPOSITORY"
+          if previous="$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null)"; then
+            range="${previous}..HEAD"
+          else
+            range="HEAD"
+          fi
+          git log --no-merges --reverse \
+            --pretty=format:"- %s ([%h](${repo_url}/commit/%H))" \
+            "$range" \
+            | grep -vE '^- (chore\(release\):|willydisk [0-9])' \
+            > "$RUNNER_TEMP/changes.md" || true
+          if [ ! -s "$RUNNER_TEMP/changes.md" ]; then
+            echo "- No user-facing commits since the previous release." > "$RUNNER_TEMP/changes.md"
+          fi
+
           sed \
             -e "s|{{VERSION}}|$version|g" \
             -e "s|{{TAG}}|$GITHUB_REF_NAME|g" \
@@ -82,11 +102,21 @@ jobs:
             -e "s|{{REPO_URL}}|https://github.com/$GITHUB_REPOSITORY.git|g" \
             -e "s|{{REPO_LINK}}|https://github.com/$GITHUB_REPOSITORY|g" \
             .github/release-notes.md > "$RUNNER_TEMP/notes.md"
-          if grep -q '{{' "$RUNNER_TEMP/notes.md"; then
-            echo "::error::the release notes still carry an unfilled placeholder."
-            grep -n '{{' "$RUNNER_TEMP/notes.md"
-            exit 1
-          fi
+          python3 - "$RUNNER_TEMP/changes.md" "$RUNNER_TEMP/notes.md" <<'PY'
+          import re
+          import sys
+
+          changes = open(sys.argv[1], encoding="utf-8").read().strip()
+          notes = open(sys.argv[2], encoding="utf-8").read()
+          pending = sorted(
+              set(re.findall(r"\{\{[A-Z_]+\}\}", notes)) - {"{{CHANGES}}"}
+          )
+          if pending:
+              print("::error::the release notes still carry an unfilled placeholder: " + ", ".join(pending))
+              sys.exit(1)
+          notes = notes.replace("{{CHANGES}}", changes)
+          open(sys.argv[2], "w", encoding="utf-8").write(notes)
+          PY
 
       # The tap is this repository, so the cask is a file here. It is written
       # before the release is published: a run that cannot commit it stops while

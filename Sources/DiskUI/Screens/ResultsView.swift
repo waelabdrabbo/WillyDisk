@@ -22,6 +22,9 @@ public struct ResultsView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.layoutDirection) private var layoutDirection
     @State private var viewModel: ScanViewModel
+    /// The chart the user chose in Settings. The Settings window writes the same
+    /// key, so the two cannot disagree and the change lands without a relaunch.
+    @AppStorage(AppChartStyle.defaultsKey) private var chartStyle: AppChartStyle = .sunburst
 
     // Chart / explorer navigation
     @State private var breadcrumb: [ScanNode] = []
@@ -45,6 +48,14 @@ public struct ResultsView: View {
     @State private var searchResults: ScanSearchResults?
     /// The search in flight, held so the next keystroke can cancel its walk.
     @State private var searchRun: Task<ScanSearchResults?, Never>?
+    /// A tree change that landed while a walk was out.
+    ///
+    /// The walk read the tree as it was when it started, so a change after that is
+    /// newer than its answer. It does not replace the walk, though: on a tree too
+    /// big to walk inside the search interval, replacing it every interval would
+    /// restart a search that never lands. One follow-up walk runs when this one
+    /// does.
+    @State private var searchRefreshPending = false
     @State private var isSearching = false
     /// Bumped when a search lands, so the rows rebuild once for a new result set
     /// rather than once per redraw.
@@ -56,12 +67,19 @@ public struct ResultsView: View {
     /// Which list the explorer shows: the folder in the chart, the engine's
     /// largest files and folders, or the scan cut by file category.
     @State private var explorerMode: ExplorerMode = .folder
-    /// The category the Categories mode is inside, if any. Opening one keeps the
-    /// mode: the ring stays as the map back out and the list becomes its files.
-    @State private var drilledCategory: FileCategory?
-    /// The largest files of the open category, once the off-main walk lands.
-    @State private var categoryFiles: CategoryFiles?
+    /// The category the Categories mode is inside, if any, and the files its
+    /// list shows. Opening one keeps the mode: the ring stays as the map back out
+    /// and the list becomes its files.
+    @State private var categoryDetail = CategoryDetail()
+    /// The walk filling the open category's list, and the one retry its interval
+    /// allows. A refresh never cancels a walk that is still out: its answer is the
+    /// newest the tree can give.
     @State private var categoryFilesTask: Task<CategoryFiles?, Never>?
+    @State private var categoryRetryTask: Task<Void, Never>?
+    /// The results revision the walk that is out started from. A change that
+    /// landed while it ran is newer than anything the walk could see, so the list
+    /// asks for another walk when this one lands.
+    @State private var categoryWalkRevision = 0
     /// The category under the pointer, shared by the ring and the category list
     /// so hovering either lights the other.
     @State private var hoveredCategory: FileCategory?
@@ -93,12 +111,11 @@ public struct ResultsView: View {
     /// on an interval instead of between its own entries.
     @State private var lastSearchStartedAt: ContinuousClock.Instant?
     @State private var searchRefreshTask: Task<Void, Never>?
-    /// When the open category's files were last walked over the tree.
-    @State private var categoryFilesStartedAt: ContinuousClock.Instant?
 
-    /// How often a live ranking or an open search may re-walk the tree. Both walk
-    /// every entry, and a disk that is being written to bumps the revision every
-    /// fraction of a second; the previous answer stays while the next is due.
+    /// How often a live ranking, an open search, or an open category may re-walk
+    /// the tree. All three walk every entry, and a disk that is being written to
+    /// bumps the revision every fraction of a second; the previous answer stays
+    /// while the next is due.
     private static let liveRerankInterval: Duration = .seconds(3)
     private static let liveSearchInterval: Duration = .seconds(4)
 
@@ -135,14 +152,23 @@ public struct ResultsView: View {
     /// for it, never on a later selection the sheet is now about.
     @State private var reclaimRequestID = UUID()
 
+    /// `initialCategory` opens the Categories mode already inside a category; its
+    /// walk starts when the screen appears. The offscreen renderer uses it to
+    /// review the category detail, which no click can reach without a window.
     public init(
         viewModel: ScanViewModel = ScanViewModel(),
         initialMode: ExplorerMode = .folder,
+        initialCategory: FileCategory? = nil,
         initialSearch: String = ""
     ) {
         _viewModel = State(initialValue: viewModel)
         _explorerMode = State(initialValue: initialMode)
         _searchText = State(initialValue: initialSearch)
+        if let initialCategory {
+            var detail = CategoryDetail()
+            _ = detail.open(initialCategory, at: ContinuousClock().now)
+            _categoryDetail = State(initialValue: detail)
+        }
     }
 
     // MARK: - Derived data
@@ -243,15 +269,32 @@ public struct ResultsView: View {
     }
 
     /// Keeps an open category's file list current as the tree changes, on the
-    /// same interval the other whole-tree walks use.
+    /// same interval the other whole-tree walks use, and without taking the
+    /// files it already has off the screen.
     @MainActor
-    private func reloadCategoryFilesIfNeeded() {
-        guard let category = drilledCategory else { return }
+    private func refreshCategoryFilesIfNeeded() {
+        guard categoryDetail.isOpen, summary != nil else { return }
         let now = ContinuousClock().now
-        if let started = categoryFilesStartedAt, now < started.advanced(by: Self.liveRerankInterval) {
+        switch categoryDetail.refresh(at: now, interval: Self.liveRerankInterval) {
+        case .start(let walk):
+            startCategoryWalk(walk)
+        case .wait(let ready):
+            scheduleCategoryRefresh(after: now.duration(to: ready))
+        case .idle, .busy:
             return
         }
-        loadFiles(of: category)
+    }
+
+    /// One retry at the end of the interval, so a single late change still
+    /// reaches the list on a disk that then went quiet.
+    private func scheduleCategoryRefresh(after delay: Duration) {
+        guard categoryRetryTask == nil else { return }
+        categoryRetryTask = Task {
+            try? await Task.sleep(for: delay)
+            guard !Task.isCancelled else { return }
+            categoryRetryTask = nil
+            refreshCategoryFilesIfNeeded()
+        }
     }
 
     /// Re-ranks the tree when the list on screen is one of the largest lists.
@@ -336,39 +379,52 @@ public struct ResultsView: View {
         }
     }
 
-    /// Starts the search for what the field now holds.
-    ///
-    /// The walk happens off the main actor and behind a short quiet period, so a
-    /// keystroke neither blocks the screen nor starts a walk that the next
-    /// keystroke immediately replaces. Every new query cancels the one before it,
-    /// and the walk checks cancellation between nodes.
     /// Re-runs an open search when the tree changed under it.
     ///
     /// The walk is throttled: on a disk that is never quiet every applied batch
     /// bumps the revision, and walking millions of entries for each one would
     /// spend more time searching than the disk spends changing. The previous
     /// answer stays on screen until the next walk starts.
+    ///
+    /// A change never replaces a walk that is out. A walk over a home folder takes
+    /// seconds, and a tree too big to walk inside the interval would be restarted
+    /// at every interval — with each restart throwing away the answer the last one
+    /// was about to produce. Instead one follow-up walk is queued, and it starts
+    /// when the walk in flight lands.
     @MainActor
     private func refreshSearchForTreeChange() {
         guard isSearchActive, !isLiveScan else { return }
+        guard searchRun == nil else {
+            searchRefreshPending = true
+            return
+        }
         let now = ContinuousClock().now
         if let started = lastSearchStartedAt, now < started.advanced(by: Self.liveSearchInterval) {
-            searchRefreshTask?.cancel()
+            guard searchRefreshTask == nil else { return }
             let wait = now.duration(to: started.advanced(by: Self.liveSearchInterval))
             searchRefreshTask = Task {
                 try? await Task.sleep(for: wait)
                 guard !Task.isCancelled else { return }
                 searchRefreshTask = nil
-                startSearch(searchText, debounce: false)
+                refreshSearchForTreeChange()
             }
             return
         }
         startSearch(searchText, debounce: false)
     }
 
+    /// Starts the search for what the field now holds.
+    ///
+    /// The walk happens off the main actor and behind a short quiet period, so a
+    /// keystroke neither blocks the screen nor starts a walk that the next
+    /// keystroke immediately replaces. Every new query cancels the one before it,
+    /// and the walk checks cancellation between nodes.
     private func startSearch(_ text: String, debounce: Bool = true) {
         searchRun?.cancel()
         searchRun = nil
+        searchRefreshTask?.cancel()
+        searchRefreshTask = nil
+        searchRefreshPending = false
 
         let query = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !query.isEmpty, summary != nil else {
@@ -402,6 +458,12 @@ public struct ResultsView: View {
             searchResults = results
             searchRevision &+= 1
             isSearching = false
+            searchRun = nil
+            // A change that landed while this walk ran is newer than its answer.
+            if searchRefreshPending {
+                searchRefreshPending = false
+                refreshSearchForTreeChange()
+            }
         }
     }
 
@@ -409,7 +471,7 @@ public struct ResultsView: View {
     /// does not change: the ring keeps the category outlined and the crumb above
     /// the list leads back to every category.
     private func selectCategory(_ category: FileCategory) {
-        guard drilledCategory != category else {
+        guard categoryDetail.category != category else {
             closeCategory()
             return
         }
@@ -417,29 +479,41 @@ public struct ResultsView: View {
         hoveredCategory = nil
         // A category opens on its first page, like a folder entered from the chart.
         visibleItemLimit = DS.Size.explorerPageSize
-        drilledCategory = category
-        loadFiles(of: category)
+        cancelCategoryWork()
+        startCategoryWalk(categoryDetail.open(category, at: ContinuousClock().now))
     }
 
     private func closeCategory() {
-        drilledCategory = nil
+        cancelCategoryWork()
+        categoryDetail.close()
+        clearSelection()
+    }
+
+    private func cancelCategoryWork() {
         categoryFilesTask?.cancel()
         categoryFilesTask = nil
-        categoryFiles = nil
-        clearSelection()
+        categoryRetryTask?.cancel()
+        categoryRetryTask = nil
     }
 
     /// The category's files come from the live tree, walked off the main actor and
     /// capped like the cleanup analysis. Before the tree exists — during the scan,
     /// or while a full disk is being turned into one — the engine's ranked list
     /// stands in and the header says it is the largest files so far.
-    private func loadFiles(of category: FileCategory) {
+    ///
+    /// The walk that is out is left alone: replacing it would throw away work
+    /// already done on a large tree, and only ever start over.
+    private func startCategoryWalk(_ walk: CategoryDetail.Walk) {
         categoryFilesTask?.cancel()
-        categoryFiles = nil
-        guard let summary else { return }
+        categoryFilesTask = nil
+        guard let summary else {
+            categoryDetail.end(walk)
+            return
+        }
+        categoryWalkRevision = viewModel.resultsRevision
 
         if let tree = viewModel.liveTree {
-            categoryFilesStartedAt = ContinuousClock().now
+            let category = walk.category
             let task = Task.detached(priority: .userInitiated) {
                 CategoryFileIndex.largest(
                     filesOf: category,
@@ -450,20 +524,33 @@ public struct ResultsView: View {
             categoryFilesTask = task
             Task { @MainActor in
                 let result = await task.value
-                guard drilledCategory == category else { return }
-                categoryFiles = result
+                finishCategoryWalk(walk, with: result)
             }
         } else {
-            let files = summary.largestFiles.filter { $0.category == category }
-            categoryFiles = CategoryFiles(
-                category: category,
+            let files = summary.largestFiles.filter { $0.category == walk.category }
+            finishCategoryWalk(walk, with: CategoryFiles(
+                category: walk.category,
                 files: files,
                 matchCount: files.count,
                 totalLogicalSize: files.reduce(0) { $0 + max(0, $1.logicalSize) },
                 visitedCount: 0,
                 stoppedAtLimit: false
-            )
+            ))
         }
+    }
+
+    /// Takes a finished walk's answer when it is still the one the list is
+    /// waiting for, and asks for another walk when the tree changed while it ran.
+    private func finishCategoryWalk(_ walk: CategoryDetail.Walk, with result: CategoryFiles?) {
+        guard categoryDetail.pendingWalk == walk else { return }
+        categoryFilesTask = nil
+        if let result {
+            categoryDetail.accept(result, from: walk)
+        } else {
+            categoryDetail.end(walk)
+        }
+        guard viewModel.resultsRevision != categoryWalkRevision else { return }
+        refreshCategoryFilesIfNeeded()
     }
 
     /// The folder on screen, resolved against the results being rendered.
@@ -517,7 +604,7 @@ public struct ResultsView: View {
         case .categoryFiles:
             // The category detail is the bounded list of the files the walk
             // returned, so it is built directly rather than through the cache.
-            return (categoryFiles?.files ?? []).map {
+            return (categoryDetail.files?.files ?? []).map {
                 ExplorerRow(node: $0, location: .itemPath)
             }
         case .nodeList:
@@ -553,7 +640,7 @@ public struct ResultsView: View {
         case .topFiles, .topFolders:
             return topNodes
         case .categories:
-            return categoryFiles?.files ?? []
+            return categoryDetail.files?.files ?? []
         }
     }
 
@@ -597,7 +684,7 @@ public struct ResultsView: View {
     /// Where the spindle hole leads: up one folder, or back to all categories.
     private var chartCenterAction: (() -> Void)? {
         if explorerMode == .categories {
-            return drilledCategory == nil ? nil : { closeCategory() }
+            return categoryDetail.isOpen ? { closeCategory() } : nil
         }
         return breadcrumb.isEmpty ? nil : { goToBreadcrumb(depth: breadcrumb.count - 1) }
     }
@@ -621,6 +708,78 @@ public struct ResultsView: View {
             return DS.Sunburst.maxChildrenPerNode
         }
     }
+
+    /// The chart for one list of entries, drawn the way the Settings window asks.
+    ///
+    /// The sunburst and the treemap read the same selection and the same hover,
+    /// and both select through `chartSelect`, so choosing one changes the drawing
+    /// and nothing else about the screen.
+    @ViewBuilder
+    private func entryChart(
+        nodes: [ScanNode],
+        centerLabel: String,
+        inputID: String,
+        revision: Int = 0,
+        liveTree: LiveTree? = nil
+    ) -> some View {
+        switch chartStyle {
+        case .sunburst:
+            SunburstView(
+                nodes: nodes,
+                centerLabel: centerLabel,
+                selectedNodeURL: selectedNodes.count == 1 ? selectedNodes[0].url : nil,
+                maxChildren: chartChildLimit,
+                revision: revision,
+                children: liveChildrenProvider,
+                hoveredURL: $hover.url,
+                onCenterTap: chartCenterAction,
+                centerHint: chartCenterHint,
+                // Every chart that enters this pane reveals itself, whether it is
+                // the first one, a return, or the Other tab's.
+                playsEntrance: true
+            ) { node in
+                chartSelect(node)
+            }
+        case .treemap:
+            TreemapView(
+                nodes: nodes,
+                centerLabel: centerLabel,
+                inputID: inputID,
+                selectedNodeURL: selectedNodes.count == 1 ? selectedNodes[0].url : nil,
+                // The treemap's density is its own: it is the chart for dense
+                // folders, and following the explorer's page would fold a wide
+                // folder into one aggregate box.
+                maxChildren: DS.Treemap.maxChildrenPerNode,
+                source: liveTree.map { LiveTreemapSource($0) } ?? SnapshotTreemapSource(),
+                hoveredURL: $hover.url,
+                playsEntrance: true
+            ) { node in
+                chartSelect(node)
+            }
+        }
+    }
+
+    /// The folder the chart and the explorer are showing, as a path that
+    /// survives the live tree replacing its nodes.
+    private var focusPath: String {
+        breadcrumb.last?.url.path ?? summary?.root.path ?? ""
+    }
+
+    /// What the treemap rebuilds its boxes on. The path covers navigation and the
+    /// results revision covers the tree — every partial snapshot and every
+    /// watched change — so the chart never has to hash every entry to know
+    /// whether it changed.
+    private var folderChartInputID: String {
+        "folder:\(focusPath):\(viewModel.resultsRevision)"
+    }
+
+    /// The same for the category chart, whose files land from their own walk
+    /// rather than from the results revision.
+    private func categoryChartInputID(_ category: FileCategory, _ files: CategoryFiles) -> String {
+        "category:\(category.rawValue):\(files.matchCount):\(files.files.count):"
+            + (files.files.first?.id.uuidString ?? "")
+    }
+
     private var remainingRowCount: Int { max(visibleRows.count - rowLimit, 0) }
 
     /// The inputs that decide which rows are on screen. When any of them changes
@@ -648,7 +807,7 @@ public struct ResultsView: View {
             )
         }
         if explorerMode == .categories {
-            if let category = drilledCategory {
+            if let category = categoryDetail.category {
                 return L10n.format(
                     isLiveScan ? "No %@ files yet" : "No %@ files in this scan",
                     category.displayName
@@ -720,6 +879,11 @@ public struct ResultsView: View {
                 // one opened with a query already in the field searches at once
                 // rather than waiting out the debounce meant for typing.
                 refreshRanking()
+                // A screen opened inside a category starts that walk once the
+                // results it reads exist.
+                if let walk = categoryDetail.pendingWalk, categoryFilesTask == nil {
+                    startCategoryWalk(walk)
+                }
                 guard !searchText.isEmpty else { return }
                 startSearch(searchText, debounce: false)
             }
@@ -771,9 +935,9 @@ public struct ResultsView: View {
         .onChange(of: isLiveScan) { _, live in
             // A category opened while the walk was still running listed the
             // engine's ranked files; once the root node exists, the full walk over
-            // the tree replaces that list.
-            guard !live, let category = drilledCategory else { return }
-            loadFiles(of: category)
+            // the tree replaces that list without taking it off the screen.
+            guard !live, categoryDetail.isOpen else { return }
+            refreshCategoryFilesIfNeeded()
         }
         .onChange(of: breadcrumb.map(\.id)) { _, _ in
             visibleItemLimit = DS.Size.explorerPageSize
@@ -789,7 +953,7 @@ public struct ResultsView: View {
             // built from, so both are walked again — on their own intervals.
             refreshRanking()
             refreshSearchForTreeChange()
-            reloadCategoryFilesIfNeeded()
+            refreshCategoryFilesIfNeeded()
         }
         .onChange(of: viewModel.scanRun) { _, _ in
             // A new scan owns a new tree; the old ranking described the old one.
@@ -877,7 +1041,7 @@ public struct ResultsView: View {
                     let report = await viewModel.restore(move)
                     guard !report.failures.isEmpty else { return nil }
                     return L10n.format(
-                        "Couldn’t put back everything. %@",
+                        "Couldn't put back everything. %@",
                         L10n.list(report.failures)
                     )
                 },
@@ -1134,24 +1298,19 @@ public struct ResultsView: View {
             if isSearchActive {
                 searchChart
             } else if explorerMode == .categories {
-                if let category = drilledCategory, let files = categoryFiles, !files.files.isEmpty {
+                if let category = categoryDetail.category, let files = categoryDetail.files,
+                   !files.files.isEmpty {
                     // The category's node is its files, so the chart is the same
-                    // sunburst the folder view uses: one wedge per listed file,
-                    // hover and selection shared with the rows below.
-                    SunburstView(
+                    // chart the folder view uses: one box or wedge per listed
+                    // file, hover and selection shared with the rows below.
+                    entryChart(
                         nodes: files.files,
                         centerLabel: category.displayName,
-                        selectedNodeURL: selectedNodes.count == 1 ? selectedNodes[0].url : nil,
-                        maxChildren: chartChildLimit,
-                        hoveredURL: $hover.url,
-                        onCenterTap: chartCenterAction,
-                        centerHint: chartCenterHint,
-                        playsEntrance: true
-                    ) { node in
-                        chartSelect(node)
-                    }
+                        inputID: categoryChartInputID(category, files)
+                    )
                     .padding(DS.Spacing.medium)
-                } else if let category = drilledCategory, categoryFiles?.files.isEmpty == true {
+                } else if let category = categoryDetail.category,
+                          categoryDetail.files?.files.isEmpty == true {
                     categoryEmptyChart(category)
                 } else {
                     // Before the walk lands (or at the top level) the ring is the
@@ -1159,7 +1318,7 @@ public struct ResultsView: View {
                     CategoryRingView(
                         breakdown: categoryBreakdown,
                         centerLabel: scannedRootName ?? L10n.string("This scan"),
-                        selected: drilledCategory,
+                        selected: categoryDetail.category,
                         hovered: $hoveredCategory,
                         onSelect: selectCategory
                     )
@@ -1168,22 +1327,13 @@ public struct ResultsView: View {
             } else if currentChildren.isEmpty {
                 emptyChart
             } else {
-                SunburstView(
+                entryChart(
                     nodes: currentChildren,
                     centerLabel: breadcrumb.last?.name ?? scannedRootName ?? L10n.string("Root"),
-                    selectedNodeURL: selectedNodes.count == 1 ? selectedNodes[0].url : nil,
-                    maxChildren: chartChildLimit,
+                    inputID: folderChartInputID,
                     revision: viewModel.resultsRevision,
-                    children: liveChildrenProvider,
-                    hoveredURL: $hover.url,
-                    onCenterTap: chartCenterAction,
-                    centerHint: chartCenterHint,
-                    // Every chart that enters this pane reveals itself, whether
-                    // it is the first one, a return, or the Other tab's.
-                    playsEntrance: true
-                ) { node in
-                    chartSelect(node)
-                }
+                    liveTree: viewModel.liveTree
+                )
                 .padding(DS.Spacing.medium)
             }
             scanStatusStrip
@@ -1344,10 +1494,10 @@ public struct ResultsView: View {
                 contentsList
                     .frame(maxHeight: .infinity)
             } else if explorerMode == .categories {
-                if let category = drilledCategory {
+                if let category = categoryDetail.category {
                     categoryDetailHeader(category)
 
-                    if categoryFiles != nil {
+                    if categoryDetail.files != nil {
                         contentsList
                             .frame(maxHeight: .infinity)
                     } else {
@@ -1419,7 +1569,7 @@ public struct ResultsView: View {
 
             Spacer(minLength: DS.Spacing.small)
 
-            if let files = categoryFiles {
+            if let files = categoryDetail.files {
                 Text(categorySummary(files))
                     .font(DS.Typography.caption)
                     .foregroundStyle(DS.Color.secondaryText)
@@ -1883,6 +2033,18 @@ public struct ResultsView: View {
                 detailRow(L10n.string("Access"), node.errorMessage ?? L10n.string("Inaccessible"))
                     .foregroundStyle(DS.Color.warning)
             }
+            if node.isDirectory {
+                let inside = unreadableInside(node)
+                if inside > 0 {
+                    detailRow(L10n.string("Not counted inside"), CountFormat.folders(inside))
+                        .foregroundStyle(DS.Color.warning)
+                    Text(L10n.string("Their contents are missing from this folder's size."))
+                        .font(DS.Typography.caption)
+                        .foregroundStyle(DS.Color.secondaryText)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.leading, DS.Size.detailLabelWidth + DS.Spacing.medium)
+                }
+            }
 
             if isSearchActive {
                 Button {
@@ -1938,7 +2100,7 @@ public struct ResultsView: View {
             HStack(spacing: DS.Spacing.small) {
                 Image(systemName: "square.stack.fill")
                     .foregroundStyle(DS.Color.accent)
-                Text(L10n.format("%lld Items Selected", nodes.count))
+                Text(L10n.format("%lld items selected", nodes.count))
                     .font(DS.Typography.headline)
                 Spacer()
                 detailHeaderActions(nodes)
@@ -1980,7 +2142,7 @@ public struct ResultsView: View {
             detailAction("eye", L10n.string("Quick Look")) {
                 quickLook.toggle(nodes.map(\.url))
             }
-            detailAction("arrow.up.forward.square", L10n.string("Reveal in Finder")) {
+            detailAction("arrow.up.forward.square", L10n.string("Show in Finder")) {
                 revealInFinder(nodes)
             }
             detailAction("xmark", L10n.string("Close Details")) {
@@ -1990,6 +2152,16 @@ public struct ResultsView: View {
     }
 
     @ViewBuilder
+    /// How many folders inside this one could not be read, not counting the
+    /// folder itself — its own access failure is the row above.
+    private func unreadableInside(_ node: ScanNode) -> Int {
+        guard node.isDirectory,
+              let count = viewModel.liveTree?.unreadableFolderCount(atPath: node.url.path) else {
+            return 0
+        }
+        return max(0, count - (node.isAccessible ? 0 : 1))
+    }
+
     private func detailRow(_ label: String, _ value: String) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: DS.Spacing.medium) {
             Text(label)
@@ -2047,10 +2219,12 @@ public struct ResultsView: View {
         searchRun = nil
         searchRefreshTask?.cancel()
         searchRefreshTask = nil
+        searchRefreshPending = false
         rankingTask?.cancel()
         rankingTask = nil
         rankingRetryTask?.cancel()
         rankingRetryTask = nil
+        cancelCategoryWork()
     }
 
     /// A click selects the row. The modifiers are read at click time because a
@@ -2665,8 +2839,8 @@ private struct ContentsList: View {
                                     onQuickLook(row.node)
                                 }
                                 Button(targets == 1
-                                       ? L10n.string("Reveal in Finder")
-                                       : L10n.format("Reveal %@ in Finder", CountFormat.items(targets))) {
+                                       ? L10n.string("Show in Finder")
+                                       : L10n.format("Show %@ in Finder", CountFormat.items(targets))) {
                                     onReveal(row.node)
                                 }
                                 Divider()

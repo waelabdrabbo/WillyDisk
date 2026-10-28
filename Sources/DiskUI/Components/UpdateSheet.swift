@@ -81,7 +81,7 @@ public struct UpdateSheet: View {
             Divider()
             footer
         }
-        .frame(width: 640, height: 600)
+        .dsFittedFrame(width: 640, height: 600)
         .background(DS.Color.windowBackground)
         .tint(DS.Color.signal)
     }
@@ -113,14 +113,14 @@ public struct UpdateSheet: View {
             status(
                 symbol: "checkmark.circle",
                 title: L10n.string("WillyDisk is up to date."),
-                detail: L10n.format("You have WillyDisk %@.", current)
+                detail: L10n.format("You're using WillyDisk %@.", current)
             )
 
         case let .newerThanLatest(current, latest):
             status(
                 symbol: "arrow.up.circle",
                 title: L10n.string("You're running a newer build than the latest release."),
-                detail: L10n.format("You have WillyDisk %@.", current),
+                detail: L10n.format("You're using WillyDisk %@.", current),
                 extra: L10n.format("The latest release is WillyDisk %@.", latest)
             )
 
@@ -156,7 +156,7 @@ public struct UpdateSheet: View {
                     .font(DS.Typography.caption)
                     .foregroundStyle(DS.Color.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)
-                Text(L10n.string("macOS may ask for Full Disk Access again after the update because this build is ad-hoc signed."))
+                Text(L10n.string("macOS may ask for Full Disk Access again after the update because this build is ad-hoc-signed."))
                     .font(DS.Typography.caption)
                     .foregroundStyle(DS.Color.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)
@@ -228,14 +228,24 @@ public struct UpdateSheet: View {
             Text(L10n.format("WillyDisk %@ is available.", offer.version))
                 .font(DS.Typography.title2)
                 .fixedSize(horizontal: false, vertical: true)
-            Text(L10n.format("You have WillyDisk %@.", offer.currentVersion))
+            Text(L10n.format("You're using WillyDisk %@.", offer.currentVersion))
                 .font(DS.Typography.callout)
                 .foregroundStyle(DS.Color.secondaryText)
 
             VStack(alignment: .leading, spacing: DS.Spacing.small) {
-                Text(L10n.string("Release Notes"))
-                    .font(DS.Typography.headline)
-                    .accessibilityAddTraits(.isHeader)
+                HStack(alignment: .center) {
+                    Text(L10n.string("Release Notes"))
+                        .font(DS.Typography.headline)
+                        .accessibilityAddTraits(.isHeader)
+                    Spacer(minLength: DS.Spacing.small)
+                    InlineActionButton(
+                        L10n.string("Open Release Page"),
+                        systemImage: "arrow.up.forward.square",
+                        iconPlacement: .trailing
+                    ) {
+                        actions.openPage(offer.pageURL)
+                    }
+                }
                 notes(offer.notes)
             }
 
@@ -280,13 +290,19 @@ public struct UpdateSheet: View {
     }
 
     private func notes(_ notes: String) -> some View {
-        let blocks = UpdateNoteBlock.parse(notes)
+        let blocks = UpdateNoteBlock.changes(in: notes)
         return ScrollView {
             VStack(alignment: .leading, spacing: DS.Spacing.small) {
                 if blocks.isEmpty {
-                    Text(L10n.string("No release notes."))
-                        .font(DS.Typography.callout)
-                        .foregroundStyle(DS.Color.secondaryText)
+                    if notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        Text(L10n.string("No release notes."))
+                            .font(DS.Typography.callout)
+                            .foregroundStyle(DS.Color.secondaryText)
+                    } else {
+                        Text(L10n.string("See the release page for what's new."))
+                            .font(DS.Typography.callout)
+                            .foregroundStyle(DS.Color.secondaryText)
+                    }
                 } else {
                     ForEach(blocks) { block in
                         noteBlock(block)
@@ -501,13 +517,13 @@ public struct UpdateSheet: View {
         case .timedOut:
             return L10n.string("GitHub took too long to respond. Try again.")
         case .noRelease:
-            return L10n.string("No published release was found.")
+            return L10n.string("There is no published release.")
         case .rateLimited:
             return L10n.string("GitHub is limiting requests right now. Try again later.")
         case .http:
             return L10n.string("GitHub returned an error. Try again later.")
         case .malformedFeed:
-            return L10n.string("The update feed couldn't be read.")
+            return L10n.string("The update information couldn't be read.")
         case .downloadFailed:
             return L10n.string("The update couldn't be downloaded. Try again.")
         case .checksumMismatch:
@@ -546,6 +562,35 @@ private struct UpdateNoteBlock: Identifiable {
     let id: Int
     let kind: Kind
     let text: String
+
+    /// The release page carries install steps, checksums, and build notes after
+    /// the change summary. The sheet is already doing the install, so it shows
+    /// only the publisher's change section and links to the full page.
+    static func changes(in notes: String) -> [UpdateNoteBlock] {
+        let blocks = parse(notes)
+        guard let start = blocks.firstIndex(where: {
+            guard case .heading = $0.kind else { return false }
+            return isChangesHeading($0.text)
+        }) else {
+            return []
+        }
+        let after = blocks[(start + 1)...]
+        let end = after.firstIndex(where: {
+            if case .heading = $0.kind { return true }
+            return false
+        }) ?? after.endIndex
+        return Array(after[..<end])
+    }
+
+    private static func isChangesHeading(_ text: String) -> Bool {
+        let normalized = text
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+            .replacingOccurrences(of: "’", with: "'")
+        return normalized == "what's changed"
+            || normalized == "what's new"
+            || normalized == "what is new"
+    }
 
     static func parse(_ notes: String) -> [UpdateNoteBlock] {
         var blocks: [UpdateNoteBlock] = []

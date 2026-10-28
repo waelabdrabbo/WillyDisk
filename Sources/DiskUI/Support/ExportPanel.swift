@@ -33,7 +33,7 @@ enum ExportPanel {
         } catch {
             let alert = NSAlert()
             alert.alertStyle = .warning
-            alert.messageText = L10n.string("Export failed")
+            alert.messageText = L10n.string("Export Failed")
             alert.informativeText = failureDescription(url, error)
             alert.runModal()
         }

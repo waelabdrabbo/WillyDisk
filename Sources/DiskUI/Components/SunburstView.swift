@@ -137,7 +137,7 @@ public struct SunburstView: View {
             }
             .overlay(alignment: .topLeading) {
                 if isAnimating {
-                    SunburstTicker { dt in
+                    ChartTicker { dt in
                         segmentsCache.motion.step(dt: dt)
                         animationFrame &+= 1
                         if segmentsCache.motion.isSettled { isAnimating = false }
@@ -227,14 +227,19 @@ public struct SunburstView: View {
             // outline whether or not anything is hovered. The shapes are the
             // wedges' drawn ones, so the emphasis follows a wedge mid-move.
             if active != nil || selected != nil {
-                WedgeEmphasis(
-                    active: active.flatMap { wedgeShape(forKey: $0.key, geometry: geometry) },
+                ChartEmphasis(
+                    active: active
+                        .flatMap { wedgeShape(forKey: $0.key, geometry: geometry) }
+                        .map { path(for: $0, side: side) },
                     trail: active.map {
                         lineage(of: $0, in: segments)
                             .compactMap { wedgeShape(forKey: $0.key, geometry: geometry) }
+                            .map { path(for: $0, side: side) }
                     } ?? [],
-                    selected: selected.flatMap { wedgeShape(forKey: $0.key, geometry: geometry) },
-                    side: side,
+                    selected: selected
+                        .flatMap { wedgeShape(forKey: $0.key, geometry: geometry) }
+                        .map { path(for: $0, side: side) },
+                    size: CGSize(width: side, height: side),
                     animates: !reduceMotion,
                     activeID: active?.key
                 )
@@ -275,6 +280,12 @@ public struct SunburstView: View {
     /// The shape a wedge is drawn with right now, reveal included.
     private func wedgeShape(forKey key: String, geometry: SunburstGeometry) -> SunburstWedge? {
         segmentsCache.motion.wedge(forKey: key).map { wedgeShape(for: $0, in: geometry) }
+    }
+
+    /// A wedge's outline in the chart's own coordinate space, which is what the
+    /// shared emphasis layer paints.
+    private func path(for wedge: SunburstWedge, side: CGFloat) -> Path {
+        wedge.path(in: CGRect(x: 0, y: 0, width: side, height: side))
     }
 
     private func wedgeShape(for wedge: SunburstAnimatedWedge, in geometry: SunburstGeometry) -> SunburstWedge {
@@ -553,54 +564,27 @@ enum SunburstLayout {
         into result: inout [SunburstSegment],
         level: inout [Placed]
     ) {
-        let ordered = children
-            .filter(\.isPresentable)
-            .sorted { $0.logicalSize > $1.logicalSize }
-        guard !ordered.isEmpty, end > start else { return }
-
-        let total = ordered.reduce(Int64(0)) { $0 + $1.logicalSize }
-        guard total > 0 else { return }
-
+        guard end > start else { return }
         // Nothing left to spend: the chart keeps the wedges it has rather than
         // adding one more per parent below.
-        let slots = maxSegments - result.count
-        guard slots > 0 else { return }
-
-        // Tone ranks the siblings by path, not by size, and ranks every child the
-        // parent holds — including one whose bytes have not been counted yet. A
-        // sibling arriving during a scan therefore takes a place of its own
-        // instead of moving the tones already on screen; the relative order of
-        // paths never changes.
-        let fills = ChartPalette.fills(for: children, ring: ring)
-
-        // A parent whose children do not all fit needs a slot for the aggregate
-        // wedge as well as for the children it draws; when only that slot is left
-        // the whole group is drawn as the one wedge.
-        var shownCount = min(min(ordered.count, maxChildren), slots)
-        if ordered.count > shownCount {
-            shownCount = min(shownCount, slots - 1)
-        }
-        guard shownCount > 0 else {
-            result.append(remainderSegment(ring: ring, parentPrefix: parentPrefix, count: ordered.count,
-                                           start: start, end: end, size: total))
-            return
-        }
-
-        let shown = ordered.prefix(shownCount)
-        let shownTotal = shown.reduce(Int64(0)) { $0 + $1.logicalSize }
-        let hiddenTotal = total - shownTotal
+        guard let group = ChartGrouping.group(
+            children,
+            maxChildren: maxChildren,
+            slots: maxSegments - result.count,
+            ring: ring
+        ) else { return }
 
         let span = end - start
         var angle = start
 
-        for node in shown {
-            let width = span * Double(node.logicalSize) / Double(total)
+        for node in group.shown {
+            let width = span * Double(node.logicalSize) / Double(group.total)
             let nodeEnd = angle + width
             // Identify a wedge by the node's path, not its `id`: the engine
             // rebuilds every node value on each progressive snapshot, so paths
             // are what stay stable while a scan streams results in.
             let prefix = parentPrefix + node.url.path
-            let fill = fills[node.url.path] ?? .neutral
+            let fill = group.fills[node.url.path] ?? .neutral
             result.append(
                 SunburstSegment(
                     id: "\(ring)\(prefix)",
@@ -618,12 +602,12 @@ enum SunburstLayout {
             angle = nodeEnd
         }
 
-        if hiddenTotal > 0 {
+        if group.remainderSize > 0 {
             // The aggregate wedge runs to the end of the parent's span, so the
             // ring still accounts for every byte of that parent.
             result.append(remainderSegment(ring: ring, parentPrefix: parentPrefix,
-                                           count: ordered.count - shownCount,
-                                           start: angle, end: end, size: hiddenTotal))
+                                           count: group.remainderCount,
+                                           start: angle, end: end, size: group.remainderSize))
         }
     }
 
@@ -882,7 +866,7 @@ private struct SunburstWedgeLayer: View, Equatable {
     }
 
     private func fillOpacity(for wedge: SunburstAnimatedWedge) -> Double {
-        wedge.key == selectedKey ? DS.Sunburst.selectedFillOpacity : DS.Sunburst.fillOpacity
+        wedge.key == selectedKey ? DS.Chart.selectedFillOpacity : DS.Sunburst.fillOpacity
     }
 }
 

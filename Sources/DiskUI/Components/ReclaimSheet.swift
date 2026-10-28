@@ -98,7 +98,7 @@ struct ReclaimSheet: View {
                     .foregroundStyle(DS.Color.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)
                 if hasSymlink {
-                    Text(L10n.string("Symbolic links are moved themselves; the items they point to stay where they are."))
+                    Text(L10n.string("A symbolic link is moved itself; the item it points to stays where it is."))
                         .font(DS.Typography.caption)
                         .foregroundStyle(DS.Color.secondaryText)
                         .fixedSize(horizontal: false, vertical: true)

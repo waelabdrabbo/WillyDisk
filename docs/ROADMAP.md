@@ -17,8 +17,24 @@ decisions. This is a handoff document, not a specification of frozen interfaces 
   watched-tree refresh (`b8be044`), global search over the whole finished scan
   (`e7d6fff`), and the localization pass (`7c7c067`). This docs handoff follows it.
 - Build: `swift build --disable-sandbox`.
-- Tests: 310 QATests + 153 DiskCoreTests (3 skipped; the benchmark tests need
+- Tests: 344 QATests + 159 DiskCoreTests (3 skipped; the benchmark tests need
   `WILLYDISK_BENCH_ROOT`) + 30 DiskCLITests + 83 DiskUpdateTests, 0 failures.
+- The one-tree memory pass (`docs/MEMORY.md` stages 1–4) is in the working tree: the
+  engine exposes its live tree while it walks, the summary carries no subtrees, and the
+  measured full-disk peak fell from 2,755 MB to 636 MB (`$HOME` 2,435 → 537 MB,
+  `/Applications` 413 → 118 MB). The stored-entry ceiling is deliberately deferred:
+  decision C in `docs/MEMORY.md` — no cap, no grouped entries, memory linear at the
+  arena's own cost, with a measured trigger for reopening it.
+- Coverage opens with ⌘I, and a folder's inspector says how many folders inside it could
+  not be read. The count is maintained by the live tree's edits, so a folder's size is
+  never presented as complete when it is a floor. The results header does not carry a
+  coverage status line; that placement was rejected.
+- The CSV report carries the scan's totals, access counts, and accounting rows before
+  the ranked items, with a `Value` column for the counts that are not files or folders.
+  A comma in a name is quoted once. Fixed sheets cap themselves to the screen's visible
+  frame, and the empty states were audited: every surface already says what it is.
+- The accessibility pass so far localizes the scan-option switch values and makes each
+  coverage row a single VoiceOver element; a full VoiceOver and focus pass remains.
 - CI: `.github/workflows/ci.yml` builds, tests, checks that the bundle reports
   `VERSION`, runs the bundled binary's `scan` and its usage exit status, and uploads
   the offscreen renders on every push. `.github/workflows/release.yml` runs on a `v*`
@@ -40,8 +56,14 @@ decisions. This is a handoff document, not a specification of frozen interfaces 
   relaunch. The Homebrew cask template declares `auto_updates true`. The remaining
   gate is a real update over `/Applications`: TCC/Full Disk Access, the App
   Management prompt, and the relaunch. `docs/UPDATES.md` is the contract.
+- The current code adds the treemap as a second chart, chosen in Settings. It draws the
+  same tree as nested boxes with the same selection, hover, and drill-down; the two
+  charts share the fold rule, the palette, and one emphasis layer, and a wide folder is
+  laid out off the main actor. The sunburst stays the default and the identity.
+  `Scripts/render-screens.sh -S treemap` and CI render it; the suites are
+  `Tests/QATests/TreemapLayoutQATests`, `TreemapMotionQATests`, and `ChartStyleQATests`.
 - The app is a working single-window analyzer: choose a volume, folder, or quick
-  preset, watch a progressive scan, read the sunburst and explorer, search the whole
+  preset, watch a progressive scan, read the chart and explorer, search the whole
   scan by name and drill from a result to its folder, inspect
   coverage, see where the bytes sit by file category, review large/old/cache candidates,
   check possible duplicates by their contents before trashing them, compare the recorded
@@ -121,14 +143,29 @@ Details worth remembering:
   the categorised subset, and a share rounds to “<1%” rather than 0% or to “99%” rather
   than 100%.
 - Choosing a slice or a row opens that category in place: the mode stays Categories and
-  the list becomes the category's files, charted as its own sunburst with one wedge per
+  the list becomes the category's files, charted as its own chart with one shape per
   listed file and hover and selection shared with the rows — the same chart/list pairing
   This Folder has. While the walk is loading, the ring shows the category outlined, and
   “All Categories” above the list closes it. The files come from a walk over the finished
   tree, run off the main actor and capped at 100 with every match still counted; a live
   scan uses the engine's ranked list and says it is the largest so far, then reloads when
-  the root node lands. There is no category menu and no category filter: the mode is the
-  only way in.
+  the root node lands. A watched change asks for a newer walk on the interval the screen's
+  other whole-tree walks use, and the files on screen stay until that walk lands: a home
+  folder is millions of entries walked while the disk keeps changing, so a list that
+  emptied on every change would never leave the reading state. There is no category menu and no
+  category filter: the mode is the only way in.
+- The treemap is the same tree drawn as nested boxes, chosen in Settings ▸ Chart. It
+  shares the sunburst's selection, hover, click semantics, and fills, so switching the
+  chart changes the drawing and nothing else. A box's area is its share of the box that
+  holds it: children are drawn largest first, the rest are folded into one aggregate
+  that stands for exactly their bytes, and nothing is rescaled to fill the frame. Its
+  density is its own — up to 256 children per box and 2048 boxes — rather than the
+  explorer's page, because the chart exists for folders of many similar files. A folder
+  draws its contents only when its box can hold a readable one, and a box that stays
+  flat still stands for its whole size. Names are set on the box and in the readout; the
+  layout is pure and runs off the main actor above the inline limit. The chart is laid
+  out left to right in every language — a Canvas does not mirror, a positioned label
+  does — while names take the interface's leading edge.
 - Cleanup candidates come from the finished tree the summary already carries, never
   from a second filesystem pass. `CleanupPolicy` states the thresholds (500 MB and a
   year for large-and-old, six months for downloads), and a threshold applies to the
@@ -217,16 +254,19 @@ Details worth remembering:
   keystroke, and matches names case- and diacritic-insensitively; a query containing `/`
   is a path query and also matches each entry's full path, which is how `Photos/2024`
   finds what lives there without a one-letter query returning every path on the disk. It
-  keeps the largest 200 matches, counts every one, and stops after 2,000,000 entries,
-  saying on the summary line what it is showing and whether the walk stopped. Each row
+  keeps the largest 200 matches, counts every one, and stops after 5,000,000 entries —
+  more than this Mac's full disk, which is what a home folder and a whole-disk scan need;
+  a tree larger than that says on the summary line what it is showing and whether the walk
+  stopped. Each row
   names the folder that holds it; Show in Folder (and Return on a folder result) clears
   the search and re-roots the explorer there, with the result selected. The chart pane is
   not a chart of the matches — the sunburst's wedges partition one folder's bytes, and a
   matched file inside a matched folder would be counted twice — so it says what the
   search found and that clearing the field brings the folder chart back. A live scan is
   searched as it stands and the search re-runs when the terminal summary lands, as it
-  does after a quiet refresh; the live summary line says “so far”. Search never records
-  history and never edits the tree.
+  does after a quiet refresh; a refresh queues one walk behind the one in flight rather
+  than replacing it, so a search over a big folder always lands. The live summary line
+  says “so far”. Search never records history and never edits the tree.
 - History opens from the results toolbar (or Scan ▸ History…) for the location on the
   engine's slot, and compares two of its runs. The current run is recorded as it
   settles; the sheet picks the two newest by default and lets any two be chosen. Clear
@@ -241,7 +281,8 @@ Details worth remembering:
   uses the engine's clock and reports no totals until a snapshot exists; a quiet refresh
   reports the completed run still on screen as `refreshing`. The save panel says what
   the file does and does not contain. Report export (JSON/CSV) is the separate document
-  that names paths.
+  that names paths; its CSV carries the totals, access counts, and accounting rows, then
+  the ranked items.
 - The command line is a front end over the same `FileScanEngine`, not a second scanner:
   `DiskCLI` depends on `DiskCore` only, and the executable's `@main` routes
   `WillyDisk scan …` (or a leading option such as `--help`) before SwiftUI is touched,
@@ -315,6 +356,9 @@ python3 Scripts/pseudolanguage.py --check
 bash Scripts/localize.sh --check
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S both -o .build/renders/check
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S categories -o .build/renders/check
+WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S treemap -o .build/renders/check
+WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S treemap -l ar -o .build/renders/check
+WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a light -S treemap -l en-XA -o .build/renders/check
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S search -o .build/renders/check
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S help -c -o .build/renders/check
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S settings -c -s 460x760 -o .build/renders/check
@@ -335,8 +379,8 @@ WILLYDISK_NO_SANDBOX=1 bash Scripts/package-release.sh
 
 CI runs the localization freshness check, the build, the suite, the bundle version
 check, a bundled `scan` plus its usage exit status, and the renders — including Arabic
-results, home, coverage, cleanup, settings, and the update sheet (offer and ready),
-and the pseudolanguage results and coverage — on every push. `Scripts/package-release.sh` builds both
+results, treemap, home, coverage, cleanup, settings, and the update sheet (offer and
+ready), and the pseudolanguage results, treemap, and coverage — on every push. `Scripts/package-release.sh` builds both
 slices, expands each archive, and checks its architecture, version, and ad-hoc signature
 before writing the two SHA-256s; `.github/workflows/release.yml` runs that on a `v*` tag,
 re-checks both checksums, and publishes only when the tag matches `VERSION`. On an Apple
@@ -348,7 +392,11 @@ renders the doubled-length pseudolanguage, which is how truncation shows up in r
 The locale is part of each PNG's name, so an English and an Arabic render of the same
 size never overwrite each other. `-S coverage` renders the coverage sheet, which is a
 sheet and therefore needs `-c`.
-`-S categories` renders the real results screen in Categories mode, window and all.
+`-S categories` renders the real results screen in Categories mode, window and all, and
+`-S treemap` renders the same screen with the treemap chosen: the renderer sets the
+stored preference before the view is built, so the picture comes through the app's own
+path. A treemap box is labelled with a file or folder name, which is data, so the
+pseudolanguage changes the interface around it and not the labels themselves.
 `-S search` renders the same screen with a whole-scan search open (`p` over the fixture,
 which every folder there has a match for), so the match list, the containing paths, the
 summary line, and the chart's search state are reviewable. Help, Settings, the update
@@ -370,24 +418,19 @@ one-off visual check.
 ### 1. Performance and polish
 
 - Performance guardrails for million-file scans; the benchmark test is currently
-  skipped unless an environment variable points at a root. The ceiling should become
-  structural, not only measured: a per-directory node cap with small files folded into
-  one expandable node, so a multi-million-file tree cannot grow the resident set without
-  bound. That changes which files the explorer can open, so it needs its own design note.
-- Polish: coverage discoverability, folder-level coverage disclosure, CSV accounting
-  (JSON has it, CSV does not), empty states, window sizing, accessibility audit.
+  skipped unless an environment variable points at a root. The one-tree half is done
+  (`docs/MEMORY.md` stages 1–4): the engine exposes its live tree while it walks and the
+  summary is the record, so a scan no longer keeps the tree twice. The stored-entry
+  ceiling is **deferred by decision C**: memory stays linear at about 90–115 bytes per
+  entry, there is no grouping, expansion, or updater change, and no file becomes
+  unsearchable. `docs/MEMORY.md` keeps the budget/cap design and the measured trigger
+  for reopening the decision (a scan above 6M entries, a walk-built peak above 1 GB, a
+  memory-pressure report, or a release that markets scans beyond the envelope).
+- Polish: coverage discoverability (⌘I and the folder inspector exist; the toolbar icon
+  is still easy to miss), the remaining accessibility audit (the switch-value and
+  coverage-row fixes are in).
 
-### 2. Treemap as a second chart
-
-Boxes instead of rings, same tree, same selection, hover and drill-down, chosen in
-Settings. The sunburst stays the identity; the treemap exists for dense folders where
-arcs are too thin to compare.
-
-Acceptance: layout runs off the main actor for a large folder; one selection model
-drives both charts; reduce-motion and keyboard navigation behave as in the sunburst; both
-charts render in CI.
-
-### 3. Reclaim past the Trash
+### 2. Reclaim past the Trash
 
 Today the only removal path is Move to Trash, and Trash frees nothing until it is emptied.
 Put Back (returning an item from the Trash to where it came from) ships with the move log;
@@ -408,7 +451,7 @@ of removal; a permanent delete cannot be reached without a typed or held confirm
 failed backup removes nothing; a cancelled job says what was and was not removed; no
 screen claims space was freed before it was.
 
-### 4. Remote and cloud scans
+### 3. Remote and cloud scans
 
 Scan a machine reachable over SSH, and cloud remotes, through the same explorer.
 `ScanEngine` is the seam: a second conformance that emits the same events, so the UI never
@@ -420,7 +463,7 @@ scan of it; a dropped connection ends in `.finished` with issues or `.cancelled`
 stream that hangs; credentials never reach the export DTO or a diagnostics bundle; nothing
 is scanned remotely without an explicit host choice.
 
-### 5. Self-update, and platforms beyond macOS
+### 4. Self-update, and platforms beyond macOS
 
 Self-update becomes worth shipping once a tagged release exists: the GitHub Release list is
 the feed, the published SHA-256 is the download check, and a relaunch follows. Windows and
@@ -477,14 +520,42 @@ Management, and the relaunch, then a release that carries the updater.
 - Live updates change the screen, not History. History records the finished runs the
   user started; the tree following the disk must not write records or push them out of
   the 20-per-location record.
+- One scan produces one tree. A producer that fills a `LiveTree` leaves
+  `ScanSummary.rootChildren` empty and its ranked directory entries without subtrees;
+  a producer that only reports summaries keeps the complete value tree. The terminal
+  summary reports the tree's own totals. `docs/MEMORY.md` is the design and the measured
+  envelope.
+- Memory is linear by decision, not by oversight (decision C). There is no stored-entry
+  cap and there are no grouped entries: the arena is about 90–115 bytes per entry, and
+  the measured peaks are 118 MB for `/Applications`, 537 MB for `$HOME`, and 636 MB for
+  a 4.63M-entry `/`. Do not add grouping without reopening the decision; the trigger and
+  the preserved cap design are in `docs/MEMORY.md`.
 - History compares measurements, never claims savings. Only a finished scan the user
   started is recorded, and a stored run's options travel with it so a difference in what each
   walk included is disclosed rather than read as a change on disk.
-- Search results are a list, not a chart. A sunburst's wedges partition one folder's
+- The sunburst is the default chart and the app's identity; the treemap is a choice in
+  Settings. Both draw one tree and share the selection (held as URLs), the hover, the
+  click semantics, and the palette; their density differs because the sunburst's budget
+  is angular and the treemap's is areal, but one function decides what is folded, and a
+  node both charts draw wears the same fill. A treemap box's area is its share of the
+  box that holds it, its aggregate box stands for exactly the folded bytes, and nothing
+  is rescaled to fill the frame. A box draws its contents only when it can hold a
+  readable one, so a flat box still stands for its whole size. No free-space tile, no
+  volume figure, and no invented label is drawn on either chart. The category
+  breakdown stays a ring in both styles: it charts one level of categories, not the
+  tree, so the treemap covers the folder and the drilled category's files. The
+  treemap's layout is pure and runs off the main actor above the inline limit; its
+  boxes are laid out left to right in every language because the canvas does not mirror
+  while a positioned label does.
+- Search results are a list, not a chart. A chart's shapes partition one folder's
   bytes; a search's matches overlap (a matched file can sit inside a matched folder), so
   drawing them would sum the same bytes twice and state a whole the app cannot explain.
   The chart pane says the chart maps one folder at a time and comes back when the field is
   cleared.
+- Coverage is not advertised by a status line in the results header. It opens from the
+  toolbar's ⓘ, Scan ▸ Coverage…, ⌘I, and the folder inspector's "not counted inside"
+  row. Do not reintroduce a header chip without asking; that placement was tried and
+  rejected.
 - No Apple Developer account, no Developer ID, no notarization. The bundle stays ad-hoc
   signed and every release artifact is plainly unsigned. Do not add signing or
   notarization steps that need credentials, and never describe the app as signed,
@@ -519,9 +590,10 @@ Management, and the relaunch, then a release that carries the updater.
 
 ## Suggested opening prompt
 
-> Read `docs/ROADMAP.md`. Verify `HEAD` and run the build and tests. Implement item 1,
-> the performance guardrails: first write the design note for a per-directory node cap
-> that folds small files into one expandable node, then give the benchmark a structural
-> ceiling as well as a measured one. Keep frozen contracts untouched unless the note
-> argues for a change, and update `docs/ARCHITECTURE.md` with it. Do not commit unless I
-> ask.
+> Read `docs/ROADMAP.md` and `docs/MEMORY.md`. Verify `HEAD` and run the build and tests.
+> The one-tree half of item 1 is implemented and measured, the stored-entry ceiling is
+> deliberately deferred by decision C, coverage opens with ⌘I and the folder inspector,
+> the CSV carries the accounting, and the fixed sheets fit the screen; do not rebuild
+> those. Take the remaining polish — coverage discoverability beyond ⌘I (no header chip:
+> that placement was rejected) and the accessibility audit — and keep the measured
+> envelope and the reopen trigger in `docs/MEMORY.md` current. Do not commit until I ask.

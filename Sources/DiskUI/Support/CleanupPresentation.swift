@@ -28,7 +28,7 @@ extension CleanupRule {
         case .developerSupport:
             return L10n.string("Xcode's device support folders, one per system version, offered whole. Xcode downloads the one it needs again the next time a device on that version is connected.")
         case .simulators:
-            return L10n.string("Every simulator device, offered whole. Xcode makes a new one on demand; the apps and the data inside these are gone with them.")
+            return L10n.string("Every simulator device, offered whole. Xcode makes a new one on demand; deleting one also removes the apps and the data inside it.")
         case .logs:
             return L10n.string("Log folders directly inside a Library, offered whole. Apps and macOS write new logs as they run.")
         case .downloads:

@@ -34,8 +34,8 @@
 	<string>%@ gathered</string>
 	<key>%@ in %@</key>
 	<string>%@ in %@</string>
-	<key>%@ is counted more than once, because every link the walk reached is counted as a file.</key>
-	<string>%@ is counted more than once, because every link the walk reached is counted as a file.</string>
+	<key>%@ is counted more than once, because every link the scan reached is counted as a file.</key>
+	<string>%@ is counted more than once, because every link the scan reached is counted as a file.</string>
 	<key>%@ is not on this Mac</key>
 	<string>%@ is not on this Mac</string>
 	<key>%@ left out; their contents are not in the totals</key>
@@ -144,8 +144,8 @@
 	<string>&lt;1%</string>
 	<key>&lt;1s</key>
 	<string>&lt;1s</string>
-	<key>A comparison needs two runs of this location. Scan it again and it will be compared here.</key>
-	<string>A comparison needs two runs of this location. Scan it again and it will be compared here.</string>
+	<key>A comparison needs two runs of this location. Scan it again and the two will be compared here.</key>
+	<string>A comparison needs two runs of this location. Scan it again and the two will be compared here.</string>
 	<key>A file</key>
 	<string>A file</string>
 	<key>A folder; moves everything inside it</key>
@@ -154,8 +154,8 @@
 	<string>A link's target is not counted through the link; the link itself carries no file data.</string>
 	<key>A local disk-space analyzer for macOS.</key>
 	<string>A local disk-space analyzer for macOS.</string>
-	<key>A possible duplicate is only a same-size candidate. Check Contents reads the files and compares SHA-256 digests; only matching contents are listed as identical, and cancelling the check confirms nothing.</key>
-	<string>A possible duplicate is only a same-size candidate. Check Contents reads the files and compares SHA-256 digests; only matching contents are listed as identical, and cancelling the check confirms nothing.</string>
+	<key>A possible duplicate is only a candidate of the same size. Check Contents reads the files and compares SHA-256 digests; only matching contents are listed as identical, and cancelling the check confirms nothing.</key>
+	<string>A possible duplicate is only a candidate of the same size. Check Contents reads the files and compares SHA-256 digests; only matching contents are listed as identical, and cancelling the check confirms nothing.</string>
 	<key>A scan is already running — cancel it first to start again</key>
 	<string>A scan is already running — cancel it first to start again</string>
 	<key>A scan is already running — open its results, or stop it to start another</key>
@@ -166,6 +166,8 @@
 	<string>A scan is recorded when it finishes. Cancelled scans are not: their totals cover only part of the folder.</string>
 	<key>A scan is running</key>
 	<string>A scan is running</string>
+	<key>A symbolic link is moved itself; the item it points to stays where it is.</key>
+	<string>A symbolic link is moved itself; the item it points to stays where it is.</string>
 	<key>About WillyDisk</key>
 	<string>About WillyDisk</string>
 	<key>Access</key>
@@ -176,14 +178,12 @@
 	<string>Actions apply to the whole selection.</string>
 	<key>Add Path…</key>
 	<string>Add Path…</string>
-	<key>Add Path… in Scan Options leaves paths out of the next scan. A nested exclusion is skipped without being entered; an exclusion at or above the scan root is ignored.</key>
-	<string>Add Path… in Scan Options leaves paths out of the next scan. A nested exclusion is skipped without being entered; an exclusion at or above the scan root is ignored.</string>
+	<key>Add Path… in Scan Options leaves paths out of the next scan. A nested exclusion is skipped without descending into it; an exclusion at or above the scan root is ignored.</key>
+	<string>Add Path… in Scan Options leaves paths out of the next scan. A nested exclusion is skipped without descending into it; an exclusion at or above the scan root is ignored.</string>
 	<key>All Categories</key>
 	<string>All Categories</string>
 	<key>Allocated</key>
 	<string>Allocated</string>
-	<key>Allocated Size</key>
-	<string>Allocated Size</string>
 	<key>Appearance</key>
 	<string>Appearance</string>
 	<key>Applications</key>
@@ -210,8 +210,8 @@
 	<string>Cancel</string>
 	<key>Cancel Scan</key>
 	<string>Cancel Scan</string>
-	<key>Cancel Scan (⌘.) stops the walk and keeps the totals gathered so far, marked as stopped early.</key>
-	<string>Cancel Scan (⌘.) stops the walk and keeps the totals gathered so far, marked as stopped early.</string>
+	<key>Cancel Scan (⌘.) stops the scan and keeps the totals gathered so far, marked as stopped early.</key>
+	<string>Cancel Scan (⌘.) stops the scan and keeps the totals gathered so far, marked as stopped early.</string>
 	<key>Candidates</key>
 	<string>Candidates</string>
 	<key>Candidates are places to look, not a recommendation. A move goes through the same confirmation as everywhere else, and the space returns when the Trash is emptied.</key>
@@ -226,6 +226,8 @@
 	<string>Change</string>
 	<key>Changes the interface language right away.</key>
 	<string>Changes the interface language right away.</string>
+	<key>Chart</key>
+	<string>Chart</string>
 	<key>Check Contents</key>
 	<string>Check Contents</string>
 	<key>Check for Updates…</key>
@@ -248,8 +250,8 @@
 	<string>Checking…</string>
 	<key>Choose</key>
 	<string>Choose</string>
-	<key>Choose This Folder, Top Files, Top Folders, or Categories. Search (⌘F) finds any name in the whole scan, not only the folder on screen; include a / to match a path instead. Each result says which folder holds it, right-click one for Show in Folder, and clearing the field returns to the list you were in. Categories shows the same scan split by file category, and choosing a category there lists its largest files without leaving the mode. Show More pages through a long list.</key>
-	<string>Choose This Folder, Top Files, Top Folders, or Categories. Search (⌘F) finds any name in the whole scan, not only the folder on screen; include a / to match a path instead. Each result says which folder holds it, right-click one for Show in Folder, and clearing the field returns to the list you were in. Categories shows the same scan split by file category, and choosing a category there lists its largest files without leaving the mode. Show More pages through a long list.</string>
+	<key>Choose This Folder, Top Files, Top Folders, or Categories. Search (⌘F) finds any name in the whole scan, not only the folder on screen; include a / to match a path instead. Each match says which folder holds it, right-click one for Show in Folder, and clearing the field returns to the list you were in. Categories shows the same scan split by file category, and choosing a category there lists its largest files without leaving the mode. Show More pages through a long list.</key>
+	<string>Choose This Folder, Top Files, Top Folders, or Categories. Search (⌘F) finds any name in the whole scan, not only the folder on screen; include a / to match a path instead. Each match says which folder holds it, right-click one for Show in Folder, and clearing the field returns to the list you were in. Categories shows the same scan split by file category, and choosing a category there lists its largest files without leaving the mode. Show More pages through a long list.</string>
 	<key>Choose a Folder…</key>
 	<string>Choose a Folder…</string>
 	<key>Choose a folder or volume to scan.</key>
@@ -274,8 +276,6 @@
 	<string>Cleanup view</string>
 	<key>Cleanup…</key>
 	<string>Cleanup…</string>
-	<key>Clear Copies</key>
-	<string>Clear Copies</string>
 	<key>Clear History</key>
 	<string>Clear History</string>
 	<key>Clear History…</key>
@@ -300,8 +300,8 @@
 	<string>Code</string>
 	<key>Compare this location's recorded scans</key>
 	<string>Compare this location's recorded scans</string>
-	<key>Compare two scans</key>
-	<string>Compare two scans</string>
+	<key>Compare two runs</key>
+	<string>Compare two runs</string>
 	<key>Compared %@ of %@. The confirmed groups below have identical contents.</key>
 	<string>Compared %@ of %@. The confirmed groups below have identical contents.</string>
 	<key>Compared %@ of %@. The files that were read have different contents; the same size alone is not a duplicate.</key>
@@ -326,10 +326,10 @@
 	<string>Couldn't Download the Update</string>
 	<key>Couldn't Install the Update</key>
 	<string>Couldn't Install the Update</string>
-	<key>Couldn’t move to the Trash. %@</key>
-	<string>Couldn’t move to the Trash. %@</string>
-	<key>Couldn’t put back everything. %@</key>
-	<string>Couldn’t put back everything. %@</string>
+	<key>Couldn't move to the Trash. %@</key>
+	<string>Couldn't move to the Trash. %@</string>
+	<key>Couldn't put back everything. %@</key>
+	<string>Couldn't put back everything. %@</string>
 	<key>Count a link's target, skipping links that leave the scan.</key>
 	<string>Count a link's target, skipping links that leave the scan.</string>
 	<key>Counted more than once, or not at all</key>
@@ -352,12 +352,12 @@
 	<string>Derived Data</string>
 	<key>Deselect All</key>
 	<string>Deselect All</string>
+	<key>Deselect Copies</key>
+	<string>Deselect Copies</string>
 	<key>Details</key>
 	<string>Details</string>
 	<key>Device support</key>
 	<string>Device support</string>
-	<key>Directory</key>
-	<string>Directory</string>
 	<key>Dismiss</key>
 	<string>Dismiss</string>
 	<key>Do not follow folders that point to another disk or network share.</key>
@@ -390,8 +390,8 @@
 	<string>Entries</string>
 	<key>Every recorded run, for every location, is removed. Your files are not touched.</key>
 	<string>Every recorded run, for every location, is removed. Your files are not touched.</string>
-	<key>Every simulator device, offered whole. Xcode makes a new one on demand; the apps and the data inside these are gone with them.</key>
-	<string>Every simulator device, offered whole. Xcode makes a new one on demand; the apps and the data inside these are gone with them.</string>
+	<key>Every simulator device, offered whole. Xcode makes a new one on demand; deleting one also removes the apps and the data inside it.</key>
+	<string>Every simulator device, offered whole. Xcode makes a new one on demand; deleting one also removes the apps and the data inside it.</string>
 	<key>Exclude</key>
 	<string>Exclude</string>
 	<key>Excluded Paths</key>
@@ -412,6 +412,8 @@
 	<string>Export Diagnostics writes scan settings, timing, issue counts, and the app version. It carries no file names, paths, or contents.</string>
 	<key>Export Diagnostics…</key>
 	<string>Export Diagnostics…</string>
+	<key>Export Failed</key>
+	<string>Export Failed</string>
 	<key>Export Report</key>
 	<string>Export Report</string>
 	<key>Export and privacy</key>
@@ -420,14 +422,12 @@
 	<string>Export as CSV…</string>
 	<key>Export as JSON…</key>
 	<string>Export as JSON…</string>
-	<key>Export failed</key>
-	<string>Export failed</string>
 	<key>Export the analysis report or diagnostics</key>
 	<string>Export the analysis report or diagnostics</string>
 	<key>File</key>
 	<string>File</string>
-	<key>File ▸ Export writes a JSON report with the accounting disclosures, or a CSV of the ranked items.</key>
-	<string>File ▸ Export writes a JSON report with the accounting disclosures, or a CSV of the ranked items.</string>
+	<key>File ▸ Export writes a JSON report with the accounting disclosures, or a CSV of the ranked items and those disclosures.</key>
+	<string>File ▸ Export writes a JSON report with the accounting disclosures, or a CSV of the ranked items and those disclosures.</string>
 	<key>Files</key>
 	<string>Files</string>
 	<key>Files and folders</key>
@@ -448,8 +448,8 @@
 	<string>Folder path</string>
 	<key>Folders</key>
 	<string>Folders</string>
-	<key>Folders (%@, %@ per level)</key>
-	<string>Folders (%@, %@ per level)</string>
+	<key>Folders (%@, top %@ per level)</key>
+	<string>Folders (%@, top %@ per level)</string>
 	<key>Folders (root only)</key>
 	<string>Folders (root only)</string>
 	<key>Folders named Caches directly inside a Library, and Xcode's Derived Data, offered whole. The apps that made them rebuild them; moving one can cost a rebuild until they do.</key>
@@ -476,8 +476,8 @@
 	<string>Grown</string>
 	<key>Hard links</key>
 	<string>Hard links</string>
-	<key>Hard links are not deduplicated: each link counts, and the extra is disclosed. Dataless files are counted at logical size, with local bytes reported separately.</key>
-	<string>Hard links are not deduplicated: each link counts, and the extra is disclosed. Dataless files are counted at logical size, with local bytes reported separately.</string>
+	<key>Hard links are counted once for each link, and the extra is disclosed. Dataless files are counted at logical size, with local bytes reported separately.</key>
+	<string>Hard links are counted once for each link, and the extra is disclosed. Dataless files are counted at logical size, with local bytes reported separately.</string>
 	<key>Hard-linked files</key>
 	<string>Hard-linked files</string>
 	<key>Hidden</key>
@@ -498,6 +498,8 @@
 	<string>History…</string>
 	<key>Home</key>
 	<string>Home</string>
+	<key>How sizes are counted</key>
+	<string>How sizes are counted</string>
 	<key>Identical contents</key>
 	<string>Identical contents</string>
 	<key>Images</key>
@@ -514,8 +516,10 @@
 	<string>Installing and Relaunching…</string>
 	<key>Issues</key>
 	<string>Issues</string>
-	<key>It is already back</key>
-	<string>It is already back</string>
+	<key>Issues surfaced</key>
+	<string>Issues surfaced</string>
+	<key>It is already back in place</key>
+	<string>It is already back in place</string>
 	<key>It is no longer in the Trash</key>
 	<string>It is no longer in the Trash</string>
 	<key>It may have been moved or deleted since the scan.</key>
@@ -560,8 +564,8 @@
 	<string>Log folders directly inside a Library, offered whole. Apps and macOS write new logs as they run.</string>
 	<key>Logical</key>
 	<string>Logical</string>
-	<key>Logical Size</key>
-	<string>Logical Size</string>
+	<key>Logical size</key>
+	<string>Logical size</string>
 	<key>Logs</key>
 	<string>Logs</string>
 	<key>Looking for files that take at least %@ on disk and have not changed in %@, Xcode support and simulator folders, caches, logs, old downloads, and files that share a size.</key>
@@ -640,22 +644,22 @@
 	<string>No matches so far for “%@”</string>
 	<key>No possible duplicates</key>
 	<string>No possible duplicates</string>
-	<key>No published release was found.</key>
-	<string>No published release was found.</string>
 	<key>No recorded runs</key>
 	<string>No recorded runs</string>
 	<key>No release notes.</key>
 	<string>No release notes.</string>
 	<key>No results</key>
 	<string>No results</string>
-	<key>No two files on this Mac of at least %@ share a size in this scan.</key>
-	<string>No two files on this Mac of at least %@ share a size in this scan.</string>
+	<key>No two files of at least %@ on this Mac share a size in this scan.</key>
+	<string>No two files of at least %@ on this Mac share a size in this scan.</string>
 	<key>None found</key>
 	<string>None found</string>
 	<key>None listed</key>
 	<string>None listed</string>
 	<key>Not checked yet.</key>
 	<string>Not checked yet.</string>
+	<key>Not counted inside</key>
+	<string>Not counted inside</string>
 	<key>Not in the Trash</key>
 	<string>Not in the Trash</string>
 	<key>Not on this Mac</key>
@@ -670,12 +674,12 @@
 	<string>Nothing excluded. Scans include every item they can read.</string>
 	<key>Nothing here has a size</key>
 	<string>Nothing here has a size</string>
-	<key>Nothing here is a saving. A smaller scan means less was measured; space returns when the Trash is emptied.</key>
-	<string>Nothing here is a saving. A smaller scan means less was measured; space returns when the Trash is emptied.</string>
 	<key>Nothing here is big enough to draw.</key>
 	<string>Nothing here is big enough to draw.</string>
 	<key>Nothing here is rebuilt for you. Choose each item yourself.</key>
 	<string>Nothing here is rebuilt for you. Choose each item yourself.</string>
+	<key>Nothing here saves space. A smaller scan means less was measured; space returns when the Trash is emptied.</key>
+	<string>Nothing here saves space. A smaller scan means less was measured; space returns when the Trash is emptied.</string>
 	<key>Nothing moved yet</key>
 	<string>Nothing moved yet</string>
 	<key>Nothing on this volume can be moved or changed.</key>
@@ -686,8 +690,12 @@
 	<string>Nothing to review</string>
 	<key>Nothing to review here</key>
 	<string>Nothing to review here</string>
+	<key>Off</key>
+	<string>Off</string>
 	<key>Old downloads</key>
 	<string>Old downloads</string>
+	<key>On</key>
+	<string>On</string>
 	<key>On disk</key>
 	<string>On disk</string>
 	<key>One run recorded</key>
@@ -732,8 +740,8 @@
 	<string>Path</string>
 	<key>Paths that are hard links to another file are not offered as copies, because moving one frees nothing until every link is gone: %@.</key>
 	<string>Paths that are hard links to another file are not offered as copies, because moving one frees nothing until every link is gone: %@.</string>
-	<key>Paths that share storage with another file are not offered as copies, because moving one frees nothing until the others go: %@.</key>
-	<string>Paths that share storage with another file are not offered as copies, because moving one frees nothing until the others go: %@.</string>
+	<key>Paths that share storage with another file are not offered as copies, because moving one frees nothing until the others are gone: %@.</key>
+	<string>Paths that share storage with another file are not offered as copies, because moving one frees nothing until the others are gone: %@.</string>
 	<key>Pick any folder or volume to scan</key>
 	<string>Pick any folder or volume to scan</string>
 	<key>Possible duplicates</key>
@@ -742,6 +750,8 @@
 	<string>Put Back</string>
 	<key>Put Back takes an item out of the Trash; it does not empty it. Space returns when the Trash is emptied.</key>
 	<string>Put Back takes an item out of the Trash; it does not empty it. Space returns when the Trash is emptied.</string>
+	<key>Put back</key>
+	<string>Put back</string>
 	<key>Quick Look</key>
 	<string>Quick Look</string>
 	<key>Quick Look %@</key>
@@ -760,8 +770,8 @@
 	<string>Reading the first folders…</string>
 	<key>Reading the scan history…</key>
 	<string>Reading the scan history…</string>
-	<key>Reading the scanned tree…</key>
-	<string>Reading the scanned tree…</string>
+	<key>Reading the scanned folders…</key>
+	<string>Reading the scanned folders…</string>
 	<key>Reads these files and compares their contents</key>
 	<string>Reads these files and compares their contents</string>
 	<key>Rebuildable</key>
@@ -774,14 +784,12 @@
 	<string>Remove exclusion %@</string>
 	<key>Removes every recorded run. Your files are not touched.</key>
 	<string>Removes every recorded run. Your files are not touched.</string>
-	<key>Reported size</key>
-	<string>Reported size</string>
 	<key>Rescan</key>
 	<string>Rescan</string>
 	<key>Reset to Defaults</key>
 	<string>Reset to Defaults</string>
-	<key>Restored</key>
-	<string>Restored</string>
+	<key>Restricted locations</key>
+	<string>Restricted locations</string>
 	<key>Results</key>
 	<string>Results</string>
 	<key>Results changed since this scan. Rescan.</key>
@@ -790,10 +798,6 @@
 	<string>Return to source selection</string>
 	<key>Return to the scanned location</key>
 	<string>Return to the scanned location</string>
-	<key>Reveal %@ in Finder</key>
-	<string>Reveal %@ in Finder</string>
-	<key>Reveal in Finder</key>
-	<string>Reveal in Finder</string>
 	<key>Review cleanup candidates</key>
 	<string>Review cleanup candidates</string>
 	<key>Right-click a row, or use the detail pane, to reveal it in Finder or move it to the Trash. A move asks first and refuses the scan root, volume roots, your home folder, and protected system locations. The space returns when the Trash is emptied, not when the item is moved.</key>
@@ -822,8 +826,8 @@
 	<string>Scan History</string>
 	<key>Scan Options</key>
 	<string>Scan Options</string>
-	<key>Scan Options picks what the walk includes: hidden items, other volumes, symbolic links, and excluded paths. The caption beside Scan repeats the choice, and Rescan (⌘R) repeats it exactly.</key>
-	<string>Scan Options picks what the walk includes: hidden items, other volumes, symbolic links, and excluded paths. The caption beside Scan repeats the choice, and Rescan (⌘R) repeats it exactly.</string>
+	<key>Scan Options picks what the scan includes: hidden items, other volumes, symbolic links, and excluded paths. The caption beside Scan repeats the choice, and Rescan (⌘R) repeats it exactly.</key>
+	<string>Scan Options picks what the scan includes: hidden items, other volumes, symbolic links, and excluded paths. The caption beside Scan repeats the choice, and Rescan (⌘R) repeats it exactly.</string>
 	<key>Scan by file category</key>
 	<string>Scan by file category</string>
 	<key>Scan cancelled.</key>
@@ -840,8 +844,8 @@
 	<string>Scan started %@; the totals are still growing</string>
 	<key>Scan stopped</key>
 	<string>Scan stopped</string>
-	<key>Scan stopped, %@, results are partial</key>
-	<string>Scan stopped, %@, results are partial</string>
+	<key>Scan stopped after %@; results are partial</key>
+	<string>Scan stopped after %@; results are partial</string>
 	<key>Scan stopped, results are partial</key>
 	<string>Scan stopped, results are partial</string>
 	<key>Scan the current location again</key>
@@ -880,6 +884,8 @@
 	<string>Searching…</string>
 	<key>See 'WillyDisk cleanup --help' to list cleanup candidates.</key>
 	<string>See 'WillyDisk cleanup --help' to list cleanup candidates.</string>
+	<key>See the release page for what's new.</key>
+	<string>See the release page for what's new.</string>
 	<key>Select All</key>
 	<string>Select All</string>
 	<key>Select All But One</key>
@@ -900,6 +906,8 @@
 	<string>Share of this scan's logical size. Choose a category to see its largest files.</string>
 	<key>Show %@</key>
 	<string>Show %@</string>
+	<key>Show %@ in Finder</key>
+	<string>Show %@ in Finder</string>
 	<key>Show All</key>
 	<string>Show All</string>
 	<key>Show Less</key>
@@ -976,6 +984,8 @@
 	<string>Start a scan</string>
 	<key>Starts scanning %@</key>
 	<string>Starts scanning %@</string>
+	<key>Status</key>
+	<string>Status</string>
 	<key>Stay on this volume</key>
 	<string>Stay on this volume</string>
 	<key>Stop excluding %@</key>
@@ -992,10 +1002,14 @@
 	<string>Storage sunburst</string>
 	<key>Storage sunburst, %@</key>
 	<string>Storage sunburst, %@</string>
+	<key>Storage treemap</key>
+	<string>Storage treemap</string>
+	<key>Storage treemap, %@</key>
+	<string>Storage treemap, %@</string>
+	<key>Sunburst</key>
+	<string>Sunburst</string>
 	<key>Symbolic link</key>
 	<string>Symbolic link</string>
-	<key>Symbolic links are moved themselves; the items they point to stay where they are.</key>
-	<string>Symbolic links are moved themselves; the items they point to stay where they are.</string>
 	<key>System</key>
 	<string>System</string>
 	<key>System follows your Mac. Light or Dark holds that appearance for WillyDisk alone.</key>
@@ -1004,6 +1018,8 @@
 	<string>The app that made these rebuilds them. You can select a whole section here.</string>
 	<key>The chart maps one folder at a time. Clear the search to return to “%@”.</key>
 	<string>The chart maps one folder at a time. Clear the search to return to “%@”.</string>
+	<key>The chart maps the folder you are in. Click a folder to enter it; click a file to select it. The sunburst's center goes up one folder, and Settings chooses between the sunburst and the treemap.</key>
+	<string>The chart maps the folder you are in. Click a folder to enter it; click a file to select it. The sunburst's center goes up one folder, and Settings chooses between the sunburst and the treemap.</string>
 	<key>The download did not match the published checksum. Nothing was changed.</key>
 	<string>The download did not match the published checksum. Nothing was changed.</string>
 	<key>The download is not a valid WillyDisk build. Nothing was changed.</key>
@@ -1018,10 +1034,10 @@
 	<string>The item is still in place.</string>
 	<key>The latest release is WillyDisk %@.</key>
 	<string>The latest release is WillyDisk %@.</string>
-	<key>The same values the Scan Options sheet on the source screen edits.</key>
-	<string>The same values the Scan Options sheet on the source screen edits.</string>
-	<key>The scan did not enter these items, so their contents are not in the totals. The size of what was left out is therefore unknown.</key>
-	<string>The scan did not enter these items, so their contents are not in the totals. The size of what was left out is therefore unknown.</string>
+	<key>The same values the Scan Options sheet on the Home screen edits.</key>
+	<string>The same values the Scan Options sheet on the Home screen edits.</string>
+	<key>The scan did not descend into these items, so their contents are not in the totals. The size of what was left out is therefore unknown.</key>
+	<string>The scan did not descend into these items, so their contents are not in the totals. The size of what was left out is therefore unknown.</string>
 	<key>The scan found no unreadable folders, exclusions, hard-link overlaps, cloud-only files, skipped links, other volumes, or special files.</key>
 	<string>The scan found no unreadable folders, exclusions, hard-link overlaps, cloud-only files, skipped links, other volumes, or special files.</string>
 	<key>The scan is measuring this folder. Choose a file or a folder inside it instead.</key>
@@ -1034,10 +1050,10 @@
 	<string>The scanning engine is not connected yet.</string>
 	<key>The snapshot list could not be read.</key>
 	<string>The snapshot list could not be read.</string>
-	<key>The startup disk is a volume group, so a scan of / is not reconciled against the disk's capacity.</key>
-	<string>The startup disk is a volume group, so a scan of / is not reconciled against the disk's capacity.</string>
-	<key>The sunburst maps the folder you are in. Click a folder wedge to enter it; click a file wedge to select the file, and click the centre to go up one folder.</key>
-	<string>The sunburst maps the folder you are in. Click a folder wedge to enter it; click a file wedge to select the file, and click the centre to go up one folder.</string>
+	<key>The startup disk is a volume group, so a scan of / is not compared with the disk's capacity.</key>
+	<string>The startup disk is a volume group, so a scan of / is not compared with the disk's capacity.</string>
+	<key>The sunburst shows the folder as rings. The treemap fills the pane with boxes, which is easier to read in a folder of many similar files.</key>
+	<string>The sunburst shows the folder as rings. The treemap fills the pane with boxes, which is easier to read in a folder of many similar files.</string>
 	<key>The system did not report where it went</key>
 	<string>The system did not report where it went</string>
 	<key>The system does not allow changes on this volume.</key>
@@ -1048,16 +1064,20 @@
 	<string>The update couldn't be completed. Try again.</string>
 	<key>The update couldn't be downloaded. Try again.</key>
 	<string>The update couldn't be downloaded. Try again.</string>
-	<key>The update feed couldn't be read.</key>
-	<string>The update feed couldn't be read.</string>
+	<key>The update information couldn't be read.</key>
+	<string>The update information couldn't be read.</string>
 	<key>The volume's own capacity figures could not be read.</key>
 	<string>The volume's own capacity figures could not be read.</string>
 	<key>The ⓘ button opens Coverage: what the scan counted, what it skipped, and the volume's own figures side by side.</key>
 	<string>The ⓘ button opens Coverage: what the scan counted, what it skipped, and the volume's own figures side by side.</string>
 	<key>Their contents are missing from the totals. %@ were reported.</key>
 	<string>Their contents are missing from the totals. %@ were reported.</string>
+	<key>Their contents are missing from this folder's size.</key>
+	<string>Their contents are missing from this folder's size.</string>
 	<key>There is no finished scan to check this item against. Run a scan, then try again.</key>
 	<string>There is no finished scan to check this item against. Run a scan, then try again.</string>
+	<key>There is no published release.</key>
+	<string>There is no published release.</string>
 	<key>There isn't enough free space for the download.</key>
 	<string>There isn't enough free space for the download.</string>
 	<key>These are moves this app made. Put Back returns an item to where it came from while the Trash still holds it.</key>
@@ -1066,8 +1086,8 @@
 	<string>These items could not be read while scanning.</string>
 	<key>These numbers update automatically as files change.</key>
 	<string>These numbers update automatically as files change.</string>
-	<key>These runs used different scan options. Some of the difference may be what each walk included — hidden items, other volumes, or excluded paths — rather than a change on disk.</key>
-	<string>These runs used different scan options. Some of the difference may be what each walk included — hidden items, other volumes, or excluded paths — rather than a change on disk.</string>
+	<key>These runs used different scan options. Some of the difference may be what each scan included — hidden items, other volumes, or excluded paths — rather than a change on disk.</key>
+	<string>These runs used different scan options. Some of the difference may be what each scan included — hidden items, other volumes, or excluded paths — rather than a change on disk.</string>
 	<key>They can keep deleted blocks on this volume until macOS removes them. macOS does not expose a snapshot's size.</key>
 	<string>They can keep deleted blocks on this volume until macOS removes them. macOS does not expose a snapshot's size.</string>
 	<key>They report %@ but occupy %@ on this disk. Their data is not here.</key>
@@ -1112,14 +1132,18 @@
 	<string>Top Files</string>
 	<key>Top Folders</key>
 	<string>Top Folders</string>
-	<key>Totals and categories are exact: a scan measures every entry it walked. Folders and files are %@, matched by path. An entry is marked New only when the earlier run would have recorded it: it is absent from a list that held everything it found, or larger than a truncated list's cut-off. A later entry at or below that cut-off is not compared.</key>
-	<string>Totals and categories are exact: a scan measures every entry it walked. Folders and files are %@, matched by path. An entry is marked New only when the earlier run would have recorded it: it is absent from a list that held everything it found, or larger than a truncated list's cut-off. A later entry at or below that cut-off is not compared.</string>
-	<key>Totals are exact. Folders and files are %@, matched by path. No saving is claimed.</key>
-	<string>Totals are exact. Folders and files are %@, matched by path. No saving is claimed.</string>
+	<key>Total</key>
+	<string>Total</string>
+	<key>Totals and categories are exact: a scan measures every entry it scanned. Folders and files are %@, matched by path. An entry is marked New only when the earlier run would have recorded it: it is absent from a list that held everything it found, or larger than a truncated list's cut-off. A later entry at or below that cut-off is not compared.</key>
+	<string>Totals and categories are exact: a scan measures every entry it scanned. Folders and files are %@, matched by path. An entry is marked New only when the earlier run would have recorded it: it is absent from a list that held everything it found, or larger than a truncated list's cut-off. A later entry at or below that cut-off is not compared.</string>
+	<key>Totals are exact. Folders and files are %@, matched by path. No savings are claimed.</key>
+	<string>Totals are exact. Folders and files are %@, matched by path. No savings are claimed.</string>
 	<key>Totals are still growing</key>
 	<string>Totals are still growing</string>
 	<key>Trash</key>
 	<string>Trash</string>
+	<key>Treemap</key>
+	<string>Treemap</string>
 	<key>Try Again</key>
 	<string>Try Again</string>
 	<key>Type</key>
@@ -1144,6 +1168,8 @@
 	<string>Use the arrow keys to move through the list, Space to preview, and Return to open.</string>
 	<key>Used by the volume</key>
 	<string>Used by the volume</string>
+	<key>Value</key>
+	<string>Value</string>
 	<key>Video</key>
 	<string>Video</string>
 	<key>View Results</key>
@@ -1156,8 +1182,6 @@
 	<string>Volumes</string>
 	<key>Waiting for the first items…</key>
 	<string>Waiting for the first items…</string>
-	<key>Walk</key>
-	<string>Walk</string>
 	<key>What coverage leaves out</key>
 	<string>What coverage leaves out</string>
 	<key>What this scan counted</key>
@@ -1334,10 +1358,10 @@ a comparison against them would read as space that vanished.</string>
 	<string>You can put it back from the Trash until you empty it.</string>
 	<key>You can put them back from the Trash until you empty it.</key>
 	<string>You can put them back from the Trash until you empty it.</string>
-	<key>You have WillyDisk %@.</key>
-	<string>You have WillyDisk %@.</string>
 	<key>You're running a newer build than the latest release.</key>
 	<string>You're running a newer build than the latest release.</string>
+	<key>You're using WillyDisk %@.</key>
+	<string>You're using WillyDisk %@.</string>
 	<key>Your files</key>
 	<string>Your files</string>
 	<key>`tmutil` could not list this volume's snapshots.</key>
@@ -1346,8 +1370,8 @@ a comparison against them would read as space that vanished.</string>
 	<string>`tmutil` is not available on this Mac.</string>
 	<key>and %lld more</key>
 	<string>and %lld more</string>
-	<key>bytes on disk</key>
-	<string>bytes on disk</string>
+	<key>bytes on disk, not logical</key>
+	<string>bytes on disk, not logical</string>
 	<key>complete</key>
 	<string>complete</string>
 	<key>each run's largest %lld</key>
@@ -1360,18 +1384,18 @@ a comparison against them would read as space that vanished.</string>
 	<string>error: the record could not be encoded: %@</string>
 	<key>error: the report could not be written: %@</key>
 	<string>error: the report could not be written: %@</string>
-	<key>error: the scan did not produce a tree to review.</key>
-	<string>error: the scan did not produce a tree to review.</string>
 	<key>error: the scan ended without a result.</key>
 	<string>error: the scan ended without a result.</string>
+	<key>error: the scan produced nothing to review.</key>
+	<string>error: the scan produced nothing to review.</string>
 	<key>follows symbolic links</key>
 	<string>follows symbolic links</string>
-	<key>hidden items included, stays on this volume, symbolic links not followed</key>
-	<string>hidden items included, stays on this volume, symbolic links not followed</string>
+	<key>hidden items included, staying on this volume, symbolic links not followed</key>
+	<string>hidden items included, staying on this volume, symbolic links not followed</string>
 	<key>macOS did not report local snapshots for this volume.</key>
 	<string>macOS did not report local snapshots for this volume.</string>
-	<key>macOS may ask for Full Disk Access again after the update because this build is ad-hoc signed.</key>
-	<string>macOS may ask for Full Disk Access again after the update because this build is ad-hoc signed.</string>
+	<key>macOS may ask for Full Disk Access again after the update because this build is ad-hoc-signed.</key>
+	<string>macOS may ask for Full Disk Access again after the update because this build is ad-hoc-signed.</string>
 	<key>macOS reports %@ more can be made available for important use by removing purgeable data.</key>
 	<string>macOS reports %@ more can be made available for important use by removing purgeable data.</string>
 	<key>may cross volumes</key>
@@ -1390,8 +1414,8 @@ a comparison against them would read as space that vanished.</string>
 	<string>read only</string>
 	<key>restricted locations</key>
 	<string>restricted locations</string>
-	<key>sample: stopped at the cap</key>
-	<string>sample: stopped at the cap</string>
+	<key>sample (stopped at the cap)</key>
+	<string>sample (stopped at the cap)</string>
 	<key>showing the largest %lld</key>
 	<string>showing the largest %lld</string>
 	<key>stays on this volume</key>

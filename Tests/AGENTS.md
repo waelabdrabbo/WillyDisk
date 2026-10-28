@@ -28,8 +28,9 @@ Four targets with different jobs.
   feed, downloader, verifier, and installer; nothing there opens a socket or replaces an
   app.
 
-Two opt-in benchmarks, `ScanBenchmarkTests` and `LiveTreeBenchmarkTests`, skip unless
-`WILLYDISK_BENCH_ROOT` points at a folder, so they never slow `swift test`.
+Three opt-in benchmarks, `ScanBenchmarkTests`, `LiveTreeBenchmarkTests`, and
+`SearchBenchmarkTests` (a whole-tree search over a real folder, measured in release),
+skip unless `WILLYDISK_BENCH_ROOT` points at a folder, so they never slow `swift test`.
 
 Assert real behavior. Do not add placeholder or mock data that reaches the shipped app,
 and do not assert fabricated progress — `fractionCompleted` must be `nil` whenever no

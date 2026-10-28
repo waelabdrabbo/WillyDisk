@@ -111,6 +111,80 @@ final class LiveTreeWalkTests: XCTestCase {
         XCTAssertFalse(sawRoot)
     }
 
+    // MARK: - Walking with paths
+
+    func testAPathWalkReportsEveryEntrysAbsolutePath() throws {
+        let tree = try makeTree()
+        var paths: [LiveNodeID: String] = [:]
+        var names: [String] = []
+
+        let visited = tree.walk { entry, path in
+            paths[entry.id] = path
+            names.append(entry.name)
+            return .descend
+        }
+
+        XCTAssertEqual(visited, tree.nodeCount - 1)
+        XCTAssertEqual(Set(names), ["Documents", "a.txt", "b.txt", "Photos", "2024", "c.jpg", "notes.md"])
+        for (id, path) in paths {
+            XCTAssertEqual(path, tree.path(of: id), "the walk's path for \(path) is the tree's own")
+        }
+        let jpeg = try XCTUnwrap(tree.id(atPath: "/scan/tree/Photos/2024/c.jpg"))
+        XCTAssertEqual(paths[jpeg], "/scan/tree/Photos/2024/c.jpg")
+    }
+
+    func testAPathWalkUnderTheVolumeRootJoinsOneSeparator() throws {
+        let rootURL = URL(fileURLWithPath: "/", isDirectory: true)
+        let root = ScanNode(
+            id: UUID(), url: rootURL, name: "Macintosh HD",
+            isDirectory: true, isSymlink: false, category: .other,
+            logicalSize: 10, allocatedSize: 10, fileCount: 1, directoryCount: 1,
+            modifiedAt: nil, isAccessible: true, errorMessage: nil,
+            children: [file("top.txt", 10)]
+        )
+        let tree = try XCTUnwrap(LiveTree(scanning: ScanSummary(
+            root: rootURL,
+            totalLogicalSize: root.logicalSize,
+            totalAllocatedSize: root.allocatedSize,
+            fileCount: root.fileCount,
+            directoryCount: root.directoryCount,
+            inaccessibleCount: 0,
+            errorCount: 0,
+            permissionDeniedCount: 0,
+            surfacedIssueCount: 0,
+            startedAt: Date(timeIntervalSince1970: 0),
+            finishedAt: Date(timeIntervalSince1970: 1),
+            categoryBreakdown: [.documents: 10],
+            largestFiles: [],
+            largestDirectories: [root],
+            rootChildren: []
+        )))
+
+        var paths: [String] = []
+        tree.walk { _, path in
+            paths.append(path)
+            return .descend
+        }
+        XCTAssertEqual(paths, ["/top.txt"])
+    }
+
+    func testAPathWalkSkipsAndStopsLikeTheNameWalk() throws {
+        let tree = try makeTree()
+        var skipped: [String] = []
+        tree.walk { entry, _ in
+            skipped.append(entry.name)
+            return entry.name == "Photos" ? .skipChildren : .descend
+        }
+        XCTAssertFalse(skipped.contains("2024"))
+
+        var visited = 0
+        tree.walk { _, _ in
+            visited += 1
+            return visited == 2 ? .stop : .descend
+        }
+        XCTAssertEqual(visited, 2)
+    }
+
     // MARK: - Walking without names
 
     func testTheFactsWalkSeesTheSameEntriesAndNumbers() throws {

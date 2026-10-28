@@ -39,7 +39,7 @@ struct CategoryRingView: View {
         }
         .overlay(alignment: .topLeading) {
             if isRevealing {
-                SunburstTicker { dt in
+                ChartTicker { dt in
                     elapsed = min(CategoryRingEntrance.duration, elapsed + dt)
                     if elapsed >= CategoryRingEntrance.duration { isRevealing = false }
                 }
@@ -112,11 +112,15 @@ struct CategoryRingView: View {
             }
 
             if hoveredSegment != nil || selectedSegment != nil {
-                WedgeEmphasis(
-                    active: hoveredSegment.map { wedge($0, geometry: geometry, revealed: reveal(for: $0)) },
+                ChartEmphasis(
+                    active: hoveredSegment
+                        .map { wedge($0, geometry: geometry, revealed: reveal(for: $0)) }
+                        .map { path(for: $0, side: side) },
                     trail: [],
-                    selected: selectedSegment.map { wedge($0, geometry: geometry, revealed: reveal(for: $0)) },
-                    side: side,
+                    selected: selectedSegment
+                        .map { wedge($0, geometry: geometry, revealed: reveal(for: $0)) }
+                        .map { path(for: $0, side: side) },
+                    size: CGSize(width: side, height: side),
                     animates: !reduceMotion,
                     activeID: activeCategory?.rawValue
                 )
@@ -152,6 +156,12 @@ struct CategoryRingView: View {
         revealed: Double = 1
     ) -> SunburstWedge {
         geometry.wedge(depth: 1, start: segment.start, end: segment.end, revealed: revealed)
+    }
+
+    /// A wedge's outline in the chart's own coordinate space, which is what the
+    /// shared emphasis layer paints.
+    private func path(for wedge: SunburstWedge, side: CGFloat) -> Path {
+        wedge.path(in: CGRect(x: 0, y: 0, width: side, height: side))
     }
 
     private func centerDisc(

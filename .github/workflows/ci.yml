@@ -108,6 +108,7 @@ jobs:
           bash Scripts/render-screens.sh -a both -S update -c -s 640x600 -o .build/renders/ci
           bash Scripts/render-screens.sh -a both -S update-ready -c -s 640x600 -o .build/renders/ci
           bash Scripts/render-screens.sh -a both -S categories -o .build/renders/ci
+          bash Scripts/render-screens.sh -a both -S treemap -o .build/renders/ci
           bash Scripts/render-screens.sh -a both -S search -o .build/renders/ci
           bash Scripts/render-screens.sh -a both -S cleanup -c -o .build/renders/ci
           bash Scripts/render-screens.sh -a both -S duplicates -c -o .build/renders/ci
@@ -116,6 +117,7 @@ jobs:
           # Arabic is the finished right-to-left language, en-XA is the review
           # pass that makes truncation visible.
           bash Scripts/render-screens.sh -a both -S results -l ar -o .build/renders/ci
+          bash Scripts/render-screens.sh -a both -S treemap -l ar -o .build/renders/ci
           bash Scripts/render-screens.sh -a light -S home -l ar -o .build/renders/ci
           bash Scripts/render-screens.sh -a both -S coverage -c -l ar -o .build/renders/ci
           bash Scripts/render-screens.sh -a both -S cleanup -c -l ar -o .build/renders/ci
@@ -123,6 +125,7 @@ jobs:
           bash Scripts/render-screens.sh -a both -S update -c -s 640x600 -l ar -o .build/renders/ci
           bash Scripts/render-screens.sh -a both -S update-ready -c -s 640x600 -l ar -o .build/renders/ci
           bash Scripts/render-screens.sh -a light -S results -l en-XA -o .build/renders/ci
+          bash Scripts/render-screens.sh -a light -S treemap -l en-XA -o .build/renders/ci
           bash Scripts/render-screens.sh -a light -S coverage -c -l en-XA -o .build/renders/ci
 
       - name: Upload renders

@@ -15,14 +15,17 @@ rather than being repeated.
   `ResultsView` is screen C and also the live in-progress state; `HelpView` is the
   help sheet's content; `SettingsView` is the preferences window. Scanning is not a
   separate screen.
-- `Components/` — `SunburstView` (the disk chart: wedges drawn in one canvas,
-  with the hover emphasis painted over them; `SunburstAnimation` carries the wedges
-  between layouts, keyed so a drill is a move rather than a replacement, and plays
-  each chart's entrance when the pane shows it — first look, return, or tab switch),
-  `CategoryRingView` (the scan by
-  category, one ring; it opens the same way; opening a category charts its files
-  with `SunburstView`),
-  `WedgeEmphasis` (the one hover/selection overlay both charts paint),
+- `Components/` — `SunburstView` and `TreemapView`, the disk chart's two drawings
+  (`AppChartStyle` chooses one; both read the same selection and hover). The sunburst
+  draws wedges in one canvas and `SunburstAnimation` carries them between layouts,
+  keyed so a drill is a move rather than a replacement; the treemap squarifies boxes of
+  the same tree with `TreemapLayout` (pure and `Sendable`, so a wide folder lays out off
+  the main actor), carries them with `TreemapAnimation`, and names them on the box and
+  in the readout. Each chart plays its entrance when the pane shows it — first look,
+  return, or tab switch. `ChartGrouping` is the one rule that folds a folder's children
+  into a truthful aggregate, `ChartEmphasis` is the one hover/selection overlay every
+  chart paints, and `CategoryRingView` is the scan by category, one ring; it opens the
+  same way, and opening a category charts its files with whichever chart is chosen,
   `CleanupSheet` (tiered cleanup candidates, duplicates, and the Moved tab that puts a
   move back; it presents the reclaim confirmation over itself so a move returns to the
   same list, and only a rebuildable section can be selected whole), `HistorySheet` (the recorded runs of a location, two compared),
@@ -36,7 +39,8 @@ rather than being repeated.
   the chart fills, `FileCategory+UI.swift` the category symbols and labels,
   `AppAppearance.swift` the stored system/light/dark preference the Settings window
   edits, `AppLanguage.swift` the stored System/English/العربية interface-language
-  choice, `GrooveMark.swift` the packaged circular mark
+  choice, `AppChartStyle.swift` the stored sunburst/treemap choice, `GrooveMark.swift`
+  the packaged circular mark
   (`Resources/AppMark.png`) that the hero, the chart placeholder, Help, and About draw
   from — it is an image, not a shape drawn in code.
 - `Support/` — non-view helpers: `ExplorerQuery` (sorting/filtering), `ScanSearch`
@@ -49,7 +53,9 @@ rather than being repeated.
   save panel), `DiagnosticsExport` (scan settings, timing, issue counts, and build
   facts; never a file name, path, or content),
   `CategoryBreakdown` (sizes by category), `CategoryFiles` (a category's largest
-  files, walked off the main actor), `CleanupPresentation` (rule and tier wording for
+  files, walked off the main actor), `CategoryDetail` (the open category's files and
+  the one walk that may replace them, so a refresh never empties the list),
+  `CleanupPresentation` (rule and tier wording for
   the sheet, over `DiskCore`'s rules), `DuplicateCheck` (the sheet's cancellable content
   check over `DiskCore`'s hasher), `ReclaimLog` (the app's moves, updated after a move or
   a Put Back), `ScanOptions` + `ScanOptionsStore` (the one shared,
@@ -71,6 +77,10 @@ rather than being repeated.
 - Leading and trailing are logical: layout mirrors when the interface language is
   right-to-left. Do not pin a pane to `.left` or `.right`; review `-l ar` and
   `-l en-XA` renders, which is where longer translations and truncation show up.
+- The treemap is drawn by hand, so it is laid out left to right in every language: a
+  `Canvas` does not mirror in a right-to-left environment but `.position` does, and a
+  mirrored label would sit on the mirror image of its box. Names take the interface's
+  leading edge by hand; the pane around the chart still follows the reading direction.
 - A pointer hover must not re-derive what it did not change. The chart's wedges are
   drawn once and the emphasis is a shade and an outline over them; the hover the list
   and the chart share is `ChartHover` in `Screens/ResultsView.swift`, so a hover
@@ -89,9 +99,10 @@ rather than being repeated.
   "Cancel" dismisses a modal task, and "Dismiss" hides a notice.
 - Liquid Glass is an enhancement only: gate macOS 26 APIs behind
   `if #available(macOS 26.0, *)`. Never call a newer API unguarded.
-- A watched change edits the live tree; it never re-scans. The tree arrives with the
-  engine's terminal event (`LiveTreeScanning`); an engine that only reports summaries
-  leaves `ScanViewModel` to build it from the finished summary off the main actor
+- A watched change edits the live tree; it never re-scans. The engine exposes the tree
+  while it fills it (`LiveTreeScanning.liveTreeInProgress`) and the screen installs it
+  at the first `.started`/`.partial`; an engine that only reports summaries leaves
+  `ScanViewModel` to build it from the finished summary off the main actor
   (`isBuildingLiveTree`). `ScanViewModel` feeds the folders the watcher reports to
   `LiveTreeUpdater` after `LiveUpdatePolicy.quietPeriod`, and bumps `resultsRevision`
   when a batch changed anything.
@@ -100,24 +111,35 @@ rather than being repeated.
   and the duplicate candidates all walk the tree; export, diagnostics, coverage and
   History stay the scan's record. The whole-tree walks are throttled
   (`liveRerankInterval` 3 s, `liveSearchInterval` 4 s), run off the main actor, and
-  are cancelled when the screen leaves. `resultsAreStale` is only for a
+  are cancelled when the screen leaves. A search's refresh never replaces a walk that
+  is out — it queues one behind it, because a tree too big to walk inside the interval
+  would otherwise restart a search that never lands. `resultsAreStale` is only for a
   screen that cannot follow — a scan that could not become a tree, or the watch
   switched off — and an applied batch clears it. Nothing is re-measured, so there is no
   refresh budget and `isLiveScan` is just `isScanning`.
-- A finished `ScanSummary` carries the scanned root's whole tree as nested `ScanNode`
-  values, so dropping one costs time proportional to the scan. Never release a
+- A finished `ScanSummary` from a producer that only reports summaries carries the
+  scanned root's whole tree as nested `ScanNode` values; one from the live engine
+  carries ranked entries without subtrees, and the tree is what the screen reads. Both
+  are large, so dropping one costs time proportional to the scan. Never release a
   superseded summary, snapshot, or live tree on the main actor: `ScanViewModel.retire`
   hands it to a detached task, which is what keeps starting the next scan from
   stalling on the previous one's teardown.
 - `.partial` snapshots are advisory — the engine may throttle or omit them — and are
   never terminal. Update in place; the terminal `.finished` replaces them. The scan
-  root's entries arrive ready-made in `ScanSummary.rootChildren`, folders included
-  while their subtrees are still being walked: never assemble them from the capped
-  lists by matching paths.
-- Search is a list scope, not a chart: the sunburst's wedges partition one folder's
-  bytes, and a search's matches overlap. The chart pane says so while a query is open.
-- `Screens/ResultsView.swift` and `Components/SunburstView.swift` are large. Grep for
-  the view or modifier you need instead of reading them whole.
+  root's entries arrive in the live tree while the walk runs; a producer that reports
+  summaries only puts them in `ScanSummary.rootChildren`. Never assemble them from the
+  capped lists by matching paths.
+- Fixed sheet and window sizes go through `dsFittedFrame`: the design size is an ideal,
+  not a promise, and a 1280×800 Mac has less visible height than the Settings window's
+  760 points plus chrome.
+- Coverage opens with ⌘I; there is deliberately no status line in the results header.
+  The folder inspector's "not counted inside" row reads
+  `LiveTree.unreadableFolderCount`; never recompute it by walking a subtree on screen.
+- Search is a list scope, not a chart: a chart partitions one folder's bytes, and a
+  search's matches overlap. The chart pane says so while a query is open.
+- `Screens/ResultsView.swift`, `Components/SunburstView.swift`, and
+  `Components/TreemapView.swift` are large. Grep for the view or modifier you need
+  instead of reading them whole.
 
 ## Looking at the UI
 
@@ -134,9 +156,12 @@ WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S settings -c -s 
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S update -c -s 640x600 -o .build/renders/<change>
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S update-ready -c -s 640x600 -o .build/renders/<change>
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S categories -o .build/renders/<change>
+WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S category -o .build/renders/<change>
+WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S treemap -o .build/renders/<change>
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S coverage -c -o .build/renders/<change>
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S search -o .build/renders/<change>
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S results -l ar -o .build/renders/<change>
+WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S treemap -l ar -o .build/renders/<change>
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a light -S results -l en-XA -o .build/renders/<change>
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S cleanup -c -o .build/renders/<change>
 WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S duplicates -c -o .build/renders/<change>
@@ -147,7 +172,9 @@ WILLYDISK_NO_SANDBOX=1 bash Scripts/render-screens.sh -a both -S history -c -o .
 
 `-S` picks the screen: `results` (default), `home` (source selection), `search` (the
 results screen with a whole-scan query open), `categories` (the results screen in
-Categories mode), `coverage` (the coverage sheet), `help` and `settings` (the sheet and
+Categories mode), `category` (that screen inside the fixture's largest category, so the
+category detail is reviewable without clicking), `treemap` (the results screen drawn as
+the treemap), `coverage` (the coverage sheet), `help` and `settings` (the sheet and
 preferences contents), `update` and `update-ready` (the software-update sheet and its
 ready state), `cleanup`, `duplicates`,
 and `moved` (the cleanup sheet's three

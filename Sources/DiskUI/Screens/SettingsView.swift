@@ -12,6 +12,7 @@ import DiskLocalization
 public struct SettingsView: View {
     @AppStorage(AppAppearance.defaultsKey) private var appearance: AppAppearance = .system
     @AppStorage(AppLanguage.defaultsKey) private var language: AppLanguage = .system
+    @AppStorage(AppChartStyle.defaultsKey) private var chartStyle: AppChartStyle = .sunburst
     @State private var optionsStore: ScanOptionsStore
     @State private var watchPreferences: WatchPreferences
     @State private var updatePreferences: UpdatePreferences
@@ -34,6 +35,7 @@ public struct SettingsView: View {
         Form {
             appearanceSection
             languageSection
+            chartSection
             updatesSection
             scanDefaultsSection
             resultsSection
@@ -48,7 +50,7 @@ public struct SettingsView: View {
         // A new identity after a language change rebuilds every row, including
         // the labels and the section headers that were built in the old one.
         .id(language)
-        .frame(width: 460, height: 760)
+        .dsFittedFrame(width: 460, height: 760)
         .onChange(of: appearance) { _, choice in
             AppAppearance.apply(choice)
         }
@@ -254,7 +256,7 @@ public struct SettingsView: View {
                 isOn: optionBinding(\.followSymlinks)
             )
 
-            Text(L10n.string("The same values the Scan Options sheet on the source screen edits."))
+            Text(L10n.string("The same values the Scan Options sheet on the Home screen edits."))
                 .font(DS.Typography.caption)
                 .foregroundStyle(DS.Color.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)
@@ -282,6 +284,27 @@ public struct SettingsView: View {
                 .fixedSize(horizontal: false, vertical: true)
         } header: {
             Text(L10n.string("Results"))
+        }
+    }
+
+    // MARK: - Chart
+
+    private var chartSection: some View {
+        Section {
+            Picker(L10n.string("Chart"), selection: $chartStyle) {
+                ForEach(AppChartStyle.allCases) { style in
+                    Text(style.label).tag(style)
+                }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+
+            Text(L10n.string("The sunburst shows the folder as rings. The treemap fills the pane with boxes, which is easier to read in a folder of many similar files."))
+                .font(DS.Typography.caption)
+                .foregroundStyle(DS.Color.secondaryText)
+                .fixedSize(horizontal: false, vertical: true)
+        } header: {
+            Text(L10n.string("Chart"))
         }
     }
 

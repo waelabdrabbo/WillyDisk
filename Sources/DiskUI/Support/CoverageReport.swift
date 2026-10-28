@@ -59,7 +59,7 @@ public struct CoverageReport: Equatable, Sendable {
             ),
             CoverageRow(
                 id: "logical",
-                label: L10n.string("Reported size"),
+                label: L10n.string("Logical size"),
                 value: ByteFormat.string(summary.totalLogicalSize)
             ),
             CoverageRow(
@@ -137,7 +137,7 @@ public struct CoverageReport: Equatable, Sendable {
                 id: "exclusions",
                 label: L10n.string("Skipped by your exclusions"),
                 value: CountFormat.items(accounting.excludedItemCount),
-                detail: L10n.string("The scan did not enter these items, so their contents are not in the totals. The size of what was left out is therefore unknown.")
+                detail: L10n.string("The scan did not descend into these items, so their contents are not in the totals. The size of what was left out is therefore unknown.")
             ))
         }
 
@@ -149,7 +149,7 @@ public struct CoverageReport: Equatable, Sendable {
                 value: CountFormat.files(accounting.hardlinkFileCount),
                 detail: extra > 0
                     ? L10n.format(
-                        "%@ is counted more than once, because every link the walk reached is counted as a file.",
+                        "%@ is counted more than once, because every link the scan reached is counted as a file.",
                         ByteFormat.string(extra)
                     )
                     : L10n.string("Each file has more than one link, but only one link was reached; no bytes were counted twice.")

@@ -141,30 +141,98 @@ public enum ReportExport {
         )
     }
 
-    private static func makeCSV(_ summary: ScanSummary) -> String {
+    /// The CSV is one table: the scan's totals, access and accounting rows, then
+    /// the ranked items. The last column carries a generic count for the rows
+    /// that are not files or folders, so the accounting is not lost in an export
+    /// while the ranked table stays a table.
+    static func makeCSV(_ summary: ScanSummary) -> String {
         let header = [
             L10n.string("Type"), L10n.string("Name"), L10n.string("Path"),
-            L10n.string("Category"), L10n.string("Logical Size"), L10n.string("Allocated Size"),
+            L10n.string("Category"), L10n.string("Logical size"), L10n.string("On disk"),
             L10n.string("Files"), L10n.string("Folders"), L10n.string("Modified"),
+            L10n.string("Value"),
         ]
         var lines: [[String]] = [header]
 
-        func append(_ node: ScanNode, _ type: String) {
+        func text(_ value: Int64?) -> String { value.map(String.init) ?? "" }
+        func number(_ value: Int?) -> String { value.map(String.init) ?? "" }
+
+        func add(
+            _ type: String,
+            _ name: String,
+            path: String = "",
+            category: String = "",
+            logical: Int64? = nil,
+            allocated: Int64? = nil,
+            files: Int? = nil,
+            folders: Int? = nil,
+            modified: Date? = nil,
+            value: Int? = nil
+        ) {
             lines.append([
                 type,
-                csv(node.name),
-                csv(node.url.path),
-                node.category.rawValue,
-                "\(node.logicalSize)",
-                "\(node.allocatedSize)",
-                "\(node.fileCount)",
-                "\(node.directoryCount)",
-                node.modifiedAt.map(iso) ?? "",
+                name,
+                path,
+                category,
+                text(logical),
+                text(allocated),
+                number(files),
+                number(folders),
+                modified.map(iso) ?? "",
+                number(value),
             ])
         }
 
+        add(
+            L10n.string("Total"),
+            L10n.string("This scan"),
+            path: summary.root.path,
+            logical: summary.totalLogicalSize,
+            allocated: summary.totalAllocatedSize,
+            files: summary.fileCount,
+            folders: summary.directoryCount,
+            modified: summary.finishedAt
+        )
+
+        add(L10n.string("Access"), L10n.string("Folders not read"), value: summary.inaccessibleCount)
+        add(L10n.string("Access"), L10n.string("Issues"), value: summary.errorCount)
+        add(L10n.string("Access"), L10n.string("Restricted locations"), value: summary.permissionDeniedCount)
+        add(L10n.string("Access"), L10n.string("Issues surfaced"), value: summary.surfacedIssueCount)
+
+        let accounting = summary.accounting
+        add(
+            L10n.string("Accounting"), L10n.string("Hard-linked files"),
+            logical: accounting.hardlinkExtraLogicalSize,
+            allocated: accounting.hardlinkExtraAllocatedSize,
+            value: accounting.hardlinkFileCount
+        )
+        add(
+            L10n.string("Accounting"), L10n.string("Cloud-only files"),
+            logical: accounting.datalessLogicalSize,
+            allocated: accounting.datalessAllocatedSize,
+            value: accounting.datalessFileCount
+        )
+        add(L10n.string("Accounting"), L10n.string("Links not followed"), value: accounting.skippedSymlinkCount)
+        add(L10n.string("Accounting"), L10n.string("Folders on other volumes"), value: accounting.skippedVolumeCount)
+        add(L10n.string("Accounting"), L10n.string("Special files"), value: accounting.specialFileCount)
+        add(L10n.string("Accounting"), L10n.string("Skipped by your exclusions"), value: accounting.excludedItemCount)
+
+        func append(_ node: ScanNode, _ type: String) {
+            add(
+                type,
+                node.name,
+                path: node.url.path,
+                category: node.category.rawValue,
+                logical: node.logicalSize,
+                allocated: node.allocatedSize,
+                files: node.fileCount,
+                folders: node.directoryCount,
+                modified: node.modifiedAt
+            )
+        }
+
         for node in summary.largestFiles { append(node, L10n.string("File")) }
-        for node in summary.largestDirectories { append(node, L10n.string("Directory")) }
+        for node in summary.largestDirectories { append(node, L10n.string("Folder")) }
 
         return lines.map { $0.map(csv).joined(separator: ",") }.joined(separator: "\n")
     }

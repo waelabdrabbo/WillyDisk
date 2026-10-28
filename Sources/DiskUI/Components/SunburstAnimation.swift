@@ -323,7 +323,7 @@ final class SunburstAnimator {
 /// something is moving, so an idle chart asks for no frames at all. `dt` comes
 /// from the ticks rather than from a fixed step, which is what lets the
 /// animator's exponential approach stay smooth on a display of any rate.
-struct SunburstTicker: View {
+struct ChartTicker: View {
     /// Called once per frame with the seconds since the previous call.
     let tick: (Double) -> Void
 

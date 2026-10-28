@@ -362,7 +362,7 @@ enum ReclaimRestoreRefusal: Equatable, Sendable {
 
     var title: String {
         switch self {
-        case .alreadyRestored: L10n.string("It is already back")
+        case .alreadyRestored: L10n.string("It is already back in place")
         case .noTrashPath: L10n.string("The system did not report where it went")
         case .missingFromTrash: L10n.string("It is no longer in the Trash")
         case .destinationOccupied: L10n.string("Something else is at its original location now")

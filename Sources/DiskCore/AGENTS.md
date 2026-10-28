@@ -17,13 +17,19 @@ design change, so explain it and update `docs/ARCHITECTURE.md` in the same chang
 - `ScanProgress.fractionCompleted` is `nil` unless a reliable total is known. Never
   fabricate progress or statistics.
 - A directory node exists only once its subtree has finished, so a partial snapshot
-  would show an empty screen for most of a scan. `ScanSummary.rootChildren` therefore
-  reports the scan root's own entries from the moment they are discovered, each folder
-  with the bytes counted under it so far — work already done, never a projection, and
-  never more than the finished node reports. Report each group whole, a folder's
-  claimed subfolders included before they are walked: the colours a screen derives are
-  rankings among siblings, and a group that arrives in pieces moves them. Keep it empty
-  in a summary that carries the root node itself.
+  would show an empty screen for most of a scan. A producer that reports summaries
+  only therefore fills `ScanSummary.rootChildren` with the scan root's own entries
+  from the moment they are discovered, each folder with the bytes counted under it so
+  far — work already done, never a projection, and never more than the finished node
+  reports. Report each group whole, a folder's claimed subfolders included before
+  they are walked: the colours a screen derives are rankings among siblings, and a
+  group that arrives in pieces moves them. Keep it empty in a summary that carries
+  the root node itself.
+- A producer that fills a `LiveTree` does not also keep the tree in its summary: the
+  tree carries the entries, `rootChildren` is empty throughout, and the ranked
+  directory entries carry no subtrees. The terminal summary reports the tree's own
+  totals. Insert a folder's whole listing through `LiveTree.insertDiscoveredGroup`
+  for the same sibling-rank reason. `docs/MEMORY.md` is the design.
 - Symlink loops and out-of-scope traversal are prevented by tracking visited device and
   inode. `ScanRequest.followSymlinks` defaults to false and `stayOnVolume` to true.
 - Public types stay `Sendable` and Swift 6 concurrency-clean.
@@ -51,18 +57,24 @@ nothing does not. Ids carry a generation, so a removed entry can never be mistak
 later entry that reused its slot. `scanNode(for:depth:)` materializes the frozen
 `ScanNode` for surfaces that still need it, with an id derived from the entry's so a
 redraw keeps row identity, and `LiveTree(scanning:)` refuses a summary whose totals
-disagree with the tree it would build. A watcher's folders are applied to this tree as
-measured edits; the tree never holds an invented one. `docs/LIVE-TREE.md` has the model,
-the invariants, and the migration.
+disagree with the tree it would build — including the compact summary from a walk that
+already filled a tree. A watcher's folders are applied to this tree as measured edits;
+the tree never holds an invented one. `docs/LIVE-TREE.md` has the model, the invariants,
+and the migration.
 
 The engine fills the tree as it walks: `FileScanEngine` conforms to
-`LiveTreeScanning`, and `FileScanner` inserts a folder when it is claimed, a folder's
-files and link leaves in **one batch** when its listing is done (one lock, one ancestor
-walk — the batch must never look up a sibling by name, or a wide folder becomes
-quadratic), and the folder's own metadata when its subtree finishes. The updater's inserts
-use `Edit.insertNew` for the same reason: it has just diffed the names, so the tree need
-not scan every sibling to look for one. The tree is handed over just before `.finished`,
-and only when it matches the summary the same walk built.
+`LiveTreeScanning`, and `FileScanner` inserts a folder's whole listing — the files and
+link leaves it read and the subfolders it claimed as empty entries — through **one**
+`LiveTree.insertDiscoveredGroup` call when the listing is done (one lock, one ancestor
+walk; the batch must never look up a sibling by name, or a wide folder becomes
+quadratic), then the folder's own metadata when its subtree finishes. The updater's
+inserts use `Edit.insertNew` for the same reason: it has just diffed the names, so the
+tree need not scan every sibling to look for one. The tree is readable while the walk
+runs, and it is handed over just before `.finished` when it matches the reconciled
+summary. The terminal summary carries the tree's own totals and no subtrees, so one
+scan holds one tree. The arena also keeps a side count of unreadable folders per
+subtree, maintained by the same edits; `unreadableFolderCount(for:)` is what the folder
+inspector reads, so a size that is a floor is never walked again to say so.
 
 `LiveTreeUpdater` is the actor that turns the folders a watcher reports into edits: it
 re-lists a folder with `DirectoryReader`, writes files from their own `stat`, removes

@@ -9,6 +9,12 @@ import Foundation
 /// walk is under way, and it reports bytes counted, never a projection. For a
 /// partial snapshot `finishedAt` is the snapshot timestamp.
 ///
+/// A producer that also fills a `LiveTree` reports the tree through
+/// `LiveTreeScanning`: that tree is the entries, and this summary is the record.
+/// In that mode `rootChildren` is empty and the ranked directory entries carry
+/// no subtrees; a producer that only reports summaries keeps the complete value
+/// tree in `largestDirectories`.
+///
 /// Frozen by the Architecture & Shared Contracts document (`docs/ARCHITECTURE.md`).
 public struct ScanSummary: Sendable {
     public let root: URL
@@ -33,6 +39,11 @@ public struct ScanSummary: Sendable {
     public let finishedAt: Date
     public let categoryBreakdown: [FileCategory: Int64]   // by logical size
     public let largestFiles: [ScanNode]                   // top N, default 100
+    /// The largest directories of the scan, with their bytes and counts.
+    ///
+    /// A producer that only reports summaries carries each directory's complete
+    /// subtree here. A producer that also supplies a `LiveTree` leaves the
+    /// entries without children: the tree carries the subtrees.
     public let largestDirectories: [ScanNode]             // top N, default 100
     /// The scan root's own entries — its files and the folders it holds — as the
     /// walk has discovered them, largest first.
@@ -49,7 +60,9 @@ public struct ScanSummary: Sendable {
     /// before they have been walked, because a screen colours an entry by its
     /// place among its siblings: half a group would take places that move when
     /// the rest arrives. Empty once the summary carries the root itself in
-    /// `largestDirectories`, whose `children` are then the complete list.
+    /// `largestDirectories`, whose `children` are then the complete list — and
+    /// empty throughout a walk that fills a `LiveTree`, because the tree carries
+    /// the root's entries.
     public let rootChildren: [ScanNode]
     /// What the totals above include twice, leave off this disk, or did not
     /// enter. See `ScanAccounting`.

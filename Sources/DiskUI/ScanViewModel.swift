@@ -118,9 +118,10 @@ public final class ScanViewModel {
     public private(set) var resultsAreStale = false
     /// Whether a watcher is installed on the scan root.
     public private(set) var isWatching = false
-    /// The tree the results screen reads: the finished scan as a live arena that
-    /// filesystem changes are applied to. Built off the main actor once a scan
-    /// settles; `nil` while it is being built and when it could not be built.
+    /// The tree the results screen reads: the scan as a live arena that
+    /// filesystem changes are applied to. It arrives while the walk fills it and
+    /// is replaced by the handed-over tree when the scan settles; `nil` before a
+    /// tree exists and when the engine has none.
     public private(set) var liveTree: LiveTree?
     /// Whether the finished scan is still being turned into a live tree.
     public private(set) var isBuildingLiveTree = false
@@ -251,7 +252,7 @@ public final class ScanViewModel {
             let reason = failures.first ?? L10n.string("The item is still in place.")
             return ReclaimNotice(
                 tone: .failure,
-                message: L10n.format("Couldn’t move to the Trash. %@", reason),
+                message: L10n.format("Couldn't move to the Trash. %@", reason),
                 showsShowTrash: false
             )
         }
@@ -450,7 +451,7 @@ public final class ScanViewModel {
     public var elapsed: TimeInterval { progress?.elapsed ?? 0 }
 
     /// Total size to display: the engine's counted bytes while a scan runs, then
-    /// the live tree once it exists, and the finished summary before that.
+    /// the live tree, and the finished summary before a tree exists.
     public var displayedTotal: Int64 {
         progress != nil ? bytesScanned : (liveTree?.totalLogicalSize ?? summary?.totalLogicalSize ?? bytesScanned)
     }
@@ -862,10 +863,25 @@ public final class ScanViewModel {
         if !pendingFolders.isEmpty { scheduleUpdate() }
     }
 
+    /// Takes the tree the running walk has started filling, once it exists.
+    ///
+    /// The engine creates the tree before its first snapshot and keeps filling it
+    /// as the scan runs, so the screen reads measured entries while they arrive.
+    /// An engine that only reports summaries has none, and the tree is built from
+    /// the finished summary instead.
+    private func adoptInProgressTree(_ engine: (any LiveTreeScanning)?) async {
+        guard let engine, liveTree == nil, phase == .scanning, let root = currentRoot else { return }
+        guard let tree = await engine.liveTreeInProgress() else { return }
+        install(tree: tree, policy: liveTreePolicy(root: root))
+    }
+
     private func discardLiveTree() {
         liveTreeTask?.cancel()
         liveTreeTask = nil
         cancelPendingUpdate()
+        // Drop the engine's reference too: the tree this screen is letting go of
+        // should not stay alive in the engine until the next scan.
+        (engine as? any LiveTreeScanning)?.clearLiveTree()
         Self.retire(liveTree)
         liveTree = nil
         updater = nil
@@ -885,11 +901,14 @@ public final class ScanViewModel {
             switch event {
             case .started(let root):
                 currentRoot = root
+                await adoptInProgressTree(liveEngine)
             case .progress(let p):
+                await adoptInProgressTree(liveEngine)
                 progress = p
             case .issue(let kind, let path, let message):
                 issues.append(ScanIssue(path: path, message: message, kind: kind))
             case .partial(let snapshot):
+                await adoptInProgressTree(liveEngine)
                 hold(snapshot, generation: generation)
             case .finished(let s):
                 discardHeldPartial()
@@ -904,12 +923,15 @@ public final class ScanViewModel {
                 if let tree = await liveEngine?.takeLiveTree() {
                     // The walk built the tree; nothing here converts the summary.
                     install(tree: tree, policy: liveTreePolicy(root: s.root))
-                } else {
+                } else if liveTree == nil {
+                    // No tree was handed over; an engine that only reports
+                    // summaries still gets one built from the finished summary.
                     prepareLiveTree(for: s)
                 }
                 updateWatching()
             case .cancelled(let partial):
                 discardHeldPartial()
+                if liveTree == nil { await adoptInProgressTree(liveEngine) }
                 if let partial { summary = partial }
                 Self.retire(partialSummary)
                 partialSummary = nil
@@ -917,6 +939,10 @@ public final class ScanViewModel {
                 phase = .cancelled
                 resultsRevision &+= 1
                 if summary == nil { route = .home }
+                // The tree the walk had filled stays as a partial, read-only
+                // surface; it is not settled and is never watched. The engine no
+                // longer needs its own reference.
+                liveEngine?.clearLiveTree()
                 updateWatching()
             }
         }
@@ -925,6 +951,7 @@ public final class ScanViewModel {
         // without one the scan is over either way, so the screen settles on what
         // it has instead of reporting a scan that is no longer running.
         guard generation == scanGeneration, phase == .scanning else { return }
+        if liveTree == nil { await adoptInProgressTree(liveEngine) }
         // A snapshot the cadence was still holding is the newest the engine
         // produced, so it is what the screen settles on.
         if let held = heldPartial {
@@ -937,6 +964,7 @@ public final class ScanViewModel {
         progress = nil
         phase = .cancelled
         resultsRevision &+= 1
+        liveEngine?.clearLiveTree()
         if summary == nil { route = .home }
     }
 
@@ -1028,11 +1056,12 @@ public final class ScanViewModel {
 
     /// Frees a measurement the screen no longer shows away from the main actor.
     ///
-    /// A finished `ScanSummary` carries the scanned root's whole tree as nested
-    /// `ScanNode` values, so freeing one walks every entry the scan measured.
-    /// On the main actor that walk is a visible pause wherever a scan is replaced
-    /// — starting the next scan would land it on the click. The value is kept
-    /// alive by a detached task and released when that task ends.
+    /// A summary from a producer that reports summaries only carries the scanned
+    /// root's whole tree as nested `ScanNode` values, and a live tree's arena is
+    /// large too; freeing either walks every entry the scan measured. On the main
+    /// actor that walk is a visible pause wherever a scan is replaced — starting
+    /// the next scan would land it on the click. The value is kept alive by a
+    /// detached task and released when that task ends.
     private nonisolated static func retire<T: Sendable>(_ value: T?) {
         guard let value else { return }
         _ = Task.detached(priority: .utility) {

@@ -65,6 +65,11 @@ public final class LiveTree: @unchecked Sendable {
     private var liveCount = 0
     private var categoryTotals: [Int64] = Array(repeating: 0, count: FileCategory.allCases.count)
     private var errors: [LiveNodeID: String] = [:]
+    /// How many folders in each folder's subtree could not be read, the folder
+    /// itself included. Only folders with a non-zero count are stored, so a clean
+    /// tree pays nothing for this and a scan with a few denied locations pays for
+    /// their ancestor chains.
+    private var unreadableCounts: [LiveNodeID: Int] = [:]
     private var revisionValue = 0
 
     // MARK: - Creation
@@ -120,9 +125,10 @@ public final class LiveTree: @unchecked Sendable {
         self.storage.reserveCapacity(rootNode.fileCount + rootNode.directoryCount + 1)
         self.liveCount = 1
         if let error = rootNode.errorMessage { errors[Self.rootID] = error }
+        if !rootNode.isAccessible { unreadableCounts[Self.rootID] = 1 }
 
         for child in rootNode.children {
-            appendSubtree(child, parent: 0)
+            let childSlot = appendSubtree(child, parent: 0)
             addLocked(
                 from: 0,
                 logical: child.logicalSize,
@@ -130,6 +136,7 @@ public final class LiveTree: @unchecked Sendable {
                 files: child.fileCount,
                 dirs: child.directoryCount
             )
+            addUnreadableCountLocked(from: 0, by: unreadableCountLocked(childSlot))
         }
     }
 
@@ -165,6 +172,26 @@ public final class LiveTree: @unchecked Sendable {
 
     public func entry(for id: LiveNodeID) -> LiveEntry? {
         lock.withLock { entryLocked(id) }
+    }
+
+    /// How many folders in this entry's subtree could not be read, the entry
+    /// itself included when it is a folder that could not be read. A file has no
+    /// count.
+    ///
+    /// The count is maintained with the tree's edits, so a folder shows what is
+    /// missing inside it even after the disk changes, without walking the
+    /// subtree on a screen.
+    public func unreadableFolderCount(for id: LiveNodeID) -> Int {
+        lock.withLock {
+            guard isLiveLocked(id) else { return 0 }
+            return unreadableCountLocked(id.index)
+        }
+    }
+
+    /// The same count for a path the tree holds, or `nil` when it holds none.
+    public func unreadableFolderCount(atPath path: String) -> Int? {
+        guard let id = id(atPath: path) else { return nil }
+        return unreadableFolderCount(for: id)
     }
 
     /// The entries of a folder, in no particular order: every screen sorts what
@@ -386,9 +413,47 @@ public final class LiveTree: @unchecked Sendable {
         return visited
     }
 
+    /// The same depth-first walk, reporting each entry's absolute path.
+    ///
+    /// A path query asks about the whole path of every entry. Asking the tree for
+    /// one per entry walks that entry's parent chain under the lock and joins it
+    /// again — tens of microseconds each, which over a few million entries is
+    /// minutes rather than seconds. The walk already knows the folder it is in,
+    /// so it builds the child's path from the folder's once per entry instead.
+    /// A name query does not need paths and uses `walk` instead.
+    @discardableResult
+    public func walk(
+        from start: LiveNodeID = LiveTree.rootID,
+        _ visit: (LiveEntry, _ path: String) -> WalkStep
+    ) -> Int {
+        guard let startPath = path(of: start) else { return 0 }
+        var visited = 0
+        var folders: [(id: LiveNodeID, path: String)] = [(start, startPath)]
+        while let folder = folders.popLast() {
+            for entry in children(of: folder.id) {
+                visited += 1
+                let path = folder.path == "/"
+                    ? "/" + entry.name
+                    : folder.path + "/" + entry.name
+                switch visit(entry, path) {
+                case .stop:
+                    return visited
+                case .skipChildren:
+                    continue
+                case .descend:
+                    if entry.kind == .directory {
+                        folders.append((entry.id, path))
+                    }
+                }
+            }
+        }
+        return visited
+    }
+
     // MARK: - Building during a walk
 
-    /// Inserts the entries a walk just discovered in one folder.
+    /// Inserts one folder's whole listing and returns each node's id in the order
+    /// given; a node the tree refused (an empty name) gets `nil`.
     ///
     /// The scan engine builds the tree while it walks, so a screen never converts
     /// a finished summary into one. A directory listing names each entry once, so
@@ -397,56 +462,41 @@ public final class LiveTree: @unchecked Sendable {
     /// quadratic. One lock and one ancestor walk carry the whole listing: a
     /// directory's entries share the same ancestors, so their difference is a sum,
     /// and the per-entry cost stays a storage append and a link.
-    func insertDiscovered(_ nodes: [ScanNode], under parent: LiveNodeID) {
-        guard !nodes.isEmpty else { return }
-        lock.withLock {
-            guard isLiveLocked(parent), isDirectoryLocked(parent.index) else { return }
+    ///
+    /// A listing is published as one group under one lock, so a screen reading
+    /// the folder between the listing and the walk of its subfolders never sees
+    /// half of it. The charts colour siblings by rank, and a group that arrives
+    /// in pieces moves the colours already on screen.
+    @discardableResult
+    func insertDiscoveredGroup(_ nodes: [ScanNode], under parent: LiveNodeID) -> [LiveNodeID?] {
+        guard !nodes.isEmpty else { return [] }
+        return lock.withLock {
+            guard isLiveLocked(parent), isDirectoryLocked(parent.index) else {
+                return Array(repeating: nil, count: nodes.count)
+            }
+            var ids: [LiveNodeID?] = []
+            ids.reserveCapacity(nodes.count)
             var logical: Int64 = 0
             var allocated: Int64 = 0
             var files = 0
             var dirs = 0
+            var unreadable = 0
             for node in nodes {
-                guard !node.name.isEmpty else { continue }
-                appendSubtree(node, parent: parent.index)
+                guard !node.name.isEmpty else {
+                    ids.append(nil)
+                    continue
+                }
+                let slot = appendSubtree(node, parent: parent.index)
+                ids.append(Self.id(for: slot, in: storage))
                 logical += node.logicalSize
                 allocated += node.allocatedSize
                 files += node.fileCount
                 dirs += node.directoryCount
+                unreadable += unreadableCountLocked(slot)
             }
             addLocked(from: parent.index, logical: logical, allocated: allocated, files: files, dirs: dirs)
-        }
-    }
-
-    /// Inserts an empty folder a walk discovered and returns its id, so the walk
-    /// can add whatever it finds inside as it goes. The folder counts itself from
-    /// the start.
-    @discardableResult
-    func insertDiscoveredDirectory(
-        under parent: LiveNodeID,
-        name: String,
-        isSymlink: Bool,
-        modifiedAt: Date?
-    ) -> LiveNodeID? {
-        lock.withLock {
-            guard isLiveLocked(parent), isDirectoryLocked(parent.index), !name.isEmpty else {
-                return nil
-            }
-            let slot = allocateLocked(
-                kind: .directory,
-                name: name,
-                category: FileCategorizer.category(name: name, isDirectory: true),
-                logical: 0,
-                allocated: 0,
-                files: 0,
-                dirs: 1,
-                modified: modifiedAt,
-                accessible: true,
-                isSymlink: isSymlink,
-                error: nil
-            )
-            linkLocked(slot, to: parent.index)
-            addLocked(from: parent.index, logical: 0, allocated: 0, files: 0, dirs: 1)
-            return Self.id(for: slot, in: storage)
+            addUnreadableCountLocked(from: parent.index, by: unreadable)
+            return ids
         }
     }
 
@@ -798,8 +848,13 @@ public final class LiveTree: @unchecked Sendable {
         if kind == .file {
             categoryTotals[Int(Self.categoryIndex(node.category))] += node.logicalSize
         }
+        var unreadable = (kind == .directory && !node.isAccessible) ? 1 : 0
         for child in node.children {
-            appendSubtree(child, parent: slot)
+            let childSlot = appendSubtree(child, parent: slot)
+            unreadable += unreadableCountLocked(childSlot)
+        }
+        if kind == .directory {
+            setUnreadableCountLocked(slot, unreadable)
         }
         return slot
     }
@@ -840,6 +895,34 @@ public final class LiveTree: @unchecked Sendable {
         }
     }
 
+    /// How many folders in this slot's subtree could not be read. Zero for a
+    /// file; the entry itself counts when it is a folder that could not be read.
+    private func unreadableCountLocked(_ slot: UInt32) -> Int {
+        unreadableCounts[Self.id(for: slot, in: storage)] ?? 0
+    }
+
+    private func setUnreadableCountLocked(_ slot: UInt32, _ count: Int) {
+        let key = Self.id(for: slot, in: storage)
+        if count == 0 {
+            unreadableCounts.removeValue(forKey: key)
+        } else {
+            unreadableCounts[key] = count
+        }
+    }
+
+    /// Applies a difference to a slot and every ancestor, root included. The
+    /// counter is additive, so a touch, an insert, a move, and a removal all
+    /// reconcile without walking the subtree again.
+    private func addUnreadableCountLocked(from start: UInt32, by delta: Int) {
+        guard delta != 0 else { return }
+        var current = start
+        while current != Self.none {
+            let key = Self.id(for: current, in: storage)
+            setUnreadableCountLocked(current, max(0, (unreadableCounts[key] ?? 0) + delta))
+            current = storage[Int(current)].parent
+        }
+    }
+
     // MARK: - Applying one edit
 
     private func insertLocked(
@@ -855,7 +938,7 @@ public final class LiveTree: @unchecked Sendable {
         if replacing, let existing = childSlotLocked(named: node.name, of: parent.index) {
             removeSlotLocked(existing)
         }
-        appendSubtree(node, parent: parent.index)
+        let slot = appendSubtree(node, parent: parent.index)
         addLocked(
             from: parent.index,
             logical: node.logicalSize,
@@ -863,6 +946,7 @@ public final class LiveTree: @unchecked Sendable {
             files: node.fileCount,
             dirs: node.directoryCount
         )
+        addUnreadableCountLocked(from: parent.index, by: unreadableCountLocked(slot))
         state.changed = true
         state.applied += 1
     }
@@ -924,12 +1008,16 @@ public final class LiveTree: @unchecked Sendable {
         let node = storage[slot]
         let newModified = modifiedAt?.timeIntervalSince1970 ?? 0
         let newFlags = isAccessible ? Self.accessible : 0
+        let wasAccessible = node.flags & Self.accessible != 0
         state.applied += 1
         if node.modified != newModified {
             storage[slot].modified = newModified
             state.changed = true
         }
         if node.flags != newFlags {
+            if node.kind == LiveNodeKind.directory.rawValue, wasAccessible != isAccessible {
+                addUnreadableCountLocked(from: id.index, by: isAccessible ? -1 : 1)
+            }
             storage[slot].flags = newFlags
             state.changed = true
         }
@@ -970,6 +1058,9 @@ public final class LiveTree: @unchecked Sendable {
             files: -Int(node.files),
             dirs: -Int(node.dirs)
         )
+        if node.kind == LiveNodeKind.directory.rawValue {
+            addUnreadableCountLocked(from: node.parent, by: -unreadableCountLocked(slot))
+        }
         unlinkLocked(slot)
         let span = Self.appendName(name, to: &names)
         storage[Int(slot)].nameStart = span.start
@@ -982,6 +1073,9 @@ public final class LiveTree: @unchecked Sendable {
             files: Int(node.files),
             dirs: Int(node.dirs)
         )
+        if node.kind == LiveNodeKind.directory.rawValue {
+            addUnreadableCountLocked(from: parent.index, by: unreadableCountLocked(slot))
+        }
         state.changed = true
         state.applied += 1
     }
@@ -999,6 +1093,9 @@ public final class LiveTree: @unchecked Sendable {
     private func removeSlotLocked(_ slot: UInt32) {
         let node = storage[Int(slot)]
         if node.parent != Self.none {
+            if node.kind == LiveNodeKind.directory.rawValue {
+                addUnreadableCountLocked(from: node.parent, by: -unreadableCountLocked(slot))
+            }
             addLocked(
                 from: node.parent,
                 logical: -node.logical,
@@ -1021,6 +1118,7 @@ public final class LiveTree: @unchecked Sendable {
                 categoryTotals[Int(node.category)] -= node.logical
             }
             errors[LiveNodeID(index: current, generation: node.generation)] = nil
+            unreadableCounts[LiveNodeID(index: current, generation: node.generation)] = nil
             var child = node.firstChild
             while child != Self.none {
                 stack.append(child)
